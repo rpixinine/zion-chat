@@ -631,8 +631,17 @@ export default async function handler(req, res) {
 
     let reply;
 
-    // 1. Saudação → menu de boas-vindas no idioma correto
-    if (langGreetings.has(msg)) {
+    // 1. Primeira mensagem de sempre → menu de boas-vindas no idioma correto
+    const { data: history } = await supabase
+      .from("messages")
+      .select("role, content")
+      .eq("conversation_id", convId)
+      .order("id", { ascending: true })
+      .limit(20);
+
+    const userMessages = history.filter(m => m.role === "user");
+
+    if (userMessages.length === 1) {
       reply = welcomeMessages[language];
 
     // 2. Palavra-chave conhecida → resposta fixa no idioma correto
@@ -641,13 +650,7 @@ export default async function handler(req, res) {
 
     // 3. Qualquer outra coisa → IA (OpenAI) respondendo no idioma correto
     } else {
-      const { data: history } = await supabase
-        .from("messages")
-        .select("role, content")
-        .eq("conversation_id", convId)
-        .order("id", { ascending: true })
-        .limit(20);
-
+      
       const historyForAI = (history || []).map(m => ({
         role: m.role === "user" ? "user" : "assistant",
         content: m.content
@@ -659,7 +662,12 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: systemPrompts[language]
+            content: `You are a friendly, welcoming and Christian virtual assistant for Zion Church Lisboa.
+IMPORTANT: Always respond in the SAME language the user is writing in. If they write in Portuguese, respond in Portuguese. If they write in English, respond in English. If they write in Spanish, respond in Spanish. If they write in Italian, respond in Italian. Adapt automatically.
+Talk about the church, services, ministries, faith and related topics.
+If the question is completely outside the church context, gently redirect.
+Never make up information about dates, events or people.
+Keep responses short and direct (maximum 3 paragraphs).`
           },
           ...historyForAI,
           { role: "user", content: message }

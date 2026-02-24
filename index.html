@@ -41,8 +41,8 @@
             position: fixed;
             inset: 0;
             background:
-                    radial-gradient(ellipse at 15% 15%, rgba(201,168,76,0.09) 0%, transparent 55%),
-                    radial-gradient(ellipse at 85% 85%, rgba(201,168,76,0.06) 0%, transparent 55%);
+                radial-gradient(ellipse at 15% 15%, rgba(201,168,76,0.09) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 85%, rgba(201,168,76,0.06) 0%, transparent 55%);
             pointer-events: none;
         }
 
@@ -111,21 +111,30 @@
             background: linear-gradient(to top, rgba(255,255,255,0.95), transparent);
         }
 
-        .banner-badge {
+        /* Bottom bar: badge + language switcher */
+        .banner-bottom-bar {
             position: absolute;
             bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 0; right: 0;
             display: flex;
             align-items: center;
-            gap: 7px;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 14px;
+        }
+
+        .banner-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             background: rgba(255,255,255,0.92);
             border: 1px solid var(--border);
             border-radius: 20px;
-            padding: 5px 16px;
+            padding: 5px 14px;
             backdrop-filter: blur(8px);
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .status-dot {
@@ -145,11 +154,59 @@
         .badge-text {
             font-family: 'Cinzel', serif;
             color: var(--gold);
-            font-size: 10px;
+            font-size: 9px;
             letter-spacing: 2px;
             text-transform: uppercase;
         }
 
+        /* Language switcher — 4 langs */
+        .lang-switcher {
+            display: flex;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .lang-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            font-size: 9px;
+            letter-spacing: 1px;
+            color: var(--text-faint);
+            transition: all 0.2s;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .lang-btn .flag { font-size: 13px; line-height: 1; }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold-light));
+            color: #fff;
+        }
+
+        .lang-btn:not(.active):hover {
+            color: var(--gold);
+            background: rgba(201,168,76,0.08);
+        }
+
+        .lang-divider {
+            width: 1px;
+            background: var(--border);
+            margin: 4px 0;
+            flex-shrink: 0;
+        }
+
+        /* ── GOLD LINE ── */
         .gold-line {
             height: 2px;
             background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
@@ -195,7 +252,6 @@
             font-weight: 600;
         }
 
-        /* Messages */
         .message {
             display: flex;
             margin: 10px 0;
@@ -249,16 +305,8 @@
             box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
 
-        /* Estiliza o HTML vindo do servidor dentro das bolhas */
-        .message.bot .message-bubble p {
-            margin-bottom: 8px;
-        }
-        .message.bot .message-bubble p:last-child {
-            margin-bottom: 0;
-        }
-        .message.bot .message-bubble br {
-            line-height: 1.8;
-        }
+        .message.bot .message-bubble p { margin-bottom: 8px; }
+        .message.bot .message-bubble p:last-child { margin-bottom: 0; }
 
         .message.user .message-bubble {
             background: linear-gradient(135deg, #8B6914, #C9A84C);
@@ -352,11 +400,7 @@
             box-shadow: 0 2px 8px rgba(139,105,20,0.25);
         }
 
-        .send-btn:hover {
-            transform: scale(1.06);
-            box-shadow: 0 4px 14px rgba(139,105,20,0.35);
-        }
-
+        .send-btn:hover { transform: scale(1.06); box-shadow: 0 4px 14px rgba(139,105,20,0.35); }
         .send-btn:active { transform: scale(0.95); }
 
         .send-btn svg {
@@ -408,12 +452,7 @@
         }
 
         .footer-link svg { width: 12px; height: 12px; }
-
-        .footer-divider {
-            height: 1px;
-            background: var(--border);
-            margin: 8px 0;
-        }
+        .footer-divider { height: 1px; background: var(--border); margin: 8px 0; }
 
         .footer-bottom {
             display: flex;
@@ -431,32 +470,51 @@
             text-align: center;
         }
 
-        .footer-address {
-            color: var(--text-faint);
-            font-size: 10px;
-            text-align: center;
-        }
+        .footer-address { color: var(--text-faint); font-size: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="page-wrapper">
 
-    <!-- BANNER -->
+    <!-- BANNER — logo original mantido -->
     <div class="banner">
         <img
-                src="banner zion.jpg"
-                alt="Zion Lisboa"
-                onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');"
+            src="banner zion.jpg"
+            alt="Zion Lisboa"
+            onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');"
         >
         <div class="banner-fallback">
             <div class="banner-title">ZION</div>
             <div class="banner-sub">Lisboa · Portugal</div>
         </div>
         <div class="banner-overlay"></div>
-        <div class="banner-badge">
-            <div class="status-dot"></div>
-            <span class="badge-text">ChatBot Online</span>
+
+        <div class="banner-bottom-bar">
+            <!-- Status badge -->
+            <div class="banner-badge">
+                <div class="status-dot"></div>
+                <span class="badge-text" id="badgeText">ChatBot Online</span>
+            </div>
+
+            <!-- Language switcher: PT | EN | ES | IT -->
+            <div class="lang-switcher">
+                <button class="lang-btn active" id="btn-pt" onclick="setLang('pt')">
+                    <span class="flag">🇵🇹</span> PT
+                </button>
+                <div class="lang-divider"></div>
+                <button class="lang-btn" id="btn-en" onclick="setLang('en')">
+                    <span class="flag">🇬🇧</span> EN
+                </button>
+                <div class="lang-divider"></div>
+                <button class="lang-btn" id="btn-es" onclick="setLang('es')">
+                    <span class="flag">🇪🇸</span> ES
+                </button>
+                <div class="lang-divider"></div>
+                <button class="lang-btn" id="btn-it" onclick="setLang('it')">
+                    <span class="flag">🇮🇹</span> IT
+                </button>
+            </div>
         </div>
     </div>
 
@@ -466,8 +524,10 @@
     <div class="chat-container" id="chat">
         <div class="welcome-card">
             <div class="cross-icon">✝️</div>
-            <p><strong>Bem-vindo à Zion Lisboa</strong><br>
-                Eu sou Assistente Virtual da Zion Lisboa, e estou aqui para te ajudar com informações sobre a nossa igreja, cultos, eventos e muito mais. Como posso servir-te hoje? </p>
+            <p id="welcomeCardText">
+                <strong>Bem-vindo à Zion Lisboa</strong><br>
+                Sou o Assistente Virtual da Zion Lisboa. Estou aqui para te ajudar com informações sobre a nossa igreja, cultos, eventos e muito mais. Como posso servir-te hoje?
+            </p>
         </div>
     </div>
 
@@ -498,7 +558,7 @@
                     <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                 </svg>
-                Site Oficial
+                <span id="footerSite">Site Oficial</span>
             </a>
             <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank" rel="noopener">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -511,7 +571,7 @@
         </div>
         <div class="footer-divider"></div>
         <div class="footer-bottom">
-            <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+            <div class="footer-copy" id="footerCopy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
             <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
         </div>
     </div>
@@ -520,8 +580,67 @@
 
 <script>
     let conversationId = null;
+    let currentLang = 'pt';
 
-    // Detecta se o conteúdo contém HTML
+    // ─────────────────────────────────────────
+    // TEXTOS DA UI por idioma
+    // ─────────────────────────────────────────
+    const ui = {
+        pt: {
+            placeholder: "Escreve a tua mensagem…",
+            welcomeCard: `<strong>Bem-vindo à Zion Lisboa</strong><br>Sou o Assistente Virtual da Zion Lisboa. Estou aqui para te ajudar com informações sobre a nossa igreja, cultos, eventos e muito mais. Como posso servir-te hoje?`,
+            footerSite: "Site Oficial",
+            footerCopy: "© 2026 Zion Lisboa — Todos os direitos reservados",
+            errorMsg: "Desculpa, houve um erro de ligação. Tenta novamente.",
+        },
+        en: {
+            placeholder: "Type your message…",
+            welcomeCard: `<strong>Welcome to Zion Lisboa</strong><br>I'm the Virtual Assistant of Zion Lisboa. I'm here to help you with information about our church, services, events and more. How can I serve you today?`,
+            footerSite: "Official Website",
+            footerCopy: "© 2026 Zion Lisboa — All rights reserved",
+            errorMsg: "Sorry, a connection error occurred. Please try again.",
+        },
+        es: {
+            placeholder: "Escribe tu mensaje…",
+            welcomeCard: `<strong>Bienvenido a Zion Lisboa</strong><br>Soy el Asistente Virtual de Zion Lisboa. Estoy aquí para ayudarte con información sobre nuestra iglesia, cultos, eventos y mucho más. ¿Cómo puedo servirte hoy?`,
+            footerSite: "Sitio Oficial",
+            footerCopy: "© 2026 Zion Lisboa — Todos los derechos reservados",
+            errorMsg: "Lo sentimos, hubo un error de conexión. Inténtalo de nuevo.",
+        },
+        it: {
+            placeholder: "Scrivi il tuo messaggio…",
+            welcomeCard: `<strong>Benvenuto a Zion Lisboa</strong><br>Sono l'Assistente Virtuale di Zion Lisboa. Sono qui per aiutarti con informazioni sulla nostra chiesa, culti, eventi e molto altro. Come posso servirti oggi?`,
+            footerSite: "Sito Ufficiale",
+            footerCopy: "© 2026 Zion Lisboa — Tutti i diritti riservati",
+            errorMsg: "Spiacenti, si è verificato un errore di connessione. Riprova.",
+        }
+    };
+
+    // ─────────────────────────────────────────
+    // MUDAR IDIOMA
+    // ─────────────────────────────────────────
+    function setLang(lang) {
+        currentLang = lang;
+
+        // Atualiza botões
+        ['pt','en','es','it'].forEach(l => {
+            document.getElementById(`btn-${l}`).classList.toggle('active', l === lang);
+        });
+
+        const t = ui[lang];
+        document.getElementById('msg').placeholder = t.placeholder;
+        document.getElementById('welcomeCardText').innerHTML = t.welcomeCard;
+        document.getElementById('footerSite').textContent = t.footerSite;
+        document.getElementById('footerCopy').textContent = t.footerCopy;
+
+        // Limpa mensagens do chat (mantém welcome card) e reinicia conversa
+        document.querySelectorAll('#chat .message').forEach(m => m.remove());
+        conversationId = null;
+    }
+
+    // ─────────────────────────────────────────
+    // CHAT
+    // ─────────────────────────────────────────
     function isHTML(str) {
         return /<[a-z][\s\S]*>/i.test(str);
     }
@@ -539,7 +658,6 @@
         bubble.className = "message-bubble";
 
         if (type === "bot" && isHTML(content)) {
-            // Renderiza HTML enviado pelo servidor (tags <p>, <br>, emojis, etc.)
             bubble.innerHTML = content;
         } else {
             bubble.textContent = content;
@@ -574,7 +692,7 @@
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message, conversationId })
+                body: JSON.stringify({ message, conversationId, lang: currentLang })
             });
 
             const data = await res.json();
@@ -583,7 +701,7 @@
             addMessage(data.reply, "bot");
         } catch (err) {
             setTyping(false);
-            addMessage("Desculpa, houve um erro de ligação. Tenta novamente.", "bot");
+            addMessage(ui[currentLang].errorMsg, "bot");
         }
     }
 

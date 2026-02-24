@@ -1,5 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
 
+// ─────────────────────────────────────────
+// CLIENTES — lê direto das variáveis de ambiente do Vercel
+// (sem dotenv, funciona tanto local com .env quanto em produção)
+// ─────────────────────────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
@@ -9,7 +14,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Mensagem inicial Bem-vindo
+// ─────────────────────────────────────────
+// MENSAGEM INICIAL
+// ─────────────────────────────────────────
 const welcomeMessage = `
 <p>Bem-vindo à <strong>Zion Church Lisboa</strong> 🙌</p>
 <p>É uma grande alegria ter você aqui! ❤️</p>
@@ -41,23 +48,21 @@ Domingos das 17h às 21h</p>
 <p>Assim conseguimos te ajudar mais rápido 😊</p>
 `;
 
+// ─────────────────────────────────────────
+// RESPOSTAS FIXAS
+// ─────────────────────────────────────────
 const responses = {
-
-    // ── Gerais ──────────────────────────────
-
-    "visao": `
+  "visao": `
 <p>🌍 <strong>Visão da Zion Church</strong></p>
 <p>Formar discípulos e líderes que manifestam o Reino de Deus para transformar a Terra, através do amor de Cristo, verdade da Palavra e poder do Espírito Santo.</p>
 `,
-
-    "valores da zion": `
+  "valores da zion": `
 <p>💛 <strong>Valores da Zion Church</strong></p>
 <p><strong>Intimidade com Deus</strong><br>
 Buscar a presença de Deus é algo prioritário em nossas vidas. Um estilo de vida de adoração, oração e leitura da palavra de Deus é a base para a intimidade com o nosso Deus. Manifestamos em público o que somos no secreto.</p>
 <p><em>Mt 6.6 | Sl 27.4 | Sl 63.1-8 | Lc 7.37-38 | II Cor 3:18</em></p>
 `,
-
-    "cultos": `
+  "cultos": `
 <p>⛪ <strong>Nossos Cultos</strong></p>
 <p>Os cultos acontecem aos <strong>domingos</strong>:<br>
 ⏰ 10h às 13h<br>
@@ -65,36 +70,30 @@ Buscar a presença de Deus é algo prioritário em nossas vidas. Um estilo de vi
 <p>Será uma alegria receber você na Zion Church Lisboa 🙌</p>
 <p>Se precisar da localização, digite <strong>LOCALIZAÇÃO</strong>.</p>
 `,
-
-    "localizacao": `
+  "localizacao": `
 <p>📍 <strong>Campus Lisboa</strong></p>
 <p>Rua do Centro Cultural, 11<br>
 1700-036 Alvalade — Lisboa, Portugal</p>
 <p>Se quiser saber os horários dos cultos, digite <strong>CULTOS</strong> 😊</p>
 `,
-
-    "dizimos": `
+  "dizimos": `
 <p>💰 <strong>Dízimos e Ofertas</strong></p>
 <p>Contribuições voluntárias que sustentam os ministérios e obras da igreja, permitindo que o Reino de Deus continue sendo expandido em Lisboa e ao redor do mundo.</p>
 `,
-
-    "caridade": `
+  "caridade": `
 <p>❤️ <strong>Caridade</strong></p>
 <p>A Zion Church acredita no cuidado com o próximo. Desenvolvemos projetos sociais para apoiar quem mais precisa, expressando o amor de Cristo de forma prática na nossa comunidade.</p>
 `,
-
-    "keola": `
+  "keola": `
 <p>☕ <strong>KEOLA — Lanchonete</strong></p>
 <p>A KEOLA é o nosso espaço de convivência e comunhão. Um lugar para tomar um café, criar conexões e fortalecer os laços da comunidade Zion.</p>
 `,
-
-    "zao": `
+  "zao": `
 <p>🤝 <strong>ZAO — Instituto Bíblico</strong></p>
 <p>O Instituto Bíblico ZAO convida você a embarcar em uma jornada de transformação e aprofundamento no conhecimento e compreensão da Bíblia e de Seu divino Autor.</p>
 <p>Seja para fortalecer sua caminhada com Deus ou para enriquecer sua comunidade com ensinos profundos e aplicáveis, nossos cursos são desenhados para <strong>todos os corações sedentos por mais</strong>.</p>
 `,
-
-    "links": `
+  "links": `
 <p>🔗 <strong>LINKs — Grupos de Conexão</strong></p>
 <p>Os LINKs são grupos que se reúnem como família nos lares, buscando a presença de Deus e compartilhando testemunhos de forma presencial ou online. Neste ambiente a cultura do reino é desenvolvida e a vida cristã é encorajada de forma intencional.</p>
 <p>Os grupos são organizados por faixa etária:<br>
@@ -105,143 +104,162 @@ Buscar a presença de Deus é algo prioritário em nossas vidas. Um estilo de vi
 • Famílias</p>
 <p>Use nossa plataforma para escolher um LINK e se conectar! 😊</p>
 `,
-
-    // ── Ministérios ─────────────────────────
-
-    "lumen": `
+  "lumen": `
 <p>✨ <strong>LUMEN — Ministério Infantil</strong></p>
 <p>Lumen é o ministério infantil da Zion Church. Existimos para formar crianças à luz da Palavra de Deus, firmadas na verdade de Cristo e sensíveis à atuação do Espírito Santo, crendo que elas são chamadas a refletir a luz de Jesus em sua geração.</p>
 `,
-
-    "rise": `
+  "rise": `
 <p>🔥 <strong>RISE — 12 a 14 anos</strong></p>
 <p>Ministério da Zion Church focado em adolescentes de 12 a 14 anos. É nossa missão ver adolescentes sendo formados no olho do furacão do avivamento, com suas identidades forjadas no caráter de Cristo, cheios do Poder do Espírito Santo, levando o Reino dos Céus para a sociedade a sua volta.</p>
 `,
-
-    "flow": `
+  "flow": `
 <p>🌊 <strong>FLOW — 15 a 17 anos</strong></p>
 <p>Flow é o ministério da Zion Church focado em jovens adolescentes de 15 a 17 anos. Acreditamos em uma geração de filhos que se levanta como líderes para trazer transformação e revolução dentro das suas escolas.</p>
 `,
-
-    "vox": `
+  "vox": `
 <p>🎤 <strong>VOX — 18 a 29 anos</strong></p>
 <p>O Vox é um ministério de jovens adultos de 18 a 29 anos, que são compromissados a marcarem a sua geração. A palavra "vox" significa voz no latim. O intuito deste grupo é justamente ser uma voz que anuncia as boas novas do Reino e demonstra o poder e amor de Deus.</p>
 `,
-
-    "eklektos": `
+  "eklektos": `
 <p>👑 <strong>EKLEKTOS — 29 a 39 anos</strong></p>
 <p>A palavra "Eklektos" significa <em>escolhidos</em>, no grego. O Eklektos é o ministério de jovens de 29 a 39 anos da Zion Church, que acredita que serão capacitados para trazer o Reino de Deus nas esferas da sociedade, através de famílias e indivíduos que manifestam a luz e o poder de Cristo.</p>
 `,
-
-    "diamante": `
+  "diamante": `
 <p>💎 <strong>DIAMANTE — 60+ anos</strong></p>
 <p>O Ministério Diamante é um ministério da Zion Church cujos participantes são de acima de 60 anos de idade. Um espaço de honra, comunhão e fé para quem tem muito a contribuir com a comunidade.</p>
 `,
-
-    "raizes": `
+  "raizes": `
 <p>🌱 <strong>RAÍZES — Processo de Membresia</strong></p>
 <p>É o processo de membresia da Zion Church. No Processo Raízes você aprenderá os fundamentos vivos da nossa igreja, a nossa missão, visão, quais os valores que compõem nossa cultura, nosso histórico, e poderá acelerar o engajamento com outros membros e líderes da casa.</p>
 `,
-
-    "jornada": `
+  "jornada": `
 <p>🚶 <strong>JORNADA — Novos Convertidos</strong></p>
 <p>Jornada é o ministério que acolhe, ajuda e orienta os novos convertidos a darem seus primeiros passos na jornada com Cristo, após o novo nascimento, auxiliando também na integração dentro da Zion Church. Seu objetivo é gerar conhecimento, crescimento e conexão.</p>
 `,
-
-    "por um legado": `
+  "por um legado": `
 <p>🏛️ <strong>POR UM LEGADO — Expansão do Reino</strong></p>
 <p>Por Um Legado é um compromisso pessoal com a expansão do Reino de Deus por meio da Zion Church. Este é o verdadeiro desdobramento de uma história de mais de 40 anos do que Deus tem feito em nosso meio tanto física, quanto espiritualmente.</p>
 `,
-
-    "missoes": `
+  "missoes": `
 <p>🌎 <strong>MISSÕES — Ao Redor do Mundo</strong></p>
 <p>A Zion Church coopera com o que o Senhor tem feito ao redor do mundo, dando suporte financeiro e espiritual a organizações missionárias e iniciativas de justiça social. Estas parcerias são definidas anualmente com diferentes instituições.</p>
 `,
-
-    "altomonte": `
+  "altomonte": `
 <p>🎵 <strong>ALTOMONTE MUSIC — Ministério de Louvor</strong></p>
 <p>Altomonte Music é o ministério de Louvor e Adoração da Zion Church. Existe para exaltar e fazer conhecido o nome de Deus. Nosso sonho é ver todos os reinos deste mundo adorando, em espírito e em verdade, ao único Rei dos Reis: Jesus Cristo.</p>
 `,
-
 };
 
+// Palavras de saudação que disparam o menu
+const greetings = new Set(["oi", "ola", "oi!", "ola!", "oii", "hey", "oi tudo bem", "bom dia", "boa tarde", "boa noite", "hello", "hi"]);
+
+// ─────────────────────────────────────────
+// HANDLER (Vercel Serverless Function)
+// ─────────────────────────────────────────
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+  // CORS — permite chamadas do frontend hospedado no mesmo domínio ou localhost
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  const { message, conversationId } = req.body;
-  let convId = conversationId;
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
-  // Cria conversa se não existir
-  if (!convId) {
-    const { data } = await supabase
-      .from("conversations")
-      .insert({})
-      .select()
-      .single();
-    convId = data.id;
-  }
+  try {
+    const { message, conversationId } = req.body;
 
-  // Salva a mensagem do usuário
-  await supabase.from("messages").insert({
-    conversation_id: convId,
-    role: "user",
-    content: message
-  });
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({ error: "Mensagem inválida." });
+    }
 
-  // Normaliza mensagem
-  const msg = message
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+    let convId = conversationId;
 
-  // Pega todas as mensagens da conversa
-  const { data: history } = await supabase
-    .from("messages")
-    .select()
-    .eq("conversation_id", convId)
-    .order("id", { ascending: true });
+    // Cria conversa nova no Supabase se ainda não existe
+    if (!convId) {
+      const { data, error } = await supabase
+        .from("conversations")
+        .insert({})
+        .select()
+        .single();
 
-  let reply;
+      if (error) throw new Error("Erro ao criar conversa: " + error.message);
+      convId = data.id;
+    }
 
-  // Se for a primeira mensagem do usuário -> welcome
-  const userMessages = history.filter(m => m.role === "user");
-  if (userMessages.length === 1) {
-    reply = welcomeMessage;
-  } else if (responses[msg]) {
-    reply = responses[msg];
-  } else {
-    // Usar IA para respostas inteligentes
-    try {
+    // Salva mensagem do utilizador
+    await supabase.from("messages").insert({
+      conversation_id: convId,
+      role: "user",
+      content: message
+    });
+
+    // Normaliza: remove acentos, minúsculas, trim
+    const msg = message
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
+    let reply;
+
+    // 1. Saudação → menu de boas-vindas
+    if (greetings.has(msg)) {
+      reply = welcomeMessage;
+
+    // 2. Palavra-chave conhecida → resposta fixa
+    } else if (responses[msg]) {
+      reply = responses[msg];
+
+    // 3. Qualquer outra coisa → IA (OpenAI)
+    } else {
+      // Busca histórico da conversa para contexto
+      const { data: history } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("conversation_id", convId)
+        .order("id", { ascending: true })
+        .limit(20); // limita para não estourar o contexto
+
+      const historyForAI = (history || []).map(m => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.content
+      }));
+
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
+        max_tokens: 300,
         messages: [
           {
             role: "system",
-            content: "Você é um assistente amigável da Zion Church Lisboa, sempre educado e útil."
+            content: `Você é um assistente virtual da Zion Church Lisboa, amigável, acolhedor e cristão.
+Responda sempre em português europeu.
+Fale sobre a igreja, cultos, ministérios, fé e assuntos relacionados.
+Se a pergunta for totalmente fora do contexto da igreja, redirecione gentilmente para os tópicos da Zion Church.
+Nunca invente informações sobre datas, eventos ou pessoas.
+Responda de forma curta e direta (máximo 3 parágrafos).`
           },
-          ...history.map(m => ({
-            role: m.role === "user" ? "user" : "assistant",
-            content: m.content
-          })),
+          ...historyForAI,
           { role: "user", content: message }
-        ],
-        max_tokens: 200
+        ]
       });
 
       reply = completion.choices[0].message.content;
-    } catch (err) {
-      console.error(err);
-      reply = `🤔 Não consegui entender a sua mensagem. Tente novamente, por favor.`;
     }
+
+    // Salva resposta do bot
+    await supabase.from("messages").insert({
+      conversation_id: convId,
+      role: "bot",
+      content: reply
+    });
+
+    return res.status(200).json({ reply, conversationId: convId });
+
+  } catch (err) {
+    console.error("[chat.js] Erro:", err);
+    return res.status(500).json({
+      reply: "<p>😔 Ocorreu um erro interno. Por favor, tenta novamente mais tarde.</p>",
+      error: err.message
+    });
   }
-
-  // Salva a resposta do bot
-  await supabase.from("messages").insert({
-    conversation_id: convId,
-    role: "bot",
-    content: reply
-  });
-
-  res.status(200).json({ reply, conversationId: convId });
 }

@@ -1,15 +1,8 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const { createClient } = require("@supabase/supabase-js");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
 );
 
 // Mensagem inicial Bem vindo
@@ -168,53 +161,47 @@ Buscar a presença de Deus é algo prioritário em nossas vidas. Um estilo de vi
 
 };
 
-app.post("/chat", async (req, res) => {
-    const { message, conversationId } = req.body;
-    let convId = conversationId;
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-    if (!convId) {
-        const { data } = await supabase
-            .from("conversations")
-            .insert({})
-            .select()
-            .single();
-        convId = data.id;
-    }
+  const { message, conversationId } = req.body;
+  let convId = conversationId;
 
-    // Salva mensagem do usuário
-    await supabase.from("messages").insert({
-        conversation_id: convId,
-        role: "user",
-        content: message
-    });
+  if (!convId) {
+    const { data } = await supabase
+      .from("conversations")
+      .insert({})
+      .select()
+      .single();
+    convId = data.id;
+  }
 
-    // Normalizar mensagem
-    const msg = message
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .trim();
+  await supabase.from("messages").insert({
+    conversation_id: convId,
+    role: "user",
+    content: message
+  });
 
-    let reply;
+  const msg = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
-    if (msg === "oi" || msg === "ola" || msg === "oi!" || msg === "ola!" || msg === "olá" || msg === "oii") {
-        reply = welcomeMessage;
-    } else if (responses[msg]) {
-        reply = responses[msg];
-    } else {
-        reply = "🤔 Não entendi. Digite 'oi' para ver o menu da Zion Church.";
-    }
+  let reply;
+  if (msg === "oi" || msg === "ola" || msg === "oi!" || msg === "ola!" || msg === "olá" || msg === "oii") {
+    reply = welcomeMessage;
+  } else if (responses[msg]) {
+    reply = responses[msg];
+  } else {
+    reply = "🤔 Não entendi. Digite 'oi' para ver o menu da Zion Church.";
+  }
 
-    // Salva resposta do bot
-    await supabase.from("messages").insert({
-        conversation_id: convId,
-        role: "bot",
-        content: reply
-    });
+  await supabase.from("messages").insert({
+    conversation_id: convId,
+    role: "bot",
+    content: reply
+  });
 
-    res.json({ reply, conversationId: convId });
-});
-
-app.listen(process.env.PORT, () => {
-    console.log("Servidor rodando na porta " + process.env.PORT + " 🚀");
-});
+  res.status(200).json({ reply, conversationId: convId });
+}

@@ -162,59 +162,46 @@ Buscar a presença de Deus é algo prioritário em nossas vidas. Um estilo de vi
 };
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).send("Only POST requests allowed");
-    return;
-  }
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { message, conversationId } = req.body;
   let convId = conversationId;
 
-  try {
-    // Se não houver conversationId, cria no Supabase
-    if (!convId) {
-      const { data } = await supabase
-        .from("conversations")
-        .insert({})
-        .select()
-        .single();
-      convId = data.id;
-    }
-
-    // Salva mensagem do usuário
-    await supabase.from("messages").insert({
-      conversation_id: convId,
-      role: "user",
-      content: message
-    });
-
-    // Normaliza mensagem
-    const msg = message
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
-
-    // Escolhe resposta
-    let reply;
-    if (msg === "oi" || msg === "ola" || msg === "oi!" || msg === "ola!" || msg === "olá" || msg === "oii") {
-      reply = welcomeMessage;
-    } else if (responses[msg]) {
-      reply = responses[msg];
-    } else {
-      reply = "🤔 Não entendi. Digite 'oi' para ver o menu da Zion Church.";
-    }
-
-    // Salva resposta do bot
-    await supabase.from("messages").insert({
-      conversation_id: convId,
-      role: "bot",
-      content: reply
-    });
-
-    res.status(200).json({ reply, conversationId: convId });
-  } catch (error) {
-    console.error("Erro no chat:", error);
-    res.status(500).json({ reply: "Desculpa, houve um erro de ligação. Tenta novamente." });
+  if (!convId) {
+    const { data } = await supabase
+      .from("conversations")
+      .insert({})
+      .select()
+      .single();
+    convId = data.id;
   }
+
+  await supabase.from("messages").insert({
+    conversation_id: convId,
+    role: "user",
+    content: message
+  });
+
+  const msg = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  let reply;
+  if (msg === "oi" || msg === "ola" || msg === "oi!" || msg === "ola!" || msg === "olá" || msg === "oii") {
+    reply = welcomeMessage;
+  } else if (responses[msg]) {
+    reply = responses[msg];
+  } else {
+    reply = "🤔 Não entendi. Digite 'oi' para ver o menu da Zion Church.";
+  }
+
+  await supabase.from("messages").insert({
+    conversation_id: convId,
+    role: "bot",
+    content: reply
+  });
+
+  res.status(200).json({ reply, conversationId: convId });
 }

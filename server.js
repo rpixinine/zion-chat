@@ -1,11 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
-// Mensagem inicial Bem vindo
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// Mensagem inicial Bem-vindo
 const welcomeMessage = `
 <p>Bem-vindo à <strong>Zion Church Lisboa</strong> 🙌</p>
 <p>É uma grande alegria ter você aqui! ❤️</p>
@@ -162,11 +166,12 @@ Buscar a presença de Deus é algo prioritário em nossas vidas. Um estilo de vi
 };
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   const { message, conversationId } = req.body;
   let convId = conversationId;
 
+  // Cria conversa se não existir
   if (!convId) {
     const { data } = await supabase
       .from("conversations")
@@ -176,27 +181,62 @@ export default async function handler(req, res) {
     convId = data.id;
   }
 
+  // Salva a mensagem do usuário
   await supabase.from("messages").insert({
     conversation_id: convId,
     role: "user",
     content: message
   });
 
+  // Normaliza mensagem
   const msg = message
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
 
+  // Pega todas as mensagens da conversa
+  const { data: history } = await supabase
+    .from("messages")
+    .select()
+    .eq("conversation_id", convId)
+    .order("id", { ascending: true });
+
   let reply;
-  if (msg === "oi" || msg === "ola" || msg === "oi!" || msg === "ola!" || msg === "olá" || msg === "oii") {
+
+  // Se for a primeira mensagem do usuário -> welcome
+  const userMessages = history.filter(m => m.role === "user");
+  if (userMessages.length === 1) {
     reply = welcomeMessage;
   } else if (responses[msg]) {
     reply = responses[msg];
   } else {
-    reply = "🤔 Não entendi. Digite 'oi' para ver o menu da Zion Church.";
+    // Usar IA para respostas inteligentes
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um assistente amigável da Zion Church Lisboa, sempre educado e útil."
+          },
+          ...history.map(m => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.content
+          })),
+          { role: "user", content: message }
+        ],
+        max_tokens: 200
+      });
+
+      reply = completion.choices[0].message.content;
+    } catch (err) {
+      console.error(err);
+      reply = `🤔 Não consegui entender a sua mensagem. Tente novamente, por favor.`;
+    }
   }
 
+  // Salva a resposta do bot
   await supabase.from("messages").insert({
     conversation_id: convId,
     role: "bot",

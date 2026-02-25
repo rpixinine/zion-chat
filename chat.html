@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat — Zion Lisboa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #B8922A; --gold-light: #D4A843; --gold-dark: #8B6914;
+            --border: rgba(184,146,42,0.22);
+            --bg-page: #F5EFE4; --bg-card: #FFFFFF; --bg-input: #FAF7F2;
+            --bg-bot: #F9F5EE; --bg-footer: #F0E8D8;
+            --text-main: #1A1410; --text-muted: #7A6A52; --text-faint: #A89878;
+            --shadow: 0 8px 40px rgba(100,70,20,0.13);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; background: var(--bg-page); font-family: 'Lato', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 15% 15%, rgba(201,168,76,0.09) 0%, transparent 55%), radial-gradient(ellipse at 85% 85%, rgba(201,168,76,0.06) 0%, transparent 55%); pointer-events: none; }
+        .page-wrapper { position: relative; z-index: 1; display: flex; flex-direction: column; width: 640px; max-width: 96vw; height: 96vh; max-height: 900px; background: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow), 0 0 0 1px var(--border); overflow: hidden; }
+        /* Banner */
+        .banner { width: 100%; position: relative; background: #111; flex-shrink: 0; }
+        .banner img { width: 100%; height: 150px; object-fit: cover; display: block; }
+        .banner-fallback { display: none; width: 100%; height: 150px; background: linear-gradient(135deg, #0d0d0d 0%, #1c1408 50%, #0d0d0d 100%); align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+        .banner-fallback.show { display: flex; }
+        .banner-title { font-family: 'Cinzel', serif; color: #C9A84C; font-size: 34px; font-weight: 700; letter-spacing: 10px; }
+        .banner-sub { color: rgba(201,168,76,0.6); font-size: 11px; letter-spacing: 4px; text-transform: uppercase; }
+        .banner-overlay { position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: linear-gradient(to top, rgba(255,255,255,0.95), transparent); }
+        .banner-nav { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; }
+        .back-btn { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1.5px; color: var(--gold-dark); text-decoration: none; backdrop-filter: blur(8px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.2s; }
+        .back-btn:hover { background: #fff; border-color: var(--gold-light); }
+        .banner-badge { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 20px; padding: 5px 16px; backdrop-filter: blur(8px); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: pulse-dot 2s ease-in-out infinite; flex-shrink: 0; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.75); } }
+        .badge-text { font-family: 'Cinzel', serif; color: var(--gold); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+        /* Lang switcher */
+        .lang-switcher { display: flex; gap: 4px; margin-left: auto; }
+        .lang-btn { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,0.7); color: var(--text-faint); font-size: 10px; font-family: 'Cinzel', serif; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px; }
+        .lang-btn.active { background: rgba(184,146,42,0.15); border-color: var(--gold-light); color: var(--gold-dark); }
+        .gold-line { height: 2px; background: linear-gradient(90deg, transparent, var(--gold-light), transparent); flex-shrink: 0; opacity: 0.5; }
+        /* Chat */
+        .chat-container { flex: 1; background: var(--bg-input); overflow-y: auto; padding: 20px 18px; scroll-behavior: smooth; min-height: 0; }
+        .chat-container::-webkit-scrollbar { width: 4px; }
+        .chat-container::-webkit-scrollbar-thumb { background: rgba(184,146,42,0.25); border-radius: 2px; }
+        .welcome-card { background: linear-gradient(135deg, rgba(201,168,76,0.1), rgba(201,168,76,0.04)); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 18px; text-align: center; animation: fadeSlideIn 0.5s ease forwards; }
+        .welcome-card .cross-icon { font-size: 22px; margin-bottom: 6px; }
+        .welcome-card p { color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+        .welcome-card strong { color: var(--gold); font-family: 'Cinzel', serif; font-weight: 600; }
+        .message { display: flex; margin: 10px 0; animation: fadeSlideIn 0.3s ease forwards; opacity: 0; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .message.bot { justify-content: flex-start; }
+        .message.user { justify-content: flex-end; }
+        .message-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; margin-top: 2px; }
+        .message.bot .message-avatar { background: linear-gradient(135deg, var(--gold-dark), var(--gold-light)); margin-right: 8px; color: #fff; }
+        .message.user .message-avatar { background: #f0e8d8; border: 1px solid var(--border); margin-left: 8px; }
+        .message-bubble { max-width: 74%; word-wrap: break-word; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+        .message.bot .message-bubble { background: var(--bg-bot); color: var(--text-main); border: 1px solid var(--border); border-radius: 2px 12px 12px 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        .message.bot .message-bubble p { margin-bottom: 8px; }
+        .message.bot .message-bubble p:last-child { margin-bottom: 0; }
+        .message.user .message-bubble { background: linear-gradient(135deg, #8B6914, #C9A84C); color: #fff; font-weight: 500; border-radius: 12px 2px 12px 12px; box-shadow: 0 2px 8px rgba(139,105,20,0.2); }
+        /* Typing */
+        .typing-wrap { background: var(--bg-input); padding: 0 18px; flex-shrink: 0; }
+        .typing-indicator { display: none; justify-content: flex-start; padding: 6px 0; }
+        .typing-indicator.show { display: flex; }
+        .typing-dots { background: var(--bg-bot); border: 1px solid var(--border); border-radius: 2px 12px 12px 12px; padding: 10px 16px; display: flex; gap: 5px; align-items: center; margin-left: 38px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold-light); animation: bounce 1.2s ease-in-out infinite; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-6px); opacity: 1; } }
+        /* Input */
+        .input-section { background: #fff; border-top: 1px solid var(--border); padding: 12px 14px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+        .input-section input { flex: 1; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text-main); font-family: 'Lato', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .input-section input::placeholder { color: var(--text-faint); }
+        .input-section input:focus { border-color: var(--gold-light); box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
+        .send-btn { width: 42px; height: 42px; border-radius: 8px; background: linear-gradient(135deg, var(--gold-dark), var(--gold-light)); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s, box-shadow 0.2s; flex-shrink: 0; box-shadow: 0 2px 8px rgba(139,105,20,0.25); }
+        .send-btn:hover { transform: scale(1.06); box-shadow: 0 4px 14px rgba(139,105,20,0.35); }
+        .send-btn:active { transform: scale(0.95); }
+        .send-btn svg { width: 17px; height: 17px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+        /* Footer */
+        .footer { background: var(--bg-footer); border-top: 1px solid var(--border); padding: 10px 18px; flex-shrink: 0; }
+        .footer-links { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
+        .footer-link { display: flex; align-items: center; gap: 5px; color: var(--gold); text-decoration: none; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; font-family: 'Cinzel', serif; transition: all 0.2s; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.6); }
+        .footer-link:hover { background: rgba(255,255,255,0.95); border-color: var(--gold-light); }
+        .footer-link svg { width: 12px; height: 12px; }
+        .footer-divider { height: 1px; background: var(--border); margin: 8px 0; }
+        .footer-bottom { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .footer-copy { color: var(--text-muted); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; font-family: 'Cinzel', serif; text-align: center; }
+        .footer-address { color: var(--text-faint); font-size: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+    <div class="banner">
+        <img src="banner zion.jpg" alt="Zion Lisboa" onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');">
+        <div class="banner-fallback"><div class="banner-title">ZION</div><div class="banner-sub">Lisboa · Portugal</div></div>
+        <div class="banner-overlay"></div>
+        <div class="banner-nav">
+            <a href="index.html" class="back-btn">← Início</a>
+            <div class="banner-badge">
+                <div class="status-dot"></div>
+                <span class="badge-text">ChatBot Online</span>
+            </div>
+            <div class="lang-switcher">
+                <button class="lang-btn active" onclick="setLang('pt',this)">PT</button>
+                <button class="lang-btn" onclick="setLang('en',this)">EN</button>
+                <button class="lang-btn" onclick="setLang('es',this)">ES</button>
+                <button class="lang-btn" onclick="setLang('it',this)">IT</button>
+            </div>
+        </div>
+    </div>
+    <div class="gold-line"></div>
+    <div class="chat-container" id="chat">
+        <div class="welcome-card">
+            <div class="cross-icon">✝️</div>
+            <p><strong>Bem-vindo à Zion Lisboa</strong><br>Sou o Assistente Virtual da Zion Lisboa. Como posso ajudar-te hoje?</p>
+        </div>
+    </div>
+    <div class="typing-wrap">
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>
+    </div>
+    <div class="input-section">
+        <input id="msg" placeholder="Escreve a tua mensagem…" autocomplete="off"/>
+        <button class="send-btn" onclick="send()" title="Enviar">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+    </div>
+    <div class="footer">
+        <div class="footer-links">
+            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
+            <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>@ZionLisboa</a>
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-bottom">
+            <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+            <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+        </div>
+    </div>
+</div>
+<script>
+    let conversationId = null;
+    let currentLang = 'pt';
+
+    function setLang(lang, btn) {
+        currentLang = lang;
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function isHTML(str) { return /<[a-z][\s\S]*>/i.test(str); }
+
+    function addMessage(content, type) {
+        const chat = document.getElementById("chat");
+        const div = document.createElement("div");
+        div.className = `message ${type}`;
+        const avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+        avatar.textContent = type === "bot" ? "✝" : "🙏";
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble";
+        if (type === "bot" && isHTML(content)) { bubble.innerHTML = content; }
+        else { bubble.textContent = content; }
+        if (type === "bot") { div.appendChild(avatar); div.appendChild(bubble); }
+        else { div.appendChild(bubble); div.appendChild(avatar); }
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function setTyping(show) {
+        document.getElementById("typingIndicator").classList.toggle("show", show);
+    }
+
+    async function send() {
+        const input = document.getElementById("msg");
+        const message = input.value.trim();
+        if (!message) return;
+        input.value = "";
+        addMessage(message, "user");
+        setTyping(true);
+        try {
+            const res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message, conversationId, lang: currentLang })
+            });
+            const data = await res.json();
+            conversationId = data.conversationId;
+            setTyping(false);
+            addMessage(data.reply, "bot");
+        } catch (err) {
+            setTyping(false);
+            addMessage("Desculpa, houve um erro de ligação. Tenta novamente.", "bot");
+        }
+    }
+
+    document.getElementById("msg").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") send();
+    });
+</script>
+</body>
+</html>

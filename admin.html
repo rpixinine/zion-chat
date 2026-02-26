@@ -169,6 +169,30 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .btn-sub-add{padding:9px 14px;border-radius:8px;border:none;background:rgba(184,146,42,0.12);color:var(--gold-dark);font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;flex-shrink:0;border:1px solid rgba(184,146,42,0.2)}
 .btn-sub-add:hover{background:rgba(184,146,42,0.2)}
 
+/* ── IMAGE UPLOAD COMPONENT ─────────────────────────────── */
+.img-upload-wrap{grid-column:1/-1}
+.img-upload-box{border:2px dashed var(--border);border-radius:10px;background:var(--bg-input);cursor:pointer;transition:all 0.2s;overflow:hidden;position:relative}
+.img-upload-box:hover{border-color:var(--gold-light);background:rgba(184,146,42,0.04)}
+.img-upload-box.has-img{border-style:solid;border-color:var(--border)}
+.img-upload-preview{width:100%;height:140px;object-fit:cover;display:block}
+.img-upload-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center}
+.img-upload-placeholder-icon{font-size:28px;opacity:0.35}
+.img-upload-placeholder-txt{font-size:11px;color:var(--text-faint);line-height:1.5}
+.img-upload-actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.img-upload-btn{flex:1;min-width:100px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);font-family:'Cinzel',serif;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);cursor:pointer;transition:all 0.2s;text-align:center}
+.img-upload-btn:hover{border-color:var(--gold-light);color:var(--gold-dark)}
+.img-upload-btn.danger{border-color:var(--red-border);color:var(--red)}
+.img-upload-progress{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;display:none}
+.img-upload-progress.active{display:block}
+.img-upload-progress-bar{height:100%;background:linear-gradient(90deg,var(--gold-dark),var(--gold-light));width:0%;transition:width 0.3s ease;border-radius:2px}
+.img-upload-url{margin-top:6px;display:flex;gap:6px}
+.img-upload-url input{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text-main);outline:none;font-family:'Lato',sans-serif}
+.img-upload-url input:focus{border-color:var(--gold-light)}
+.img-upload-url .img-upload-btn{flex:none;white-space:nowrap}
+.img-upload-status{font-size:10px;color:var(--text-faint);margin-top:4px;min-height:14px}
+.img-upload-status.ok{color:var(--green)}
+.img-upload-status.err{color:var(--red)}
+
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -674,6 +698,8 @@ function buildForm(cfg, r) {
       html += `<div class="form-group ${fullClass}"><label class="form-label">${c.label}</label><select class="form-select" id="f_${c.key}"><option value="">-- Seleciona --</option>${opts}</select></div>`;
     } else if (c.type === 'textarea') {
       html += `<div class="form-group ${fullClass}"><label class="form-label">${c.label}</label><textarea class="form-textarea" id="f_${c.key}" placeholder="${c.ph||''}">${val}</textarea></div>`;
+    } else if (c.type === 'image') {
+      html += buildImageUpload(c.key, c.label, val, c.bucket||'imagens');
     } else {
       html += `<div class="form-group ${fullClass}"><label class="form-label">${c.label}</label><input class="form-input" id="f_${c.key}" type="${c.type||'text'}" placeholder="${c.ph||''}" value="${val}"></div>`;
     }
@@ -856,6 +882,130 @@ async function removeSubItem(itemId, tabela, parentId) {
   await carregarSubList(parentId);
 }
 
+// ── IMAGE UPLOAD ───────────────────────────────────────────
+const uploadBuckets = {}; // cache de bucket por campo
+
+function buildImageUpload(key, label, currentUrl, bucket) {
+  const hasImg = !!currentUrl;
+  const imgHtml = hasImg
+    ? `<img class="img-upload-preview" src="${currentUrl}" alt="${label}" onerror="this.style.display='none'">`
+    : `<div class="img-upload-placeholder">
+        <div class="img-upload-placeholder-icon">+</div>
+        <div class="img-upload-placeholder-txt">Clica para escolher uma imagem<br>ou usa a camara / URL abaixo</div>
+       </div>`;
+
+  return `
+    <div class="form-group img-upload-wrap">
+      <label class="form-label">${label}</label>
+      <div class="img-upload-box ${hasImg?'has-img':''}" id="img-box-${key}" onclick="triggerFileInput('${key}')">
+        ${imgHtml}
+      </div>
+      <div class="img-upload-progress" id="img-prog-${key}"><div class="img-upload-progress-bar" id="img-prog-bar-${key}"></div></div>
+      <div class="img-upload-status" id="img-status-${key}"></div>
+      <div class="img-upload-actions">
+        <button type="button" class="img-upload-btn" onclick="triggerFileInput('${key}')">Escolher Ficheiro</button>
+        <button type="button" class="img-upload-btn" onclick="triggerCamera('${key}')">Tirar Foto</button>
+        ${currentUrl ? `<button type="button" class="img-upload-btn danger" onclick="removeImage('${key}','f_${key}')">Remover</button>` : ''}
+      </div>
+      <div class="img-upload-url">
+        <input type="text" id="img-url-input-${key}" placeholder="Ou cola um URL aqui..." value="${currentUrl||''}">
+        <button type="button" class="img-upload-btn" onclick="applyUrlInput('${key}','${bucket}')">Usar URL</button>
+      </div>
+      <input type="hidden" id="f_${key}" value="${currentUrl||''}">
+      <input type="file" id="img-file-${key}" accept="image/*" style="display:none" onchange="handleFileSelect('${key}','${bucket}',this)">
+      <input type="file" id="img-cam-${key}"  accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect('${key}','${bucket}',this)">
+    </div>`;
+}
+
+function triggerFileInput(key) {
+  document.getElementById('img-file-'+key)?.click();
+}
+function triggerCamera(key) {
+  document.getElementById('img-cam-'+key)?.click();
+}
+function applyUrlInput(key, bucket) {
+  const url = document.getElementById('img-url-input-'+key)?.value?.trim();
+  if (!url) return;
+  document.getElementById('f_'+key).value = url;
+  updateImagePreview(key, url);
+  setImgStatus(key, 'URL aplicado.', 'ok');
+}
+function removeImage(key, hiddenId) {
+  document.getElementById(hiddenId).value = '';
+  document.getElementById('img-url-input-'+key).value = '';
+  const box = document.getElementById('img-box-'+key);
+  box.innerHTML = `<div class="img-upload-placeholder"><div class="img-upload-placeholder-icon">+</div><div class="img-upload-placeholder-txt">Clica para escolher uma imagem</div></div>`;
+  box.classList.remove('has-img');
+  setImgStatus(key, '', '');
+}
+function updateImagePreview(key, url) {
+  const box = document.getElementById('img-box-'+key);
+  if (!box) return;
+  box.classList.add('has-img');
+  box.innerHTML = `<img class="img-upload-preview" src="${url}" alt="preview" onerror="this.parentElement.classList.remove('has-img');this.style.display='none'">`;
+}
+function setImgStatus(key, msg, tipo) {
+  const el = document.getElementById('img-status-'+key);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'img-upload-status' + (tipo?' '+tipo:'');
+}
+
+async function handleFileSelect(key, bucket, input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  // Preview local imediato
+  const localUrl = URL.createObjectURL(file);
+  updateImagePreview(key, localUrl);
+  setImgStatus(key, 'A fazer upload...', '');
+
+  // Progress bar
+  const prog = document.getElementById('img-prog-'+key);
+  const bar  = document.getElementById('img-prog-bar-'+key);
+  if (prog) prog.classList.add('active');
+  if (bar) bar.style.width = '30%';
+
+  try {
+    const ext      = file.name.split('.').pop();
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const path     = `${secaoAtiva}/${filename}`;
+
+    if (bar) bar.style.width = '60%';
+
+    const res = await fetch(`${SUPA_URL}/storage/v1/object/${bucket}/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': `Bearer ${SUPA_KEY}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true',
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err?.message || 'Erro no upload');
+    }
+
+    if (bar) bar.style.width = '100%';
+
+    const publicUrl = `${SUPA_URL}/storage/v1/object/public/${bucket}/${path}`;
+    document.getElementById('f_'+key).value = publicUrl;
+    document.getElementById('img-url-input-'+key).value = publicUrl;
+    updateImagePreview(key, publicUrl);
+    setImgStatus(key, 'Upload concluido!', 'ok');
+
+  } catch(e) {
+    setImgStatus(key, 'Erro: '+e.message, 'err');
+    // Mantem preview local mesmo com erro
+  } finally {
+    setTimeout(()=>{ if(prog) prog.classList.remove('active'); if(bar) bar.style.width='0%'; }, 1500);
+    input.value = '';
+  }
+}
+
 // ── DRAWER ─────────────────────────────────────────────────
 function closeDrawer() {
   document.getElementById('overlay').classList.add('hidden');
@@ -879,7 +1029,7 @@ function camposMembros() { return [
   {key:'data_nascimento', label:'Data Nascimento', type:'date'},
   {key:'estado_civil',label:'Estado Civil',   type:'select', options:[{v:'solteiro',l:'Solteiro'},{v:'casado',l:'Casado'},{v:'divorciado',l:'Divorciado'},{v:'viuvo',l:'Viuvo'}]},
   {key:'nif',         label:'NIF',            ph:'000 000 000'},
-  {key:'foto_url',    label:'Foto URL',       ph:'https://...',       full:true},
+  {key:'foto_url',    label:'Foto',           type:'image', bucket:'imagens', full:true},
   {type:'section', label:'Morada'},
   {key:'rua',         label:'Rua',            ph:'Nome da rua',       full:true},
   {key:'numero',      label:'Numero',         ph:'Nr'},
@@ -982,7 +1132,7 @@ function camposSalas() { return [
   {key:'hora_fim',      label:'Hora Fecho',   type:'time'},
   {key:'descricao',     label:'Descricao',    type:'textarea', ph:'Descricao da sala...', full:true},
   {key:'aviso_entrega', label:'Aviso de Entrega', type:'textarea', ph:'Ex: Entregar limpa...', full:true},
-  {key:'foto_url',      label:'Foto URL',     ph:'https://...', full:true},
+  {key:'foto_url',      label:'Foto',         type:'image', bucket:'imagens', full:true},
   {key:'google_calendar_id', label:'Google Calendar ID', ph:'calendar@group.calendar.google.com', full:true},
   {type:'section', label:'Equipamentos'},
   {key:'tem_som',       label:'Som',          type:'checkbox'},
@@ -1008,7 +1158,7 @@ function camposKeola() { return [
   {key:'preco',         label:'Preco (€)',     type:'number', ph:'0.00'},
   {key:'ordem',         label:'Ordem',         type:'number', ph:'1'},
   {key:'descricao',     label:'Descricao',     type:'textarea', ph:'Descricao...', full:true},
-  {key:'imagem_url',    label:'Imagem URL',    ph:'https://...',        full:true},
+  {key:'imagem_url',    label:'Imagem',        type:'image', bucket:'imagens', full:true},
   {key:'disponivel',    label:'Disponivel',    type:'checkbox', default:true},
   {key:'especial_hoje', label:'Especial Hoje', type:'checkbox'},
 ];}
@@ -1077,7 +1227,7 @@ function camposLoja() { return [
   {key:'tipo_capa',         label:'Tipo de Capa',           type:'select', options:[{v:'mole',l:'Mole'},{v:'dura',l:'Dura'},{v:'espiralada',l:'Espiralada'}]},
   // Imagem e Destaque
   {type:'section', label:'Imagem e Destaque'},
-  {key:'imagem_url',        label:'URL da Imagem Principal',ph:'https://...',                full:true},
+  {key:'imagem_url',        label:'Imagem Principal',       type:'image', bucket:'imagens', full:true},
   {key:'ordem',             label:'Ordem de Exibicao',      type:'number', ph:'1'},
   {key:'disponivel',        label:'Disponivel',             type:'checkbox', default:true},
   {key:'ativo',             label:'Ativo',                  type:'checkbox', default:true},

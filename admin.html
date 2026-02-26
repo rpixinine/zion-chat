@@ -355,7 +355,14 @@ function renderSecao() {
     </div>`;
 
   if (temSubTabs && subTabAtiva >= 1) {
-    // membros: subtab 1=Filhos is handled in abrirForm; subtab 2=Visitantes
+    if (secaoAtiva === 'membros' && subTabAtiva === 1) {
+      // Sub-aba Filhos: abre pelo form de edicao do membro
+      const cfg2 = SECOES['membros'];
+      html += `<div class="sub-tabs">${cfg2.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}</div>`;
+      html += `<div class="admin-list"><div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;color:var(--text-faint);font-size:13px;line-height:1.8">Para gerir os filhos de um membro, abre o registo do membro e edita a partir dai.</div></div>`;
+      document.getElementById('main-content').innerHTML = html;
+      return;
+    }
     if (secaoAtiva === 'membros' && subTabAtiva === 2) {
       html += renderSubTabLideres();
       document.getElementById('main-content').innerHTML = html;
@@ -482,8 +489,9 @@ function renderVisitantes() {
   const cfg = SECOES['membros'];
   const q   = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
   let lista = [...visitantes];
-  if (!filtroInativo) lista = lista.filter(r => r.ativo !== false);
-  else lista = lista.filter(r => r.ativo === false);
+  // Por default mostra so nao convertidos e ativos; botao Inativos mostra os convertidos/inativos
+  if (!filtroInativo) lista = lista.filter(r => r.ativo !== false && !r.convertido);
+  else lista = lista.filter(r => r.convertido || r.ativo === false);
   if (q) lista = lista.filter(r => (r.nome||'').toLowerCase().includes(q));
 
   let html = `
@@ -492,7 +500,7 @@ function renderVisitantes() {
     </div>
     <div class="section-toolbar" style="top:0">
       <input class="toolbar-search" placeholder="Pesquisar visitante..." oninput="renderSecao()">
-      <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">Inativos</button>
+      <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">${filtroInativo?'Ativos':'Convertidos'}</button>
       <button class="btn-new" onclick="abrirFormVisitante(null)">+ Novo</button>
     </div>`;
 
@@ -997,16 +1005,76 @@ function camposKeola() { return [
 ];}
 
 function camposLoja() { return [
-  {key:'nome',             label:'Nome',              ph:'Ex: Camisola ZION',  full:true},
-  {key:'categoria',        label:'Categoria',         ph:'Ex: Vestuario'},
-  {key:'preco',            label:'Preco (€)',         type:'number', ph:'0.00'},
-  {key:'preco_promocional',label:'Preco Promocional', type:'number', ph:'0.00'},
-  {key:'stock',            label:'Stock',             type:'number', ph:'0'},
-  {key:'ordem',            label:'Ordem',             type:'number', ph:'1'},
-  {key:'descricao',        label:'Descricao',         type:'textarea', ph:'Descricao do produto...', full:true},
-  {key:'imagem_url',       label:'Imagem URL',        ph:'https://...',        full:true},
-  {key:'disponivel',       label:'Disponivel',        type:'checkbox', default:true},
-  {key:'destaque',         label:'Destaque',          type:'checkbox'},
+  // Identificacao
+  {type:'section', label:'Identificacao'},
+  {key:'nome',              label:'Nome',             ph:'Ex: Camisola ZION',                 full:true},
+  {key:'categoria',         label:'Categoria',        type:'select', options:[
+    {v:'Vestuario',l:'Vestuario'},{v:'Acessorios',l:'Acessorios'},{v:'Livros',l:'Livros'},
+    {v:'Musica',l:'Musica'},{v:'Decoracao',l:'Decoracao'},{v:'Infantil',l:'Infantil'},{v:'Outros',l:'Outros'}
+  ]},
+  {key:'subcategoria',      label:'Subcategoria',     ph:'Ex: Camisolas'},
+  {key:'sku',               label:'SKU',              ph:'Ex: ZN-CAM-001'},
+  {key:'codigo_barras',     label:'Codigo de Barras', ph:'EAN / ISBN'},
+  {key:'marca',             label:'Marca',            ph:'Ex: Zion'},
+  {key:'fornecedor',        label:'Fornecedor',       ph:'Nome do fornecedor'},
+  {key:'tags',              label:'Tags',             ph:'Ex: lancamento,verao',              full:true},
+  {key:'data_lancamento',   label:'Data Lancamento',  type:'date'},
+  {key:'descricao',         label:'Descricao',        type:'textarea', ph:'Descricao do produto...', full:true},
+  // Precos
+  {type:'section', label:'Precos'},
+  {key:'preco',             label:'Preco Normal (€)',        type:'number', ph:'0.00'},
+  {key:'preco_custo',       label:'Preco de Custo (€)',      type:'number', ph:'0.00'},
+  {key:'preco_promocional', label:'Preco Promocional (€)',   type:'number', ph:'0.00'},
+  {key:'desconto_pct',      label:'Desconto (%)',            type:'number', ph:'0'},
+  {key:'margem_lucro',      label:'Margem de Lucro (%)',     type:'number', ph:'0'},
+  {key:'data_inicio_promo', label:'Inicio Promocao',        type:'date'},
+  {key:'data_fim_promo',    label:'Fim Promocao',           type:'date'},
+  // Estoque
+  {type:'section', label:'Estoque e Logistica'},
+  {key:'stock',             label:'Quantidade em Estoque',  type:'number', ph:'0'},
+  {key:'stock_minimo',      label:'Estoque Minimo',         type:'number', ph:'0'},
+  {key:'stock_maximo',      label:'Estoque Maximo',         type:'number', ph:'0'},
+  {key:'localizacao',       label:'Localizacao no Estoque', ph:'Ex: Prateleira A1'},
+  {key:'controlar_estoque', label:'Controlar Estoque',      type:'checkbox', default:true},
+  {key:'venda_sem_estoque', label:'Vender Sem Estoque',     type:'checkbox'},
+  {key:'peso',              label:'Peso (kg)',              type:'number', ph:'0.00'},
+  {key:'altura',            label:'Altura (cm)',            type:'number', ph:'0'},
+  {key:'largura',           label:'Largura (cm)',           type:'number', ph:'0'},
+  {key:'comprimento',       label:'Comprimento (cm)',       type:'number', ph:'0'},
+  {key:'frete_gratis',      label:'Frete Gratis',           type:'checkbox'},
+  {key:'classe_envio',      label:'Classe de Envio',        ph:'Ex: Standard'},
+  // Variacao / Material
+  {type:'section', label:'Variacao e Material'},
+  {key:'cor',               label:'Cor',                    ph:'Ex: Preto'},
+  {key:'tamanho',           label:'Tamanho',                ph:'Ex: M / 42'},
+  {key:'modelo',            label:'Modelo',                 ph:'Ex: Classic Fit'},
+  {key:'material',          label:'Material',               ph:'Ex: 100% Algodao'},
+  {key:'tipo_tecido',       label:'Tipo de Tecido',         ph:'Ex: Jersey'},
+  {key:'genero',            label:'Genero',                 type:'select', options:[{v:'unissex',l:'Unissex'},{v:'masculino',l:'Masculino'},{v:'feminino',l:'Feminino'},{v:'infantil',l:'Infantil'}]},
+  {key:'estacao',           label:'Estacao',                type:'select', options:[{v:'todas',l:'Todas'},{v:'verao',l:'Verao'},{v:'inverno',l:'Inverno'},{v:'primavera',l:'Primavera'},{v:'outono',l:'Outono'}]},
+  {key:'voltagem',          label:'Voltagem',               ph:'Ex: 110V / 220V'},
+  {key:'edicao',            label:'Edicao',                 ph:'Ex: Edicao Limitada'},
+  {key:'sku_variacao',      label:'SKU da Variacao',        ph:'Ex: ZN-CAM-001-PT-M'},
+  {key:'preco_variacao',    label:'Preco da Variacao (€)',  type:'number', ph:'0.00'},
+  {key:'estoque_variacao',  label:'Estoque da Variacao',    type:'number', ph:'0'},
+  // Livros / Publicacoes
+  {type:'section', label:'Livros e Publicacoes'},
+  {key:'autor',             label:'Autor',                  ph:'Nome do autor'},
+  {key:'editora',           label:'Editora',                ph:'Nome da editora'},
+  {key:'isbn',              label:'ISBN',                   ph:'000-0-000-00000-0'},
+  {key:'num_paginas',       label:'Numero de Paginas',      type:'number', ph:'0'},
+  {key:'ano_publicacao',    label:'Ano de Publicacao',      type:'number', ph:'2025'},
+  {key:'idioma',            label:'Idioma',                 ph:'Ex: Portugues'},
+  {key:'tipo_capa',         label:'Tipo de Capa',           type:'select', options:[{v:'mole',l:'Mole'},{v:'dura',l:'Dura'},{v:'espiralada',l:'Espiralada'}]},
+  // Imagem e Destaque
+  {type:'section', label:'Imagem e Destaque'},
+  {key:'imagem_url',        label:'URL da Imagem Principal',ph:'https://...',                full:true},
+  {key:'ordem',             label:'Ordem de Exibicao',      type:'number', ph:'1'},
+  {key:'disponivel',        label:'Disponivel',             type:'checkbox', default:true},
+  {key:'ativo',             label:'Ativo',                  type:'checkbox', default:true},
+  {key:'destaque',          label:'Produto em Destaque',    type:'checkbox'},
+  {key:'novo_lancamento',   label:'Novo Lancamento',        type:'checkbox'},
+  {key:'mais_vendido',      label:'Mais Vendido',           type:'checkbox'},
 ];}
 
 init();

@@ -173,14 +173,13 @@
         </div>
     </div>
     <div class="gold-line"></div>
-    <!-- 
     <div class="user-bar">
         <div class="user-bar-info">
             <div class="user-bar-nome" id="top-user"></div>
             <div class="user-bar-tipo">Administrador</div>
         </div>
         <button class="logout-btn" onclick="ZionAuth.logout()">Sair</button>
-    </div> -->
+    </div>
 
     <!-- Nav -->
     <div class="nav-bar" id="nav-bar">
@@ -429,12 +428,20 @@
         const registo = id ? registos.find(r=>r.id===id) : null;
         const isNovo  = !registo;
 
+        // Garante que membros estao carregados antes de construir o form
+        if (secaoAtiva==='ministerios'||secaoAtiva==='cursos') {
+            try {
+                const res = await sb('membros?select=id,nome&ativo=eq.true&order=nome');
+                if (Array.isArray(res) && res.length > 0) membros = res;
+            } catch(e) { console.warn('Erro ao carregar membros:', e); }
+        }
+
         document.getElementById('drawer-title').textContent = isNovo ? `Novo ${cfg.label}` : `Editar ${cfg.label}`;
         document.getElementById('drawer-body').innerHTML    = buildForm(cfg, registo);
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
 
-        // Se for ministerios/cursos com lideres/instrutores, carrega lista
+        // Carrega sub-lista de instrutores/lideres se for edicao
         if (!isNovo && (secaoAtiva==='ministerios'||secaoAtiva==='cursos')) {
             await carregarSubList(registo.id);
         }

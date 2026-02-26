@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Aprovações — Zion Church Lisboa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <style>
+        :root{
+            --gold:#B8922A;--gold-light:#D4A843;--gold-dark:#8B6914;
+            --border:rgba(184,146,42,0.22);--bg-page:#F5EFE4;--bg-card:#FFFFFF;
+            --bg-input:#FAF7F2;--bg-footer:#F0E8D8;--text-main:#1A1410;
+            --text-muted:#7A6A52;--text-faint:#A89878;
+            --shadow:0 8px 40px rgba(100,70,20,0.13);
+            --green:#2e7d32;--green-bg:rgba(46,125,50,0.08);--green-border:rgba(46,125,50,0.25);
+            --red:#c0392b;--red-bg:rgba(192,57,43,0.08);--red-border:rgba(192,57,43,0.25);
+            --orange:#e65100;--orange-bg:rgba(230,81,0,0.08);--orange-border:rgba(230,81,0,0.25);
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+        html,body{height:100%;background:var(--bg-page);font-family:'Lato',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+        body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 15%,rgba(201,168,76,0.09) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(201,168,76,0.06) 0%,transparent 55%);pointer-events:none}
+        .page-wrapper{position:relative;z-index:1;display:flex;flex-direction:column;width:640px;max-width:96vw;height:96vh;max-height:900px;background:var(--bg-card);border-radius:16px;box-shadow:var(--shadow),0 0 0 1px var(--border);overflow:hidden}
+
+        /* Banner */
+        .banner{width:100%;position:relative;background:#111;flex-shrink:0}
+        .banner img{width:100%;height:110px;object-fit:cover;display:block}
+        .banner-fallback{display:none;width:100%;height:110px;background:linear-gradient(135deg,#0d0d0d 0%,#1c1408 50%,#0d0d0d 100%);align-items:center;justify-content:center;flex-direction:column;gap:8px}
+        .banner-fallback.show{display:flex}
+        .banner-title{font-family:'Cinzel',serif;color:#C9A84C;font-size:26px;font-weight:700;letter-spacing:10px}
+        .banner-sub{color:rgba(201,168,76,0.6);font-size:10px;letter-spacing:4px;text-transform:uppercase}
+        .banner-overlay{position:absolute;bottom:0;left:0;right:0;height:55px;background:linear-gradient(to top,rgba(255,255,255,0.97),transparent)}
+        .banner-nav{position:absolute;bottom:10px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+        .back-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;color:var(--gold-dark);text-decoration:none;backdrop-filter:blur(8px)}
+        .page-badge{font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:20px;padding:5px 14px;backdrop-filter:blur(8px)}
+        .gold-line{height:2px;background:linear-gradient(90deg,transparent,var(--gold-light),transparent);flex-shrink:0;opacity:0.5}
+
+        /* User bar */
+        .user-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.02));border-bottom:1px solid var(--border);flex-shrink:0}
+        .user-bar-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold-light));display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:12px;color:#fff;font-weight:700;flex-shrink:0}
+        .user-bar-info{flex:1}
+        .user-bar-nome{font-family:'Cinzel',serif;font-size:12px;color:var(--gold-dark)}
+        .user-bar-tipo{font-size:10px;color:var(--text-faint)}
+        .logout-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid rgba(220,80,60,0.3);background:rgba(220,80,60,0.06);color:#c0392b;font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;cursor:pointer;flex-shrink:0}
+
+        /* Tabs */
+        .tab-bar{display:flex;background:var(--bg-input);border-bottom:1px solid var(--border);flex-shrink:0}
+        .tab-btn{flex:1;padding:11px;font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+        .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+        .tab-badge{background:var(--orange);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:'Lato',sans-serif;font-weight:700}
+        .tab-badge.green{background:var(--green)}
+
+        /* Content */
+        .content{flex:1;overflow-y:auto;background:var(--bg-input)}
+        .content::-webkit-scrollbar{width:4px}
+        .content::-webkit-scrollbar-thumb{background:rgba(184,146,42,0.25);border-radius:2px}
+
+        /* Stats */
+        .stats-bar{display:flex;gap:8px;padding:12px 16px 4px}
+        .stat-pill{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:9px;text-align:center}
+        .stat-num{font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--gold-dark)}
+        .stat-num.orange{color:var(--orange)}
+        .stat-num.green{color:var(--green)}
+        .stat-label{font-size:10px;color:var(--text-faint);margin-top:1px}
+
+        .section-label{font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-faint);padding:12px 16px 6px}
+
+        /* Pedido card */
+        .pedidos-list{display:flex;flex-direction:column;gap:8px;padding:0 16px 16px}
+        .pedido-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;animation:fadeUp 0.3s ease both}
+        .pedido-header{display:flex;align-items:flex-start;gap:12px;padding:12px 14px 10px}
+        .pedido-sala-foto{width:56px;height:42px;border-radius:8px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.04));display:flex;align-items:center;justify-content:center;font-size:18px}
+        .pedido-sala-foto img{width:56px;height:42px;border-radius:8px;object-fit:cover;display:block}
+        .pedido-info{flex:1;min-width:0}
+        .pedido-sala-nome{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--gold-dark);margin-bottom:2px}
+        .pedido-sala-esp{font-size:11px;color:var(--text-faint)}
+        .pedido-status-badge{padding:3px 9px;border-radius:10px;font-family:'Cinzel',serif;font-size:8px;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+        .sb-pendente{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+        .sb-aprovado{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+        .sb-recusado{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+        /* Detalhe do pedido */
+        .pedido-details{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid rgba(184,146,42,0.1);background:var(--bg-input)}
+        .pedido-detail-cell{padding:8px 14px;border-bottom:1px solid rgba(184,146,42,0.07)}
+        .pedido-detail-cell:nth-child(odd){border-right:1px solid rgba(184,146,42,0.07)}
+        .pedido-detail-full{grid-column:1/-1}
+        .pd-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-faint);font-family:'Cinzel',serif;margin-bottom:2px}
+        .pd-value{font-size:12px;color:var(--text-main)}
+
+        /* Ações */
+        .pedido-actions{display:flex;gap:8px;padding:10px 14px;border-top:1px solid rgba(184,146,42,0.1)}
+        .btn-aprovar{flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--green),#43a047);color:#fff;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+        .btn-aprovar:hover{filter:brightness(1.08)}
+        .btn-aprovar:disabled{opacity:0.5;cursor:not-allowed}
+        .btn-rejeitar{flex:1;padding:9px;border-radius:8px;border:1px solid var(--red-border);background:var(--red-bg);color:var(--red);font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+        .btn-rejeitar:hover{background:rgba(192,57,43,0.14)}
+        .btn-rejeitar:disabled{opacity:0.5;cursor:not-allowed}
+
+        /* Aprovado overlay */
+        .pedido-done{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-top:1px solid rgba(184,146,42,0.1);font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px}
+        .pedido-done.aprovado{color:var(--green);background:var(--green-bg)}
+        .pedido-done.recusado{color:var(--red);background:var(--red-bg)}
+
+        /* Modal recusa */
+        .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.52);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);animation:fadeIn 0.2s ease;padding:20px}
+        .overlay.hidden{display:none}
+        .modal{width:100%;max-width:440px;background:var(--bg-card);border-radius:14px;overflow:hidden;animation:scaleIn 0.25s ease;box-shadow:var(--shadow)}
+        .modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .modal-head-title{font-family:'Cinzel',serif;font-size:13px;color:var(--red)}
+        .modal-x{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:none;color:var(--text-faint);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+        .modal-body{padding:16px 18px}
+        .modal-info{background:var(--red-bg);border:1px solid var(--red-border);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--red);line-height:1.5}
+        .modal-label{font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;display:block}
+        .modal-textarea{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Lato',sans-serif;font-size:13px;color:var(--text-main);outline:none;resize:none;height:90px;line-height:1.5;transition:border-color 0.2s}
+        .modal-textarea:focus{border-color:var(--red)}
+        .modal-textarea::placeholder{color:var(--text-faint)}
+        .modal-footer{display:flex;gap:8px;margin-top:14px}
+        .btn-cancel{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer}
+        .btn-confirm-rejeitar{flex:2;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--red),#e74c3c);color:#fff;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s}
+        .btn-confirm-rejeitar:disabled{opacity:0.5;cursor:not-allowed}
+
+        /* Acesso negado */
+        .acesso-negado{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px;text-align:center}
+        .acesso-negado-icon{font-size:48px;margin-bottom:14px;opacity:0.5}
+        .acesso-negado-title{font-family:'Cinzel',serif;font-size:16px;color:var(--gold-dark);margin-bottom:8px}
+        .acesso-negado-txt{font-size:13px;color:var(--text-faint);line-height:1.6}
+
+        /* Empty */
+        .empty{text-align:center;padding:48px 20px;color:var(--text-faint)}
+        .empty-icon{font-size:44px;margin-bottom:10px;opacity:0.35}
+        .empty-txt{font-size:13px;line-height:1.6}
+        .loading{text-align:center;padding:48px;color:var(--text-faint);font-size:13px}
+        .spin{width:26px;height:26px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
+
+        /* Footer */
+        .footer{background:var(--bg-footer);border-top:1px solid var(--border);padding:10px 18px;flex-shrink:0}
+        .footer-links{display:flex;justify-content:center;gap:12px;margin-bottom:8px}
+        .footer-link{display:flex;align-items:center;gap:5px;color:var(--gold);text-decoration:none;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;font-family:'Cinzel',serif;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:rgba(255,255,255,0.6)}
+        .footer-link svg{width:12px;height:12px}
+        .footer-div{height:1px;background:var(--border);margin:8px 0}
+        .footer-copy{color:var(--text-muted);font-size:10px;letter-spacing:1px;text-transform:uppercase;font-family:'Cinzel',serif;text-align:center}
+        .footer-addr{color:var(--text-faint);font-size:10px;text-align:center;margin-top:2px}
+
+        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+    <div class="banner">
+        <img src="banner zion.jpg" alt="Zion Lisboa" onerror="this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
+        <div class="banner-fallback"><div class="banner-title">ZION</div><div class="banner-sub">Lisboa · Portugal</div></div>
+        <div class="banner-overlay"></div>
+        <div class="banner-nav">
+            <a href="index.html" class="back-btn">← Início</a>
+            <span class="page-badge">Aprovações</span>
+        </div>
+    </div>
+    <div class="gold-line"></div>
+    <div class="user-bar" id="user-bar"></div>
+    <div class="tab-bar" id="tab-bar" style="display:none">
+        <button class="tab-btn active" onclick="switchTab('pendente')" id="tab-pendente">
+            ⏳ Pendentes <span class="tab-badge" id="badge-pendente">0</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('aprovado')" id="tab-aprovado">
+            ✅ Aprovados <span class="tab-badge green" id="badge-aprovado">0</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('recusado')" id="tab-recusado">
+            ❌ Recusados
+        </button>
+    </div>
+    <div class="content" id="main-content">
+        <div class="loading"><div class="spin"></div>A verificar acesso...</div>
+    </div>
+    <div class="footer">
+        <div class="footer-links">
+            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
+            <a class="footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>@ZionLisboa</a>
+        </div>
+        <div class="footer-div"></div>
+        <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+        <div class="footer-addr">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+    </div>
+</div>
+
+<!-- Modal de rejeição -->
+<div class="overlay hidden" id="overlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+        <div class="modal-head">
+            <div class="modal-head-title">❌ Rejeitar Pedido</div>
+            <button class="modal-x" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-info" id="modal-info"></div>
+            <label class="modal-label">Motivo da recusa (opcional)</label>
+            <textarea class="modal-textarea" id="motivo-recusa" placeholder="Ex: Sala já reservada para este período, conflito com evento da igreja..."></textarea>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="btn-confirm-rejeitar" id="btn-confirm-rej" onclick="confirmarRejeicao()">Confirmar Rejeição</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    ZionAuth.protect();
+    const currentUser = ZionAuth.getUser();
+    const SUPA_URL    = window.SUPABASE_URL || '';
+    const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
+
+    let temAcesso    = false;
+    let salas        = {};
+    let agendamentos = [];
+    let abaAtiva     = 'pendente';
+    let pedidoParaRejeitar = null;
+
+    // ── SUPABASE ───────────────────────────────────────────────
+    async function sb(path, opts = {}) {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+            ...opts,
+            headers: {
+                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+                'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                ...opts.headers
+            }
+        });
+        if (!r.ok) { const e = await r.json().catch(()=>{}); throw e; }
+        return r.json();
+    }
+
+    // ── INIT ───────────────────────────────────────────────────
+    async function init() {
+        renderUserBar();
+
+        // Verifica se tem acesso — busca o membro correspondente
+        const membros = await sb(`membros?select=e_admin,e_presbitero&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`);
+        const membro  = membros?.[0];
+
+        if (!membro || (!membro.e_admin && !membro.e_presbitero)) {
+            // Sem acesso
+            document.getElementById('main-content').innerHTML = `
+      <div class="acesso-negado">
+        <div class="acesso-negado-icon">🔒</div>
+        <div class="acesso-negado-title">Acesso Restrito</div>
+        <div class="acesso-negado-txt">Esta área é exclusiva para Administradores e Presbíteros.<br>Fala com a liderança da igreja para mais informações.</div>
+      </div>`;
+            return;
+        }
+
+        temAcesso = true;
+        document.getElementById('tab-bar').style.display = 'flex';
+
+        // Carrega salas e agendamentos
+        const [salasData, agendData] = await Promise.all([
+            sb('salas?select=id,nome,espaco,foto_url&ativo=eq.true'),
+            sb('sala_agendamentos?select=*&order=data_inicio.asc'),
+        ]);
+
+        if (Array.isArray(salasData)) salasData.forEach(s => salas[s.id] = s);
+        agendamentos = Array.isArray(agendData) ? agendData : [];
+
+        atualizarBadges();
+        renderAba('pendente');
+    }
+
+    // ── USER BAR ───────────────────────────────────────────────
+    function renderUserBar() {
+        const ini = (currentUser.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+        const tipoLabel = {visitante:'Visitante',membro:'Membro',admin:'Administrador'};
+        document.getElementById('user-bar').innerHTML = `
+    <div class="user-bar-avatar">${ini}</div>
+    <div class="user-bar-info">
+      <div class="user-bar-nome">${currentUser.nome}</div>
+      <div class="user-bar-tipo">${tipoLabel[currentUser.tipo]||currentUser.tipo}</div>
+    </div>
+    <button class="logout-btn" onclick="ZionAuth.logout()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>`;
+    }
+
+    // ── BADGES / STATS ─────────────────────────────────────────
+    function atualizarBadges() {
+        const pendentes = agendamentos.filter(a=>a.status==='pendente').length;
+        const aprovados = agendamentos.filter(a=>a.status==='aprovado').length;
+        document.getElementById('badge-pendente').textContent = pendentes;
+        document.getElementById('badge-aprovado').textContent = aprovados;
+    }
+
+    // ── TABS ───────────────────────────────────────────────────
+    function switchTab(tab) {
+        abaAtiva = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        renderAba(tab);
+    }
+
+    // ── RENDER ABA ─────────────────────────────────────────────
+    function renderAba(status) {
+        const lista = agendamentos.filter(a => a.status === status);
+        const total = agendamentos.length;
+        const pend  = agendamentos.filter(a=>a.status==='pendente').length;
+        const aprov = agendamentos.filter(a=>a.status==='aprovado').length;
+        const recus = agendamentos.filter(a=>a.status==='recusado').length;
+
+        let html = `
+    <div class="stats-bar">
+      <div class="stat-pill"><div class="stat-num">${total}</div><div class="stat-label">Total</div></div>
+      <div class="stat-pill"><div class="stat-num orange">${pend}</div><div class="stat-label">Pendentes</div></div>
+      <div class="stat-pill"><div class="stat-num green">${aprov}</div><div class="stat-label">Aprovados</div></div>
+    </div>`;
+
+        if (lista.length === 0) {
+            const msgs = {
+                pendente: {icon:'🎉', txt:'Sem pedidos pendentes!'},
+                aprovado: {icon:'📅', txt:'Nenhum agendamento aprovado.'},
+                recusado: {icon:'✅', txt:'Nenhum pedido recusado.'},
+            };
+            const m = msgs[status];
+            html += `<div class="empty"><div class="empty-icon">${m.icon}</div><div class="empty-txt">${m.txt}</div></div>`;
+            document.getElementById('main-content').innerHTML = html;
+            return;
+        }
+
+        const labels = {pendente:'⏳ Aguardam aprovação',aprovado:'✅ Aprovados',recusado:'❌ Recusados'};
+        html += `<div class="section-label">${labels[status]} · ${lista.length}</div>`;
+        html += '<div class="pedidos-list">';
+
+        lista.forEach((a, i) => {
+            const sala    = salas[a.sala_id] || {};
+            const ini     = new Date(a.data_inicio);
+            const fim     = new Date(a.data_fim);
+            const dataFmt = ini.toLocaleDateString('pt-PT',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+            const hIni    = ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+            const hFim    = fim.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+            const fotoHtml = sala.foto_url
+                ? `<div class="pedido-sala-foto"><img src="${sala.foto_url}" alt="${sala.nome}"></div>`
+                : `<div class="pedido-sala-foto">🏛️</div>`;
+            const sbClass = {pendente:'sb-pendente',aprovado:'sb-aprovado',recusado:'sb-recusado'}[a.status];
+
+            // Ações conforme estado
+            let actionsHtml = '';
+            if (a.status === 'pendente') {
+                actionsHtml = `
+        <div class="pedido-actions">
+          <button class="btn-aprovar" onclick="aprovar('${a.id}')">✅ Aprovar</button>
+          <button class="btn-rejeitar" onclick="abrirModalRejeicao('${a.id}')">❌ Rejeitar</button>
+        </div>`;
+            } else if (a.status === 'aprovado') {
+                actionsHtml = `<div class="pedido-done aprovado">✅ Aprovado por ${a.aprovado_por ? 'líder' : 'sistema'} ${a.aprovado_em ? '· '+new Date(a.aprovado_em).toLocaleDateString('pt-PT') : ''}</div>`;
+            } else if (a.status === 'recusado') {
+                actionsHtml = `<div class="pedido-done recusado">❌ Recusado${a.motivo_recusa ? ' · '+a.motivo_recusa : ''}</div>`;
+            }
+
+            html += `
+      <div class="pedido-card" style="animation-delay:${i*0.04}s" id="card-${a.id}">
+        <div class="pedido-header">
+          ${fotoHtml}
+          <div class="pedido-info">
+            <div class="pedido-sala-nome">${sala.nome||'Sala'}</div>
+            <div class="pedido-sala-esp">${sala.espaco||''}</div>
+          </div>
+          <span class="pedido-status-badge ${sbClass}">${a.status}</span>
+        </div>
+        <div class="pedido-details">
+          <div class="pedido-detail-cell pedido-detail-full">
+            <div class="pd-label">Data</div>
+            <div class="pd-value">📅 ${dataFmt}</div>
+          </div>
+          <div class="pedido-detail-cell">
+            <div class="pd-label">Horário</div>
+            <div class="pd-value">🕐 ${hIni} → ${hFim}</div>
+          </div>
+          <div class="pedido-detail-cell">
+            <div class="pd-label">Solicitante</div>
+            <div class="pd-value">👤 ${a.solicitante_nome||'—'}</div>
+          </div>
+          <div class="pedido-detail-cell">
+            <div class="pd-label">Telefone</div>
+            <div class="pd-value">📞 ${a.solicitante_tel||'—'}</div>
+          </div>
+          <div class="pedido-detail-cell">
+            <div class="pd-label">Email</div>
+            <div class="pd-value" style="font-size:11px">✉️ ${a.solicitante_email||'—'}</div>
+          </div>
+          ${a.titulo ? `
+          <div class="pedido-detail-cell pedido-detail-full">
+            <div class="pd-label">Motivo</div>
+            <div class="pd-value">💬 ${a.titulo}</div>
+          </div>` : ''}
+        </div>
+        ${actionsHtml}
+      </div>`;
+        });
+
+        html += '</div>';
+        document.getElementById('main-content').innerHTML = html;
+    }
+
+    // ── APROVAR ────────────────────────────────────────────────
+    async function aprovar(id) {
+        const btns = document.querySelectorAll(`#card-${id} button`);
+        btns.forEach(b => { b.disabled = true; });
+        const btnAprovar = document.querySelector(`#card-${id} .btn-aprovar`);
+        if (btnAprovar) btnAprovar.textContent = 'A aprovar...';
+
+        try {
+            await sb(`sala_agendamentos?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status:      'aprovado',
+                    aprovado_por: currentUser.id,
+                    aprovado_em:  new Date().toISOString(),
+                }),
+            });
+
+            // Atualiza local
+            const idx = agendamentos.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                agendamentos[idx].status      = 'aprovado';
+                agendamentos[idx].aprovado_por = currentUser.id;
+                agendamentos[idx].aprovado_em  = new Date().toISOString();
+            }
+
+            // Feedback visual no card
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+                const actions = card.querySelector('.pedido-actions');
+                if (actions) {
+                    actions.outerHTML = `<div class="pedido-done aprovado">✅ Aprovado com sucesso!</div>`;
+                }
+                card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-aprovado';
+                card.querySelector('.pedido-status-badge').textContent = 'aprovado';
+            }
+
+            atualizarBadges();
+        } catch(e) {
+            btns.forEach(b => { b.disabled = false; });
+            if (btnAprovar) btnAprovar.textContent = '✅ Aprovar';
+            alert('Erro ao aprovar. Tenta novamente.');
+        }
+    }
+
+    // ── REJEITAR ───────────────────────────────────────────────
+    function abrirModalRejeicao(id) {
+        pedidoParaRejeitar = id;
+        const a    = agendamentos.find(x => x.id === id);
+        const sala = salas[a?.sala_id] || {};
+        const ini  = a ? new Date(a.data_inicio) : null;
+        const dataFmt = ini ? ini.toLocaleDateString('pt-PT',{day:'numeric',month:'long'}) : '';
+        const hIni    = ini ? ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}) : '';
+
+        document.getElementById('modal-info').innerHTML =
+            `<strong>${a?.solicitante_nome||'Solicitante'}</strong> pediu a sala <strong>${sala.nome||''}</strong> para ${dataFmt} às ${hIni}.`;
+        document.getElementById('motivo-recusa').value = '';
+        document.getElementById('overlay').classList.remove('hidden');
+    }
+
+    async function confirmarRejeicao() {
+        const id     = pedidoParaRejeitar;
+        const motivo = document.getElementById('motivo-recusa').value.trim();
+        const btn    = document.getElementById('btn-confirm-rej');
+        btn.disabled = true;
+        btn.textContent = 'A rejeitar...';
+
+        try {
+            await sb(`sala_agendamentos?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status:        'recusado',
+                    motivo_recusa: motivo || null,
+                    aprovado_por:  currentUser.id,
+                    aprovado_em:   new Date().toISOString(),
+                }),
+            });
+
+            // Atualiza local
+            const idx = agendamentos.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                agendamentos[idx].status        = 'recusado';
+                agendamentos[idx].motivo_recusa = motivo || null;
+            }
+
+            // Feedback visual
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+                const actions = card.querySelector('.pedido-actions');
+                if (actions) {
+                    actions.outerHTML = `<div class="pedido-done recusado">❌ Pedido recusado${motivo?' · '+motivo:''}</div>`;
+                }
+                card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-recusado';
+                card.querySelector('.pedido-status-badge').textContent = 'recusado';
+            }
+
+            closeModal();
+            atualizarBadges();
+        } catch(e) {
+            btn.disabled = false;
+            btn.textContent = 'Confirmar Rejeição';
+            alert('Erro ao rejeitar. Tenta novamente.');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('overlay').classList.add('hidden');
+        document.getElementById('btn-confirm-rej').disabled = false;
+        document.getElementById('btn-confirm-rej').textContent = 'Confirmar Rejeição';
+        pedidoParaRejeitar = null;
+    }
+    function closeModalOutside(e) {
+        if (e.target === document.getElementById('overlay')) closeModal();
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    init();
+</script>
+</body>
+</html>

@@ -1292,7 +1292,8 @@ const STATUS_EVENTO = {
 let eventosData     = [];
 let presencasData   = [];
 let lideresData     = [];
-let eventoAtivo     = null; // evento aberto na aba de presencas
+let eventoAtivo        = null; // evento aberto na aba de presencas
+let lideresMinisterios = {};   // { membro_id: [{nome, tipo, papel}] }
 let eventoSubTab    = 0;    // 0=lista, 1=presencas
 
 function renderEventos() {
@@ -1398,8 +1399,22 @@ async function concluirEvento(id) {
 async function abrirPresencas(id) {
   eventoAtivo  = eventosData.find(e => e.id === id);
   eventoSubTab = 1;
-  // Carrega presencas + dados dos membros
+  // Carrega presencas + nome do membro
   presencasData = await sb(`evento_presencas?select=*,membros(id,nome)&evento_id=eq.${id}&order=created_at`) || [];
+  // Carrega areas/ministerios de cada lider
+  const membroIds = presencasData.map(p=>p.membro_id).filter(Boolean);
+  lideresMinisterios = {};
+  if (membroIds.length) {
+    const vincs = await sb(`membro_ministerios?select=membro_id,papel,ativo,ministerios(id,nome,tipo)&membro_id=in.(${membroIds.join(',')})&ativo=eq.true`) || [];
+    vincs.forEach(v => {
+      if (!lideresMinisterios[v.membro_id]) lideresMinisterios[v.membro_id] = [];
+      lideresMinisterios[v.membro_id].push({
+        papel: v.papel,
+        nome:  v.ministerios?.nome || '—',
+        tipo:  v.ministerios?.tipo || '—',
+      });
+    });
+  }
   renderPresencas();
 }
 
@@ -1407,7 +1422,8 @@ function renderPresencas() {
   const evento  = eventoAtivo;
   const st      = STATUS_EVENTO[evento?.status] || STATUS_EVENTO.aberto;
   const emCurso = evento?.status === 'em_curso';
-  const q       = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
+  // Usa ID proprio para nao conflituar com outras pesquisas
+  const q = (document.getElementById('pres-search')?.value || '').toLowerCase();
 
   let lista = [...presencasData];
   if (q) lista = lista.filter(p => (p.membros?.nome||'').toLowerCase().includes(q));
@@ -1422,7 +1438,7 @@ function renderPresencas() {
   let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:6px">
       <button class="back-btn" style="position:static;width:auto;height:auto;border-radius:20px;padding:5px 12px;font-size:10px" onclick="voltarListaEventos()">← Voltar</button>
-      <input class="toolbar-search" placeholder="Pesquisar lider..." oninput="renderPresencas()" style="flex:1;min-width:120px">
+      <input class="toolbar-search" id="pres-search" placeholder="Pesquisar lider..." oninput="renderPresencas()" style="flex:1;min-width:120px">
       ${emCurso ? `<button class="btn-new" style="background:linear-gradient(135deg,var(--green),#4caf50)" onclick="finalizarEntradas()">Finalizar Entradas</button>` : ''}
     </div>
     <div style="padding:10px 16px 4px">
@@ -1459,6 +1475,13 @@ function renderPresencas() {
       const stIcon = {presente:'✓', faltou:'✗', faltou_motivo:'!', pendente:'·'}[p.status]||'·';
       const stCls  = {presente:'badge-green', faltou:'badge-red', faltou_motivo:'badge-gold', pendente:'badge-gray'}[p.status]||'badge-gray';
 
+      // Ministerios/areas do lider
+      const mins = lideresMinisterios[p.membro_id] || [];
+      const minsHtml = mins.map(m => {
+        const tipoCurto = m.tipo === 'ministerio' ? 'MIN' : 'AE';
+        return `<span class="badge badge-gray" style="font-size:8px">${tipoCurto} · ${m.nome}${m.papel?' · '+m.papel:''}</span>`;
+      }).join('');
+
       let btns = '';
       if (emCurso && p.status !== 'presente') {
         btns += `<button class="btn-toggle inativo" onclick="marcarPresenca('${p.id}','presente')">Presente</button>`;
@@ -1471,11 +1494,12 @@ function renderPresencas() {
       }
 
       html += `
-        <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s">
-          <div class="admin-row-foto" style="font-size:13px;font-weight:bold">${stIcon}</div>
-          <div class="admin-row-info">
+        <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap">
+          <div class="admin-row-foto" style="font-size:13px;font-weight:bold;color:${{'presente':'var(--green)','faltou':'var(--red)','faltou_motivo':'var(--orange)','pendente':'var(--text-faint)'}[p.status]}">${stIcon}</div>
+          <div class="admin-row-info" style="min-width:0">
             <div class="admin-row-nome">${nome}</div>
-            ${p.motivo ? `<div class="admin-row-sub" style="color:var(--orange)">${p.motivo}</div>` : ''}
+            <div class="admin-row-badges" style="margin-top:3px;flex-wrap:wrap;gap:3px">${minsHtml || '<span style="font-size:10px;color:var(--text-faint)">Sem areas associadas</span>'}</div>
+            ${p.motivo ? `<div class="admin-row-sub" style="color:var(--orange);margin-top:3px">${p.motivo}</div>` : ''}
           </div>
           <div class="admin-row-actions">${btns}</div>
         </div>`;

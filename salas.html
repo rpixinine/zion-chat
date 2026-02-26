@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Salas — Zion Church Lisboa</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="auth.js"></script>
 <style>
 :root{
   --gold:#B8922A;--gold-light:#D4A843;--gold-dark:#8B6914;
@@ -37,7 +39,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .content{flex:1;overflow-y:auto;background:var(--bg-input)}
 .content::-webkit-scrollbar{width:4px}
 .content::-webkit-scrollbar-thumb{background:rgba(184,146,42,0.25);border-radius:2px}
-.section-label{font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-faint);padding:16px 16px 8px}
+/* User card */
+.user-card{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.03));border:1px solid rgba(184,146,42,0.35);border-radius:12px;padding:14px 16px;margin:14px 16px 0;animation:fadeUp 0.3s ease both}
+.user-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold-light));display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:15px;color:#fff;font-weight:700;flex-shrink:0}
+.user-info{flex:1}
+.user-name{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--gold-dark)}
+.user-tipo{display:inline-block;margin-top:3px;padding:2px 9px;border-radius:20px;font-family:'Cinzel',serif;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:#fff}
+.tipo-visitante{background:rgba(100,130,200,0.7)}.tipo-membro{background:rgba(139,105,20,0.8)}.tipo-admin{background:rgba(180,50,50,0.8)}
+.logout-btn{display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;border:1px solid rgba(220,80,60,0.3);background:rgba(220,80,60,0.06);color:#c0392b;font-family:'Cinzel',serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;flex-shrink:0}
+.logout-btn:hover{background:rgba(220,80,60,0.12);border-color:rgba(220,80,60,0.5)}
+/* Salas */
+.section-label{font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-faint);padding:14px 16px 8px}
 .espaco-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-dark);padding:10px 16px 6px;border-top:1px solid var(--border)}
 .salas-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 10px}
 .sala-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all 0.25s;animation:fadeUp 0.4s ease both}
@@ -131,7 +143,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
-  <script src="config.js"></script>
 </head>
 <body>
 <div class="page-wrapper">
@@ -230,12 +241,43 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 </div>
 
 <script>
+// ── AUTH ───────────────────────────────────────────────────
+ZionAuth.protect();
+const currentUser = ZionAuth.getUser();
+
+// ── CONFIG ─────────────────────────────────────────────────
 const SUPA_URL = window.SUPABASE_URL || '';
 const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
+// ── STATE ──────────────────────────────────────────────────
 let salas = [], agendHoje = [], salaAtiva = null, abaAtiva = 'salas';
 let agendaData = new Date();
 
+// ── RENDER USER CARD ───────────────────────────────────────
+function renderUserCard() {
+  const initials  = (currentUser.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const tipoLabel = {visitante:'Visitante', membro:'Membro', admin:'Administrador'};
+  const tipoClass = {visitante:'tipo-visitante', membro:'tipo-membro', admin:'tipo-admin'};
+
+  const card = document.createElement('div');
+  card.className = 'user-card';
+  card.innerHTML = `
+    <div class="user-avatar">${initials}</div>
+    <div class="user-info">
+      <div class="user-name">${currentUser.nome}</div>
+      <span class="user-tipo ${tipoClass[currentUser.tipo]||'tipo-visitante'}">${tipoLabel[currentUser.tipo]||currentUser.tipo}</span>
+    </div>
+    <button class="logout-btn" onclick="ZionAuth.logout()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>`;
+
+  // Insere antes do main-content
+  const content = document.querySelector('.content');
+  content.insertBefore(card, content.firstChild);
+}
+
+// ── SUPABASE ───────────────────────────────────────────────
 async function sb(path, opts = {}) {
   const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
     ...opts,
@@ -249,6 +291,7 @@ async function sb(path, opts = {}) {
 }
 
 async function init() {
+  renderUserCard();
   try {
     salas = await sb('salas?select=*&ativo=eq.true&order=espaco,nome');
     const hoje = toDateStr(new Date());
@@ -290,7 +333,7 @@ function renderSalas() {
   Object.entries(grupos).forEach(([esp, list]) => {
     html += `<div class="espaco-title">${esp}</div><div class="salas-grid">`;
     list.forEach((s, i) => {
-      const oc = isOcupada(s.id);
+      const oc  = isOcupada(s.id);
       const cap = s.capacidade ? `${s.capacidade} pessoas` : 'Capacidade a definir';
       html += `<div class="sala-card${oc?' ocupada':''}" style="animation-delay:${i*0.05}s">
         ${s.foto_url ? `<img class="sala-foto" src="${s.foto_url}" alt="${s.nome}" loading="lazy">` : `<div class="sala-foto-ph">🏛️</div>`}
@@ -313,7 +356,7 @@ function renderSalas() {
 }
 
 async function renderAgenda() {
-  const ds = toDateStr(agendaData);
+  const ds    = toDateStr(agendaData);
   const label = agendaData.toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('main-content').innerHTML = `
     <div class="agenda-header">
@@ -369,7 +412,7 @@ async function loadAgenda(ds) {
 }
 
 function mudarData(d) { agendaData.setDate(agendaData.getDate()+d); renderAgenda(); }
-function setData(v) { agendaData = new Date(v+'T12:00:00'); renderAgenda(); }
+function setData(v)   { agendaData = new Date(v+'T12:00:00'); renderAgenda(); }
 
 function switchTab(tab) {
   abaAtiva = tab;
@@ -392,6 +435,9 @@ function abrirModal(id) {
   document.getElementById('f-data').min   = hoje;
   document.getElementById('f-data').value = hoje;
   ['f-nome','f-tel','f-email','f-motivo'].forEach(x=>document.getElementById(x).value='');
+  // Pré-preenche com dados do utilizador logado
+  document.getElementById('f-nome').value  = currentUser.nome  || '';
+  document.getElementById('f-email').value = currentUser.email || '';
   document.getElementById('f-aviso').checked = false;
   document.getElementById('conflito-box').style.display = 'none';
   document.getElementById('m-msg').className = 'msg-box';
@@ -399,13 +445,8 @@ function abrirModal(id) {
   document.body.style.overflow = 'hidden';
 }
 
-function closeModal() {
-  document.getElementById('overlay').classList.add('hidden');
-  document.body.style.overflow = '';
-  salaAtiva = null;
-}
-
-function closeOutside(e) { if(e.target===document.getElementById('overlay')) closeModal(); }
+function closeModal()       { document.getElementById('overlay').classList.add('hidden'); document.body.style.overflow=''; salaAtiva=null; }
+function closeOutside(e)    { if(e.target===document.getElementById('overlay')) closeModal(); }
 
 function preencherHoras() {
   const si = document.getElementById('f-ini');
@@ -441,12 +482,12 @@ async function submeter() {
   const mot   = document.getElementById('f-motivo').value.trim();
   const aviso = document.getElementById('f-aviso').checked;
 
-  if(!nome)        return msg('Nome obrigatório.','error');
-  if(!email)       return msg('Email obrigatório.','error');
-  if(!data)        return msg('Data obrigatória.','error');
-  if(!ini||!fim)   return msg('Horário obrigatório.','error');
-  if(fim<=ini)     return msg('Hora de fim deve ser depois do início.','error');
-  if(!aviso)       return msg('Confirma que entregas a sala limpa e organizada.','error');
+  if(!nome)      return msg('Nome obrigatório.','error');
+  if(!email)     return msg('Email obrigatório.','error');
+  if(!data)      return msg('Data obrigatória.','error');
+  if(!ini||!fim) return msg('Horário obrigatório.','error');
+  if(fim<=ini)   return msg('Hora de fim deve ser depois do início.','error');
+  if(!aviso)     return msg('Confirma que entregas a sala limpa e organizada.','error');
   if(document.getElementById('conflito-box').style.display==='block')
     return msg('Existe conflito de horário. Escolhe outro.','error');
 
@@ -457,16 +498,17 @@ async function submeter() {
     await sb('sala_agendamentos', {
       method:'POST',
       body: JSON.stringify({
-        sala_id:           salaAtiva.id,
-        solicitante_nome:  nome,
-        solicitante_tel:   tel,
-        solicitante_email: email,
-        titulo:            mot||`Pedido de ${nome}`,
-        descricao:         mot,
-        data_inicio:       `${data}T${ini}:00`,
-        data_fim:          `${data}T${fim}:00`,
-        status:            'pendente',
-        aviso_lido:        true,
+        sala_id:            salaAtiva.id,
+        solicitante_id:     currentUser.id,
+        solicitante_nome:   nome,
+        solicitante_tel:    tel,
+        solicitante_email:  email,
+        titulo:             mot||`Pedido de ${nome}`,
+        descricao:          mot,
+        data_inicio:        `${data}T${ini}:00`,
+        data_fim:           `${data}T${fim}:00`,
+        status:             'pendente',
+        aviso_lido:         true,
       })
     });
     msg('✅ Pedido enviado! Aguarda aprovação — receberás confirmação por email.','success');
@@ -485,9 +527,6 @@ function msg(txt, tipo) {
 }
 
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
-
-// Nota: substitui SUPABASE_URL e SUPABASE_ANON_KEY pelos valores reais
-// ou carrega-os de um ficheiro de configuração partilhado
 
 init();
 </script>

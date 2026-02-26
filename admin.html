@@ -275,7 +275,8 @@ let subTabAtiva = 0;
 let registos    = [];
 let filtroInativo = false;
 let membros     = []; // para selects de lideres/instrutores
-let links_cache = []; // cache de links para select no form de membro
+let links_cache       = []; // cache de links para select no form de membro
+let ministeriosCache  = []; // cache de ministerios para selects
 
 // ── SUPABASE ───────────────────────────────────────────────
 async function sb(path, opts = {}) {
@@ -459,7 +460,7 @@ function buildSub(r) {
   if (s==='pastores')    return [r.cargo,r.email].filter(Boolean).join(' — ');
   if (s==='links')       return [r.tipo,r.zona,r.dia].filter(Boolean).join(' · ');
   if (s==='cultos')      return [r.dia_semana,r.hora_inicio].filter(Boolean).join(' — ');
-  if (s==='ministerios') return r.descricao?.substring(0,60)||'';
+  if (s==='ministerios') return [r.tipo?'['+r.tipo+']':null, r.descricao?.substring(0,50)].filter(Boolean).join(' — ');
   if (s==='salas')       return [r.espaco,r.capacidade?r.capacidade+' pessoas':null].filter(Boolean).join(' · ');
   if (s==='cursos')      return [r.carga_horaria,r.gratuito?'Gratuito':r.valor?'€'+r.valor:null].filter(Boolean).join(' · ');
   if (s==='keola')       return [r.categoria,r.preco?'€'+Number(r.preco).toFixed(2):null].filter(Boolean).join(' · ');
@@ -665,14 +666,20 @@ async function abrirForm(id) {
   const registo = id ? registos.find(r=>r.id===id) : null;
   const isNovo  = !registo;
 
-  // Garante que membros estao carregados antes de construir o form
+  // Garante que membros/ministerios estao carregados antes de construir o form
   if (secaoAtiva==='ministerios'||secaoAtiva==='cursos') {
     try {
-      // Para cursos traz so professores, para ministerios traz todos os membros
       const filtroMembro = secaoAtiva==='cursos' ? '&professor=eq.true' : '';
       const res = await sb(`membros?select=id,nome&ativo=eq.true${filtroMembro}&order=nome`);
       if (Array.isArray(res) && res.length > 0) membros = res;
     } catch(e) { console.warn('Erro ao carregar membros:', e); }
+  }
+  if (secaoAtiva==='membros') {
+    try {
+      const resMembros = await sb('membros?select=id,nome&ativo=eq.true&order=nome');
+      if (Array.isArray(resMembros) && resMembros.length > 0) membros = resMembros;
+      ministeriosCache = await sb('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome') || [];
+    } catch(e) { console.warn('Erro ao carregar ministerios:', e); }
   }
 
   document.getElementById('drawer-title').textContent = isNovo ? `Novo ${cfg.label}` : `Editar ${cfg.label}`;
@@ -683,6 +690,7 @@ async function abrirForm(id) {
   // Carrega sub-lista de filhos (membros), instrutores ou lideres
   if (!isNovo && secaoAtiva==='membros') {
     await carregarFilhos(registo.id);
+    await carregarMembroMinisterios(registo.id);
   } else if (!isNovo && (secaoAtiva==='ministerios'||secaoAtiva==='cursos')) {
     await carregarSubList(registo.id);
   }
@@ -729,6 +737,21 @@ function buildForm(cfg, r) {
       <div class="sub-add-row">
         <select class="form-select" id="sub-filho-id"><option value="">Seleciona filho (membro)</option>${membros.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select>
         <button class="btn-sub-add" onclick="addFilho('${r.id}')">Adicionar Filho</button>
+      </div>`;
+  }
+
+  // Sub-list de ministerios/areas do membro
+  if (r && secaoAtiva==='membros') {
+    const minsOpts = ministeriosCache.map(m=>`<option value="${m.id}">[${m.tipo||'?'}] ${m.nome}</option>`).join('');
+    html += `
+      <div class="form-section-title">Ministerios e Areas</div>
+      <div class="form-full">
+        <div class="sub-list" id="sub-list-mins"><div class="sub-list-empty">A carregar...</div></div>
+      </div>
+      <div class="sub-add-row">
+        <select class="form-select" id="sub-min-id"><option value="">Seleciona ministerio/area</option>${minsOpts}</select>
+        <input class="form-input" id="sub-min-papel" placeholder="Papel (ex: Lider)" style="max-width:130px">
+        <button class="btn-sub-add" onclick="addMembroMinisterio('${r.id}')">Adicionar</button>
       </div>`;
   }
 
@@ -809,6 +832,60 @@ function showFormMsg(txt, tipo) {
 }
 
 // ── SUB-ITEMS (lideres / instrutores) ──────────────────────
+let membroMinisteriosData = []; // cache local dos vinculos do membro aberto
+
+async function carregarMembroMinisterios(membroId) {
+  const items = await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${membroId}&ativo=eq.true&order=created_at`) || [];
+  membroMinisteriosData = items;
+  renderSubListMins(membroId);
+}
+
+function renderSubListMins(membroId) {
+  const el = document.getElementById('sub-list-mins');
+  if (!el) return;
+  if (!membroMinisteriosData.length) {
+    el.innerHTML = '<div class="sub-list-empty">Sem ministerios/areas associados.</div>';
+    return;
+  }
+  el.innerHTML = membroMinisteriosData.map(item => {
+    const tipo  = item.ministerios?.tipo || '?';
+    const nome  = item.ministerios?.nome || '—';
+    const tipoCurto = tipo === 'ministerio' ? 'MIN' : 'AE';
+    return `<div class="sub-list-item">
+      <span class="badge badge-gray" style="flex-shrink:0">${tipoCurto}</span>
+      <div class="sub-list-nome">${nome}</div>
+      <div class="sub-list-cargo">${item.papel||''}</div>
+      <button class="sub-list-remove" onclick="removeMembroMinisterio('${item.id}','${membroId}')">Remover</button>
+    </div>`;
+  }).join('');
+}
+
+async function addMembroMinisterio(membroId) {
+  const minId = document.getElementById('sub-min-id')?.value;
+  const papel = document.getElementById('sub-min-papel')?.value?.trim();
+  if (!minId) { alert('Seleciona um ministerio ou area.'); return; }
+  // Verifica duplicado
+  if (membroMinisteriosData.find(m=>m.ministerio_id===minId)) {
+    alert('Este membro ja esta associado a este ministerio/area.'); return;
+  }
+  try {
+    await sb('membro_ministerios', {method:'POST', body:JSON.stringify({
+      membro_id: membroId, ministerio_id: minId, papel: papel||null, ativo: true,
+      data_entrada: new Date().toISOString().split('T')[0]
+    })});
+    await carregarMembroMinisterios(membroId);
+    document.getElementById('sub-min-id').value = '';
+    document.getElementById('sub-min-papel').value = '';
+  } catch(e) { alert('Erro: '+JSON.stringify(e)); }
+}
+
+async function removeMembroMinisterio(itemId, membroId) {
+  if (!confirm('Remover desta area/ministerio?')) return;
+  // Inativa em vez de apagar
+  await sb(`membro_ministerios?id=eq.${itemId}`, {method:'PATCH', body:JSON.stringify({ativo:false})});
+  await carregarMembroMinisterios(membroId);
+}
+
 async function carregarFilhos(membroId) {
   const items = await sb(`membros_filhos?select=*&pai_id=eq.${membroId}&order=created_at`) || [];
   const el    = document.getElementById('sub-list');
@@ -1098,6 +1175,7 @@ function camposMembros() { return [
   {type:'section', label:'Historia'},
   {key:'historia',    label:'Historia',       type:'textarea', ph:'Historia do membro...', full:true},
   {key:'ativo',       label:'Ativo',          type:'checkbox', default:true},
+  {type:'section',    label:'Ministerios e Areas'},
 ];}
 
 function camposPastores() { return [
@@ -1158,6 +1236,9 @@ function camposCultos() { return [
 
 function camposMinisterios() { return [
   {key:'nome',        label:'Nome',         ph:'Ex: Ministerio de Louvor',  full:true},
+  {key:'tipo',        label:'Tipo',         type:'select', options:[
+    {v:'ministerio',l:'Ministerio'},{v:'area',l:'Area de Equipa'}
+  ]},
   {key:'slug',        label:'Slug',         ph:'Ex: louvor'},
   {key:'faixa_etaria',label:'Faixa Etaria', ph:'Ex: Todas as idades'},
   {key:'instagram',   label:'Instagram',    ph:'@handle'},
@@ -1294,6 +1375,7 @@ let presencasData   = [];
 let lideresData     = [];
 let eventoAtivo        = null; // evento aberto na aba de presencas
 let lideresMinisterios = {};   // { membro_id: [{nome, tipo, papel}] }
+let presSearchQ        = '';   // valor da pesquisa de presencas (evita perda de foco)
 let eventoSubTab    = 0;    // 0=lista, 1=presencas
 
 function renderEventos() {
@@ -1400,7 +1482,7 @@ async function abrirPresencas(id) {
   eventoAtivo  = eventosData.find(e => e.id === id);
   eventoSubTab = 1;
   // Carrega presencas + nome do membro
-  presencasData = await sb(`evento_presencas?select=*,membros(id,nome)&evento_id=eq.${id}&order=created_at`) || [];
+  presencasData = await sb(`evento_presencas?select=*,membros(id,nome,telefone)&evento_id=eq.${id}&order=created_at`) || [];
   // Carrega areas/ministerios de cada lider
   const membroIds = presencasData.map(p=>p.membro_id).filter(Boolean);
   lideresMinisterios = {};
@@ -1423,7 +1505,7 @@ function renderPresencas() {
   const st      = STATUS_EVENTO[evento?.status] || STATUS_EVENTO.aberto;
   const emCurso = evento?.status === 'em_curso';
   // Usa ID proprio para nao conflituar com outras pesquisas
-  const q = (document.getElementById('pres-search')?.value || '').toLowerCase();
+  const q = presSearchQ.toLowerCase();
 
   let lista = [...presencasData];
   if (q) lista = lista.filter(p => (p.membros?.nome||'').toLowerCase().includes(q));
@@ -1438,7 +1520,7 @@ function renderPresencas() {
   let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:6px">
       <button class="back-btn" style="position:static;width:auto;height:auto;border-radius:20px;padding:5px 12px;font-size:10px" onclick="voltarListaEventos()">← Voltar</button>
-      <input class="toolbar-search" id="pres-search" placeholder="Pesquisar lider..." oninput="renderPresencas()" style="flex:1;min-width:120px">
+      <input class="toolbar-search" id="pres-search" placeholder="Pesquisar lider..." oninput="presSearchQ=this.value;renderPresencas()" style="flex:1;min-width:120px">
       ${emCurso ? `<button class="btn-new" style="background:linear-gradient(135deg,var(--green),#4caf50)" onclick="finalizarEntradas()">Finalizar Entradas</button>` : ''}
     </div>
     <div style="padding:10px 16px 4px">
@@ -1456,6 +1538,8 @@ function renderPresencas() {
   if (lista.length === 0) {
     html += '<div class="empty"><div class="empty-txt">Nenhum lider encontrado.</div></div>';
     document.getElementById('main-content').innerHTML = html;
+    const si = document.getElementById('pres-search');
+    if(si){si.value=presSearchQ;si.focus();si.setSelectionRange(si.value.length,si.value.length);}
     return;
   }
 
@@ -1492,6 +1576,16 @@ function renderPresencas() {
       if (emCurso && p.status !== 'faltou_motivo') {
         btns += `<button class="btn-edit" onclick="abrirMotivo('${p.id}','${nome.replace(/'/g,"\'")}')">Com Motivo</button>`;
       }
+      if (emCurso && p.status !== 'pendente') {
+        btns += `<button class="btn-edit" style="color:var(--text-faint);border-color:var(--border)" onclick="marcarPresenca('${p.id}','pendente')" title="Desfazer marcacao">Desfazer</button>`;
+      }
+      if (p.membros?.telefone) {
+        const tel    = (p.membros.telefone).replace(/\D/g,'');
+        const dEvt   = eventoAtivo?.data_inicio ? new Date(eventoAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '';
+        const titulo = eventoAtivo?.titulo || 'reuniao de lideranca';
+        const msg    = encodeURIComponent(`Ola ${p.membros.nome?.split(' ')[0]}! Gostariamos de confirmar a tua presenca na ${titulo} que acontecera ${dEvt}. Podes confirmar?`);
+        btns += `<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" class="btn-edit" style="color:#25D366;border-color:rgba(37,211,102,0.3);background:rgba(37,211,102,0.06);text-decoration:none">WhatsApp</a>`;
+      }
 
       html += `
         <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap">
@@ -1508,11 +1602,15 @@ function renderPresencas() {
   });
 
   document.getElementById('main-content').innerHTML = html;
+  // Restaura valor e foco no campo de pesquisa
+  const si = document.getElementById('pres-search');
+  if(si){si.value=presSearchQ;si.focus();si.setSelectionRange(si.value.length,si.value.length);}
 }
 
 function voltarListaEventos() {
   eventoAtivo  = null;
   eventoSubTab = 0;
+  presSearchQ  = '';
   renderEventos();
 }
 

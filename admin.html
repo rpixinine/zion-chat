@@ -234,6 +234,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="nav-item" onclick="setSecao('cursos')">Cursos ZAO</div>
     <div class="nav-item" onclick="setSecao('keola')">Keola</div>
     <div class="nav-item" onclick="setSecao('loja')">Loja</div>
+    <div class="nav-item" onclick="setSecao('eventos')">Eventos</div>
   </div>
 
   <!-- Content -->
@@ -324,10 +325,10 @@ async function setSecao(secao) {
   subTabAtiva   = 0;
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const secaoNomes = {membros:'Cadastro de Membros',pastores:'Cadastro de Pastores',links:'Cadastro de Links',cultos:'Cadastro dos Cultos',ministerios:'Cadastro de Ministerio',salas:'Cadastro de Salas',cursos:'Cadastro de Cursos ZAO',keola:'Cadastro do Keola',loja:'Cadastro da Loja'};
+  const secaoNomes = {membros:'Cadastro de Membros',pastores:'Cadastro de Pastores',links:'Cadastro de Links',cultos:'Cadastro dos Cultos',ministerios:'Cadastro de Ministerio',salas:'Cadastro de Salas',cursos:'Cadastro de Cursos ZAO',keola:'Cadastro do Keola',loja:'Cadastro da Loja',eventos:'Cadastro de Eventos'};
   const sl = document.getElementById('secao-label');
   if(sl) sl.textContent = secaoNomes[secao]||'Cadastros';
-  const idx = ['membros','pastores','links','cultos','ministerios','salas','cursos','keola','loja'];
+  const idx = ['membros','pastores','links','cultos','ministerios','salas','cursos','keola','loja','eventos'];
   const ni  = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
   if (ni) ni.classList.add('active');
 
@@ -337,6 +338,13 @@ async function setSecao(secao) {
 async function carregarSecao() {
   document.getElementById('main-content').innerHTML = '<div class="loading"><div class="spin"></div>A carregar...</div>';
   const cfg = SECOES[secaoAtiva];
+  if (secaoAtiva === 'eventos') {
+    eventosData  = await sb('eventos?select=*&order=data_inicio') || [];
+    eventoAtivo  = null;
+    eventoSubTab = 0;
+    renderEventos();
+    return;
+  }
   registos  = await sb(`${cfg.tabela}?select=*&order=${cfg.orderBy||'nome'}`) || [];
   // Para membros, pre-carrega também links e visitantes
   if (secaoAtiva === 'membros') {
@@ -357,11 +365,17 @@ const SECOES = {
   cursos:      { tabela:'zao_cursos',  label:'Cadastro de Cursos ZAO',            orderBy:'nome', campos: camposCursos, subTabs:['Curso','Instrutores'] },
   keola:       { tabela:'keola_menu',  label:'Cadastro de Produtos do Keola',     orderBy:'categoria,nome', campos: camposKeola, ativoKey:'disponivel' },
   loja:        { tabela:'loja_produtos',label:'Cadastro de Produtos da Loja',     orderBy:'categoria,nome', campos: camposLoja },
+  eventos:     { tabela:'eventos',      label:'Cadastro de Eventos',               orderBy:'data_inicio',    campos: camposEventos, customRender: true },
 };
 
 // ── RENDER SECAO ───────────────────────────────────────────
 function renderSecao() {
   const cfg      = SECOES[secaoAtiva];
+  // Render customizado para eventos
+  if (cfg.customRender && secaoAtiva === 'eventos') {
+    renderEventos();
+    return;
+  }
   const ativoKey = cfg.ativoKey || 'ativo';
   const temSubTabs = !!cfg.subTabs;
   const q        = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
@@ -997,28 +1011,27 @@ async function handleFileSelect(key, bucket, input) {
     setImgStatus(key, 'A fazer upload...', '');
     if (bar) bar.style.width = '50%';
 
-    // Usa o token do utilizador autenticado (nao a anon key)
-    const token = currentUser?.token || SUPA_KEY;
+    // Envia via backend proprio (usa service_role key, sem problemas de RLS)
+    const formData = new FormData();
+    formData.append('file', new File([blob], filename, {type:'image/jpeg'}));
+    formData.append('path', path);
+    formData.append('bucket', bucket);
 
-    const res = await fetch(`${SUPA_URL}/storage/v1/object/${bucket}/${path}`, {
-      method: 'POST',
-      headers: {
-        'apikey':        SUPA_KEY,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type':  'image/jpeg',
-        'x-upsert':      'true',
-      },
-      body: blob,
+    const res = await fetch('/api/upload', {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${currentUser?.token || ''}` },
+      body:    formData,
     });
 
     if (!res.ok) {
       const err = await res.json().catch(()=>({}));
-      throw new Error(err?.message || err?.error || 'Erro no upload');
+      throw new Error(err?.error || err?.message || 'Erro no upload');
     }
 
-    if (bar) bar.style.width = '100%';
+    const data      = await res.json();
+    const publicUrl = data.url;
 
-    const publicUrl = `${SUPA_URL}/storage/v1/object/public/${bucket}/${path}`;
+    if (bar) bar.style.width = '100%';
     document.getElementById('f_'+key).value = publicUrl;
     document.getElementById('img-url-input-'+key).value = publicUrl;
     updateImagePreview(key, publicUrl);
@@ -1263,6 +1276,341 @@ function camposLoja() { return [
   {key:'novo_lancamento',   label:'Novo Lancamento',        type:'checkbox'},
   {key:'mais_vendido',      label:'Mais Vendido',           type:'checkbox'},
 ];}
+
+
+// ══════════════════════════════════════════════════════════
+// EVENTOS — render, presencas, campos
+// ══════════════════════════════════════════════════════════
+
+const STATUS_EVENTO = {
+  aberto:    { label:'Aberto',    cls:'badge-green'  },
+  em_curso:  { label:'Em Curso',  cls:'badge-gold'   },
+  concluido: { label:'Concluido', cls:'badge-gray'   },
+  cancelado: { label:'Cancelado', cls:'badge-red'    },
+};
+
+let eventosData     = [];
+let presencasData   = [];
+let lideresData     = [];
+let eventoAtivo     = null; // evento aberto na aba de presencas
+let eventoSubTab    = 0;    // 0=lista, 1=presencas
+
+function renderEventos() {
+  const q         = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
+  const filtroSt  = document.getElementById('evt-filtro-status')?.value || '';
+  let lista = [...eventosData].sort((a,b)=> new Date(a.data_inicio)-new Date(b.data_inicio));
+  if (q)       lista = lista.filter(e => (e.titulo||'').toLowerCase().includes(q) || (e.local||'').toLowerCase().includes(q));
+  if (filtroSt) lista = lista.filter(e => e.status === filtroSt);
+
+  if (eventoAtivo && eventoSubTab === 1) {
+    renderPresencas();
+    return;
+  }
+
+  let html = `
+    <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
+      <input class="toolbar-search" placeholder="Pesquisar evento..." oninput="renderEventos()">
+      <select class="toolbar-filter" id="evt-filtro-status" onchange="renderEventos()" style="border-radius:20px;padding:7px 12px;border:1px solid var(--border);background:var(--bg-input);font-family:'Cinzel',serif;font-size:9px;color:var(--text-muted);cursor:pointer">
+        <option value="">Todos</option>
+        <option value="aberto">Abertos</option>
+        <option value="em_curso">Em Curso</option>
+        <option value="concluido">Concluidos</option>
+        <option value="cancelado">Cancelados</option>
+      </select>
+      <button class="btn-new" onclick="abrirFormEvento(null)">+ Novo</button>
+    </div>`;
+
+  if (lista.length === 0) {
+    html += '<div class="empty"><div class="empty-icon">-</div><div class="empty-txt">Nenhum evento encontrado.</div></div>';
+    document.getElementById('main-content').innerHTML = html;
+    return;
+  }
+
+  html += '<div class="admin-list" style="padding:12px 16px">';
+  lista.forEach((e, i) => {
+    const st     = STATUS_EVENTO[e.status] || STATUS_EVENTO.aberto;
+    const dInicio = e.data_inicio ? new Date(e.data_inicio).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    const dFim    = e.data_fim    ? new Date(e.data_fim).toLocaleDateString('pt-PT',{day:'2-digit',month:'short'}) : '';
+
+    const btns = [];
+    if (e.status === 'aberto')   btns.push(`<button class="btn-edit" onclick="abrirFormEvento('${e.id}')">Editar</button>`);
+    if (e.status === 'aberto')   btns.push(`<button class="btn-toggle ativo" style="background:var(--green-bg);color:var(--green);border-color:var(--green-border)" onclick="iniciarEvento('${e.id}')">Iniciar</button>`);
+    if (e.status === 'em_curso') btns.push(`<button class="btn-edit" onclick="abrirPresencas('${e.id}')">Presencas</button>`);
+    if (e.status === 'em_curso') btns.push(`<button class="btn-toggle ativo" style="background:var(--green-bg);color:var(--green);border-color:var(--green-border)" onclick="concluirEvento('${e.id}')">Concluir</button>`);
+    if (e.status !== 'cancelado' && e.status !== 'concluido') btns.push(`<button class="btn-toggle ativo" onclick="cancelarEvento('${e.id}')">Cancelar</button>`);
+    if (e.status === 'concluido' || e.status === 'cancelado') btns.push(`<button class="btn-edit" onclick="abrirPresencas('${e.id}')">Ver Resumo</button>`);
+
+    html += `
+      <div class="admin-row" style="animation-delay:${Math.min(i,12)*0.02}s;flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="admin-row-foto" style="background:linear-gradient(135deg,rgba(184,146,42,0.15),rgba(184,146,42,0.05))">${(e.titulo||'E')[0]}</div>
+          <div class="admin-row-info">
+            <div class="admin-row-nome">${e.titulo||'—'}</div>
+            <div class="admin-row-sub">${dInicio}${dFim?' — '+dFim:''} ${e.local?'· '+e.local:''}</div>
+            <div class="admin-row-badges">
+              <span class="badge ${st.cls}">${st.label}</span>
+              ${e.gratuito?'<span class="badge badge-green">Gratuito</span>':''}
+              ${e.destaque?'<span class="badge badge-gold">Destaque</span>':''}
+              ${e.tipo?'<span class="badge badge-gray">'+e.tipo+'</span>':''}
+            </div>
+          </div>
+        </div>
+        <div class="admin-row-actions" style="justify-content:flex-end">${btns.join('')}</div>
+      </div>`;
+  });
+  html += '</div>';
+  document.getElementById('main-content').innerHTML = html;
+}
+
+// ── Acoes de status ────────────────────────────────────────
+async function iniciarEvento(id) {
+  if (!confirm('Iniciar este evento? Sera criada a lista de presencas com todos os lideres.')) return;
+  await sb(`eventos?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'em_curso'})});
+  // Cria presencas para todos os lideres
+  const lideres = await sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true');
+  if (lideres?.length) {
+    const rows = lideres.map(l => ({evento_id:id, membro_id:l.id, status:'pendente'}));
+    await sb('evento_presencas', {method:'POST', body:JSON.stringify(rows)});
+  }
+  eventosData = await sb('eventos?select=*&order=data_inicio') || [];
+  renderEventos();
+}
+
+async function cancelarEvento(id) {
+  if (!confirm('Cancelar este evento?')) return;
+  await sb(`eventos?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'cancelado'})});
+  eventosData = await sb('eventos?select=*&order=data_inicio') || [];
+  renderEventos();
+}
+
+async function concluirEvento(id) {
+  if (!confirm('Concluir evento? Todos os lideres ainda pendentes serao marcados como faltaram.')) return;
+  // Marca pendentes como faltou
+  await sb(`evento_presencas?evento_id=eq.${id}&status=eq.pendente`, {method:'PATCH', body:JSON.stringify({status:'faltou'})});
+  await sb(`eventos?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'concluido'})});
+  eventosData = await sb('eventos?select=*&order=data_inicio') || [];
+  eventoAtivo = null;
+  eventoSubTab = 0;
+  renderEventos();
+}
+
+// ── Presencas ──────────────────────────────────────────────
+async function abrirPresencas(id) {
+  eventoAtivo  = eventosData.find(e => e.id === id);
+  eventoSubTab = 1;
+  // Carrega presencas + dados dos membros
+  presencasData = await sb(`evento_presencas?select=*,membros(id,nome)&evento_id=eq.${id}&order=created_at`) || [];
+  renderPresencas();
+}
+
+function renderPresencas() {
+  const evento  = eventoAtivo;
+  const st      = STATUS_EVENTO[evento?.status] || STATUS_EVENTO.aberto;
+  const emCurso = evento?.status === 'em_curso';
+  const q       = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
+
+  let lista = [...presencasData];
+  if (q) lista = lista.filter(p => (p.membros?.nome||'').toLowerCase().includes(q));
+
+  // Contadores
+  const total     = presencasData.length;
+  const presentes = presencasData.filter(p=>p.status==='presente').length;
+  const faltaram  = presencasData.filter(p=>p.status==='faltou').length;
+  const comMotivo = presencasData.filter(p=>p.status==='faltou_motivo').length;
+  const pendentes = presencasData.filter(p=>p.status==='pendente').length;
+
+  let html = `
+    <div class="section-toolbar" style="position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:6px">
+      <button class="back-btn" style="position:static;width:auto;height:auto;border-radius:20px;padding:5px 12px;font-size:10px" onclick="voltarListaEventos()">← Voltar</button>
+      <input class="toolbar-search" placeholder="Pesquisar lider..." oninput="renderPresencas()" style="flex:1;min-width:120px">
+      ${emCurso ? `<button class="btn-new" style="background:linear-gradient(135deg,var(--green),#4caf50)" onclick="finalizarEntradas()">Finalizar Entradas</button>` : ''}
+    </div>
+    <div style="padding:10px 16px 4px">
+      <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold-dark);margin-bottom:4px">${evento?.titulo||'—'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge ${st.cls}">${st.label}</span>
+        <span class="badge badge-green">Presentes: ${presentes}</span>
+        <span class="badge badge-red">Faltaram: ${faltaram+comMotivo}</span>
+        ${comMotivo ? `<span class="badge badge-gold">Com motivo: ${comMotivo}</span>` : ''}
+        ${pendentes ? `<span class="badge badge-gray">Pendentes: ${pendentes}</span>` : ''}
+      </div>
+    </div>
+    <div class="gold-line" style="margin:8px 16px"></div>`;
+
+  if (lista.length === 0) {
+    html += '<div class="empty"><div class="empty-txt">Nenhum lider encontrado.</div></div>';
+    document.getElementById('main-content').innerHTML = html;
+    return;
+  }
+
+  // Agrupa por status para o resumo final
+  const grupos = [
+    {key:'presente',     label:'Presentes',        items: lista.filter(p=>p.status==='presente')},
+    {key:'pendente',     label:'Pendentes',         items: lista.filter(p=>p.status==='pendente')},
+    {key:'faltou_motivo',label:'Faltaram c/ Motivo',items: lista.filter(p=>p.status==='faltou_motivo')},
+    {key:'faltou',       label:'Faltaram',          items: lista.filter(p=>p.status==='faltou')},
+  ].filter(g => g.items.length > 0);
+
+  grupos.forEach(grupo => {
+    html += `<div style="padding:8px 16px 2px;font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">${grupo.label} (${grupo.items.length})</div>`;
+    html += '<div class="admin-list" style="padding:4px 16px 8px">';
+    grupo.items.forEach((p, i) => {
+      const nome   = p.membros?.nome || '—';
+      const stIcon = {presente:'✓', faltou:'✗', faltou_motivo:'!', pendente:'·'}[p.status]||'·';
+      const stCls  = {presente:'badge-green', faltou:'badge-red', faltou_motivo:'badge-gold', pendente:'badge-gray'}[p.status]||'badge-gray';
+
+      let btns = '';
+      if (emCurso && p.status !== 'presente') {
+        btns += `<button class="btn-toggle inativo" onclick="marcarPresenca('${p.id}','presente')">Presente</button>`;
+      }
+      if (emCurso && p.status !== 'faltou') {
+        btns += `<button class="btn-toggle ativo" onclick="marcarPresenca('${p.id}','faltou')">Faltou</button>`;
+      }
+      if (emCurso && p.status !== 'faltou_motivo') {
+        btns += `<button class="btn-edit" onclick="abrirMotivo('${p.id}','${nome.replace(/'/g,"\'")}')">Com Motivo</button>`;
+      }
+
+      html += `
+        <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s">
+          <div class="admin-row-foto" style="font-size:13px;font-weight:bold">${stIcon}</div>
+          <div class="admin-row-info">
+            <div class="admin-row-nome">${nome}</div>
+            ${p.motivo ? `<div class="admin-row-sub" style="color:var(--orange)">${p.motivo}</div>` : ''}
+          </div>
+          <div class="admin-row-actions">${btns}</div>
+        </div>`;
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('main-content').innerHTML = html;
+}
+
+function voltarListaEventos() {
+  eventoAtivo  = null;
+  eventoSubTab = 0;
+  renderEventos();
+}
+
+async function marcarPresenca(presencaId, novoStatus) {
+  await sb(`evento_presencas?id=eq.${presencaId}`, {method:'PATCH', body:JSON.stringify({status:novoStatus, registado_em: new Date().toISOString()})});
+  const idx = presencasData.findIndex(p=>p.id===presencaId);
+  if (idx>=0) presencasData[idx].status = novoStatus;
+  renderPresencas();
+}
+
+async function finalizarEntradas() {
+  if (!eventoAtivo) return;
+  if (!confirm('Finalizar entradas? Todos os lideres ainda pendentes serao marcados como faltaram.')) return;
+  await sb(`evento_presencas?evento_id=eq.${eventoAtivo.id}&status=eq.pendente`,
+    {method:'PATCH', body:JSON.stringify({status:'faltou'})});
+  presencasData.forEach(p => { if (p.status==='pendente') p.status='faltou'; });
+  renderPresencas();
+}
+
+// ── Modal motivo ───────────────────────────────────────────
+let motivoPresencaId = null;
+
+function abrirMotivo(presencaId, nome) {
+  motivoPresencaId = presencaId;
+  document.getElementById('drawer-title').textContent = `Motivo — ${nome}`;
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label class="form-label">Motivo da Falta</label>
+        <textarea class="form-textarea" id="motivo-txt" placeholder="Descreve o motivo..." style="height:100px"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+        <button class="btn-save" onclick="guardarMotivo()">Guardar</button>
+      </div>
+    </div>`;
+  document.getElementById('overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+async function guardarMotivo() {
+  const motivo = document.getElementById('motivo-txt')?.value?.trim();
+  if (!motivo) { alert('Escreve o motivo.'); return; }
+  await sb(`evento_presencas?id=eq.${motivoPresencaId}`,
+    {method:'PATCH', body:JSON.stringify({status:'faltou_motivo', motivo, registado_em:new Date().toISOString()})});
+  const idx = presencasData.findIndex(p=>p.id===motivoPresencaId);
+  if (idx>=0) { presencasData[idx].status='faltou_motivo'; presencasData[idx].motivo=motivo; }
+  closeDrawer();
+  renderPresencas();
+}
+
+// ── Form de evento ─────────────────────────────────────────
+function abrirFormEvento(id) {
+  const e = id ? eventosData.find(x=>x.id===id) : null;
+  document.getElementById('drawer-title').textContent = e ? 'Editar Evento' : 'Novo Evento';
+  document.getElementById('drawer-body').innerHTML = buildFormEvento(e);
+  document.getElementById('overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function buildFormEvento(e) {
+  const fv = (k, def='') => e?.[k] ?? def;
+  const fdt = (k) => {
+    const v = e?.[k];
+    if (!v) return '';
+    // converte para formato datetime-local
+    return new Date(v).toISOString().slice(0,16);
+  };
+  return `<div class="form-grid">
+    <div class="msg-form" id="form-msg"></div>
+    <div class="form-section-title">Identificacao</div>
+    <div class="form-group form-full"><label class="form-label">Titulo</label><input class="form-input" id="fe_titulo" type="text" placeholder="Nome do evento" value="${fv('titulo')}"></div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select class="form-select" id="fe_tipo">
+        <option value="">-- Seleciona --</option>
+        ${['Reuniao de Lideres','Culto Especial','Conferencia','Retiro','Treinamento','Workshop','Outro'].map(t=>`<option value="${t}" ${fv('tipo')===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Local</label><input class="form-input" id="fe_local" type="text" placeholder="Ex: Sede Lisboa" value="${fv('local')}"></div>
+    <div class="form-group form-full"><label class="form-label">Descricao</label><textarea class="form-textarea" id="fe_descricao" placeholder="Descricao do evento...">${fv('descricao')}</textarea></div>
+    <div class="form-section-title">Data e Hora</div>
+    <div class="form-group"><label class="form-label">Data Inicio</label><input class="form-input" id="fe_data_inicio" type="datetime-local" value="${fdt('data_inicio')}"></div>
+    <div class="form-group"><label class="form-label">Data Fim</label><input class="form-input" id="fe_data_fim" type="datetime-local" value="${fdt('data_fim')}"></div>
+    <div class="form-section-title">Inscricao</div>
+    <div class="form-group"><label class="form-label">Valor (€)</label><input class="form-input" id="fe_valor" type="number" placeholder="0.00" value="${fv('valor')}"></div>
+    <div class="form-group"><label class="form-label">Link Inscricao</label><input class="form-input" id="fe_link_inscricao" type="url" placeholder="https://..." value="${fv('link_inscricao')}"></div>
+    <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fe_gratuito" ${fv('gratuito')?'checked':''}><span>Gratuito</span></label></div>
+    <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fe_destaque" ${fv('destaque')?'checked':''}><span>Destaque</span></label></div>
+    <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fe_ativo" ${fv('ativo')!==false?'checked':''}><span>Ativo</span></label></div>
+    <div class="form-actions">
+      <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+      <button class="btn-save" id="btn-save" onclick="salvarEvento('${e?.id||''}')">Guardar</button>
+    </div>
+  </div>`;
+}
+
+async function salvarEvento(id) {
+  const get = k => { const el=document.getElementById('fe_'+k); return el?el.value||null:null; };
+  const chk = k => { const el=document.getElementById('fe_'+k); return el?el.checked:false; };
+  const body = {
+    titulo: get('titulo'), tipo: get('tipo'), local: get('local'),
+    descricao: get('descricao'), data_inicio: get('data_inicio'),
+    data_fim: get('data_fim'), valor: get('valor')?Number(get('valor')):null,
+    link_inscricao: get('link_inscricao'),
+    gratuito: chk('gratuito'), destaque: chk('destaque'), ativo: chk('ativo'),
+  };
+  if (!body.titulo) { showFormMsg('Titulo obrigatorio.','error'); return; }
+  const btn = document.getElementById('btn-save');
+  btn.disabled=true; btn.textContent='A guardar...';
+  try {
+    if (!id) { body.status='aberto'; await sb('eventos',{method:'POST',body:JSON.stringify(body)}); }
+    else await sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
+    showFormMsg('Guardado!','success');
+    eventosData = await sb('eventos?select=*&order=data_inicio') || [];
+    setTimeout(()=>{ closeDrawer(); renderEventos(); }, 700);
+  } catch(err) {
+    showFormMsg('Erro: '+(err?.message||JSON.stringify(err)),'error');
+    btn.disabled=false; btn.textContent='Guardar';
+  }
+}
+
+function camposEventos() { return []; } // usado pelo SECOES mas render e customizado
 
 init();
 </script>

@@ -123,6 +123,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);animation:fadeIn 0.2s ease}
 .overlay.hidden{display:none}
 .drawer{width:100%;max-width:700px;background:var(--bg-card);border-radius:16px 16px 0 0;max-height:90vh;overflow-y:auto;animation:slideUp 0.3s ease}
+@media(min-width:900px){.drawer{max-width:100%;border-radius:0;max-height:85vh}.overlay{align-items:flex-end}}
 .drawer::-webkit-scrollbar{width:4px}
 .drawer::-webkit-scrollbar-thumb{background:rgba(184,146,42,0.25);border-radius:2px}
 .drawer-head{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-card);z-index:1}
@@ -200,7 +201,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
   <!-- Nav -->
   <div class="nav-bar" id="nav-bar">
-    <div class="nav-item active" onclick="setSecao('pastores')">Pastores</div>
+    <div class="nav-item active" onclick="setSecao('membros')">Membros</div>
+    <div class="nav-item" onclick="setSecao('pastores')">Pastores</div>
     <div class="nav-item" onclick="setSecao('links')">Links</div>
     <div class="nav-item" onclick="setSecao('cultos')">Cultos</div>
     <div class="nav-item" onclick="setSecao('ministerios')">Ministerios</div>
@@ -248,6 +250,7 @@ let subTabAtiva = 0;
 let registos    = [];
 let filtroInativo = false;
 let membros     = []; // para selects de lideres/instrutores
+let links_cache = []; // cache de links para select no form de membro
 
 // ── SUPABASE ───────────────────────────────────────────────
 async function sb(path, opts = {}) {
@@ -287,7 +290,7 @@ async function init() {
 
   // Pre-carrega membros para selects
   membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
-  await setSecao('pastores');
+  await setSecao('membros');
 }
 
 // ── SECOES ─────────────────────────────────────────────────
@@ -297,10 +300,10 @@ async function setSecao(secao) {
   subTabAtiva   = 0;
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const secaoNomes = {pastores:'Pastores',links:'Links',cultos:'Cultos',ministerios:'Ministerios',salas:'Salas',cursos:'Cursos ZAO',keola:'Keola',loja:'Loja'};
+  const secaoNomes = {membros:'Cadastro de Membros',pastores:'Cadastro de Pastores',links:'Cadastro de Links',cultos:'Cadastro dos Cultos',ministerios:'Cadastro de Ministerio',salas:'Cadastro de Salas',cursos:'Cadastro de Cursos ZAO',keola:'Cadastro do Keola',loja:'Cadastro da Loja'};
   const sl = document.getElementById('secao-label');
   if(sl) sl.textContent = secaoNomes[secao]||'Cadastros';
-  const idx = ['pastores','links','cultos','ministerios','salas','cursos','keola','loja'];
+  const idx = ['membros','pastores','links','cultos','ministerios','salas','cursos','keola','loja'];
   const ni  = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
   if (ni) ni.classList.add('active');
 
@@ -311,19 +314,25 @@ async function carregarSecao() {
   document.getElementById('main-content').innerHTML = '<div class="loading"><div class="spin"></div>A carregar...</div>';
   const cfg = SECOES[secaoAtiva];
   registos  = await sb(`${cfg.tabela}?select=*&order=${cfg.orderBy||'nome'}`) || [];
+  // Para membros, pre-carrega também links e visitantes
+  if (secaoAtiva === 'membros') {
+    if (!links_cache.length) links_cache = await sb('links?select=id,nome&ativo=eq.true&order=nome') || [];
+    await carregarVisitantes();
+  }
   renderSecao();
 }
 
 // ── CONFIG DAS SECOES ──────────────────────────────────────
 const SECOES = {
-  pastores:    { tabela:'pastores',    label:'Pastores',       orderBy:'nome',      campos: camposPastores },
-  links:       { tabela:'links',       label:'Links',          orderBy:'nome',      campos: camposLinks },
-  cultos:      { tabela:'cultos',      label:'Cultos',         orderBy:'nome',      campos: camposCultos },
-  ministerios: { tabela:'ministerios', label:'Ministerios',    orderBy:'nome',      campos: camposMinisterios, subTabs:['Ministerio','Lideres'] },
-  salas:       { tabela:'salas',       label:'Salas',          orderBy:'nome',      campos: camposSalas },
-  cursos:      { tabela:'zao_cursos',  label:'Cursos ZAO',     orderBy:'nome',      campos: camposCursos, subTabs:['Curso','Instrutores'] },
-  keola:       { tabela:'keola_menu',  label:'Menu Keola',     orderBy:'categoria,nome', campos: camposKeola, ativoKey:'disponivel' },
-  loja:        { tabela:'loja_produtos',label:'Loja',          orderBy:'categoria,nome', campos: camposLoja },
+  membros:     { tabela:'membros',     label:'Cadastro de Membros',               orderBy:'nome', campos: camposMembros, subTabs:['Membro','Filhos','Visitantes'] },
+  pastores:    { tabela:'pastores',    label:'Cadastro de Pastores',              orderBy:'nome', campos: camposPastores },
+  links:       { tabela:'links',       label:'Cadastro de Links',                 orderBy:'nome', campos: camposLinks },
+  cultos:      { tabela:'cultos',      label:'Cadastro dos Cultos',               orderBy:'nome', campos: camposCultos },
+  ministerios: { tabela:'ministerios', label:'Cadastro de Ministerio',            orderBy:'nome', campos: camposMinisterios, subTabs:['Ministerio','Lideres'] },
+  salas:       { tabela:'salas',       label:'Cadastro de Salas',                 orderBy:'nome', campos: camposSalas },
+  cursos:      { tabela:'zao_cursos',  label:'Cadastro de Cursos ZAO',            orderBy:'nome', campos: camposCursos, subTabs:['Curso','Instrutores'] },
+  keola:       { tabela:'keola_menu',  label:'Cadastro de Produtos do Keola',     orderBy:'categoria,nome', campos: camposKeola, ativoKey:'disponivel' },
+  loja:        { tabela:'loja_produtos',label:'Cadastro de Produtos da Loja',     orderBy:'categoria,nome', campos: camposLoja },
 };
 
 // ── RENDER SECAO ───────────────────────────────────────────
@@ -345,10 +354,18 @@ function renderSecao() {
       <button class="btn-new" onclick="abrirForm(null)">+ Novo</button>
     </div>`;
 
-  if (temSubTabs && subTabAtiva === 1) {
-    html += renderSubTabLideres();
-    document.getElementById('main-content').innerHTML = html;
-    return;
+  if (temSubTabs && subTabAtiva >= 1) {
+    // membros: subtab 1=Filhos is handled in abrirForm; subtab 2=Visitantes
+    if (secaoAtiva === 'membros' && subTabAtiva === 2) {
+      html += renderSubTabLideres();
+      document.getElementById('main-content').innerHTML = html;
+      return;
+    }
+    if (secaoAtiva !== 'membros' && subTabAtiva === 1) {
+      html += renderSubTabLideres();
+      document.getElementById('main-content').innerHTML = html;
+      return;
+    }
   }
 
   if (temSubTabs) {
@@ -393,6 +410,7 @@ function renderSecao() {
 
 function buildSub(r) {
   const s = secaoAtiva;
+  if (s==='membros')     return [r.tipo,r.zona,r.genero].filter(Boolean).join(' · ');
   if (s==='pastores')    return [r.cargo,r.email].filter(Boolean).join(' — ');
   if (s==='links')       return [r.tipo,r.zona,r.dia].filter(Boolean).join(' · ');
   if (s==='cultos')      return [r.dia_semana,r.hora_inicio].filter(Boolean).join(' — ');
@@ -406,6 +424,10 @@ function buildSub(r) {
 
 function buildBadges(r) {
   const badges = [];
+  if (r.e_lider)       badges.push(`<span class="badge badge-gold">Lider</span>`);
+  if (r.e_presbitero)  badges.push(`<span class="badge badge-gold">Presbitero</span>`);
+  if (r.e_voluntario)  badges.push(`<span class="badge badge-green">Voluntario</span>`);
+  if (r.e_admin)       badges.push(`<span class="badge badge-red">Admin</span>`);
   if (r.online)        badges.push(`<span class="badge badge-gold">Online</span>`);
   if (r.recorrente)    badges.push(`<span class="badge badge-green">Recorrente</span>`);
   if (r.gratuito)      badges.push(`<span class="badge badge-green">Gratuito</span>`);
@@ -427,7 +449,13 @@ function setSubTab(idx) {
 
 // ── SUB-TAB LIDERES / INSTRUTORES ──────────────────────────
 function renderSubTabLideres() {
-  const cfg     = SECOES[secaoAtiva];
+  const cfg = SECOES[secaoAtiva];
+
+  // Membros: subTab 2 = Visitantes
+  if (secaoAtiva === 'membros' && subTabAtiva === 2) {
+    return renderVisitantes();
+  }
+
   const isMin   = secaoAtiva === 'ministerios';
   const tabela  = isMin ? 'ministerio_lideres' : 'zao_curso_instrutores';
   const label   = isMin ? 'Lideres' : 'Instrutores';
@@ -442,6 +470,137 @@ function renderSubTabLideres() {
         Para gerir ${label.toLowerCase()}, abre o registo do ${parentLabel.toLowerCase()} e edita a partir dai.
       </div>
     </div>`;
+}
+
+// ── VISITANTES (subtab de Membros) ─────────────────────────
+let visitantes = [];
+async function carregarVisitantes() {
+  visitantes = await sb('visitantes?select=*&order=nome') || [];
+}
+
+function renderVisitantes() {
+  const cfg = SECOES['membros'];
+  const q   = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
+  let lista = [...visitantes];
+  if (!filtroInativo) lista = lista.filter(r => r.ativo !== false);
+  else lista = lista.filter(r => r.ativo === false);
+  if (q) lista = lista.filter(r => (r.nome||'').toLowerCase().includes(q));
+
+  let html = `
+    <div class="sub-tabs">
+      ${cfg.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}
+    </div>
+    <div class="section-toolbar" style="top:0">
+      <input class="toolbar-search" placeholder="Pesquisar visitante..." oninput="renderSecao()">
+      <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">Inativos</button>
+      <button class="btn-new" onclick="abrirFormVisitante(null)">+ Novo</button>
+    </div>`;
+
+  if (lista.length === 0) {
+    html += '<div class="empty"><div class="empty-icon">-</div><div class="empty-txt">Nenhum visitante encontrado.</div></div>';
+    return html;
+  }
+
+  html += '<div class="admin-list">';
+  lista.forEach((v, i) => {
+    const ativo = v.ativo !== false;
+    const conv  = v.convertido ? '<span class="badge badge-green">Convertido</span>' : '';
+    html += `
+      <div class="admin-row ${ativo?'':'inativo'}" style="animation-delay:${Math.min(i,12)*0.02}s">
+        <div class="admin-row-foto">${(v.nome||'V')[0]}</div>
+        <div class="admin-row-info">
+          <div class="admin-row-nome">${v.nome||'—'}</div>
+          <div class="admin-row-sub">${[v.zona,v.data_visita?new Date(v.data_visita).toLocaleDateString('pt-PT'):null].filter(Boolean).join(' · ')}</div>
+          <div class="admin-row-badges">${conv}</div>
+        </div>
+        <div class="admin-row-actions">
+          <button class="btn-edit" onclick="abrirFormVisitante('${v.id}')">Editar</button>
+          ${!v.convertido ? `<button class="btn-toggle ativo" onclick="converterEmMembro('${v.id}')">Converter</button>` : ''}
+          <button class="btn-toggle ${ativo?'ativo':'inativo'}" onclick="toggleAtivoVisitante('${v.id}',${ativo})">${ativo?'Inativar':'Ativar'}</button>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function abrirFormVisitante(id) {
+  const v = id ? visitantes.find(x=>x.id===id) : null;
+  document.getElementById('drawer-title').textContent = v ? 'Editar Visitante' : 'Novo Visitante';
+  document.getElementById('drawer-body').innerHTML = buildFormVisitante(v);
+  document.getElementById('overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function buildFormVisitante(v) {
+  const fv = (key,def='') => v?.[key] ?? def;
+  return `<div class="form-grid">
+    <div class="msg-form" id="form-msg"></div>
+    <div class="form-group form-full"><label class="form-label">Nome</label><input class="form-input" id="fv_nome" type="text" placeholder="Nome completo" value="${fv('nome')}"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="fv_email" type="email" placeholder="email@exemplo.com" value="${fv('email')}"></div>
+    <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="fv_telefone" type="tel" placeholder="+351 9XX XXX XXX" value="${fv('telefone')}"></div>
+    <div class="form-group"><label class="form-label">Zona</label><input class="form-input" id="fv_zona" type="text" placeholder="Ex: Lisboa" value="${fv('zona')}"></div>
+    <div class="form-group"><label class="form-label">Data da Visita</label><input class="form-input" id="fv_data_visita" type="date" value="${fv('data_visita')}"></div>
+    <div class="form-group form-full"><label class="form-label">Onde Conheceu</label><input class="form-input" id="fv_onde_conheceu" type="text" placeholder="Como soube da igreja?" value="${fv('onde_conheceu')}"></div>
+    <div class="form-group form-full"><label class="form-label">Observacoes</label><textarea class="form-textarea" id="fv_observacoes" placeholder="Notas sobre o visitante...">${fv('observacoes')}</textarea></div>
+    <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fv_convertido" ${fv('convertido')?'checked':''}><span>Convertido</span></label></div>
+    <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fv_ativo" ${fv('ativo')!==false?'checked':''}><span>Ativo</span></label></div>
+    <div class="form-actions">
+      <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+      <button class="btn-save" id="btn-save" onclick="salvarVisitante('${v?.id||''}')">Guardar</button>
+    </div>
+  </div>`;
+}
+
+async function salvarVisitante(id) {
+  const get = k => { const el=document.getElementById('fv_'+k); return el ? el.value||null : null; };
+  const chk = k => { const el=document.getElementById('fv_'+k); return el ? el.checked : false; };
+  const body = {
+    nome: get('nome'), email: get('email'), telefone: get('telefone'),
+    zona: get('zona'), data_visita: get('data_visita'), onde_conheceu: get('onde_conheceu'),
+    observacoes: get('observacoes'), convertido: chk('convertido'), ativo: chk('ativo'),
+  };
+  if (!body.nome) { showFormMsg('Nome obrigatorio.','error'); return; }
+  const btn = document.getElementById('btn-save');
+  btn.disabled=true; btn.textContent='A guardar...';
+  try {
+    if (!id) await sb('visitantes', {method:'POST', body:JSON.stringify(body)});
+    else await sb(`visitantes?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(body)});
+    showFormMsg('Guardado!','success');
+    await carregarVisitantes();
+    setTimeout(closeDrawer, 700);
+  } catch(e) {
+    showFormMsg(`Erro: ${e?.message||JSON.stringify(e)}`, 'error');
+    btn.disabled=false; btn.textContent='Guardar';
+  }
+}
+
+async function toggleAtivoVisitante(id, ativoAtual) {
+  await sb(`visitantes?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({ativo:!ativoAtual})});
+  await carregarVisitantes();
+  renderSecao();
+}
+
+async function converterEmMembro(visitanteId) {
+  if (!confirm('Converter este visitante em membro?')) return;
+  const v = visitantes.find(x=>x.id===visitanteId);
+  if (!v) return;
+  try {
+    // Cria membro com dados do visitante
+    const novoMembro = await sb('membros', {method:'POST', body:JSON.stringify({
+      nome: v.nome, email: v.email, telefone: v.telefone,
+      zona: v.zona, onde_conheceu: v.onde_conheceu,
+      tipo: 'membro', ativo: true,
+      convertido_de_visitante_id: visitanteId,
+      data_entrada: new Date().toISOString().split('T')[0],
+    })});
+    const membroId = novoMembro?.[0]?.id;
+    // Marca visitante como convertido
+    await sb(`visitantes?id=eq.${visitanteId}`, {method:'PATCH', body:JSON.stringify({convertido:true, membro_id:membroId})});
+    alert('Visitante convertido em membro com sucesso!');
+    await carregarVisitantes();
+    renderSecao();
+  } catch(e) { alert('Erro ao converter: '+JSON.stringify(e)); }
 }
 
 // ── TOGGLE ATIVO ───────────────────────────────────────────
@@ -475,8 +634,10 @@ async function abrirForm(id) {
   document.getElementById('overlay').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
-  // Carrega sub-lista de instrutores/lideres se for edicao
-  if (!isNovo && (secaoAtiva==='ministerios'||secaoAtiva==='cursos')) {
+  // Carrega sub-lista de filhos (membros), instrutores ou lideres
+  if (!isNovo && secaoAtiva==='membros') {
+    await carregarFilhos(registo.id);
+  } else if (!isNovo && (secaoAtiva==='ministerios'||secaoAtiva==='cursos')) {
     await carregarSubList(registo.id);
   }
 }
@@ -485,6 +646,13 @@ function buildForm(cfg, r) {
   const campos = typeof cfg.campos === 'function' ? cfg.campos(r) : cfg.campos;
   let html = `<div class="form-grid"><div class="msg-form" id="form-msg"></div>`;
   campos.forEach(c => {
+    // Render especial para link_id em membros
+    if (c.key === 'link_id' && secaoAtiva === 'membros') {
+      const val2 = r?.[c.key] ?? '';
+      const opts2 = links_cache.map(l=>`<option value="${l.id}" ${val2===l.id?'selected':''}>${l.nome}</option>`).join('');
+      html += `<div class="form-group form-full"><label class="form-label">${c.label}</label><select class="form-select" id="f_link_id"><option value="">-- Sem Link --</option>${opts2}</select></div>`;
+      return;
+    }
     if (c.type === 'section') {
       html += `<div class="form-section-title">${c.label}</div>`;
       return;
@@ -502,6 +670,19 @@ function buildForm(cfg, r) {
       html += `<div class="form-group ${fullClass}"><label class="form-label">${c.label}</label><input class="form-input" id="f_${c.key}" type="${c.type||'text'}" placeholder="${c.ph||''}" value="${val}"></div>`;
     }
   });
+
+  // Sub-list de filhos (membros)
+  if (r && secaoAtiva==='membros') {
+    html += `
+      <div class="form-section-title">Filhos (membros_filhos)</div>
+      <div class="form-full">
+        <div class="sub-list" id="sub-list"><div class="sub-list-empty">A carregar...</div></div>
+      </div>
+      <div class="sub-add-row">
+        <select class="form-select" id="sub-filho-id"><option value="">Seleciona filho (membro)</option>${membros.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select>
+        <button class="btn-sub-add" onclick="addFilho('${r.id}')">Adicionar Filho</button>
+      </div>`;
+  }
 
   // Sub-list de lideres/instrutores se for edição
   if (r && (secaoAtiva==='ministerios'||secaoAtiva==='cursos')) {
@@ -580,6 +761,39 @@ function showFormMsg(txt, tipo) {
 }
 
 // ── SUB-ITEMS (lideres / instrutores) ──────────────────────
+async function carregarFilhos(membroId) {
+  const items = await sb(`membros_filhos?select=*&pai_id=eq.${membroId}&order=created_at`) || [];
+  const el    = document.getElementById('sub-list');
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div class="sub-list-empty">Sem filhos registados.</div>'; return; }
+  el.innerHTML = items.map(item => {
+    const filho = membros.find(m=>m.id===item.filho_id);
+    return `<div class="sub-list-item">
+      <div class="sub-list-nome">${filho?.nome||item.filho_id}</div>
+      <div class="sub-list-cargo">Filho/a</div>
+      <button class="sub-list-remove" onclick="removeFilho('${item.id}','${membroId}')">Remover</button>
+    </div>`;
+  }).join('');
+}
+
+async function addFilho(paiId) {
+  const filhoId = document.getElementById('sub-filho-id')?.value;
+  if (!filhoId) { alert('Seleciona um membro.'); return; }
+  try {
+    await sb('membros_filhos', {method:'POST', body:JSON.stringify({pai_id:paiId, filho_id:filhoId})});
+    // reload membros for the select
+    membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
+    await carregarFilhos(paiId);
+    document.getElementById('sub-filho-id').value = '';
+  } catch(e) { alert('Erro ao adicionar filho: '+JSON.stringify(e)); }
+}
+
+async function removeFilho(itemId, paiId) {
+  if (!confirm('Remover este filho?')) return;
+  await sb(`membros_filhos?id=eq.${itemId}`, {method:'DELETE'});
+  await carregarFilhos(paiId);
+}
+
 async function carregarSubList(parentId) {
   const isMin   = secaoAtiva === 'ministerios';
   const tabela  = isMin ? 'ministerio_lideres' : 'zao_curso_instrutores';
@@ -647,6 +861,45 @@ document.addEventListener('keydown', e => { if (e.key==='Escape') closeDrawer();
 // ══════════════════════════════════════════════════════════
 // CAMPOS DAS SECOES
 // ══════════════════════════════════════════════════════════
+
+function camposMembros() { return [
+  {type:'section', label:'Identificacao'},
+  {key:'nome',        label:'Nome',           ph:'Nome completo',     full:true},
+  {key:'email',       label:'Email',          type:'email',           ph:'email@exemplo.com'},
+  {key:'telefone',    label:'Telefone',       ph:'+351 9XX XXX XXX'},
+  {key:'genero',      label:'Genero',         type:'select', options:[{v:'masculino',l:'Masculino'},{v:'feminino',l:'Feminino'},{v:'outro',l:'Outro'}]},
+  {key:'data_nascimento', label:'Data Nascimento', type:'date'},
+  {key:'estado_civil',label:'Estado Civil',   type:'select', options:[{v:'solteiro',l:'Solteiro'},{v:'casado',l:'Casado'},{v:'divorciado',l:'Divorciado'},{v:'viuvo',l:'Viuvo'}]},
+  {key:'nif',         label:'NIF',            ph:'000 000 000'},
+  {key:'foto_url',    label:'Foto URL',       ph:'https://...',       full:true},
+  {type:'section', label:'Morada'},
+  {key:'rua',         label:'Rua',            ph:'Nome da rua',       full:true},
+  {key:'numero',      label:'Numero',         ph:'Nr'},
+  {key:'complemento', label:'Complemento',    ph:'Andar, porta...'},
+  {key:'bairro',      label:'Bairro',         ph:'Bairro'},
+  {key:'cidade',      label:'Cidade',         ph:'Lisboa'},
+  {key:'distrito_estado', label:'Distrito',   ph:'Lisboa'},
+  {key:'codigo_postal',label:'Codigo Postal', ph:'0000-000'},
+  {key:'pais',        label:'Pais',           ph:'Portugal', default:'Portugal'},
+  {key:'zona',        label:'Zona (Link)',     ph:'Ex: Montijo'},
+  {type:'section', label:'Igreja'},
+  {key:'tipo',        label:'Tipo',           type:'select', options:[{v:'membro',l:'Membro'},{v:'admin',l:'Administrador'}]},
+  {key:'data_entrada',label:'Membro Desde',   type:'date'},
+  {key:'onde_conheceu',label:'Onde Conheceu', ph:'Como soube da Zion?', full:true},
+  {key:'foi_batizado',label:'Foi Batizado',   type:'checkbox'},
+  {key:'data_batismo',label:'Data Batismo',   type:'date'},
+  {key:'tem_filhos',  label:'Tem Filhos',     type:'checkbox'},
+  {key:'numero_filhos',label:'Nr Filhos',     type:'number', ph:'0'},
+  {type:'section', label:'Funcoes'},
+  {key:'e_lider',     label:'Lider',          type:'checkbox'},
+  {key:'e_presbitero',label:'Presbitero',     type:'checkbox'},
+  {key:'e_voluntario',label:'Voluntario',     type:'checkbox'},
+  {key:'e_admin',     label:'Administrador',  type:'checkbox'},
+  {key:'professor',   label:'Professor',      type:'checkbox'},
+  {type:'section', label:'Historia'},
+  {key:'historia',    label:'Historia',       type:'textarea', ph:'Historia do membro...', full:true},
+  {key:'ativo',       label:'Ativo',          type:'checkbox', default:true},
+];}
 
 function camposPastores() { return [
   {key:'nome',       label:'Nome',         ph:'Nome completo',      full:true},

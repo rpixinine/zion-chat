@@ -244,7 +244,7 @@ async function init() {
     ]);
     todosMembros = Array.isArray(membros)  ? membros  : [];
     if (Array.isArray(linksData)) linksData.forEach(l => linksMap[l.id] = l);
-    renderUserBar();
+    //renderUserBar();
     renderMembros(todosMembros);
   } catch(e) {
     document.getElementById('main-content').innerHTML = '<div class="loading">⚠️ Erro ao carregar membros.</div>';
@@ -253,15 +253,24 @@ async function init() {
 
 // ── USER BAR ───────────────────────────────────────────────
 function renderUserBar() {
-  const u         = currentUser;
-  const ini       = (u.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  const tipoLabel = {visitante:'Visitante',membro:'Membro',admin:'Administrador'};
-  const meuMembro = todosMembros.find(m => m.email?.toLowerCase() === u.email?.toLowerCase());
-  const avHtml    = meuMembro?.foto_url
-    ? `<img src="${meuMembro.foto_url}" alt="${u.nome}">`
-    : ini;
-  
-}
+        const u         = currentUser;
+        const ini       = (u.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+        const tipoLabel = {visitante:'Visitante',membro:'Membro',admin:'Administrador'};
+        const meuMembro = todosMembros.find(m => m.email?.toLowerCase() === u.email?.toLowerCase());
+        const avHtml    = meuMembro?.foto_url
+            ? `<img src="${meuMembro.foto_url}" alt="${u.nome}">`
+            : ini;
+        document.getElementById('user-bar').innerHTML = `
+    <div class="user-bar-avatar">${avHtml}</div>
+    <div class="user-bar-info">
+      <div class="user-bar-nome">${u.nome}</div>
+      <div class="user-bar-tipo">${tipoLabel[u.tipo]||u.tipo}</div>
+    </div>
+    <button class="logout-btn" onclick="ZionAuth.logout()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>`;
+    }
 
 // ── HELPERS ────────────────────────────────────────────────
 function formatDate(d) {

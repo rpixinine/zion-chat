@@ -5,711 +5,125 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Zion Church Lisboa</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap"
-          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
     <style>
         :root {
-            --gold: #B8922A;
-            --gold-light: #D4A843;
-            --gold-dark: #8B6914;
-            --border: rgba(184, 146, 42, 0.22);
-            --bg-page: #F5EFE4;
-            --bg-card: #FFFFFF;
-            --bg-input: #FAF7F2;
-            --bg-footer: #F0E8D8;
-            --text-main: #1A1410;
-            --text-muted: #7A6A52;
-            --text-faint: #A89878;
+            --gold: #B8922A; --gold-light: #D4A843; --gold-dark: #8B6914;
+            --border: rgba(184, 146, 42, 0.22); --bg-page: #F5EFE4; --bg-card: #FFFFFF;
+            --bg-input: #FAF7F2; --bg-footer: #F0E8D8; --text-main: #1A1410;
+            --text-muted: #7A6A52; --text-faint: #A89878;
             --shadow: 0 8px 40px rgba(100, 70, 20, 0.13);
         }
-
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        html, body {
-            height: 100%;
-            background: var(--bg-page);
-            font-family: 'Lato', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(ellipse at 15% 15%, rgba(201, 168, 76, 0.09) 0%, transparent 55%),
-            radial-gradient(ellipse at 85% 85%, rgba(201, 168, 76, 0.06) 0%, transparent 55%);
-            pointer-events: none;
-        }
-
-        /* ── WRAPPER ─────────────────────────────────── */
-        .page-wrapper {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            width: 640px;
-            max-width: 96vw;
-            height: 96vh;
-            max-height: 900px;
-            background: var(--bg-card);
-            border-radius: 16px;
-            box-shadow: var(--shadow), 0 0 0 1px var(--border);
-            overflow: hidden;
-        }
-
-        /* ── BANNER ──────────────────────────────────── */
-        .banner {
-            width: 100%;
-            position: relative;
-            background: #111;
-            flex-shrink: 0;
-        }
-
-        .banner img {
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            display: block;
-        }
-
-        .banner-fallback {
-            display: none;
-            width: 100%;
-            height: 150px;
-            background: linear-gradient(135deg, #0d0d0d 0%, #1c1408 50%, #0d0d0d 100%);
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .banner-fallback.show {
-            display: flex;
-        }
-
-        .banner-title {
-            font-family: 'Cinzel', serif;
-            color: #C9A84C;
-            font-size: 34px;
-            font-weight: 700;
-            letter-spacing: 10px;
-        }
-
-        .banner-sub {
-            color: rgba(201, 168, 76, 0.6);
-            font-size: 11px;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-
-        .banner-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 70px;
-            background: linear-gradient(to top, rgba(255, 255, 255, 0.95), transparent);
-        }
-
-        .banner-badge {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            background: rgba(255, 255, 255, 0.92);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 5px 16px;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            white-space: nowrap;
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #22c55e;
-            box-shadow: 0 0 6px #22c55e;
-            animation: pulse-dot 2s ease-in-out infinite;
-            flex-shrink: 0;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.5;
-                transform: scale(0.75);
-            }
-        }
-
-        .badge-text {
-            font-family: 'Cinzel', serif;
-            color: var(--gold);
-            font-size: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .gold-line {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
-            flex-shrink: 0;
-            opacity: 0.5;
-        }
-
-        /* ── MAIN CONTENT ────────────────────────────── */
-        .main-content {
-            flex: 1;
-            background: var(--bg-input);
-            overflow-y: auto;
-            padding: 24px 20px 20px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .main-content::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .main-content::-webkit-scrollbar-thumb {
-            background: rgba(184, 146, 42, 0.25);
-            border-radius: 2px;
-        }
-
-        /* Welcome */
-        .welcome-card {
-            background: linear-gradient(135deg, rgba(201, 168, 76, 0.1), rgba(201, 168, 76, 0.04));
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px 18px;
-            margin-bottom: 22px;
-            text-align: center;
-            animation: fadeUp 0.5s ease both;
-        }
-
-        .welcome-card .cross-icon {
-            font-size: 22px;
-            margin-bottom: 6px;
-        }
-
-        .welcome-card p {
-            color: var(--text-muted);
-            font-size: 13px;
-            line-height: 1.65;
-        }
-
-        .welcome-card strong {
-            color: var(--gold);
-            font-family: 'Cinzel', serif;
-            font-weight: 600;
-        }
-
-        /* Section label */
-        .section-label {
-            font-family: 'Cinzel', serif;
-            font-size: 10px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: var(--text-faint);
-            text-align: center;
-            margin-bottom: 14px;
-        }
-
-        /* ── ICON GRID ───────────────────────────────── */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-
-        .btn-icon {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 18px 10px 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 9px;
-            cursor: pointer;
-            text-decoration: none;
-            color: var(--text-main);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(100, 70, 20, 0.06);
-            -webkit-user-select: none;
-            user-select: none;
-            animation: fadeUp 0.45s ease both;
-        }
-
-        .btn-icon::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(201, 168, 76, 0.08), transparent);
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .btn-icon:hover {
-            border-color: var(--gold-light);
-            box-shadow: 0 4px 16px rgba(184, 146, 42, 0.18);
-            transform: translateY(-2px);
-        }
-
-        .btn-icon:hover::before {
-            opacity: 1;
-        }
-
-        .btn-icon:active {
-            transform: scale(0.95);
-            box-shadow: 0 1px 4px rgba(100, 70, 20, 0.1);
-        }
-
-        /* Wide (Chat) */
-        .btn-icon--wide {
-            grid-column: span 2;
-            flex-direction: row;
-            padding: 16px 20px;
-            justify-content: flex-start;
-            gap: 16px;
-        }
-
-        .btn-icon--wide .icon-wrap {
-            width: 46px;
-            height: 46px;
-            font-size: 22px;
-        }
-
-        .btn-icon--wide .label {
-            font-size: 13px;
-            letter-spacing: 1px;
-            text-align: left;
-        }
-
-        /* Icon circle */
-        .icon-wrap {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        /* Icon colors — warm tones matching light theme */
-        .ic-gold {
-            background: rgba(184, 146, 42, 0.13);
-        }
-
-        .ic-purple {
-            background: rgba(130, 80, 180, 0.10);
-        }
-
-        .ic-blue {
-            background: rgba(60, 130, 200, 0.10);
-        }
-
-        .ic-red {
-            background: rgba(200, 80, 60, 0.10);
-        }
-
-        .ic-brown {
-            background: rgba(160, 90, 40, 0.12);
-        }
-
-        .ic-green {
-            background: rgba(40, 160, 90, 0.10);
-        }
-
-        .ic-orange {
-            background: rgba(200, 130, 40, 0.12);
-        }
-
-        .label {
-            font-family: 'Cinzel', serif;
-            font-size: 9px;
-            font-weight: 400;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            text-align: center;
-            line-height: 1.5;
-        }
-
-        /* Staggered animation */
-        .btn-icon:nth-child(1) {
-            animation-delay: 0.06s;
-        }
-
-        .btn-icon:nth-child(2) {
-            animation-delay: 0.11s;
-        }
-
-        .btn-icon:nth-child(3) {
-            animation-delay: 0.16s;
-        }
-
-        .btn-icon:nth-child(4) {
-            animation-delay: 0.21s;
-        }
-
-        .btn-icon:nth-child(5) {
-            animation-delay: 0.26s;
-        }
-
-        .btn-icon:nth-child(6) {
-            animation-delay: 0.31s;
-        }
-
-        .btn-icon:nth-child(7) {
-            animation-delay: 0.36s;
-        }
-
-        .btn-icon:nth-child(8) {
-            animation-delay: 0.41s;
-        }
-
-        .btn-icon:nth-child(9) {
-            animation-delay: 0.46s;
-        }
-
-        .btn-icon:nth-child(10) {
-            animation-delay: 0.51s;
-        }
-
-        .btn-icon:nth-child(11) {
-            animation-delay: 0.56s;
-        }
-
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(14px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ── HAMBURGER ───────────────────────────────── */
-        .hamburger {
-            position: absolute;
-            top: 12px;
-            left: 14px;
-            z-index: 20;
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.88);
-            border: 1px solid var(--border);
-            backdrop-filter: blur(8px);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-        }
-
-        .hamburger:hover {
-            background: #fff;
-            border-color: var(--gold-light);
-        }
-
-        .hamburger:active {
-            transform: scale(0.93);
-        }
-
-        .hamburger span {
-            display: block;
-            width: 18px;
-            height: 2px;
-            background: var(--gold-dark);
-            border-radius: 2px;
-            transition: all 0.3s ease;
-            transform-origin: center;
-        }
-
-        /* Animated X when open */
-        .hamburger.open span:nth-child(1) {
-            transform: translateY(7px) rotate(45deg);
-        }
-
-        .hamburger.open span:nth-child(2) {
-            opacity: 0;
-            transform: scaleX(0);
-        }
-
-        .hamburger.open span:nth-child(3) {
-            transform: translateY(-7px) rotate(-45deg);
-        }
-
-        /* ── DRAWER OVERLAY ──────────────────────────── */
-        .drawer-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(26, 20, 16, 0.45);
-            backdrop-filter: blur(2px);
-            z-index: 30;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .drawer-overlay.open {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        /* ── DRAWER ──────────────────────────────────── */
-        .drawer {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 260px;
-            height: 100%;
-            background: var(--bg-card);
-            box-shadow: -4px 0 24px rgba(100, 70, 20, 0.18);
-            z-index: 40;
-            display: flex;
-            flex-direction: column;
-            transform: translateX(100%);
-            transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            overflow: hidden;
-        }
-
-        .drawer.open {
-            transform: translateX(0);
-        }
-
-        .drawer-header {
-            background: linear-gradient(135deg, #38714c, #1c1408);
-            padding: 20px 18px 16px;
-            flex-shrink: 0;
-        }
-
-        .drawer-title {
-            font-family: 'Cinzel', serif;
-            color: var(--gold);
-            font-size: 13px;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-
-        .drawer-sub {
-            font-size: 10px;
-            color: rgba(201, 168, 76, 0.5);
-            letter-spacing: 2px;
-            margin-top: 3px;
-        }
-
-        .drawer-gold-line {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
-            opacity: 0.4;
-            flex-shrink: 0;
-        }
-
-        .drawer-nav {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px 0;
-        }
-
-        .drawer-nav::-webkit-scrollbar {
-            width: 0;
-        }
-
-        .drawer-item {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 18px;
-            text-decoration: none;
-            color: var(--text-main);
-            font-family: 'Cinzel', serif;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            border-bottom: 1px solid rgba(184, 146, 42, 0.08);
-            transition: all 0.18s;
-            position: relative;
-        }
-
-        .drawer-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background: var(--gold);
-            transform: scaleY(0);
-            transition: transform 0.18s;
-            border-radius: 0 2px 2px 0;
-        }
-
-        .drawer-item:hover {
-            background: rgba(184, 146, 42, 0.06);
-            color: var(--gold-dark);
-            padding-left: 22px;
-        }
-
-        .drawer-item:hover::before {
-            transform: scaleY(1);
-        }
-
-        .drawer-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 9px;
-            background: rgba(184, 146, 42, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-
-        .drawer-footer {
-            padding: 12px 18px;
-            border-top: 1px solid var(--border);
-            background: var(--bg-footer);
-            flex-shrink: 0;
-        }
-
-        .drawer-footer-links {
-            display: flex;
-            gap: 8px;
-        }
-
-        .drawer-footer-link {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 7px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.6);
-            color: var(--gold);
-            text-decoration: none;
-            font-family: 'Cinzel', serif;
-            font-size: 9px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: all 0.2s;
-        }
-
-        .drawer-footer-link:hover {
-            background: #fff;
-            border-color: var(--gold-light);
-        }
-
-        .drawer-footer-link svg {
-            width: 11px;
-            height: 11px;
-        }
-
-        /* ── FOOTER ──────────────────────────────────── */
-        .footer {
-            background: var(--bg-footer);
-            border-top: 1px solid var(--border);
-            padding: 10px 18px;
-            flex-shrink: 0;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .footer-link {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: var(--gold);
-            text-decoration: none;
-            font-size: 10px;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            font-family: 'Cinzel', serif;
-            transition: all 0.2s;
-            padding: 4px 10px;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.6);
-        }
-
-        .footer-link:hover {
-            background: rgba(255, 255, 255, 0.95);
-            border-color: var(--gold-light);
-            color: var(--gold-dark);
-            box-shadow: 0 2px 8px rgba(184, 146, 42, 0.15);
-        }
-
-        .footer-link svg {
-            width: 12px;
-            height: 12px;
-        }
-
-        .footer-divider {
-            height: 1px;
-            background: var(--border);
-            margin: 8px 0;
-        }
-
-        .footer-bottom {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-        }
-
-        .footer-copy {
-            color: var(--text-muted);
-            font-size: 10px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            font-family: 'Cinzel', serif;
-            text-align: center;
-        }
-
-        .footer-address {
-            color: var(--text-faint);
-            font-size: 10px;
-            text-align: center;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; background: var(--bg-page); font-family: 'Lato', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 15% 15%, rgba(201, 168, 76, 0.09) 0%, transparent 55%), radial-gradient(ellipse at 85% 85%, rgba(201, 168, 76, 0.06) 0%, transparent 55%); pointer-events: none; }
+        .page-wrapper { position: relative; z-index: 1; display: flex; flex-direction: column; width: 640px; max-width: 96vw; height: 96vh; max-height: 900px; background: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow), 0 0 0 1px var(--border); overflow: hidden; }
+
+        /* BANNER */
+        .banner { width: 100%; position: relative; background: #111; flex-shrink: 0; }
+        .banner img { width: 100%; height: 150px; object-fit: cover; display: block; }
+        .banner-fallback { display: none; width: 100%; height: 150px; background: linear-gradient(135deg, #0d0d0d 0%, #1c1408 50%, #0d0d0d 100%); align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+        .banner-fallback.show { display: flex; }
+        .banner-title { font-family: 'Cinzel', serif; color: #C9A84C; font-size: 34px; font-weight: 700; letter-spacing: 10px; }
+        .banner-sub { color: rgba(201, 168, 76, 0.6); font-size: 11px; letter-spacing: 4px; text-transform: uppercase; }
+        .banner-overlay { position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: linear-gradient(to top, rgba(255, 255, 255, 0.95), transparent); }
+
+        /* AUTH BAR */
+        .auth-bar { position: absolute; top: 10px; right: 14px; z-index: 20; display: flex; align-items: center; gap: 7px; }
+        .auth-user { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px 4px 5px; backdrop-filter: blur(8px); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .auth-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-dark), var(--gold-light)); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 10px; color: #fff; font-weight: 700; flex-shrink: 0; }
+        .auth-name { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; color: var(--gold-dark); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .auth-logout { display: flex; align-items: center; gap: 4px; background: rgba(220,80,60,0.08); border: 1px solid rgba(220,80,60,0.25); border-radius: 14px; padding: 4px 10px; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; color: #c0392b; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s; }
+        .auth-logout:hover { background: rgba(220,80,60,0.15); }
+        .auth-login { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1.5px; color: var(--gold-dark); text-decoration: none; backdrop-filter: blur(8px); box-shadow: 0 2px 10px rgba(0,0,0,0.08); transition: all 0.2s; }
+        .auth-login:hover { border-color: var(--gold-light); background: #fff; }
+
+        /* GOLD LINE */
+        .gold-line { height: 2px; background: linear-gradient(90deg, transparent, var(--gold-light), transparent); flex-shrink: 0; opacity: 0.5; }
+
+        /* MAIN */
+        .main-content { flex: 1; background: var(--bg-input); overflow-y: auto; padding: 24px 20px 20px; -webkit-overflow-scrolling: touch; }
+        .main-content::-webkit-scrollbar { width: 4px; }
+        .main-content::-webkit-scrollbar-thumb { background: rgba(184, 146, 42, 0.25); border-radius: 2px; }
+        .welcome-card { background: linear-gradient(135deg, rgba(201, 168, 76, 0.1), rgba(201, 168, 76, 0.04)); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 22px; text-align: center; animation: fadeUp 0.5s ease both; }
+        .welcome-card .cross-icon { font-size: 22px; margin-bottom: 6px; }
+        .welcome-card p { color: var(--text-muted); font-size: 13px; line-height: 1.65; }
+        .welcome-card strong { color: var(--gold); font-family: 'Cinzel', serif; font-weight: 600; }
+        .section-label { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-faint); text-align: center; margin-bottom: 14px; }
+
+        /* GRID */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .btn-icon { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 10px 15px; display: flex; flex-direction: column; align-items: center; gap: 9px; cursor: pointer; text-decoration: none; color: var(--text-main); position: relative; overflow: hidden; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(100, 70, 20, 0.06); -webkit-user-select: none; user-select: none; animation: fadeUp 0.45s ease both; }
+        .btn-icon::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(201, 168, 76, 0.08), transparent); opacity: 0; transition: opacity 0.2s; }
+        .btn-icon:hover { border-color: var(--gold-light); box-shadow: 0 4px 16px rgba(184, 146, 42, 0.18); transform: translateY(-2px); }
+        .btn-icon:hover::before { opacity: 1; }
+        .btn-icon:active { transform: scale(0.95); }
+        .btn-icon--wide { grid-column: span 2; flex-direction: row; padding: 16px 20px; justify-content: flex-start; gap: 16px; }
+        .btn-icon--wide .icon-wrap { width: 46px; height: 46px; font-size: 22px; }
+        .btn-icon--wide .label { font-size: 13px; letter-spacing: 1px; text-align: left; }
+        .icon-wrap { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .ic-gold { background: rgba(184, 146, 42, 0.13); } .ic-blue { background: rgba(60, 130, 200, 0.10); } .ic-red { background: rgba(200, 80, 60, 0.10); }
+        .label { font-family: 'Cinzel', serif; font-size: 9px; font-weight: 400; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); text-align: center; line-height: 1.5; }
+        .btn-icon:nth-child(1){animation-delay:0.06s}.btn-icon:nth-child(2){animation-delay:0.11s}.btn-icon:nth-child(3){animation-delay:0.16s}.btn-icon:nth-child(4){animation-delay:0.21s}.btn-icon:nth-child(5){animation-delay:0.26s}
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* HAMBURGER */
+        .hamburger { position: absolute; top: 12px; left: 14px; z-index: 20; width: 38px; height: 38px; border-radius: 10px; background: rgba(255, 255, 255, 0.88); border: 1px solid var(--border); backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12); }
+        .hamburger:hover { background: #fff; border-color: var(--gold-light); }
+        .hamburger:active { transform: scale(0.93); }
+        .hamburger span { display: block; width: 18px; height: 2px; background: var(--gold-dark); border-radius: 2px; transition: all 0.3s ease; transform-origin: center; }
+        .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* DRAWER */
+        .drawer-overlay { position: absolute; inset: 0; background: rgba(26, 20, 16, 0.45); backdrop-filter: blur(2px); z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .drawer-overlay.open { opacity: 1; pointer-events: all; }
+        .drawer { position: absolute; top: 0; right: 0; width: 260px; height: 100%; background: var(--bg-card); box-shadow: -4px 0 24px rgba(100, 70, 20, 0.18); z-index: 40; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94); overflow: hidden; }
+        .drawer.open { transform: translateX(0); }
+        .drawer-header { background: linear-gradient(135deg, #38714c, #1c1408); padding: 20px 18px 16px; flex-shrink: 0; }
+        .drawer-title { font-family: 'Cinzel', serif; color: var(--gold); font-size: 13px; letter-spacing: 4px; text-transform: uppercase; }
+        .drawer-sub { font-size: 10px; color: rgba(201, 168, 76, 0.5); letter-spacing: 2px; margin-top: 3px; }
+        .drawer-gold-line { height: 1px; background: linear-gradient(90deg, transparent, var(--gold-light), transparent); opacity: 0.4; flex-shrink: 0; }
+        /* Auth no drawer */
+        .drawer-auth { padding: 12px 18px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(201,168,76,0.07), rgba(201,168,76,0.01)); flex-shrink: 0; }
+        .drawer-auth-logado { display: flex; align-items: center; gap: 10px; }
+        .drawer-auth-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-dark), var(--gold-light)); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 12px; color: #fff; font-weight: 700; flex-shrink: 0; }
+        .drawer-auth-info { flex: 1; min-width: 0; }
+        .drawer-auth-nome { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .drawer-auth-tipo { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
+        .drawer-auth-sair { padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(220,80,60,0.3); background: rgba(220,80,60,0.06); color: #c0392b; font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+        .drawer-auth-sair:hover { background: rgba(220,80,60,0.12); }
+        .drawer-auth-login { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 8px; background: linear-gradient(135deg, var(--gold-dark), var(--gold-light)); color: #fff; text-decoration: none; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; transition: all 0.2s; }
+        .drawer-auth-login:hover { filter: brightness(1.08); }
+        .drawer-nav { flex: 1; overflow-y: auto; padding: 10px 0; }
+        .drawer-nav::-webkit-scrollbar { width: 0; }
+        .drawer-item { display: flex; align-items: center; gap: 14px; padding: 12px 18px; text-decoration: none; color: var(--text-main); font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 1px solid rgba(184, 146, 42, 0.08); transition: all 0.18s; position: relative; }
+        .drawer-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); transform: scaleY(0); transition: transform 0.18s; border-radius: 0 2px 2px 0; }
+        .drawer-item:hover { background: rgba(184, 146, 42, 0.06); color: var(--gold-dark); padding-left: 22px; }
+        .drawer-item:hover::before { transform: scaleY(1); }
+        .drawer-icon { width: 34px; height: 34px; border-radius: 9px; background: rgba(184, 146, 42, 0.1); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .drawer-footer { padding: 12px 18px; border-top: 1px solid var(--border); background: var(--bg-footer); flex-shrink: 0; }
+        .drawer-footer-links { display: flex; gap: 8px; }
+        .drawer-footer-link { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); color: var(--gold); text-decoration: none; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; transition: all 0.2s; }
+        .drawer-footer-link:hover { background: #fff; border-color: var(--gold-light); }
+        .drawer-footer-link svg { width: 11px; height: 11px; }
+
+        /* FOOTER */
+        .footer { background: var(--bg-footer); border-top: 1px solid var(--border); padding: 10px 18px; flex-shrink: 0; }
+        .footer-links { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
+        .footer-link { display: flex; align-items: center; gap: 5px; color: var(--gold); text-decoration: none; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; font-family: 'Cinzel', serif; transition: all 0.2s; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); }
+        .footer-link:hover { background: rgba(255, 255, 255, 0.95); border-color: var(--gold-light); color: var(--gold-dark); }
+        .footer-link svg { width: 12px; height: 12px; }
+        .footer-divider { height: 1px; background: var(--border); margin: 8px 0; }
+        .footer-bottom { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .footer-copy { color: var(--text-muted); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; font-family: 'Cinzel', serif; text-align: center; }
+        .footer-address { color: var(--text-faint); font-size: 10px; text-align: center; }
     </style>
 </head>
 <body>
-
 <div class="page-wrapper">
 
     <!-- BANNER -->
@@ -721,76 +135,50 @@
             <div class="banner-sub">Lisboa · Portugal</div>
         </div>
         <div class="banner-overlay"></div>
-        <!-- Hamburger -->
+
+        <!-- Hamburger (esquerda) -->
         <button class="hamburger" id="hamburger" onclick="toggleDrawer()" aria-label="Menu">
             <span></span><span></span><span></span>
         </button>
+
+        <!-- Auth bar (direita) -->
+        <div class="auth-bar" id="auth-bar"></div>
     </div>
 
     <!-- Overlay -->
     <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 
-    <!-- Side drawer -->
+    <!-- Drawer -->
     <div class="drawer" id="drawer">
         <div class="drawer-header">
             <div class="drawer-title">Zion Lisboa</div>
             <div class="drawer-sub">Menu de Navegação</div>
         </div>
         <div class="drawer-gold-line"></div>
+
+        <!-- Auth section no drawer -->
+        <div class="drawer-auth" id="drawer-auth"></div>
+
         <nav class="drawer-nav">
-            <a href="zion.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Zion Lisboa</a>
-            <a href="ministerios.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Ministérios</a>
-            <a href="links.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Links</a>
-            <a href="localizacao.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Localização</a>
-            <a href="keola.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Keola</a>
-            <a href="zao.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                ZAO</a>
-            <a href="membros.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Membros</a>
-            <a href="visitantes.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Visitantes</a>
-            <a href="dizimos.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Dízimos</a>
-            <a href="salas.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon">️</div>
-                Salas</a>
-            <a href="chat.html" class="drawer-item" onclick="closeDrawer()">
-                <div class="drawer-icon"></div>
-                Chat Assistente</a>
+            <a href="zion.html"        class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">⛪</div>Zion Lisboa</a>
+            <a href="ministerios.html" class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">🙌</div>Ministérios</a>
+            <a href="links.html"       class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">🔗</div>Links</a>
+            <a href="localizacao.html" class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">📍</div>Localização</a>
+            <a href="keola.html"       class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">☕</div>Keola</a>
+            <a href="zao.html"         class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">✝️</div>ZAO</a>
+            <a href="membros.html"     class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">👤</div>Membros</a>
+            <a href="visitantes.html"  class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">🤝</div>Visitantes</a>
+            <a href="dizimos.html"     class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">💛</div>Dízimos</a>
+            <a href="salas.html"       class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">🏛️</div>Salas</a>
+            <a href="chat.html"        class="drawer-item" onclick="closeDrawer()"><div class="drawer-icon">💬</div>Chat Assistente</a>
         </nav>
         <div class="drawer-footer">
             <div class="drawer-footer-links">
                 <a class="drawer-footer-link" href="https://zionchurch.org.br/" target="_blank">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="2" y1="12" x2="22" y2="12"/>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                    </svg>
-                    Site
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site
                 </a>
                 <a class="drawer-footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round">
-                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-                    </svg>
-                    Instagram
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>Instagram
                 </a>
             </div>
         </div>
@@ -800,81 +188,73 @@
 
     <!-- MAIN -->
     <div class="main-content">
-
         <div class="welcome-card">
             <div class="cross-icon">✝️</div>
             <p><strong>Bem-vindo à Zion Lisboa</strong><br>
                 Seleciona uma área abaixo para saber mais sobre a nossa comunidade.</p>
         </div>
-
         <p class="section-label">O que procuras?</p>
-
         <div class="grid">
-
             <a href="zion.html" class="btn-icon">
-                <div class="icon-wrap ic-gold"></div>
+                <div class="icon-wrap ic-gold">⛪</div>
                 <span class="label">Zion</span>
             </a>
-
             <a href="links.html" class="btn-icon">
-                <div class="icon-wrap ic-blue"></div>
+                <div class="icon-wrap ic-blue">🔗</div>
                 <span class="label">Links</span>
             </a>
-
             <a href="localizacao.html" class="btn-icon">
-                <div class="icon-wrap ic-red"></div>
+                <div class="icon-wrap ic-red">📍</div>
                 <span class="label">Localização</span>
             </a>
-
             <a href="https://www.bibliaonline.com.br" target="_blank" class="btn-icon">
-                <div class="icon-wrap ic-red"></div>
+                <div class="icon-wrap ic-red">📖</div>
                 <span class="label">Bíblia</span>
             </a>
 
             <!--
 
-            <a href="ministerios.html" class="btn-icon">
-                <div class="icon-wrap ic-purple"></div>
-                <span class="label">Ministérios</span>
+<a href="ministerios.html" class="btn-icon">
+    <div class="icon-wrap ic-purple"></div>
+    <span class="label">Ministérios</span>
+</a>
+
+            <a href="keola.html" class="btn-icon">
+                <div class="icon-wrap ic-brown"></div>
+                <span class="label">Keola</span>
             </a>
 
-                        <a href="keola.html" class="btn-icon">
-                            <div class="icon-wrap ic-brown"></div>
-                            <span class="label">Keola</span>
-                        </a>
+            <a href="zao.html" class="btn-icon">
+                <div class="icon-wrap ic-purple"></div>
+                <span class="label">ZAO</span>
+            </a>
 
-                        <a href="zao.html" class="btn-icon">
-                            <div class="icon-wrap ic-purple"></div>
-                            <span class="label">ZAO</span>
-                        </a>
+            <a href="membros.html" class="btn-icon">
+                <div class="icon-wrap ic-green"></div>
+                <span class="label">Membros</span>
+            </a>
 
-                        <a href="membros.html" class="btn-icon">
-                            <div class="icon-wrap ic-green"></div>
-                            <span class="label">Membros</span>
-                        </a>
+            <a href="visitantes.html" class="btn-icon">
+                <div class="icon-wrap ic-orange"></div>
+                <span class="label">Visitantes</span>
+            </a>
 
-                        <a href="visitantes.html" class="btn-icon">
-                            <div class="icon-wrap ic-orange"></div>
-                            <span class="label">Visitantes</span>
-                        </a>
+            <a href="dizimos.html" class="btn-icon">
+                <div class="icon-wrap ic-green"></div>
+                <span class="label">Dízimos</span>
+            </a>
 
-                        <a href="dizimos.html" class="btn-icon">
-                            <div class="icon-wrap ic-green"></div>
-                            <span class="label">Dízimos</span>
-                        </a>
+            <a href="salas.html" class="btn-icon">
+                <div class="icon-wrap ic-blue"></div>
+                <span class="label">Salas</span>
+            </a>
 
-                        <a href="salas.html" class="btn-icon">
-                            <div class="icon-wrap ic-blue"></div>
-                            <span class="label">Salas</span>
-                        </a>
-
-                         Abre o teu chat original -->
-
+             Abre o teu chat original -->
+            
             <a href="chat.html" class="btn-icon btn-icon--wide">
-                <div class="icon-wrap ic-gold"></div>
+                <div class="icon-wrap ic-gold">💬</div>
                 <span class="label">Chat<br>Assistente Virtual Zion Lisboa</span>
             </a>
-
         </div>
     </div>
 
@@ -882,21 +262,11 @@
     <div class="footer">
         <div class="footer-links">
             <a class="footer-link" href="https://zionchurch.org.br/" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                     stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="2" y1="12" x2="22" y2="12"/>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 Site Oficial
             </a>
             <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                     stroke-linejoin="round">
-                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                 @ZionLisboa
             </a>
         </div>
@@ -906,25 +276,72 @@
             <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
         </div>
     </div>
-
 </div>
+
 <script>
+    // ── DRAWER ─────────────────────────────────────────────────
     function toggleDrawer() {
         const open = document.getElementById('drawer').classList.toggle('open');
         document.getElementById('drawerOverlay').classList.toggle('open', open);
         document.getElementById('hamburger').classList.toggle('open', open);
     }
-
     function closeDrawer() {
         document.getElementById('drawer').classList.remove('open');
         document.getElementById('drawerOverlay').classList.remove('open');
         document.getElementById('hamburger').classList.remove('open');
     }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
-    // Close on ESC
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeDrawer();
-    });
+    // ── AUTH ────────────────────────────────────────────────────
+    function renderAuth() {
+        const user       = ZionAuth.getUser();
+        const authBar    = document.getElementById('auth-bar');
+        const drawerAuth = document.getElementById('drawer-auth');
+        const tipoLabel  = { visitante: 'Visitante', membro: 'Membro', admin: 'Administrador' };
+
+        if (user) {
+            const initials  = (user.nome || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+            const firstName = (user.nome || 'Utilizador').split(' ')[0];
+
+            // Banner — canto superior direito
+            authBar.innerHTML = `
+            <div class="auth-user">
+                <div class="auth-avatar">${initials}</div>
+                <span class="auth-name">${firstName}</span>
+            </div>
+            <button class="auth-logout" onclick="ZionAuth.logout()">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sair
+            </button>`;
+
+            // Drawer — topo do menu
+            drawerAuth.innerHTML = `
+            <div class="drawer-auth-logado">
+                <div class="drawer-auth-avatar">${initials}</div>
+                <div class="drawer-auth-info">
+                    <div class="drawer-auth-nome">${user.nome}</div>
+                    <div class="drawer-auth-tipo">${tipoLabel[user.tipo] || user.tipo}</div>
+                </div>
+                <button class="drawer-auth-sair" onclick="ZionAuth.logout()">Sair</button>
+            </div>`;
+        } else {
+            // Não logado — banner
+            authBar.innerHTML = `
+            <a href="login.html" class="auth-login">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                Entrar
+            </a>`;
+
+            // Não logado — drawer
+            drawerAuth.innerHTML = `
+            <a href="login.html" class="drawer-auth-login" onclick="closeDrawer()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                Entrar / Registar
+            </a>`;
+        }
+    }
+
+    renderAuth();
 </script>
 </body>
 </html>

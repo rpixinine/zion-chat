@@ -14,11 +14,13 @@
         .welcome-card {
             display: flex;
             align-items: center;
+            justify-content: center;   /* centralizado */
             gap: 10px;
             padding: 6px 16px;
             background: var(--primary-faint);
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
+            text-align: center;
         }
         .welcome-card img {
             height: 28px;
@@ -36,7 +38,7 @@
             font-size: 10px;
             letter-spacing: 1px;
         }
-        /* Banner fixo em 70px em qualquer ecrã */
+        /* Banner fixo em 70px */
         .banner { min-height: 70px !important; max-height: 70px !important; }
         .banner img { height: 70px !important; }
         .banner-fallback { height: 70px !important; }
@@ -55,6 +57,67 @@
         .config-desc  { font-size:11px; color:var(--text-faint); }
         .config-date  { font-size:10px; color:var(--text-faint); white-space:nowrap; }
         .config-actions { display:flex; gap:6px; white-space:nowrap; }
+
+        /* Painel adicionar membros ao evento */
+        .add-member-panel {
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px; margin-top: 8px;
+        }
+        .add-member-panel-title {
+            font-family: var(--font-title); font-size: 9px; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px;
+        }
+        .add-member-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .add-member-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 200px; overflow-y: auto; }
+        .add-member-item {
+            display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+        }
+        .add-member-item-nome { flex: 1; font-size: 12px; color: var(--text-main); }
+        .add-member-item-remove {
+            width: 20px; height: 20px; border-radius: 50%; border: none;
+            background: rgba(220,80,60,0.1); color: var(--red); font-size: 12px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Gráficos resumo na tela */
+        .resumo-graficos {
+            padding: 0 16px 16px;
+        }
+        .grafico-wrap {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px; margin-bottom: 12px;
+        }
+        .grafico-titulo {
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px;
+        }
+        .grafico-barras { display: flex; flex-direction: column; gap: 8px; }
+        .grafico-barra-row { display: flex; align-items: center; gap: 8px; }
+        .grafico-barra-label { font-size: 11px; color: var(--text-main); width: 140px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .grafico-barra-track { flex: 1; background: var(--bg-input); border-radius: 20px; height: 18px; overflow: hidden; }
+        .grafico-barra-fill { height: 100%; border-radius: 20px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 10px; font-weight: bold; color: #fff; transition: width 0.4s ease; min-width: 20px; }
+        .grafico-barra-val { font-size: 11px; color: var(--text-faint); width: 50px; text-align: right; flex-shrink: 0; }
+
+        /* Pizza mini */
+        .pizza-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .pizza-svg { flex-shrink: 0; }
+        .pizza-legend { display: flex; flex-direction: column; gap: 6px; }
+        .pizza-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .pizza-legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+        /* Stats summary cards */
+        .resumo-stats {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+            padding: 12px 16px 8px;
+        }
+        .resumo-stat {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px; text-align: center;
+        }
+        .resumo-stat-num { font-family: var(--font-title); font-size: 22px; font-weight: 700; }
+        .resumo-stat-label { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+        .resumo-stat-pct { font-size: 11px; font-weight: bold; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -100,6 +163,7 @@
         <div class="nav-item"         onclick="setSecao('keola')">Keola</div>
         <div class="nav-item"         onclick="setSecao('loja')">Loja</div>
         <div class="nav-item"         onclick="setSecao('eventos')">Eventos</div>
+        <div class="nav-item"         onclick="setSecao('tipos_evento')">Tipos Evento</div>
         <div class="nav-item"         onclick="setSecao('configuracoes')">⚙ Config</div>
     </div>
 
@@ -148,7 +212,27 @@
     let links_cache      = [];
     let ministeriosCache = [];
 
-    // ── SUPABASE ─────────────────────────────────────────────────────────────
+    // ── TIPOS DE EVENTO (carregados dinamicamente do localStorage) ────────────
+    // Definido mais abaixo em TIPOS DE EVENTO — gestão na tela,
+    // mas precisamos do array disponível para buildFormEvento.
+    // Usamos uma proxy: getTiposEvento() é definida mais abaixo;
+    // buildFormEvento chama getTiposEvento() directamente em vez deste array.
+    const TIPOS_EVENTO = []; // preenchido no init via syncTiposEvento
+
+    function syncTiposEvento() {
+        try {
+            const saved = localStorage.getItem('zion_tipos_evento');
+            const lista = saved ? JSON.parse(saved) : [
+                'Reunião de Líderes','Culto Especial','Conferência','Retiro',
+                'Treinamento','Workshop','Conferência de Jovens','Encontro de Casais',
+                'Culto de Oração','Seminário','Outro',
+            ];
+            TIPOS_EVENTO.length = 0;
+            lista.forEach(t => TIPOS_EVENTO.push(t));
+        } catch { /* usa os existentes */ }
+    }
+
+    // ── SUPABASE ──────────────────────────────────────────────────────────────
     async function sb(path, opts = {}) {
         const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
             ...opts,
@@ -163,7 +247,7 @@
         return txt ? JSON.parse(txt) : [];
     }
 
-    // ── INIT ─────────────────────────────────────────────────────────────────
+    // ── INIT ──────────────────────────────────────────────────────────────────
     async function init() {
         document.getElementById('top-user').textContent =
             currentUser.nome?.split(' ')[0] || '';
@@ -187,6 +271,7 @@
             return;
         }
         membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
+        syncTiposEvento();
         await setSecao('membros');
     }
 
@@ -197,12 +282,13 @@
         const nomes = {
             membros:'Membros', pastores:'Pastores', links:'Links', cultos:'Cultos',
             ministerios:'Ministérios', salas:'Salas', cursos:'Cursos ZAO',
-            keola:'Keola — Menu', loja:'Loja', eventos:'Eventos', configuracoes:'Configurações',
+            keola:'Keola — Menu', loja:'Loja', eventos:'Eventos',
+            tipos_evento:'Tipos de Evento', configuracoes:'Configurações',
         };
         const sl = document.getElementById('secao-label');
         if (sl) sl.textContent = nomes[secao] || 'Cadastros';
         const idx = ['membros','pastores','links','cultos','ministerios','salas',
-            'cursos','keola','loja','eventos','configuracoes'];
+            'cursos','keola','loja','eventos','tipos_evento','configuracoes'];
         const ni = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
         if (ni) ni.classList.add('active');
         await carregarSecao();
@@ -211,6 +297,9 @@
     async function carregarSecao() {
         document.getElementById('main-content').innerHTML =
             '<div class="loading"><div class="spin"></div>A carregar...</div>';
+        if (secaoAtiva === 'tipos_evento') {
+            renderTiposEvento(); return;
+        }
         if (secaoAtiva === 'eventos') {
             eventosData = await sb('eventos?select=*&order=data_inicio') || [];
             eventoAtivo = null; eventoSubTab = 0;
@@ -248,12 +337,10 @@
         const el = document.getElementById('toolbar-search-input');
         return el ? el.value.toLowerCase() : '';
     }
-
     function restoreSearch(q) {
         const el = document.getElementById('toolbar-search-input');
         if (el && q) { el.value = q; el.focus(); el.setSelectionRange(q.length, q.length); }
     }
-
     function handleSearch() {
         if (secaoAtiva === 'eventos')       { renderEventos();        return; }
         if (secaoAtiva === 'configuracoes') { renderConfiguracoes();   return; }
@@ -265,21 +352,18 @@
         if (!cfg) return;
         const ativoKey = cfg.ativoKey || 'ativo';
         const q        = getQ();
-
         const temSubTabs = !!cfg.subTabs;
         if (temSubTabs && subTabAtiva >= 1) {
             if (secaoAtiva === 'membros' && subTabAtiva === 1) { renderInfoSubTab(); return; }
             if (secaoAtiva === 'membros' && subTabAtiva === 2) { renderVisitantesTab(); return; }
             if (secaoAtiva !== 'membros'  && subTabAtiva === 1) { renderInfoSubTab(); return; }
         }
-
         let lista = [...registos];
         if (!filtroInativo) lista = lista.filter(r => r[ativoKey] !== false);
         else                lista = lista.filter(r => r[ativoKey] === false);
         if (q) lista = lista.filter(r =>
             (r.nome||r.categoria||r.titulo||'').toLowerCase().includes(q)
         );
-
         let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
         <input class="toolbar-search" id="toolbar-search-input"
@@ -287,20 +371,17 @@
         <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">Inativos</button>
         <button class="btn-new" onclick="abrirForm(null)">+ Novo</button>
     </div>`;
-
         if (temSubTabs) {
             html += `<div class="sub-tabs">
             ${cfg.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}
         </div>`;
         }
-
         if (!lista.length) {
             html += `<div class="empty"><div class="empty-icon">—</div>
             <div class="empty-txt">${filtroInativo?'Nenhum registo inativo.':'Nenhum registo. Clica em + Novo.'}</div></div>`;
             document.getElementById('main-content').innerHTML = html;
             restoreSearch(q); return;
         }
-
         html += '<div class="admin-list">';
         lista.forEach((r, i) => {
             const ativo   = r[ativoKey] !== false;
@@ -362,7 +443,6 @@
         if (!filtroInativo) lista = lista.filter(r => r.ativo !== false && !r.convertido);
         else                lista = lista.filter(r => r.convertido || r.ativo === false);
         if (q) lista = lista.filter(r => (r.nome||'').toLowerCase().includes(q));
-
         let html = `
     <div class="sub-tabs">
         ${cfg.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}
@@ -375,13 +455,11 @@
         </button>
         <button class="btn-new" onclick="abrirFormVisitante(null)">+ Novo</button>
     </div>`;
-
         if (!lista.length) {
             html += '<div class="empty"><div class="empty-icon">—</div><div class="empty-txt">Nenhum visitante encontrado.</div></div>';
             document.getElementById('main-content').innerHTML = html;
             restoreSearch(q); return;
         }
-
         html += '<div class="admin-list">';
         lista.forEach((v, i) => {
             const ativo = v.ativo !== false;
@@ -443,7 +521,6 @@
     async function carregarVisitantes() {
         visitantes = await sb('visitantes?select=*&order=nome') || [];
     }
-
     function abrirFormVisitante(id) {
         const v = id ? visitantes.find(x=>x.id===id) : null;
         document.getElementById('drawer-title').textContent = v ? 'Editar Visitante' : 'Novo Visitante';
@@ -451,7 +528,6 @@
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
-
     function buildFormVisitante(v) {
         const fv = (k, d='') => v?.[k] ?? d;
         return `<div class="form-grid">
@@ -471,7 +547,6 @@
         </div>
     </div>`;
     }
-
     async function salvarVisitante(id) {
         const get = k => { const el=document.getElementById('fv_'+k); return el?el.value||null:null; };
         const chk = k => { const el=document.getElementById('fv_'+k); return el?el.checked:false; };
@@ -492,12 +567,10 @@
             btn.disabled=false; btn.textContent='Guardar';
         }
     }
-
     async function toggleAtivoVisitante(id, ativoAtual) {
         await sb(`visitantes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({ativo:!ativoAtual})});
         await carregarVisitantes(); renderSecao();
     }
-
     async function converterEmMembro(visitanteId) {
         if (!confirm('Converter este visitante em membro?')) return;
         const v = visitantes.find(x=>x.id===visitanteId);
@@ -529,7 +602,6 @@
         const cfg     = SECOES[secaoAtiva];
         const registo = id ? registos.find(r=>r.id===id) : null;
         const isNovo  = !registo;
-
         if (secaoAtiva==='ministerios'||secaoAtiva==='cursos') {
             try {
                 const res = await sb('membros?select=id,nome&ativo=eq.true&order=nome');
@@ -543,13 +615,11 @@
                 ministeriosCache = await sb('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome')||[];
             } catch(e){}
         }
-
         document.getElementById('drawer-title').textContent =
             isNovo ? `Novo — ${cfg.label||secaoAtiva}` : 'Editar';
         document.getElementById('drawer-body').innerHTML = buildForm(cfg, registo);
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-
         if (!isNovo&&secaoAtiva==='membros') {
             await carregarFilhos(registo.id);
             await carregarMembroMinisterios(registo.id);
@@ -589,7 +659,6 @@
                 <input class="form-input" id="f_${c.key}" type="${c.type||'text'}" placeholder="${c.ph||''}" value="${val}"></div>`;
             }
         });
-
         if (r&&secaoAtiva==='membros') {
             html += `
         <div class="form-section-title">Filhos</div>
@@ -606,7 +675,6 @@
             <button class="btn-sub-add" onclick="addMembroMinisterio('${r.id}')">Adicionar</button>
         </div>`;
         }
-
         if (r&&(secaoAtiva==='ministerios'||secaoAtiva==='cursos')) {
             const sublabel = secaoAtiva==='ministerios'?'Líderes':'Instrutores';
             html += `
@@ -619,7 +687,6 @@
             <button class="btn-sub-add" onclick="addSubItem('${r.id}')">Adicionar</button>
         </div>`;
         }
-
         html += `<div class="form-actions">
         <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
         <button class="btn-save" id="btn-save" onclick="salvar('${r?.id||''}')">Guardar</button>
@@ -642,7 +709,6 @@
         });
         if (cfg.ativoKey&&!(cfg.ativoKey in body)&&isNovo) body[cfg.ativoKey] = true;
         if (!('ativo' in body)&&isNovo&&cfg.tabela!=='keola_menu') body.ativo = true;
-
         const btn = document.getElementById('btn-save');
         btn.disabled=true; btn.textContent='A guardar...';
         try {
@@ -672,7 +738,6 @@
         membroMinisteriosData = items;
         renderSubListMins(membroId);
     }
-
     function renderSubListMins(membroId) {
         const el = document.getElementById('sub-list-mins');
         if (!el) return;
@@ -690,7 +755,6 @@
         </div>`;
         }).join('');
     }
-
     async function addMembroMinisterio(membroId) {
         const minId = document.getElementById('sub-min-id')?.value;
         const papel = document.getElementById('sub-min-papel')?.value?.trim();
@@ -703,13 +767,11 @@
             document.getElementById('sub-min-papel').value='';
         } catch(e) { alert('Erro: '+JSON.stringify(e)); }
     }
-
     async function removeMembroMinisterio(itemId, membroId) {
         if (!confirm('Remover desta área/ministério?')) return;
         await sb(`membro_ministerios?id=eq.${itemId}`,{method:'PATCH',body:JSON.stringify({ativo:false})});
         await carregarMembroMinisterios(membroId);
     }
-
     async function carregarFilhos(membroId) {
         const items = await sb(`membros_filhos?select=*&pai_id=eq.${membroId}&order=created_at`)||[];
         const el = document.getElementById('sub-list');
@@ -724,7 +786,6 @@
         </div>`;
         }).join('');
     }
-
     async function addFilho(paiId) {
         const filhoId = document.getElementById('sub-filho-id')?.value;
         if (!filhoId) { alert('Seleciona um membro.'); return; }
@@ -735,13 +796,11 @@
             document.getElementById('sub-filho-id').value='';
         } catch(e) { alert('Erro: '+JSON.stringify(e)); }
     }
-
     async function removeFilho(itemId, paiId) {
         if (!confirm('Remover este filho?')) return;
         await sb(`membros_filhos?id=eq.${itemId}`,{method:'DELETE'});
         await carregarFilhos(paiId);
     }
-
     async function carregarSubList(parentId) {
         const isMin  = secaoAtiva==='ministerios';
         const tabela = isMin?'ministerio_lideres':'zao_curso_instrutores';
@@ -760,7 +819,6 @@
         </div>`;
         }).join('');
     }
-
     async function addSubItem(parentId) {
         const isMin  = secaoAtiva==='ministerios';
         const tabela = isMin?'ministerio_lideres':'zao_curso_instrutores';
@@ -778,7 +836,6 @@
             ['sub-membro-id','sub-cargo','sub-nome-instrutor'].forEach(k=>{ const el=document.getElementById(k); if(el) el.value=''; });
         } catch(e) { alert('Erro ao adicionar.'); }
     }
-
     async function removeSubItem(itemId, tabela, parentId) {
         if (!confirm('Remover?')) return;
         await sb(`${tabela}?id=eq.${itemId}`,{method:'DELETE'});
@@ -790,10 +847,7 @@
         const hasImg = !!currentUrl;
         const imgHtml = hasImg
             ? `<img class="img-upload-preview" src="${currentUrl}" alt="${label}" onerror="this.style.display='none'">`
-            : `<div class="img-upload-placeholder">
-               <div class="img-upload-placeholder-icon">+</div>
-               <div class="img-upload-placeholder-txt">Clica para escolher imagem</div>
-           </div>`;
+            : `<div class="img-upload-placeholder"><div class="img-upload-placeholder-icon">+</div><div class="img-upload-placeholder-txt">Clica para escolher imagem</div></div>`;
         return `<div class="form-group img-upload-wrap">
         <label class="form-label">${label}</label>
         <div class="img-upload-box ${hasImg?'has-img':''}" id="img-box-${key}" onclick="triggerFileInput('${key}')">
@@ -817,10 +871,8 @@
         <input type="file" id="img-cam-${key}"  accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect('${key}','${bucket}',this)">
     </div>`;
     }
-
     function triggerFileInput(key) { document.getElementById('img-file-'+key)?.click(); }
     function triggerCamera(key)    { document.getElementById('img-cam-'+key)?.click();  }
-
     function applyUrlInput(key) {
         const url = document.getElementById('img-url-input-'+key)?.value?.trim();
         if (!url) return;
@@ -828,7 +880,6 @@
         updateImagePreview(key, url);
         setImgStatus(key,'URL aplicado.','ok');
     }
-
     function removeImage(key, hiddenId) {
         document.getElementById(hiddenId).value='';
         document.getElementById('img-url-input-'+key).value='';
@@ -837,20 +888,17 @@
         box.classList.remove('has-img');
         setImgStatus(key,'','');
     }
-
     function updateImagePreview(key, url) {
         const box = document.getElementById('img-box-'+key);
         if (!box) return;
         box.classList.add('has-img');
         box.innerHTML=`<img class="img-upload-preview" src="${url}" alt="preview" onerror="this.parentElement.classList.remove('has-img');this.style.display='none'">`;
     }
-
     function setImgStatus(key, msg, tipo) {
         const el = document.getElementById('img-status-'+key);
         if (!el) return;
         el.textContent=msg; el.className='img-upload-status'+(tipo?' '+tipo:'');
     }
-
     function resizeImage(file, maxW=800, maxH=800, quality=0.82) {
         return new Promise(resolve => {
             const img = new Image();
@@ -868,7 +916,6 @@
             img.src=url;
         });
     }
-
     async function handleFileSelect(key, bucket, input) {
         const file = input.files?.[0];
         if (!file) return;
@@ -884,12 +931,10 @@
             const path     = `${secaoAtiva}/${filename}`;
             setImgStatus(key,'A fazer upload...','');
             if (bar) bar.style.width='50%';
-
             const formData = new FormData();
             formData.append('file', new File([blob], filename, {type:'image/jpeg'}));
             formData.append('path', path);
             formData.append('bucket', bucket);
-
             const res = await fetch('/api/upload', {
                 method:'POST',
                 headers:{'Authorization':`Bearer ${currentUser?.token||''}`},
@@ -928,12 +973,10 @@
     // CONFIGURAÇÕES
     // ══════════════════════════════════════════════════════════════════════════
     let configData = [];
-
     async function carregarConfiguracoes() {
         configData = await sb('configuracoes?select=*&order=chave') || [];
         renderConfiguracoes();
     }
-
     function renderConfiguracoes() {
         const q = getQ();
         let lista = [...configData];
@@ -942,7 +985,6 @@
             (c.valor||'').toLowerCase().includes(q) ||
             (c.descricao||'').toLowerCase().includes(q)
         );
-
         let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
         <input class="toolbar-search" id="toolbar-search-input"
@@ -951,21 +993,18 @@
     </div>
     <div style="padding:8px 16px 4px">
         <div style="font-size:11px;color:var(--text-faint);line-height:1.6">
-            Cada <strong>chave</strong> é usada dinamicamente no código — edita aqui sem tocar nos ficheiros HTML.
+            Cada <strong>chave</strong> é usada dinamicamente no código.
         </div>
     </div>`;
-
         if (!lista.length) {
             html += '<div class="empty"><div class="empty-icon">⚙</div><div class="empty-txt">Nenhuma configuração encontrada.</div></div>';
             document.getElementById('main-content').innerHTML = html;
             restoreSearch(q); return;
         }
-
         html += `<div style="padding:0 16px 16px;overflow-x:auto">
     <table class="config-table"><thead><tr>
         <th>Chave</th><th>Valor</th><th>Descrição</th><th>Atualizado</th><th></th>
     </tr></thead><tbody>`;
-
         lista.forEach(c => {
             const dt    = c.updated_at ? new Date(c.updated_at).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric'}) : '—';
             const isUrl = (c.valor||'').startsWith('http');
@@ -983,25 +1022,23 @@
             </div></td>
         </tr>`;
         });
-
         html += `</tbody></table></div>`;
         document.getElementById('main-content').innerHTML = html;
         restoreSearch(q);
     }
-
     function abrirFormConfig(chave) {
         const c = chave ? configData.find(x=>x.chave===chave) : null;
         document.getElementById('drawer-title').textContent = c ? 'Editar Configuração' : 'Nova Configuração';
         document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
         <div class="msg-form" id="form-msg"></div>
         <div class="form-group form-full">
-            <label class="form-label">Chave <span style="color:var(--text-faint);font-size:10px">(sem espaços, letras minúsculas)</span></label>
+            <label class="form-label">Chave</label>
             <input class="form-input" id="fc_chave" type="text" placeholder="ex: endereco"
-                   value="${c?.chave||''}" ${c?'readonly':''} style="${c?'background:var(--bg-input);color:var(--text-faint)':''}">
+                   value="${c?.chave||''}" ${c?'readonly':''}>
         </div>
         <div class="form-group form-full">
             <label class="form-label">Valor</label>
-            <textarea class="form-textarea" id="fc_valor" placeholder="Valor desta configuração..." style="height:80px">${c?.valor||''}</textarea>
+            <textarea class="form-textarea" id="fc_valor" style="height:80px">${c?.valor||''}</textarea>
         </div>
         <div class="form-group form-full">
             <label class="form-label">Descrição</label>
@@ -1015,7 +1052,6 @@
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow='hidden';
     }
-
     async function salvarConfig(chaveOriginal) {
         const chave    = document.getElementById('fc_chave')?.value?.trim().toLowerCase().replace(/\s+/g,'_');
         const valor    = document.getElementById('fc_valor')?.value?.trim();
@@ -1036,9 +1072,8 @@
             btn.disabled=false; btn.textContent='Guardar';
         }
     }
-
     async function eliminarConfig(chave) {
-        if (!confirm(`Apagar a configuração "${chave}"? Esta ação não pode ser desfeita.`)) return;
+        if (!confirm(`Apagar a configuração "${chave}"?`)) return;
         try {
             await sb(`configuracoes?chave=eq.${chave}`,{method:'DELETE'});
             await carregarConfiguracoes();
@@ -1084,7 +1119,6 @@
         {key:'historia',        label:'História',          type:'textarea', ph:'História do membro...', full:true},
         {key:'ativo',           label:'Ativo',             type:'checkbox', default:true},
     ];}
-
     function camposPastores() { return [
         {key:'nome',      label:'Nome',      ph:'Nome completo',     full:true},
         {key:'cargo',     label:'Cargo',     ph:'Ex: Pastor Principal'},
@@ -1095,7 +1129,6 @@
         {key:'bio',       label:'Biografia', type:'textarea',        ph:'Breve biografia...', full:true},
         {key:'ativo',     label:'Ativo',     type:'checkbox',        default:true},
     ];}
-
     function camposLinks() { return [
         {type:'section',       label:'Identificação'},
         {key:'nome',           label:'Nome',              ph:'Ex: LINK Montijo',  full:true},
@@ -1126,7 +1159,6 @@
         {key:'contato',        label:'Contacto (WhatsApp)',ph:'+351 9XX XXX XXX', full:true},
         {key:'ativo',          label:'Ativo',             type:'checkbox', default:true},
     ];}
-
     function camposCultos() { return [
         {key:'nome',            label:'Nome',           ph:'Ex: Culto de Domingo', full:true},
         {key:'dia_semana',      label:'Dia',            type:'select', options:[
@@ -1141,7 +1173,6 @@
         {key:'descricao',       label:'Descrição',      type:'textarea', ph:'...', full:true},
         {key:'ativo',           label:'Ativo',           type:'checkbox', default:true},
     ];}
-
     function camposMinisterios() { return [
         {key:'nome',         label:'Nome',         ph:'Ex: Ministério de Louvor', full:true},
         {key:'tipo',         label:'Tipo',         type:'select', options:[{v:'ministerio',l:'Ministério'},{v:'area',l:'Área de Equipa'}]},
@@ -1151,7 +1182,6 @@
         {key:'descricao',    label:'Descrição',    type:'textarea', ph:'...', full:true},
         {key:'ativo',        label:'Ativo',        type:'checkbox', default:true},
     ];}
-
     function camposSalas() { return [
         {key:'nome',               label:'Nome',          ph:'Ex: Sala Principal', full:true},
         {key:'espaco',             label:'Espaço',        ph:'Ex: Piso 1'},
@@ -1170,7 +1200,6 @@
         {key:'tem_cadeiras',       label:'Cadeiras',      type:'checkbox'},
         {key:'ativo',              label:'Ativo',         type:'checkbox', default:true},
     ];}
-
     function camposCursos() { return [
         {key:'nome',          label:'Nome',           ph:'Ex: Curso de Louvor', full:true},
         {key:'carga_horaria', label:'Carga Horária',  ph:'Ex: 40 horas'},
@@ -1179,12 +1208,11 @@
         {key:'descricao',     label:'Descrição',       type:'textarea', ph:'...', full:true},
         {key:'ativo',         label:'Ativo',           type:'checkbox', default:true},
     ];}
-
     function camposKeola() { return [
         {key:'nome',          label:'Nome',            ph:'Ex: Café Especial', full:true},
         {key:'categoria',     label:'Categoria',       type:'select', options:[
-                {v:'almoco',l:'🍽️ Almoço'},{v:'bebidas',l:'☕ Bebidas'},{v:'sumos',l:'🧃 Sumos'},
-                {v:'snacks',l:'🥪 Snacks'},{v:'sobremesas',l:'🍰 Sobremesas'},{v:'outro',l:'🛒 Outros'}
+                {v:'almoco',l:'Almoço'},{v:'bebidas',l:'Bebidas'},{v:'sumos',l:'Sumos'},
+                {v:'snacks',l:'Snacks'},{v:'sobremesas',l:'Sobremesas'},{v:'outro',l:'Outros'}
             ]},
         {key:'descricao',     label:'Descrição',       type:'textarea', ph:'Breve descrição...', full:true},
         {key:'preco',         label:'Preço (€)',        type:'number', ph:'0.00'},
@@ -1193,7 +1221,6 @@
         {key:'disponivel',    label:'Disponível',       type:'checkbox', default:true},
         {key:'especial_hoje', label:'Especial Hoje',    type:'checkbox'},
     ];}
-
     function camposLoja() { return [
         {type:'section',label:'Identificação'},
         {key:'nome',              label:'Nome',              ph:'Ex: Camisola ZION', full:true},
@@ -1217,7 +1244,7 @@
     ];}
 
     // ══════════════════════════════════════════════════════════════════════════
-    // EVENTOS
+    // EVENTOS — COMPLETAMENTE REESCRITO
     // ══════════════════════════════════════════════════════════════════════════
     const STATUS_EVENTO = {
         aberto:   {label:'Aberto',    cls:'badge-green'},
@@ -1226,21 +1253,24 @@
         cancelado:{label:'Cancelado', cls:'badge-red'},
     };
 
-    let eventosData    = [];
-    let presencasData  = [];
+    let eventosData        = [];
+    let presencasData      = [];
     let lideresMinisterios = {};
-    let presSearchQ    = '';
-    let eventoAtivo    = null;
-    let eventoSubTab   = 0;
+    let presSearchQ        = '';
+    let eventoAtivo        = null;
+    let eventoSubTab       = 0;
+
+    // Participantes seleccionados para novo evento (array de {id, nome})
+    let eventoParticipantesSel = [];
 
     function renderEventos() {
         const q        = getQ();
         const filtroSt = document.getElementById('evt-filtro-status')?.value||'';
         let lista = [...eventosData].sort((a,b)=>new Date(a.data_inicio)-new Date(b.data_inicio));
-        if (q)       lista = lista.filter(e=>(e.titulo||'').toLowerCase().includes(q)||(e.local||'').toLowerCase().includes(q));
+        if (q)        lista = lista.filter(e=>(e.titulo||'').toLowerCase().includes(q)||(e.local||'').toLowerCase().includes(q));
         if (filtroSt) lista = lista.filter(e=>e.status===filtroSt);
 
-        if (eventoAtivo&&eventoSubTab===1) { renderPresencas(); return; }
+        if (eventoAtivo && eventoSubTab===1) { renderPresencas(); return; }
 
         let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
@@ -1265,10 +1295,10 @@
 
         html+='<div class="admin-list" style="padding:12px 16px">';
         lista.forEach((e,i)=>{
-            const st     = STATUS_EVENTO[e.status]||STATUS_EVENTO.aberto;
-            const dI     = e.data_inicio?new Date(e.data_inicio).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-            const dF     = e.data_fim?new Date(e.data_fim).toLocaleDateString('pt-PT',{day:'2-digit',month:'short'}):'';
-            const btns   = [];
+            const st   = STATUS_EVENTO[e.status]||STATUS_EVENTO.aberto;
+            const dI   = e.data_inicio?new Date(e.data_inicio).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+            const dF   = e.data_fim?new Date(e.data_fim).toLocaleDateString('pt-PT',{day:'2-digit',month:'short'}):'';
+            const btns = [];
             if(e.status==='aberto')    { btns.push(`<button class="btn-edit" onclick="abrirFormEvento('${e.id}')">Editar</button>`); btns.push(`<button class="btn-toggle ativo" onclick="iniciarEvento('${e.id}')">Iniciar</button>`); }
             if(e.status==='em_curso')  { btns.push(`<button class="btn-edit" onclick="abrirPresencas('${e.id}')">Presenças</button>`); btns.push(`<button class="btn-toggle ativo" onclick="concluirEvento('${e.id}')">Concluir</button>`); }
             if(e.status!=='cancelado'&&e.status!=='concluido') btns.push(`<button class="btn-toggle ativo" onclick="cancelarEvento('${e.id}')">Cancelar</button>`);
@@ -1297,14 +1327,26 @@
         restoreSearch(q);
     }
 
+    // ── INICIAR EVENTO (lógica nova) ──────────────────────────────────────────
     async function iniciarEvento(id) {
-        if(!confirm('Iniciar este evento? Será criada a lista de presenças com todos os líderes.')) return;
+        const evento = eventosData.find(e=>e.id===id);
+        if (!evento) return;
+        const isLideres = evento.tipo === 'Reunião de Líderes';
+
+        if (!confirm(`Iniciar "${evento.titulo}"?${isLideres?' Todos os líderes serão adicionados automaticamente. Poderás adicionar mais participantes na lista de presenças.':' Irás gerir os participantes na lista de presenças.'}`)) return;
+
         await sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'em_curso'})});
-        const lideres = await sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true');
-        if(lideres?.length) {
-            const rows = lideres.map(l=>({evento_id:id,membro_id:l.id,status:'pendente'}));
-            await sb('evento_presencas',{method:'POST',body:JSON.stringify(rows)});
+
+        if (isLideres) {
+            // Adiciona todos os líderes automaticamente
+            const lideres = await sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true');
+            if (lideres?.length) {
+                const rows = lideres.map(l=>({evento_id:id, membro_id:l.id, status:'pendente'}));
+                await sb('evento_presencas',{method:'POST',body:JSON.stringify(rows)});
+            }
         }
+        // Se não for líderes, começa vazio — gestão manual na lista de presenças
+
         eventosData = await sb('eventos?select=*&order=data_inicio')||[];
         renderEventos();
     }
@@ -1340,6 +1382,19 @@
         renderPresencas();
     }
 
+    // ── ADD PARTICIPANTE MANUAL ───────────────────────────────────────────────
+    async function addParticipanteManual() {
+        const sel   = document.getElementById('add-membro-sel');
+        const memId = sel?.value;
+        if (!memId) return;
+        if (presencasData.find(p=>p.membro_id===memId)) { alert('Este membro já está na lista.'); return; }
+        try {
+            const rows = [{evento_id: eventoAtivo.id, membro_id: memId, status:'pendente'}];
+            await sb('evento_presencas',{method:'POST',body:JSON.stringify(rows)});
+            await abrirPresencas(eventoAtivo.id);
+        } catch(e) { alert('Erro ao adicionar: '+JSON.stringify(e)); }
+    }
+
     function renderPresencas() {
         const evento  = eventoAtivo;
         const st      = STATUS_EVENTO[evento?.status]||STATUS_EVENTO.aberto;
@@ -1348,95 +1403,258 @@
         let lista     = [...presencasData];
         if(q) lista = lista.filter(p=>(p.membros?.nome||'').toLowerCase().includes(q));
 
-        const presentes= presencasData.filter(p=>p.status==='presente').length;
-        const faltaram = presencasData.filter(p=>p.status==='faltou').length;
-        const comMotivo= presencasData.filter(p=>p.status==='faltou_motivo').length;
-        const pendentes= presencasData.filter(p=>p.status==='pendente').length;
+        const presentes = presencasData.filter(p=>p.status==='presente').length;
+        const faltaram  = presencasData.filter(p=>p.status==='faltou').length;
+        const comMotivo = presencasData.filter(p=>p.status==='faltou_motivo').length;
+        const pendentes = presencasData.filter(p=>p.status==='pendente').length;
+        const total     = presencasData.length;
+
+        // Membros não adicionados ainda (para o select de adicionar)
+        const jaAdicionados = new Set(presencasData.map(p=>p.membro_id));
+        const membrosDisponiveis = membros.filter(m=>!jaAdicionados.has(m.id));
 
         let html=`
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:6px">
         <button class="btn-edit" onclick="voltarListaEventos()">← Voltar</button>
         ${eventoAtivo?.status==='concluido'?`<button class="btn-edit" style="color:var(--red);border-color:var(--red-border)" onclick="gerarRelatorioEvento('${eventoAtivo.id}')">PDF</button>`:''}
-        <input class="toolbar-search" id="pres-search" placeholder="Pesquisar líder..."
+        <input class="toolbar-search" id="pres-search" placeholder="Pesquisar..."
                oninput="presSearchQ=this.value;renderPresencas()" style="flex:1;min-width:120px">
         ${emCurso?`<button class="btn-new" onclick="finalizarEntradas()">Finalizar Entradas</button>`:''}
     </div>
-    <div style="padding:10px 16px 4px">
-        <div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark);margin-bottom:4px">${evento?.titulo||'—'}</div>
+
+    <div style="padding:10px 16px 0">
+        <div style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark);margin-bottom:6px">${evento?.titulo||'—'}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
             <span class="badge ${st.cls}">${st.label}</span>
-            <span class="badge badge-green">Presentes: ${presentes}</span>
-            <span class="badge badge-red">Faltaram: ${faltaram+comMotivo}</span>
-            ${comMotivo?`<span class="badge badge-primary">Com motivo: ${comMotivo}</span>`:''}
-            ${pendentes?`<span class="badge badge-gray">Pendentes: ${pendentes}</span>`:''}
+            <span class="badge badge-green">✓ Presentes: ${presentes}</span>
+            <span class="badge badge-red">✗ Faltaram: ${faltaram+comMotivo}</span>
+            ${comMotivo?`<span class="badge badge-primary">! Com motivo: ${comMotivo}</span>`:''}
+            ${pendentes?`<span class="badge badge-gray">· Pendentes: ${pendentes}</span>`:''}
+            <span class="badge badge-gray">Total: ${total}</span>
         </div>
-    </div>
-    <div class="gold-line" style="margin:8px 16px"></div>`;
+    </div>`;
 
-        if(!lista.length) {
-            html+='<div class="empty"><div class="empty-txt">Nenhum líder encontrado.</div></div>';
-            document.getElementById('main-content').innerHTML=html;
-            const si=document.getElementById('pres-search');
-            if(si){si.value=presSearchQ;si.focus();si.setSelectionRange(si.value.length,si.value.length);}
-            return;
+        // ── Painel adicionar participante — sempre visível em eventos em curso ──
+        if (emCurso) {
+            html += `
+    <div style="padding:10px 16px 4px">
+        <div class="add-member-panel">
+            <div class="add-member-panel-title">Adicionar participante</div>
+            <div class="add-member-row">
+                <select class="form-select" id="add-membro-sel" style="flex:1">
+                    <option value="">Seleciona um membro...</option>
+                    ${membrosDisponiveis.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}
+                </select>
+                <button class="btn-sub-add" onclick="addParticipanteManual()">+ Adicionar</button>
+            </div>
+        </div>
+    </div>`;
         }
 
-        const grupos=[
-            {key:'presente',      label:'Presentes',           items:lista.filter(p=>p.status==='presente')},
-            {key:'pendente',      label:'Pendentes',            items:lista.filter(p=>p.status==='pendente')},
-            {key:'faltou_motivo', label:'Faltaram c/ Motivo',  items:lista.filter(p=>p.status==='faltou_motivo')},
-            {key:'faltou',        label:'Faltaram',             items:lista.filter(p=>p.status==='faltou')},
-        ].filter(g=>g.items.length>0);
+        html += '<div class="gold-line" style="margin:8px 16px"></div>';
 
-        grupos.forEach(grupo=>{
-            html+=`<div style="padding:8px 16px 2px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">${grupo.label} (${grupo.items.length})</div>`;
-            html+='<div class="admin-list" style="padding:4px 16px 8px">';
-            grupo.items.forEach((p,i)=>{
-                const nome  = p.membros?.nome||'—';
-                const stIcon= {presente:'✓',faltou:'✗',faltou_motivo:'!',pendente:'·'}[p.status]||'·';
-                const stColor={presente:'var(--green)',faltou:'var(--red)',faltou_motivo:'var(--orange)',pendente:'var(--border)'}[p.status]||'var(--border)';
-                const mins  = lideresMinisterios[p.membro_id]||[];
-                const minsHtml=mins.map(m=>`<span class="badge badge-gray" style="font-size:8px">${m.tipo==='ministerio'?'MIN':'AE'} · ${m.nome}${m.papel?' · '+m.papel:''}</span>`).join('');
+        // ── Lista de participantes por grupo ───────────────────────────────
+        if(!lista.length) {
+            html+='<div class="empty"><div class="empty-txt">Nenhum participante encontrado.</div></div>';
+        } else {
+            const grupos=[
+                {key:'presente',      label:'Presentes',           items:lista.filter(p=>p.status==='presente')},
+                {key:'pendente',      label:'Pendentes',            items:lista.filter(p=>p.status==='pendente')},
+                {key:'faltou_motivo', label:'Faltaram c/ Motivo',  items:lista.filter(p=>p.status==='faltou_motivo')},
+                {key:'faltou',        label:'Faltaram',             items:lista.filter(p=>p.status==='faltou')},
+            ].filter(g=>g.items.length>0);
 
-                let btns='';
-                if(emCurso&&p.status!=='presente')      btns+=`<button class="btn-toggle inativo" onclick="marcarPresenca('${p.id}','presente')">Presente</button>`;
-                if(emCurso&&p.status!=='faltou')        btns+=`<button class="btn-toggle ativo" onclick="marcarPresenca('${p.id}','faltou')">Faltou</button>`;
-                if(emCurso&&p.status!=='faltou_motivo') btns+=`<button class="btn-edit" onclick="abrirMotivo('${p.id}','${nome.replace(/'/g,"\\'")}')">Com Motivo</button>`;
-                if(emCurso&&p.status!=='pendente')      btns+=`<button class="btn-edit" style="color:var(--text-faint)" onclick="marcarPresenca('${p.id}','pendente')" title="Desfazer">↩</button>`;
-
-                let zapBtn='';
-                if(p.membros?.telefone){
-                    const tel=p.membros.telefone.replace(/\D/g,'');
-                    const dEvt=eventoAtivo?.data_inicio?new Date(eventoAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'';
-                    const msg=encodeURIComponent(`Olá ${p.membros.nome?.split(' ')[0]}! Gostaríamos de confirmar a tua presença na ${eventoAtivo?.titulo||'reunião'} a realizar ${dEvt}. Podes confirmar?`);
-                    zapBtn=`<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener"
-                    style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#25D366;text-decoration:none;padding:2px 6px;border-radius:6px;border:1px solid rgba(37,211,102,0.3);background:rgba(37,211,102,0.06)">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Zap</a>`;
-                }
-                const fotoSrc=p.membros?.foto_url;
-                const fotoHtml=fotoSrc
-                    ?`<img src="${fotoSrc}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${stColor}" onerror="this.style.display='none'">`
-                    :`<div class="admin-row-foto" style="font-size:13px;font-weight:bold;color:${stColor}">${stIcon}</div>`;
-
-                html+=`<div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap;gap:6px">
-                ${fotoHtml}
-                <div class="admin-row-info" style="min-width:0;flex:1">
-                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                        <span class="admin-row-nome">${nome}</span>${zapBtn}
+            grupos.forEach(grupo=>{
+                html+=`<div style="padding:8px 16px 2px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">${grupo.label} (${grupo.items.length})</div>`;
+                html+='<div class="admin-list" style="padding:4px 16px 8px">';
+                grupo.items.forEach((p,i)=>{
+                    const nome   = p.membros?.nome||'—';
+                    const stIcon = {presente:'✓',faltou:'✗',faltou_motivo:'!',pendente:'·'}[p.status]||'·';
+                    const stColor= {presente:'var(--green)',faltou:'var(--red)',faltou_motivo:'var(--orange)',pendente:'var(--border)'}[p.status]||'var(--border)';
+                    const mins   = lideresMinisterios[p.membro_id]||[];
+                    const minsHtml=mins.map(m=>`<span class="badge badge-gray" style="font-size:8px">${m.tipo==='ministerio'?'MIN':'AE'} · ${m.nome}${m.papel?' · '+m.papel:''}</span>`).join('');
+                    let btns='';
+                    if(emCurso&&p.status!=='presente')      btns+=`<button class="btn-toggle inativo" onclick="marcarPresenca('${p.id}','presente')">Presente</button>`;
+                    if(emCurso&&p.status!=='faltou')        btns+=`<button class="btn-toggle ativo" onclick="marcarPresenca('${p.id}','faltou')">Faltou</button>`;
+                    if(emCurso&&p.status!=='faltou_motivo') btns+=`<button class="btn-edit" onclick="abrirMotivo('${p.id}','${nome.replace(/'/g,"\\'")}')">Com Motivo</button>`;
+                    if(emCurso&&p.status!=='pendente')      btns+=`<button class="btn-edit" style="color:var(--text-faint)" onclick="marcarPresenca('${p.id}','pendente')" title="Desfazer">↩</button>`;
+                    let zapBtn='';
+                    if(p.membros?.telefone){
+                        const tel=p.membros.telefone.replace(/\D/g,'');
+                        const dEvt=eventoAtivo?.data_inicio?new Date(eventoAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'';
+                        const msg=encodeURIComponent(`Olá ${p.membros.nome?.split(' ')[0]}! Gostaríamos de confirmar a tua presença na ${eventoAtivo?.titulo||'reunião'} a realizar ${dEvt}. Podes confirmar?`);
+                        zapBtn=`<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener"
+                        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#25D366;text-decoration:none;padding:2px 6px;border-radius:6px;border:1px solid rgba(37,211,102,0.3);background:rgba(37,211,102,0.06)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Zap</a>`;
+                    }
+                    const fotoSrc=p.membros?.foto_url;
+                    const fotoHtml=fotoSrc
+                        ?`<img src="${fotoSrc}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${stColor}" onerror="this.style.display='none'">`
+                        :`<div class="admin-row-foto" style="font-size:13px;font-weight:bold;color:${stColor}">${stIcon}</div>`;
+                    html+=`<div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap;gap:6px">
+                    ${fotoHtml}
+                    <div class="admin-row-info" style="min-width:0;flex:1">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                            <span class="admin-row-nome">${nome}</span>${zapBtn}
+                        </div>
+                        <div class="admin-row-badges" style="margin-top:3px;flex-wrap:wrap;gap:3px">
+                            ${minsHtml||'<span style="font-size:10px;color:var(--text-faint)">Sem áreas</span>'}
+                        </div>
+                        ${p.motivo?`<div class="admin-row-sub" style="color:var(--orange);margin-top:3px">Motivo: ${p.motivo}</div>`:''}
                     </div>
-                    <div class="admin-row-badges" style="margin-top:3px;flex-wrap:wrap;gap:3px">
-                        ${minsHtml||'<span style="font-size:10px;color:var(--text-faint)">Sem áreas</span>'}
-                    </div>
-                    ${p.motivo?`<div class="admin-row-sub" style="color:var(--orange);margin-top:3px">Motivo: ${p.motivo}</div>`:''}
-                </div>
-                <div class="admin-row-actions">${btns}</div>
-            </div>`;
+                    <div class="admin-row-actions">${btns}</div>
+                </div>`;
+                });
+                html+='</div>';
             });
-            html+='</div>';
-        });
+        }
+
+        // ── Gráficos e resumo — DEPOIS da lista ───────────────────────────
+        if (evento?.status === 'concluido' || evento?.status === 'em_curso') {
+            html += '<div class="gold-line" style="margin:12px 16px 4px"></div>';
+            html += `<div style="padding:6px 16px 2px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">Resumo e Gráficos</div>`;
+            html += renderGraficosResumo(presencasData, lideresMinisterios);
+        }
+
         document.getElementById('main-content').innerHTML=html;
         const si=document.getElementById('pres-search');
         if(si){si.value=presSearchQ;si.focus();si.setSelectionRange(si.value.length,si.value.length);}
+    }
+
+    // ── GRÁFICOS RESUMO (tela) ────────────────────────────────────────────────
+    function renderGraficosResumo(pres, minsMap) {
+        const presentes = pres.filter(p=>p.status==='presente').length;
+        const faltaram  = pres.filter(p=>p.status==='faltou').length;
+        const comMotivo = pres.filter(p=>p.status==='faltou_motivo').length;
+        const total     = pres.length;
+        const pct       = total > 0 ? Math.round(presentes/total*100) : 0;
+
+        // Stats cards
+        let html = `<div class="resumo-stats">
+        <div class="resumo-stat">
+            <div class="resumo-stat-num" style="color:var(--green)">${presentes}</div>
+            <div class="resumo-stat-label">Presentes</div>
+            <div class="resumo-stat-pct" style="color:var(--green)">${pct}%</div>
+        </div>
+        <div class="resumo-stat">
+            <div class="resumo-stat-num" style="color:var(--red)">${faltaram}</div>
+            <div class="resumo-stat-label">Faltaram</div>
+            <div class="resumo-stat-pct" style="color:var(--red)">${total>0?Math.round(faltaram/total*100):0}%</div>
+        </div>
+        <div class="resumo-stat">
+            <div class="resumo-stat-num" style="color:var(--orange,#e65100)">${comMotivo}</div>
+            <div class="resumo-stat-label">Com Motivo</div>
+            <div class="resumo-stat-pct" style="color:var(--orange,#e65100)">${total>0?Math.round(comMotivo/total*100):0}%</div>
+        </div>
+        <div class="resumo-stat">
+            <div class="resumo-stat-num" style="color:var(--text-muted)">${total}</div>
+            <div class="resumo-stat-label">Total</div>
+            <div class="resumo-stat-pct" style="color:var(--text-faint)">100%</div>
+        </div>
+    </div>`;
+
+        html += '<div class="resumo-graficos">';
+
+        // Pizza geral presença
+        html += buildGraficoPizza([
+            {label:'Presentes',   val:presentes, cor:'#2e7d32'},
+            {label:'Com Motivo',  val:comMotivo, cor:'#e65100'},
+            {label:'Faltaram',    val:faltaram,  cor:'#c62828'},
+        ], 'Presenças Geral', total);
+
+        // Por área/ministério
+        const porArea = {};
+        pres.forEach(p=>{
+            const mins = minsMap[p.membro_id]||[{tipo:'Sem área',nome:'Sem área',papel:''}];
+            mins.forEach(m=>{
+                const k = `${m.tipo}||${m.nome}`;
+                if (!porArea[k]) porArea[k]={tipo:m.tipo, nome:m.nome, presentes:0, faltaram:0, total:0};
+                porArea[k].total++;
+                if (p.status==='presente') porArea[k].presentes++;
+                else if (p.status==='faltou'||p.status==='faltou_motivo') porArea[k].faltaram++;
+            });
+        });
+
+        const areas = Object.values(porArea).sort((a,b)=>b.total-a.total);
+        if (areas.length > 0) {
+            html += buildGraficoBarras(areas, 'Presenças por Área / Ministério');
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    function buildGraficoPizza(dados, titulo, total) {
+        if (total === 0) return '';
+        // SVG pizza simples
+        const r   = 60;
+        const cx  = 70;
+        const cy  = 70;
+        let paths = '';
+        let startAngle = -Math.PI / 2;
+        dados.forEach(d => {
+            if (d.val === 0) return;
+            const angle = (d.val / total) * Math.PI * 2;
+            const endAngle = startAngle + angle;
+            const x1 = cx + r * Math.cos(startAngle);
+            const y1 = cy + r * Math.sin(startAngle);
+            const x2 = cx + r * Math.cos(endAngle);
+            const y2 = cy + r * Math.sin(endAngle);
+            const largeArc = angle > Math.PI ? 1 : 0;
+            paths += `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${largeArc},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${d.cor}" opacity="0.9"/>`;
+            startAngle = endAngle;
+        });
+        // Círculo central (donut)
+        paths += `<circle cx="${cx}" cy="${cy}" r="30" fill="var(--bg-card)"/>`;
+        paths += `<text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-main)">${total}</text>`;
+        paths += `<text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="9" fill="var(--text-faint)">TOTAL</text>`;
+
+        const legend = dados.map(d=>`
+        <div class="pizza-legend-item">
+            <div class="pizza-legend-dot" style="background:${d.cor}"></div>
+            <span>${d.label}: <strong>${d.val}</strong> (${total>0?Math.round(d.val/total*100):0}%)</span>
+        </div>`).join('');
+
+        return `<div class="grafico-wrap">
+        <div class="grafico-titulo">${titulo}</div>
+        <div class="pizza-wrap">
+            <svg class="pizza-svg" width="140" height="140" viewBox="0 0 140 140">${paths}</svg>
+            <div class="pizza-legend">${legend}</div>
+        </div>
+    </div>`;
+    }
+
+    function buildGraficoBarras(areas, titulo) {
+        const max = Math.max(...areas.map(a=>a.total), 1);
+        const barras = areas.map(a=>{
+            const pct = Math.round(a.presentes / (a.total||1) * 100);
+            const wP  = Math.round(a.presentes / max * 100);
+            const wF  = Math.round(a.faltaram  / max * 100);
+            const tipoLabel = a.tipo==='ministerio' ? 'MIN' : a.tipo==='Sem área' ? '—' : 'AE';
+            return `
+        <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+                <span style="font-size:11px;color:var(--text-main);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    <span style="font-size:9px;background:var(--bg-input);padding:1px 5px;border-radius:4px;color:var(--text-faint);margin-right:5px">${tipoLabel}</span>${a.nome}
+                </span>
+                <span style="font-size:10px;font-weight:bold;color:${pct>=80?'var(--green)':pct>=50?'var(--orange,#e65100)':'var(--red)'}">${pct}%</span>
+            </div>
+            <div style="display:flex;gap:4px;height:12px">
+                <div style="flex:${a.presentes||0};background:#2e7d32;border-radius:4px 0 0 4px;opacity:0.8;min-width:${a.presentes?'4px':'0'}"></div>
+                <div style="flex:${a.faltaram||0};background:#c62828;border-radius:0 4px 4px 0;opacity:0.8;min-width:${a.faltaram?'4px':'0'}"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text-faint);margin-top:2px">${a.presentes} presentes · ${a.faltaram} faltaram · ${a.total} total</div>
+        </div>`;
+        }).join('');
+
+        return `<div class="grafico-wrap">
+        <div class="grafico-titulo">${titulo}</div>
+        <div style="display:flex;gap:12px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#2e7d32;border-radius:2px;opacity:0.8"></div>Presentes</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#c62828;border-radius:2px;opacity:0.8"></div>Faltaram</div>
+        </div>
+        ${barras}
+    </div>`;
     }
 
     function voltarListaEventos() { eventoAtivo=null; eventoSubTab=0; presSearchQ=''; renderEventos(); }
@@ -1459,7 +1677,6 @@
     }
 
     let motivoPresencaId=null;
-
     function abrirMotivo(presencaId, nome) {
         motivoPresencaId=presencaId;
         document.getElementById('drawer-title').textContent=`Motivo — ${nome}`;
@@ -1476,7 +1693,6 @@
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow='hidden';
     }
-
     async function guardarMotivo() {
         const motivo=document.getElementById('motivo-txt')?.value?.trim();
         if(!motivo){alert('Escreve o motivo.');return;}
@@ -1486,6 +1702,7 @@
         closeDrawer(); renderPresencas();
     }
 
+    // ── FORM EVENTO ───────────────────────────────────────────────────────────
     function abrirFormEvento(id) {
         const e=id?eventosData.find(x=>x.id===id):null;
         document.getElementById('drawer-title').textContent=e?'Editar Evento':'Novo Evento';
@@ -1497,14 +1714,16 @@
     function buildFormEvento(e) {
         const fv =(k,d='')=>e?.[k]??d;
         const fdt=k=>{const v=e?.[k];if(!v)return'';return new Date(v).toISOString().slice(0,16);};
+        const tipoOpts = TIPOS_EVENTO.map(t=>`<option value="${t}" ${fv('tipo')===t?'selected':''}>${t}</option>`).join('');
         return `<div class="form-grid">
         <div class="msg-form" id="form-msg"></div>
         <div class="form-section-title">Identificação</div>
         <div class="form-group form-full"><label class="form-label">Título</label><input class="form-input" id="fe_titulo" type="text" placeholder="Nome do evento" value="${fv('titulo')}"></div>
-        <div class="form-group"><label class="form-label">Tipo</label>
+        <div class="form-group">
+            <label class="form-label">Tipo</label>
             <select class="form-select" id="fe_tipo">
                 <option value="">-- Seleciona --</option>
-                ${['Reunião de Líderes','Culto Especial','Conferência','Retiro','Treinamento','Workshop','Outro'].map(t=>`<option value="${t}" ${fv('tipo')===t?'selected':''}>${t}</option>`).join('')}
+                ${tipoOpts}
             </select>
         </div>
         <div class="form-group"><label class="form-label">Local</label><input class="form-input" id="fe_local" type="text" placeholder="Ex: Sede Lisboa" value="${fv('local')}"></div>
@@ -1547,9 +1766,118 @@
         }
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // TIPOS DE EVENTO — gestão na tela
+    // ══════════════════════════════════════════════════════════════════════════
+    const TIPOS_EVENTO_DEFAULT = [
+        'Reunião de Líderes','Culto Especial','Conferência','Retiro',
+        'Treinamento','Workshop','Conferência de Jovens','Encontro de Casais',
+        'Culto de Oração','Seminário','Outro',
+    ];
+
+    function getTiposEvento() {
+        try {
+            const saved = localStorage.getItem('zion_tipos_evento');
+            return saved ? JSON.parse(saved) : [...TIPOS_EVENTO_DEFAULT];
+        } catch { return [...TIPOS_EVENTO_DEFAULT]; }
+    }
+    function saveTiposEvento(lista) {
+        localStorage.setItem('zion_tipos_evento', JSON.stringify(lista));
+        syncTiposEvento(); // actualiza o array TIPOS_EVENTO em memória
+    }
+
+    function renderTiposEvento() {
+        const lista = getTiposEvento();
+        let html = `
+    <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
+        <span style="font-family:var(--font-title);font-size:10px;letter-spacing:1px;color:var(--text-muted);flex:1">Tipos de Evento</span>
+        <button class="btn-new" onclick="abrirFormTipoEvento(null)">+ Novo Tipo</button>
+    </div>
+    <div style="padding:8px 16px 4px">
+        <div style="font-size:11px;color:var(--text-faint);line-height:1.6">
+            Quando o tipo é <strong>Reunião de Líderes</strong>, todos os líderes são adicionados automaticamente ao iniciar.
+            Os outros tipos começam com lista vazia.
+        </div>
+    </div>
+    <div class="admin-list" style="padding:8px 16px">`;
+
+        lista.forEach((tipo, i) => {
+            const isLideres = tipo === 'Reunião de Líderes';
+            html += `
+        <div class="admin-row" style="animation-delay:${i*0.02}s">
+            <div class="admin-row-foto" style="font-size:11px">${(i+1)}</div>
+            <div class="admin-row-info">
+                <div class="admin-row-nome">${tipo}</div>
+                ${isLideres ? '<div class="admin-row-sub" style="color:var(--primary-dark)">Auto-adiciona todos os líderes</div>' : ''}
+            </div>
+            <div class="admin-row-actions">
+                <button class="btn-edit" onclick="abrirFormTipoEvento(${i})">Editar</button>
+                ${!isLideres ? `<button class="btn-toggle ativo" onclick="removerTipoEvento(${i})">Remover</button>` : ''}
+                ${i > 0 ? `<button class="btn-edit" onclick="moverTipo(${i},-1)" title="Subir">↑</button>` : ''}
+                ${i < lista.length-1 ? `<button class="btn-edit" onclick="moverTipo(${i},1)" title="Descer">↓</button>` : ''}
+            </div>
+        </div>`;
+        });
+
+        html += '</div>';
+        document.getElementById('main-content').innerHTML = html;
+    }
+
+    function abrirFormTipoEvento(idx) {
+        const lista  = getTiposEvento();
+        const isNovo = idx === null;
+        const valor  = isNovo ? '' : lista[idx];
+        document.getElementById('drawer-title').textContent = isNovo ? 'Novo Tipo de Evento' : 'Editar Tipo';
+        document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+        <div class="form-group form-full">
+            <label class="form-label">Nome do Tipo</label>
+            <input class="form-input" id="ft_nome" type="text" placeholder="Ex: Encontro de Jovens" value="${valor}">
+        </div>
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" onclick="salvarTipoEvento(${idx})">Guardar</button>
+        </div>
+    </div>`;
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function salvarTipoEvento(idx) {
+        const nome = document.getElementById('ft_nome')?.value?.trim();
+        if (!nome) { showFormMsg('Nome obrigatório.','error'); return; }
+        const lista = getTiposEvento();
+        if (idx === null) {
+            // Adiciona antes de "Outro" (último)
+            lista.splice(lista.length - 1, 0, nome);
+        } else {
+            lista[idx] = nome;
+        }
+        saveTiposEvento(lista);
+        closeDrawer();
+        renderTiposEvento();
+    }
+
+    function removerTipoEvento(idx) {
+        const lista = getTiposEvento();
+        if (!confirm(`Remover o tipo "${lista[idx]}"?`)) return;
+        lista.splice(idx, 1);
+        saveTiposEvento(lista);
+        renderTiposEvento();
+    }
+
+    function moverTipo(idx, dir) {
+        const lista = getTiposEvento();
+        const novo  = idx + dir;
+        if (novo < 0 || novo >= lista.length) return;
+        [lista[idx], lista[novo]] = [lista[novo], lista[idx]];
+        saveTiposEvento(lista);
+        renderTiposEvento();
+    }
+
     function camposEventos(){return[];}
 
-    // ── RELATÓRIO PDF ─────────────────────────────────────────────────────────
+    // ── RELATÓRIO PDF (com gráficos) ──────────────────────────────────────────
     async function gerarRelatorioEvento(eventoId) {
         const evento=eventosData.find(e=>e.id===eventoId);
         if(!evento) return;
@@ -1564,56 +1892,152 @@
             });
         }
         const presentes=pres.filter(p=>p.status==='presente');
-        const faltaram=pres.filter(p=>p.status==='faltou');
+        const faltaram =pres.filter(p=>p.status==='faltou');
         const comMotivo=pres.filter(p=>p.status==='faltou_motivo');
+        const total    =pres.length;
         const dEvt=evento.data_inicio?new Date(evento.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+
+        // Por área
         const porArea={};
         pres.forEach(p=>{
             const mins=minsMap[p.membro_id]||[{tipo:'Sem área',nome:'Sem área',papel:''}];
             mins.forEach(m=>{
                 const k=`${m.tipo}||${m.nome}`;
-                if(!porArea[k]) porArea[k]={tipo:m.tipo,nome:m.nome,presentes:0,faltaram:0};
+                if(!porArea[k]) porArea[k]={tipo:m.tipo,nome:m.nome,presentes:0,faltaram:0,total:0};
+                porArea[k].total++;
                 if(p.status==='presente') porArea[k].presentes++;
                 else if(p.status==='faltou'||p.status==='faltou_motivo') porArea[k].faltaram++;
             });
         });
+        const areasSort=Object.values(porArea).sort((a,b)=>a.nome.localeCompare(b.nome));
+
         const rowM=p=>{
             const mins=minsMap[p.membro_id]||[];
             const as=mins.map(m=>`[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}${m.papel?' · '+m.papel:''}`).join(' | ');
-            return `<tr><td style="padding:6px 8px;border-bottom:1px solid #eee">${p.membros?.nome||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;color:#666">${as||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;color:#c07000">${p.motivo||'—'}</td></tr>`;
+            return `<tr><td>${p.membros?.nome||'—'}</td><td style="font-size:11px;color:#666">${as||'—'}</td><td style="font-size:11px;color:#c07000">${p.motivo||'—'}</td></tr>`;
         };
         const rowA=a=>`<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee">${a.tipo==='ministerio'?'Ministério':'Área de Equipa'}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-weight:600">${a.nome}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;color:green;text-align:center">${a.presentes}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;color:red;text-align:center">${a.faltaram}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${Math.round(a.presentes/(a.presentes+a.faltaram||1)*100)}%</td>
+        <td>${a.tipo==='ministerio'?'Ministério':'Área de Equipa'}</td>
+        <td style="font-weight:600">${a.nome}</td>
+        <td style="color:green;text-align:center">${a.presentes}</td>
+        <td style="color:red;text-align:center">${a.faltaram}</td>
+        <td style="text-align:center">${Math.round(a.presentes/(a.total||1)*100)}%</td>
     </tr>`;
+
+        // Gráfico de barras SVG para PDF
+        function buildSvgBarras(areas) {
+            const maxVal = Math.max(...areas.map(a=>a.total), 1);
+            const barH   = 22;
+            const gap    = 6;
+            const leftW  = 180;
+            const barMaxW= 300;
+            const svgH   = areas.length * (barH + gap) + 40;
+            let svgContent = `<svg width="560" height="${svgH}" xmlns="http://www.w3.org/2000/svg" font-family="Arial,sans-serif">`;
+            svgContent += `<text x="0" y="18" font-size="11" fill="#888">Área</text>`;
+            svgContent += `<text x="${leftW+5}" y="18" font-size="11" fill="#2e7d32">Presentes</text>`;
+            svgContent += `<text x="${leftW+barMaxW/2}" y="18" font-size="11" fill="#c62828">Faltaram</text>`;
+            areas.forEach((a, i) => {
+                const y    = 30 + i * (barH + gap);
+                const wP   = Math.round(a.presentes / maxVal * barMaxW);
+                const wF   = Math.round(a.faltaram  / maxVal * barMaxW);
+                const pct  = Math.round(a.presentes / (a.total||1) * 100);
+                const nome = a.nome.length > 22 ? a.nome.substring(0,22)+'…' : a.nome;
+                svgContent += `<text x="${leftW-5}" y="${y+15}" font-size="11" fill="#333" text-anchor="end">${nome}</text>`;
+                svgContent += `<rect x="${leftW}" y="${y}" width="${wP}" height="${barH}" fill="#2e7d32" opacity="0.8" rx="3"/>`;
+                svgContent += `<rect x="${leftW+wP}" y="${y}" width="${wF}" height="${barH}" fill="#c62828" opacity="0.8" rx="3"/>`;
+                svgContent += `<text x="${leftW+wP+wF+8}" y="${y+15}" font-size="11" fill="${pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828'}" font-weight="bold">${pct}%</text>`;
+            });
+            svgContent += '</svg>';
+            return svgContent;
+        }
+
+        // Pizza SVG para PDF
+        function buildSvgPizza() {
+            const r=80; const cx=100; const cy=100;
+            const dados=[
+                {val:presentes.length,cor:'#2e7d32',label:'Presentes'},
+                {val:comMotivo.length,cor:'#e65100',label:'Com Motivo'},
+                {val:faltaram.length, cor:'#c62828',label:'Faltaram'},
+            ];
+            let paths=''; let start=-Math.PI/2;
+            dados.forEach(d=>{
+                if(!d.val) return;
+                const a=d.val/total*Math.PI*2;
+                const end=start+a;
+                const x1=cx+r*Math.cos(start); const y1=cy+r*Math.sin(start);
+                const x2=cx+r*Math.cos(end);   const y2=cy+r*Math.sin(end);
+                const la=a>Math.PI?1:0;
+                paths+=`<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${la},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${d.cor}" opacity="0.85"/>`;
+                start=end;
+            });
+            paths+=`<circle cx="${cx}" cy="${cy}" r="40" fill="white"/>`;
+            paths+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">${total}</text>`;
+            paths+=`<text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="10" fill="#888">TOTAL</text>`;
+            const legend=dados.map((d,i)=>`<text x="210" y="${40+i*22}" font-size="12" fill="${d.cor}">■ ${d.label}: ${d.val} (${total>0?Math.round(d.val/total*100):0}%)</text>`).join('');
+            return `<svg width="420" height="200" xmlns="http://www.w3.org/2000/svg" font-family="Arial,sans-serif">${paths}${legend}</svg>`;
+        }
+
         const htm=`<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>Relatório — ${evento.titulo}</title>
-    <style>body{font-family:Arial,sans-serif;color:#222;padding:32px;max-width:900px;margin:0 auto}
-    h1{font-size:22px;margin-bottom:4px;color:#006b70}h2{font-size:15px;margin:28px 0 10px;color:#006b70;border-bottom:2px solid #009098;padding-bottom:4px}
-    .meta{font-size:13px;color:#555;margin-bottom:24px}.badges{display:flex;gap:10px;margin-bottom:20px}
-    .badge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold}
-    .g{background:#e8f5e9;color:#2e7d32}.r{background:#ffebee;color:#c62828}.o{background:#fff8e1;color:#e65100}.gr{background:#f5f5f5;color:#555}
-    table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f0f7f8;padding:8px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888}
-    @media print{body{padding:16px}}</style></head><body>
-    <h1>${evento.titulo}</h1><div class="meta">${dEvt}${evento.local?' · '+evento.local:''}</div>
+    <style>
+        body{font-family:Arial,sans-serif;color:#222;padding:32px;max-width:900px;margin:0 auto}
+        h1{font-size:22px;margin-bottom:4px;color:#006b70}
+        h2{font-size:15px;margin:28px 0 10px;color:#006b70;border-bottom:2px solid #009098;padding-bottom:4px}
+        .meta{font-size:13px;color:#555;margin-bottom:24px}
+        .badges{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+        .badge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold}
+        .g{background:#e8f5e9;color:#2e7d32}.r{background:#ffebee;color:#c62828}
+        .o{background:#fff8e1;color:#e65100}.gr{background:#f5f5f5;color:#555}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th{background:#f0f7f8;padding:8px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888}
+        td{padding:6px 8px;border-bottom:1px solid #eee}
+        .grafico-section{background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:16px;margin-bottom:20px}
+        .grafico-section h3{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#888;margin:0 0 12px}
+        @media print{body{padding:16px}}
+    </style></head><body>
+    <h1>${evento.titulo}</h1>
+    <div class="meta">${dEvt}${evento.local?' · '+evento.local:''}${evento.tipo?' · '+evento.tipo:''}</div>
     <div class="badges">
-        <span class="badge g">Presentes: ${presentes.length}</span>
-        <span class="badge r">Faltaram: ${faltaram.length}</span>
-        <span class="badge o">Com motivo: ${comMotivo.length}</span>
-        <span class="badge gr">Total: ${pres.length}</span>
+        <span class="badge g">✓ Presentes: ${presentes.length}</span>
+        <span class="badge r">✗ Faltaram: ${faltaram.length}</span>
+        <span class="badge o">! Com motivo: ${comMotivo.length}</span>
+        <span class="badge gr">Total: ${total}</span>
+        <span class="badge gr">Taxa presença: ${total>0?Math.round(presentes.length/total*100):0}%</span>
     </div>
+
+    <h2>Gráfico de Presenças</h2>
+    <div class="grafico-section">
+        <h3>Distribuição Geral</h3>
+        ${buildSvgPizza()}
+    </div>
+
+    ${areasSort.length>0?`
+    <div class="grafico-section">
+        <h3>Presenças por Área / Ministério</h3>
+        ${buildSvgBarras(areasSort)}
+    </div>`:''}
+
     <h2>Presentes (${presentes.length})</h2>
-    <table><thead><tr><th>Nome</th><th>Áreas / Ministérios</th><th>—</th></tr></thead><tbody>${presentes.map(rowM).join('')}</tbody></table>
-    ${comMotivo.length?`<h2>Faltaram c/ Motivo (${comMotivo.length})</h2><table><thead><tr><th>Nome</th><th>Áreas</th><th>Motivo</th></tr></thead><tbody>${comMotivo.map(rowM).join('')}</tbody></table>`:''}
-    ${faltaram.length?`<h2>Faltaram (${faltaram.length})</h2><table><thead><tr><th>Nome</th><th>Áreas</th><th>—</th></tr></thead><tbody>${faltaram.map(rowM).join('')}</tbody></table>`:''}
+    <table><thead><tr><th>Nome</th><th>Áreas / Ministérios</th><th>—</th></tr></thead>
+    <tbody>${presentes.map(rowM).join('')}</tbody></table>
+
+    ${comMotivo.length?`<h2>Faltaram c/ Motivo (${comMotivo.length})</h2>
+    <table><thead><tr><th>Nome</th><th>Áreas</th><th>Motivo</th></tr></thead>
+    <tbody>${comMotivo.map(rowM).join('')}</tbody></table>`:''}
+
+    ${faltaram.length?`<h2>Faltaram (${faltaram.length})</h2>
+    <table><thead><tr><th>Nome</th><th>Áreas</th><th>—</th></tr></thead>
+    <tbody>${faltaram.map(rowM).join('')}</tbody></table>`:''}
+
     <h2>Resumo por Área / Ministério</h2>
     <table><thead><tr><th>Tipo</th><th>Nome</th><th style="text-align:center">Presentes</th><th style="text-align:center">Faltaram</th><th style="text-align:center">%</th></tr></thead>
-    <tbody>${Object.values(porArea).sort((a,b)=>a.nome.localeCompare(b.nome)).map(rowA).join('')}</tbody></table>
+    <tbody>${areasSort.map(rowA).join('')}</tbody></table>
+
     <div style="margin-top:40px;font-size:11px;color:#aaa;text-align:center">
         Gerado em ${new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})} · Zion Lisboa
-    </div><script>window.onload=()=>window.print();<\/script></body></html>`;
+    </div>
+    <script>window.onload=()=>window.print();<\/script>
+    </body></html>`;
+
         const win=window.open('','_blank');
         win.document.write(htm);
         win.document.close();

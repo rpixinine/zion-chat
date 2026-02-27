@@ -440,9 +440,13 @@
         const cfg = SECOES['membros'];
         const q   = getQ();
         let lista = [...visitantes];
-        if (!filtroInativo) lista = lista.filter(r => r.ativo !== false && !r.convertido);
-        else                lista = lista.filter(r => r.convertido || r.ativo === false);
+        // Mostra activos NÃO convertidos (convertido=false OU membro_id nulo)
+        // "Convertido" aqui significa: convertido=true E membro_id preenchido
+        const jaConvertido = v => v.convertido === true && v.membro_id;
+        if (!filtroInativo) lista = lista.filter(r => r.ativo !== false && !jaConvertido(r));
+        else                lista = lista.filter(r => jaConvertido(r) || r.ativo === false);
         if (q) lista = lista.filter(r => (r.nome||'').toLowerCase().includes(q));
+
         let html = `
     <div class="sub-tabs">
         ${cfg.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}
@@ -455,26 +459,38 @@
         </button>
         <button class="btn-new" onclick="abrirFormVisitante(null)">+ Novo</button>
     </div>`;
+
         if (!lista.length) {
             html += '<div class="empty"><div class="empty-icon">—</div><div class="empty-txt">Nenhum visitante encontrado.</div></div>';
             document.getElementById('main-content').innerHTML = html;
             restoreSearch(q); return;
         }
+
         html += '<div class="admin-list">';
         lista.forEach((v, i) => {
-            const ativo = v.ativo !== false;
-            const conv  = v.convertido ? '<span class="badge badge-green">Convertido</span>' : '';
+            const ativo    = v.ativo !== false;
+            const convertido = jaConvertido(v);
+            const badgeConv  = convertido
+                ? '<span class="badge badge-green">✓ Convertido em Membro</span>'
+                : v.membro_id ? '<span class="badge badge-primary">Membro vinculado</span>' : '';
+            const sub = [
+                v.telefone,
+                v.zona,
+                v.data_visita ? new Date(v.data_visita).toLocaleDateString('pt-PT') : null,
+                v.onde_conheceu ? `"${v.onde_conheceu}"` : null,
+            ].filter(Boolean).join(' · ');
+
             html += `
         <div class="admin-row ${ativo?'':'inativo'}" style="animation-delay:${Math.min(i,12)*0.02}s">
-            <div class="admin-row-foto">${(v.nome||'V')[0]}</div>
+            <div class="admin-row-foto" style="background:var(--primary-faint);color:var(--primary-dark)">${(v.nome||'V')[0]}</div>
             <div class="admin-row-info">
                 <div class="admin-row-nome">${v.nome||'—'}</div>
-                <div class="admin-row-sub">${[v.zona,v.data_visita?new Date(v.data_visita).toLocaleDateString('pt-PT'):null].filter(Boolean).join(' · ')}</div>
-                <div class="admin-row-badges">${conv}</div>
+                <div class="admin-row-sub">${sub||'—'}</div>
+                <div class="admin-row-badges">${badgeConv}</div>
             </div>
             <div class="admin-row-actions">
                 <button class="btn-edit" onclick="abrirFormVisitante('${v.id}')">Editar</button>
-                ${!v.convertido?`<button class="btn-toggle ativo" onclick="converterEmMembro('${v.id}')">Converter</button>`:''}
+                ${!convertido ? `<button class="btn-toggle inativo" style="background:var(--primary);color:#fff;border-color:var(--primary)" onclick="abrirConversaoMembro('${v.id}')">→ Tornar Membro</button>` : ''}
                 <button class="btn-toggle ${ativo?'ativo':'inativo'}" onclick="toggleAtivoVisitante('${v.id}',${ativo})">${ativo?'Inativar':'Ativar'}</button>
             </div>
         </div>`;
@@ -482,6 +498,180 @@
         html += '</div>';
         document.getElementById('main-content').innerHTML = html;
         restoreSearch(q);
+    }
+
+    // ── CONVERSÃO VISITANTE → MEMBRO (form completo) ──────────────────────────
+    async function abrirConversaoMembro(visitanteId) {
+        const v = visitantes.find(x => x.id === visitanteId);
+        if (!v) return;
+        // Carrega links para o select
+        if (!links_cache.length)
+            links_cache = await sb('links?select=id,nome&ativo=eq.true&order=nome') || [];
+
+        document.getElementById('drawer-title').textContent = `Converter em Membro — ${v.nome}`;
+        document.getElementById('drawer-body').innerHTML = buildFormConversao(v);
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function buildFormConversao(v) {
+        const fv = (k, d='') => v?.[k] ?? d;
+        const linksOpts = links_cache.map(l=>`<option value="${l.id}">${l.nome}</option>`).join('');
+        return `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+        <div style="background:var(--primary-faint);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:4px;font-size:12px;color:var(--primary-dark);line-height:1.6" class="form-full">
+            <strong>Visitante:</strong> ${v.nome} · ${v.email||'—'} · ${v.telefone||'—'}<br>
+            Preenche os dados adicionais e confirma para criar o membro.
+        </div>
+
+        <div class="form-section-title">Identificação</div>
+        <div class="form-group form-full"><label class="form-label">Nome *</label>
+            <input class="form-input" id="fc_nome" type="text" value="${v.nome||''}"></div>
+        <div class="form-group"><label class="form-label">Email</label>
+            <input class="form-input" id="fc_email" type="email" value="${v.email||''}"></div>
+        <div class="form-group"><label class="form-label">Telefone</label>
+            <input class="form-input" id="fc_telefone" type="tel" value="${v.telefone||''}"></div>
+        <div class="form-group"><label class="form-label">Género</label>
+            <select class="form-select" id="fc_genero">
+                <option value="">--</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+                <option value="outro">Outro</option>
+            </select></div>
+        <div class="form-group"><label class="form-label">Data Nascimento</label>
+            <input class="form-input" id="fc_data_nascimento" type="date"></div>
+        <div class="form-group"><label class="form-label">Estado Civil</label>
+            <select class="form-select" id="fc_estado_civil">
+                <option value="">--</option>
+                <option value="solteiro">Solteiro</option>
+                <option value="casado">Casado</option>
+                <option value="divorciado">Divorciado</option>
+                <option value="viuvo">Viúvo</option>
+            </select></div>
+        <div class="form-group"><label class="form-label">NIF</label>
+            <input class="form-input" id="fc_nif" type="text" placeholder="000 000 000"></div>
+
+        <div class="form-section-title">Morada</div>
+        <div class="form-group form-full"><label class="form-label">Rua</label>
+            <input class="form-input" id="fc_rua" type="text" placeholder="Nome da rua"></div>
+        <div class="form-group"><label class="form-label">Número</label>
+            <input class="form-input" id="fc_numero" type="text" placeholder="Nr"></div>
+        <div class="form-group"><label class="form-label">Complemento</label>
+            <input class="form-input" id="fc_complemento" type="text" placeholder="Andar, porta..."></div>
+        <div class="form-group"><label class="form-label">Cidade</label>
+            <input class="form-input" id="fc_cidade" type="text" placeholder="Lisboa"></div>
+        <div class="form-group"><label class="form-label">Código Postal</label>
+            <input class="form-input" id="fc_codigo_postal" type="text" placeholder="0000-000"></div>
+        <div class="form-group"><label class="form-label">País</label>
+            <input class="form-input" id="fc_pais" type="text" value="Portugal"></div>
+        <div class="form-group"><label class="form-label">Zona (Link)</label>
+            <input class="form-input" id="fc_zona" type="text" value="${v.zona||''}" placeholder="Ex: Montijo"></div>
+
+        <div class="form-section-title">Igreja</div>
+        <div class="form-group"><label class="form-label">Membro Desde</label>
+            <input class="form-input" id="fc_data_entrada" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="form-group"><label class="form-label">Link</label>
+            <select class="form-select" id="fc_link_id">
+                <option value="">-- Sem Link --</option>
+                ${linksOpts}
+            </select></div>
+        <div class="form-group form-full"><label class="form-label">Onde Conheceu</label>
+            <input class="form-input" id="fc_onde_conheceu" type="text" value="${v.onde_conheceu||''}"></div>
+        <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fc_foi_batizado"><span>Foi Batizado</span></label></div>
+        <div class="form-group"><label class="form-label">Data Batismo</label>
+            <input class="form-input" id="fc_data_batismo" type="date"></div>
+
+        <div class="form-section-title">Funções</div>
+        <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fc_e_voluntario"><span>Voluntário</span></label></div>
+        <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fc_e_lider"><span>Líder</span></label></div>
+        <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fc_e_presbitero"><span>Presbítero</span></label></div>
+
+        <div class="form-section-title">História</div>
+        <div class="form-group form-full"><label class="form-label">História / Notas</label>
+            <textarea class="form-textarea" id="fc_historia" placeholder="Historia do membro..." style="height:80px"></textarea></div>
+
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" id="btn-save-conv" onclick="confirmarConversao('${v.id}')">✓ Converter em Membro</button>
+        </div>
+    </div>`;
+    }
+
+    async function confirmarConversao(visitanteId) {
+        const v   = visitantes.find(x => x.id === visitanteId);
+        if (!v) return;
+        const get = id => { const el = document.getElementById(id); return el ? el.value || null : null; };
+        const chk = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+        const nome = get('fc_nome');
+        if (!nome) { showFormMsg('Nome é obrigatório.', 'error'); return; }
+
+        const btn = document.getElementById('btn-save-conv');
+        btn.disabled = true; btn.textContent = 'A converter...';
+
+        try {
+            // 1. Cria o membro
+            const membroBody = {
+                nome,
+                email:          get('fc_email'),
+                telefone:       get('fc_telefone'),
+                genero:         get('fc_genero'),
+                data_nascimento:get('fc_data_nascimento'),
+                estado_civil:   get('fc_estado_civil'),
+                nif:            get('fc_nif'),
+                rua:            get('fc_rua'),
+                numero:         get('fc_numero'),
+                complemento:    get('fc_complemento'),
+                cidade:         get('fc_cidade'),
+                codigo_postal:  get('fc_codigo_postal'),
+                pais:           get('fc_pais'),
+                zona:           get('fc_zona'),
+                data_entrada:   get('fc_data_entrada'),
+                link_id:        get('fc_link_id'),
+                onde_conheceu:  get('fc_onde_conheceu'),
+                foi_batizado:   chk('fc_foi_batizado'),
+                data_batismo:   get('fc_data_batismo'),
+                e_voluntario:   chk('fc_e_voluntario'),
+                e_lider:        chk('fc_e_lider'),
+                e_presbitero:   chk('fc_e_presbitero'),
+                historia:       get('fc_historia'),
+                tipo:           'membro',
+                ativo:          true,
+                convertido_de_visitante_id: visitanteId,
+            };
+            // Remove campos nulos para não sobrescrever defaults
+            Object.keys(membroBody).forEach(k => { if (membroBody[k] === null) delete membroBody[k]; });
+
+            const novoMembro = await sb('membros', { method:'POST', body:JSON.stringify(membroBody) });
+            const membroId   = novoMembro?.[0]?.id;
+            if (!membroId) throw new Error('Erro ao criar membro — sem ID retornado.');
+
+            // 2. Marca o visitante como convertido e vincula o membro
+            await sb(`visitantes?id=eq.${visitanteId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ convertido: true, membro_id: membroId }),
+            });
+
+            // 3. Actualiza o utilizador (usuarios): tipo → 'membro', membro_id → membroId
+            // Tenta encontrar o utilizador pelo email ou pelo visitante_id
+            const userByEmail = await sb(`usuarios?email=eq.${encodeURIComponent(v.email || 'none@none')}&select=id`).catch(()=>[]);
+            const userByVid   = await sb(`usuarios?visitante_id=eq.${visitanteId}&select=id`).catch(()=>[]);
+            const userId      = userByEmail?.[0]?.id || userByVid?.[0]?.id;
+            if (userId) {
+                await sb(`usuarios?id=eq.${userId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ tipo: 'membro', membro_id: membroId }),
+                }).catch(() => {}); // não bloqueia se falhar
+            }
+
+            showFormMsg('Convertido com sucesso!', 'success');
+            await carregarVisitantes();
+            membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
+            setTimeout(() => { closeDrawer(); renderSecao(); }, 800);
+
+        } catch(e) {
+            showFormMsg(`Erro: ${e?.message || e?.details || JSON.stringify(e)}`, 'error');
+            btn.disabled = false; btn.textContent = '✓ Converter em Membro';
+        }
     }
 
     function buildSub(r) {
@@ -570,22 +760,6 @@
     async function toggleAtivoVisitante(id, ativoAtual) {
         await sb(`visitantes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({ativo:!ativoAtual})});
         await carregarVisitantes(); renderSecao();
-    }
-    async function converterEmMembro(visitanteId) {
-        if (!confirm('Converter este visitante em membro?')) return;
-        const v = visitantes.find(x=>x.id===visitanteId);
-        if (!v) return;
-        try {
-            const nm = await sb('membros',{method:'POST',body:JSON.stringify({
-                    nome:v.nome, email:v.email, telefone:v.telefone, zona:v.zona,
-                    onde_conheceu:v.onde_conheceu, tipo:'membro', ativo:true,
-                    convertido_de_visitante_id:visitanteId,
-                    data_entrada:new Date().toISOString().split('T')[0],
-                })});
-            await sb(`visitantes?id=eq.${visitanteId}`,{method:'PATCH',body:JSON.stringify({convertido:true,membro_id:nm?.[0]?.id})});
-            alert('Visitante convertido com sucesso!');
-            await carregarVisitantes(); renderSecao();
-        } catch(e) { alert('Erro ao converter: '+JSON.stringify(e)); }
     }
 
     // ── TOGGLE ATIVO ──────────────────────────────────────────────────────────

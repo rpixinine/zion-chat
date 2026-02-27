@@ -11,6 +11,39 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
     <style>
+        /* ── Banner fix ───────────────────────────────────── */
+        .banner { min-height: 110px; }
+        .banner img { width: 100%; height: 110px; object-fit: cover; display: block; }
+        .banner-fallback {
+            display: none; width: 100%; height: 110px;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #003840 50%, var(--primary-dark) 100%);
+            align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+        }
+        .banner-fallback.show { display: flex; }
+        .banner-title { font-family: var(--font-title); color: #fff; font-size: 26px; font-weight: 700; letter-spacing: 10px; }
+        .banner-sub   { color: rgba(255,255,255,0.6); font-size: 10px; letter-spacing: 4px; text-transform: uppercase; }
+        .banner-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 55px;
+            background: linear-gradient(to top, rgba(255,255,255,0.97), transparent);
+        }
+        .banner-nav {
+            position: absolute; bottom: 10px; left: 0; right: 0;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+        }
+        .back-btn {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+            border-radius: var(--radius-full); padding: 5px 14px;
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
+            color: var(--primary-dark); text-decoration: none; backdrop-filter: blur(8px);
+        }
+        .page-badge {
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
+            color: var(--primary); text-transform: uppercase;
+            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+            border-radius: var(--radius-full); padding: 5px 14px; backdrop-filter: blur(8px);
+        }
+
         /* ── Content scroll ───────────────────────────────── */
         .content {
             flex: 1; overflow-y: auto; background: var(--bg-input);
@@ -286,7 +319,7 @@
 <div class="page-wrapper">
 
     <div class="banner">
-        <img src="banner zion.jpg" alt="Zion Lisboa"
+        <img src="assets/banner_zion.jpg" alt="Zion Lisboa"
              onerror="this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
         <div class="banner-fallback">
             <div class="banner-title">ZION</div>
@@ -351,56 +384,56 @@
 </div>
 
 <script>
-ZionAuth.protect();
-const currentUser = ZionAuth.getUser();
-const SUPA_URL    = window.SUPABASE_URL      || '';
-const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
+    ZionAuth.protect();
+    const currentUser = ZionAuth.getUser();
+    const SUPA_URL    = window.SUPABASE_URL      || '';
+    const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
 
-let todosMembros   = [];
-let ministeriosMap = {}; // id → { nome }
-let linksMap       = {};
-let filtroBirthday = false;
+    let todosMembros   = [];
+    let ministeriosMap = {}; // id → { nome }
+    let linksMap       = {};
+    let filtroBirthday = false;
 
-async function sb(path) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' }
-    });
-    return r.json();
-}
-
-// ── INIT ───────────────────────────────────────────────────
-async function init() {
-    try {
-        const [membros, ministeriosData, linksData] = await Promise.all([
-            sb('membros?select=*&ativo=eq.true&order=nome.asc'),
-            sb('ministerios?select=id,nome&ativo=eq.true'),
-            sb('links?select=id,nome,responsavel&ativo=eq.true'),
-        ]);
-
-        // Ordena alfabeticamente (redundante mas garante)
-        todosMembros = (Array.isArray(membros) ? membros : [])
-            .sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt'));
-
-        if (Array.isArray(ministeriosData)) ministeriosData.forEach(m => ministeriosMap[m.id] = m);
-        if (Array.isArray(linksData))       linksData.forEach(l => linksMap[l.id] = l);
-
-        renderUserBar();
-        renderMembros(todosMembros);
-    } catch(e) {
-        document.getElementById('main-content').innerHTML = '<div class="loading">Erro ao carregar membros.</div>';
+    async function sb(path) {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+            headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' }
+        });
+        return r.json();
     }
-}
 
-// ── USER BAR ───────────────────────────────────────────────
-function renderUserBar() {
-    const u         = currentUser;
-    const ini       = (u.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const tipoLabel = { visitante:'Visitante', membro:'Membro', admin:'Administrador' };
-    const meuMembro = todosMembros.find(m => m.email?.toLowerCase() === u.email?.toLowerCase());
-    const avHtml    = meuMembro?.foto_url
-        ? `<img src="${meuMembro.foto_url}" alt="${u.nome}">`
-        : ini;
-    document.getElementById('user-bar').innerHTML = `
+    // ── INIT ───────────────────────────────────────────────────
+    async function init() {
+        try {
+            const [membros, ministeriosData, linksData] = await Promise.all([
+                sb('membros?select=*&ativo=eq.true&order=nome.asc'),
+                sb('ministerios?select=id,nome&ativo=eq.true'),
+                sb('links?select=id,nome,responsavel&ativo=eq.true'),
+            ]);
+
+            // Ordena alfabeticamente (redundante mas garante)
+            todosMembros = (Array.isArray(membros) ? membros : [])
+                .sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt'));
+
+            if (Array.isArray(ministeriosData)) ministeriosData.forEach(m => ministeriosMap[m.id] = m);
+            if (Array.isArray(linksData))       linksData.forEach(l => linksMap[l.id] = l);
+
+            renderUserBar();
+            renderMembros(todosMembros);
+        } catch(e) {
+            document.getElementById('main-content').innerHTML = '<div class="loading">Erro ao carregar membros.</div>';
+        }
+    }
+
+    // ── USER BAR ───────────────────────────────────────────────
+    function renderUserBar() {
+        const u         = currentUser;
+        const ini       = (u.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+        const tipoLabel = { visitante:'Visitante', membro:'Membro', admin:'Administrador' };
+        const meuMembro = todosMembros.find(m => m.email?.toLowerCase() === u.email?.toLowerCase());
+        const avHtml    = meuMembro?.foto_url
+            ? `<img src="${meuMembro.foto_url}" alt="${u.nome}">`
+            : ini;
+        document.getElementById('user-bar').innerHTML = `
     <div class="user-bar-avatar">${avHtml}</div>
     <div class="user-bar-info">
         <div class="user-bar-nome">${u.nome}</div>
@@ -410,64 +443,64 @@ function renderUserBar() {
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sair
     </button>`;
-}
+    }
 
-// ── HELPERS ────────────────────────────────────────────────
-function formatDate(d) {
-    if (!d) return null;
-    return new Date(d + 'T12:00:00').toLocaleDateString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric' });
-}
-function getMes()       { return new Date().getMonth() + 1; }
-function isAnivMes(m)   { if (!m.data_nascimento) return false; return parseInt(m.data_nascimento.split('-')[1]) === getMes(); }
-function getInitials(n) { return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+    // ── HELPERS ────────────────────────────────────────────────
+    function formatDate(d) {
+        if (!d) return null;
+        return new Date(d + 'T12:00:00').toLocaleDateString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric' });
+    }
+    function getMes()       { return new Date().getMonth() + 1; }
+    function isAnivMes(m)   { if (!m.data_nascimento) return false; return parseInt(m.data_nascimento.split('-')[1]) === getMes(); }
+    function getInitials(n) { return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
 
-function limparTelefone(tel) {
-    if (!tel) return null;
-    return tel.replace(/\s+/g,'').replace(/[^0-9+]/g,'');
-}
+    function limparTelefone(tel) {
+        if (!tel) return null;
+        return tel.replace(/\s+/g,'').replace(/[^0-9+]/g,'');
+    }
 
-function wppUrl(tel) {
-    const t = limparTelefone(tel);
-    if (!t) return null;
-    const num = t.startsWith('+') ? t.slice(1) : t;
-    return `https://wa.me/${num}`;
-}
+    function wppUrl(tel) {
+        const t = limparTelefone(tel);
+        if (!t) return null;
+        const num = t.startsWith('+') ? t.slice(1) : t;
+        return `https://wa.me/${num}`;
+    }
 
-// ── FILTROS ────────────────────────────────────────────────
-function filtrar() {
-    const q = document.getElementById('search-input').value.toLowerCase().trim();
-    let lista = [...todosMembros];
-    if (filtroBirthday) lista = lista.filter(isAnivMes);
-    if (q) lista = lista.filter(m => (m.nome||'').toLowerCase().includes(q));
-    renderMembros(lista);
-}
-function toggleAniversariantes() {
-    filtroBirthday = !filtroBirthday;
-    document.getElementById('btn-aniv').classList.toggle('active', filtroBirthday);
-    document.getElementById('search-input').value = '';
-    filtrar();
-}
+    // ── FILTROS ────────────────────────────────────────────────
+    function filtrar() {
+        const q = document.getElementById('search-input').value.toLowerCase().trim();
+        let lista = [...todosMembros];
+        if (filtroBirthday) lista = lista.filter(isAnivMes);
+        if (q) lista = lista.filter(m => (m.nome||'').toLowerCase().includes(q));
+        renderMembros(lista);
+    }
+    function toggleAniversariantes() {
+        filtroBirthday = !filtroBirthday;
+        document.getElementById('btn-aniv').classList.toggle('active', filtroBirthday);
+        document.getElementById('search-input').value = '';
+        filtrar();
+    }
 
-// ── SVG WhatsApp ───────────────────────────────────────────
-const SVG_WPP = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>`;
+    // ── SVG WhatsApp ───────────────────────────────────────────
+    const SVG_WPP = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>`;
 
-// ── RENDER LISTA ───────────────────────────────────────────
-function renderMembros(lista) {
-    const total   = todosMembros.length;
-    const anivCnt = todosMembros.filter(isAnivMes).length;
-    const lideres = todosMembros.filter(m => m.e_lider).length;
-    const meses   = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const mesNome = meses[getMes()-1];
+    // ── RENDER LISTA ───────────────────────────────────────────
+    function renderMembros(lista) {
+        const total   = todosMembros.length;
+        const anivCnt = todosMembros.filter(isAnivMes).length;
+        const lideres = todosMembros.filter(m => m.e_lider).length;
+        const meses   = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        const mesNome = meses[getMes()-1];
 
-    let html = `
+        let html = `
     <div class="stats-bar">
         <div class="stat-pill"><div class="stat-num">${total}</div><div class="stat-label">Membros</div></div>
         <div class="stat-pill"><div class="stat-num">${lideres}</div><div class="stat-label">Líderes</div></div>
         <div class="stat-pill"><div class="stat-num">${anivCnt}</div><div class="stat-label">Aniv. ${mesNome}</div></div>
     </div>`;
 
-    if (filtroBirthday) {
-        html += `
+        if (filtroBirthday) {
+            html += `
         <div class="birthday-banner">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <div class="birthday-txt">
@@ -475,35 +508,35 @@ function renderMembros(lista) {
                 <span>${lista.length === 0 ? 'Nenhum este mês.' : `${lista.length} membro${lista.length!==1?'s':''} fazem anos este mês`}</span>
             </div>
         </div>`;
-    }
+        }
 
-    if (!lista.length) {
-        html += `<div class="empty"><div class="empty-txt">${filtroBirthday ? 'Nenhum aniversariante este mês.' : 'Nenhum membro encontrado.'}</div></div>`;
-        document.getElementById('main-content').innerHTML = html;
-        return;
-    }
+        if (!lista.length) {
+            html += `<div class="empty"><div class="empty-txt">${filtroBirthday ? 'Nenhum aniversariante este mês.' : 'Nenhum membro encontrado.'}</div></div>`;
+            document.getElementById('main-content').innerHTML = html;
+            return;
+        }
 
-    html += `<div class="section-label">${filtroBirthday ? `Aniversários · ${mesNome}` : 'Comunidade'} · ${lista.length} ${lista.length===1?'membro':'membros'}</div>`;
-    html += '<div class="member-list">';
+        html += `<div class="section-label">${filtroBirthday ? `Aniversários · ${mesNome}` : 'Comunidade'} · ${lista.length} ${lista.length===1?'membro':'membros'}</div>`;
+        html += '<div class="member-list">';
 
-    lista.forEach((m, i) => {
-        const aniv  = isAnivMes(m);
-        const wpp   = wppUrl(m.telefone);
+        lista.forEach((m, i) => {
+            const aniv  = isAnivMes(m);
+            const wpp   = wppUrl(m.telefone);
 
-        // Badge por tipo/função
-        const badges = [
-            m.e_presbitero                ? `<span class="mbadge mb-presb">Presbítero</span>` : '',
-            m.e_lider                     ? `<span class="mbadge mb-lider">Líder</span>`      : '',
-            m.e_voluntario                ? `<span class="mbadge mb-vol">Voluntário</span>`   : '',
-            (!m.e_lider && !m.e_presbitero && !m.e_voluntario) ? `<span class="mbadge mb-membro">Membro</span>` : '',
-            aniv                          ? `<span class="mbadge mb-aniv">🎂 Aniversário</span>` : '',
-        ].filter(Boolean).join('');
+            // Badge por tipo/função
+            const badges = [
+                m.e_presbitero                ? `<span class="mbadge mb-presb">Presbítero</span>` : '',
+                m.e_lider                     ? `<span class="mbadge mb-lider">Líder</span>`      : '',
+                m.e_voluntario                ? `<span class="mbadge mb-vol">Voluntário</span>`   : '',
+                (!m.e_lider && !m.e_presbitero && !m.e_voluntario) ? `<span class="mbadge mb-membro">Membro</span>` : '',
+                aniv                          ? `<span class="mbadge mb-aniv">🎂 Aniversário</span>` : '',
+            ].filter(Boolean).join('');
 
-        const avHtml = m.foto_url
-            ? `<img src="${m.foto_url}" alt="${m.nome}">`
-            : `<div class="member-avatar-initials">${getInitials(m.nome)}</div>`;
+            const avHtml = m.foto_url
+                ? `<img src="${m.foto_url}" alt="${m.nome}">`
+                : `<div class="member-avatar-initials">${getInitials(m.nome)}</div>`;
 
-        html += `
+            html += `
         <div class="member-row" style="animation-delay:${Math.min(i,15)*0.025}s" onclick="abrirPerfil('${m.id}')">
             <div class="member-avatar">${avHtml}</div>
             <div class="member-row-info">
@@ -518,100 +551,100 @@ function renderMembros(lista) {
                 <div class="member-row-arrow">›</div>
             </div>
         </div>`;
-    });
+        });
 
-    html += '</div>';
-    document.getElementById('main-content').innerHTML = html;
-}
-
-// ── PERFIL ─────────────────────────────────────────────────
-async function abrirPerfil(id) {
-    const m = todosMembros.find(x => x.id === id);
-    if (!m) return;
-
-    document.getElementById('overlay').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    document.getElementById('p-body').innerHTML = '<div class="loading"><div class="spin"></div></div>';
-
-    // Avatar
-    const av = document.getElementById('p-avatar');
-    av.innerHTML = m.foto_url
-        ? `<img src="${m.foto_url}" alt="${m.nome}">`
-        : `<div class="perfil-avatar-initials">${getInitials(m.nome)}</div>`;
-
-    // Queries paralelas: família + ministérios do membro
-    const [conjugeRes, paiRes, maeRes, filhosRes, memMinRes] = await Promise.all([
-        m.conjuge_id ? sb(`membros?select=id,nome,foto_url&id=eq.${m.conjuge_id}`) : Promise.resolve([]),
-        m.pai_id     ? sb(`membros?select=id,nome,foto_url&id=eq.${m.pai_id}`)     : Promise.resolve([]),
-        m.mae_id     ? sb(`membros?select=id,nome,foto_url&id=eq.${m.mae_id}`)     : Promise.resolve([]),
-        sb(`membros_filhos?select=filho_id&pai_id=eq.${id}`),
-        sb(`membro_ministerios?select=ministerio_id&membro_id=eq.${id}&ativo=eq.true`),
-    ]);
-
-    const conjuge = conjugeRes?.[0] || null;
-    const pai     = paiRes?.[0]     || null;
-    const mae     = maeRes?.[0]     || null;
-
-    // Filhos
-    let filhos = [];
-    if (filhosRes?.length > 0) {
-        const ids      = filhosRes.map(f => f.filho_id).join(',');
-        const filhosInfo = await sb(`membros?select=id,nome,foto_url&id=in.(${ids})`);
-        filhos = Array.isArray(filhosInfo) ? filhosInfo : [];
+        html += '</div>';
+        document.getElementById('main-content').innerHTML = html;
     }
 
-    // Ministérios que o membro lidera/participa
-    const meusMinisterios = Array.isArray(memMinRes)
-        ? memMinRes.map(r => ministeriosMap[r.ministerio_id]).filter(Boolean)
-        : [];
+    // ── PERFIL ─────────────────────────────────────────────────
+    async function abrirPerfil(id) {
+        const m = todosMembros.find(x => x.id === id);
+        if (!m) return;
 
-    const link  = m.link_id ? linksMap[m.link_id] : null;
-    const aniv  = isAnivMes(m);
-    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const wpp   = wppUrl(m.telefone);
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        document.getElementById('p-body').innerHTML = '<div class="loading"><div class="spin"></div></div>';
 
-    // Badges perfil
-    const badgesHtml = [
-        m.e_presbitero ? `<span class="pbadge pb-presb">Presbítero</span>`  : '',
-        m.e_lider      ? `<span class="pbadge pb-lider">Líder</span>`       : '',
-        m.e_voluntario ? `<span class="pbadge pb-vol">Voluntário</span>`    : '',
-        (!m.e_lider && !m.e_presbitero && !m.e_voluntario) ? `<span class="pbadge pb-membro">Membro</span>` : '',
-        m.foi_batizado ? `<span class="pbadge pb-batiz">Batizado</span>`    : '',
-        aniv           ? `<span class="pbadge pb-aniv">🎂 Aniversariante</span>` : '',
-    ].filter(Boolean).join('');
+        // Avatar
+        const av = document.getElementById('p-avatar');
+        av.innerHTML = m.foto_url
+            ? `<img src="${m.foto_url}" alt="${m.nome}">`
+            : `<div class="perfil-avatar-initials">${getInitials(m.nome)}</div>`;
 
-    // Helpers
-    function cell(label, value) {
-        const empty = !value;
-        return `<div class="p-cell"><div class="p-cell-label">${label}</div><div class="p-cell-value ${empty?'faint':''}">${empty?'—':value}</div></div>`;
-    }
-    function cellFull(label, value) {
-        const empty = !value;
-        return `<div class="p-cell p-cell-full"><div class="p-cell-label">${label}</div><div class="p-cell-value ${empty?'faint':''}">${empty?'—':value}</div></div>`;
-    }
-    function famCard(pessoa, rel) {
-        if (!pessoa) return '';
-        const avHtml = pessoa.foto_url
-            ? `<div class="fam-avatar"><img src="${pessoa.foto_url}" alt="${pessoa.nome}"></div>`
-            : `<div class="fam-avatar">${getInitials(pessoa.nome)}</div>`;
-        return `
+        // Queries paralelas: família + ministérios do membro
+        const [conjugeRes, paiRes, maeRes, filhosRes, memMinRes] = await Promise.all([
+            m.conjuge_id ? sb(`membros?select=id,nome,foto_url&id=eq.${m.conjuge_id}`) : Promise.resolve([]),
+            m.pai_id     ? sb(`membros?select=id,nome,foto_url&id=eq.${m.pai_id}`)     : Promise.resolve([]),
+            m.mae_id     ? sb(`membros?select=id,nome,foto_url&id=eq.${m.mae_id}`)     : Promise.resolve([]),
+            sb(`membros_filhos?select=filho_id&pai_id=eq.${id}`),
+            sb(`membro_ministerios?select=ministerio_id&membro_id=eq.${id}&ativo=eq.true`),
+        ]);
+
+        const conjuge = conjugeRes?.[0] || null;
+        const pai     = paiRes?.[0]     || null;
+        const mae     = maeRes?.[0]     || null;
+
+        // Filhos
+        let filhos = [];
+        if (filhosRes?.length > 0) {
+            const ids      = filhosRes.map(f => f.filho_id).join(',');
+            const filhosInfo = await sb(`membros?select=id,nome,foto_url&id=in.(${ids})`);
+            filhos = Array.isArray(filhosInfo) ? filhosInfo : [];
+        }
+
+        // Ministérios que o membro lidera/participa
+        const meusMinisterios = Array.isArray(memMinRes)
+            ? memMinRes.map(r => ministeriosMap[r.ministerio_id]).filter(Boolean)
+            : [];
+
+        const link  = m.link_id ? linksMap[m.link_id] : null;
+        const aniv  = isAnivMes(m);
+        const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        const wpp   = wppUrl(m.telefone);
+
+        // Badges perfil
+        const badgesHtml = [
+            m.e_presbitero ? `<span class="pbadge pb-presb">Presbítero</span>`  : '',
+            m.e_lider      ? `<span class="pbadge pb-lider">Líder</span>`       : '',
+            m.e_voluntario ? `<span class="pbadge pb-vol">Voluntário</span>`    : '',
+            (!m.e_lider && !m.e_presbitero && !m.e_voluntario) ? `<span class="pbadge pb-membro">Membro</span>` : '',
+            m.foi_batizado ? `<span class="pbadge pb-batiz">Batizado</span>`    : '',
+            aniv           ? `<span class="pbadge pb-aniv">🎂 Aniversariante</span>` : '',
+        ].filter(Boolean).join('');
+
+        // Helpers
+        function cell(label, value) {
+            const empty = !value;
+            return `<div class="p-cell"><div class="p-cell-label">${label}</div><div class="p-cell-value ${empty?'faint':''}">${empty?'—':value}</div></div>`;
+        }
+        function cellFull(label, value) {
+            const empty = !value;
+            return `<div class="p-cell p-cell-full"><div class="p-cell-label">${label}</div><div class="p-cell-value ${empty?'faint':''}">${empty?'—':value}</div></div>`;
+        }
+        function famCard(pessoa, rel) {
+            if (!pessoa) return '';
+            const avHtml = pessoa.foto_url
+                ? `<div class="fam-avatar"><img src="${pessoa.foto_url}" alt="${pessoa.nome}"></div>`
+                : `<div class="fam-avatar">${getInitials(pessoa.nome)}</div>`;
+            return `
         <div class="fam-card" onclick="closePerfil();setTimeout(()=>abrirPerfil('${pessoa.id}'),250)">
             ${avHtml}
             <div><div class="fam-nome">${pessoa.nome}</div><div class="fam-rel">${rel}</div></div>
             <div class="fam-arrow">›</div>
         </div>`;
-    }
+        }
 
-    const familiaCards = [
-        famCard(conjuge,'Cônjuge'),
-        famCard(pai,'Pai'),
-        famCard(mae,'Mãe'),
-        ...filhos.map(f => famCard(f,'Filho/a')),
-    ].filter(Boolean);
+        const familiaCards = [
+            famCard(conjuge,'Cônjuge'),
+            famCard(pai,'Pai'),
+            famCard(mae,'Mãe'),
+            ...filhos.map(f => famCard(f,'Filho/a')),
+        ].filter(Boolean);
 
-    const SVG_MIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+        const SVG_MIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
 
-    document.getElementById('p-body').innerHTML = `
+        document.getElementById('p-body').innerHTML = `
     <div class="perfil-nome">${m.nome}</div>
     <div class="perfil-subtipo">Membro · Zion Lisboa${aniv ? ` · 🎂 ${meses[new Date(m.data_nascimento+'T12:00:00').getMonth()]}` : ''}</div>
     ${badgesHtml ? `<div class="perfil-badges">${badgesHtml}</div>` : ''}
@@ -667,18 +700,18 @@ async function abrirPerfil(id) {
             </div>
         </div>
     </div>` : ''}`;
-}
+    }
 
-function closePerfil() {
-    document.getElementById('overlay').classList.add('hidden');
-    document.body.style.overflow = '';
-}
-function closeOutside(e) {
-    if (e.target === document.getElementById('overlay')) closePerfil();
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePerfil(); });
+    function closePerfil() {
+        document.getElementById('overlay').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+    function closeOutside(e) {
+        if (e.target === document.getElementById('overlay')) closePerfil();
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePerfil(); });
 
-init();
+    init();
 </script>
 </body>
 </html>

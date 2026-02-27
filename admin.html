@@ -352,7 +352,7 @@
         renderSecao();
     }
 
-    function renderSecao() {
+    async function renderSecao() {
         const cfg      = SECOES[secaoAtiva];
         if (!cfg) return;
         const ativoKey = cfg.ativoKey || 'ativo';
@@ -361,7 +361,7 @@
         if (temSubTabs && secaoAtiva === 'membros') {
             if (subTabAtiva === 0) { renderDashboardMembros(); return; }
             if (subTabAtiva === 1) { /* cai para renderSecao normal abaixo */ }
-            if (subTabAtiva === 2) { renderVisitantesTab(); return; }
+            if (subTabAtiva === 2) { await renderVisitantesTab(); return; }
         } else if (temSubTabs && subTabAtiva >= 1) {
             if (secaoAtiva !== 'membros' && subTabAtiva === 1) { renderInfoSubTab(); return; }
         }
@@ -443,12 +443,27 @@
         document.getElementById('main-content').innerHTML = html;
     }
 
-    function renderVisitantesTab() {
+    async function renderVisitantesTab() {
         const cfg = SECOES['membros'];
+
+        // Mostra loading primeiro
+        document.getElementById('main-content').innerHTML = `
+    <div class="sub-tabs">
+        ${cfg.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}
+    </div>
+    <div class="loading"><div class="spin"></div>A carregar visitantes...</div>`;
+
+        // Carrega SEMPRE directamente do Supabase
+        try {
+            visitantes = await sb('visitantes?select=*&order=nome') || [];
+        } catch(e) {
+            document.getElementById('main-content').innerHTML += `<div style="padding:16px;color:red">Erro ao carregar: ${e?.message||JSON.stringify(e)}</div>`;
+            return;
+        }
+
         const q   = getQ();
         let lista = [...visitantes];
-        // Mostra activos NÃO convertidos (convertido=false OU membro_id nulo)
-        // "Convertido" aqui significa: convertido=true E membro_id preenchido
+
         const jaConvertido = v => v.convertido === true && v.membro_id;
         if (!filtroInativo) lista = lista.filter(r => r.ativo !== false && !jaConvertido(r));
         else                lista = lista.filter(r => jaConvertido(r) || r.ativo === false);
@@ -460,51 +475,53 @@
     </div>
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
         <input class="toolbar-search" id="toolbar-search-input"
-               placeholder="Pesquisar visitante..." oninput="handleSearch()" value="">
+               placeholder="Pesquisar visitante..." oninput="handleSearch()" value="${q}">
         <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">
-            ${filtroInativo?'Ativos':'Convertidos'}
+            ${filtroInativo?'Ver Ativos':'Ver Convertidos'}
         </button>
         <button class="btn-new" onclick="abrirFormVisitante(null)">+ Novo</button>
+    </div>
+    <div style="padding:6px 16px 2px;font-size:11px;color:var(--text-faint)">
+        ${visitantes.length} visitante(s) total · ${lista.length} a mostrar
     </div>`;
 
         if (!lista.length) {
-            html += '<div class="empty"><div class="empty-icon">—</div><div class="empty-txt">Nenhum visitante encontrado.</div></div>';
+            html += `<div class="empty"><div class="empty-icon">—</div>
+            <div class="empty-txt">${filtroInativo ? 'Nenhum visitante convertido.' : 'Nenhum visitante por converter.'}</div></div>`;
             document.getElementById('main-content').innerHTML = html;
-            restoreSearch(q); return;
+            return;
         }
 
         html += '<div class="admin-list">';
         lista.forEach((v, i) => {
-            const ativo    = v.ativo !== false;
+            const ativo      = v.ativo !== false;
             const convertido = jaConvertido(v);
             const badgeConv  = convertido
-                ? '<span class="badge badge-green">✓ Convertido em Membro</span>'
-                : v.membro_id ? '<span class="badge badge-primary">Membro vinculado</span>' : '';
+                ? '<span class="badge badge-green">✓ Membro</span>'
+                : v.membro_id ? '<span class="badge badge-primary">Vinculado</span>' : '<span class="badge badge-gray">Visitante</span>';
             const sub = [
                 v.telefone,
-                v.zona,
                 v.data_visita ? new Date(v.data_visita).toLocaleDateString('pt-PT') : null,
                 v.onde_conheceu ? `"${v.onde_conheceu}"` : null,
             ].filter(Boolean).join(' · ');
 
             html += `
         <div class="admin-row ${ativo?'':'inativo'}" style="animation-delay:${Math.min(i,12)*0.02}s">
-            <div class="admin-row-foto" style="background:var(--primary-faint);color:var(--primary-dark)">${(v.nome||'V')[0]}</div>
+            <div class="admin-row-foto" style="background:var(--primary-faint);color:var(--primary-dark);font-weight:700">${(v.nome||'V')[0]}</div>
             <div class="admin-row-info">
                 <div class="admin-row-nome">${v.nome||'—'}</div>
-                <div class="admin-row-sub">${sub||'—'}</div>
+                <div class="admin-row-sub">${sub||'Sem dados'}</div>
                 <div class="admin-row-badges">${badgeConv}</div>
             </div>
             <div class="admin-row-actions">
                 <button class="btn-edit" onclick="abrirFormVisitante('${v.id}')">Editar</button>
-                ${!convertido ? `<button class="btn-toggle inativo" style="background:var(--primary);color:#fff;border-color:var(--primary)" onclick="abrirConversaoMembro('${v.id}')">→ Tornar Membro</button>` : ''}
+                ${!convertido ? `<button class="btn-save" style="padding:6px 10px;font-size:11px" onclick="abrirConversaoMembro('${v.id}')">→ Membro</button>` : ''}
                 <button class="btn-toggle ${ativo?'ativo':'inativo'}" onclick="toggleAtivoVisitante('${v.id}',${ativo})">${ativo?'Inativar':'Ativar'}</button>
             </div>
         </div>`;
         });
         html += '</div>';
         document.getElementById('main-content').innerHTML = html;
-        restoreSearch(q);
     }
 
     // ── CONVERSÃO VISITANTE → MEMBRO (form completo) ──────────────────────────
@@ -713,10 +730,6 @@
     function toggleFiltroInativo() { filtroInativo = !filtroInativo; renderSecao(); }
     async function setSubTab(idx) {
         subTabAtiva = idx;
-        if (secaoAtiva === 'membros' && idx === 2) {
-            // Sempre recarrega visitantes ao entrar nesta aba
-            visitantes = await sb('visitantes?select=*&order=nome') || [];
-        }
         renderSecao();
     }
 

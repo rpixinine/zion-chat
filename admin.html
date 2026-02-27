@@ -153,6 +153,7 @@
     </div>
 
     <div class="nav-bar" id="nav-bar">
+        <div class="nav-item"         onclick="setSecao('dashboard')">Dashboard</div>
         <div class="nav-item active"  onclick="setSecao('membros')">Membros</div>
         <div class="nav-item"         onclick="setSecao('pastores')">Pastores</div>
         <div class="nav-item"         onclick="setSecao('links')">Links</div>
@@ -280,6 +281,7 @@
         secaoAtiva = secao; filtroInativo = false; subTabAtiva = 0;
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         const nomes = {
+            dashboard:'Dashboard',
             membros:'Membros', pastores:'Pastores', links:'Links', cultos:'Cultos',
             ministerios:'Ministérios', salas:'Salas', cursos:'Cursos ZAO',
             keola:'Keola — Menu', loja:'Loja', eventos:'Eventos',
@@ -287,7 +289,7 @@
         };
         const sl = document.getElementById('secao-label');
         if (sl) sl.textContent = nomes[secao] || 'Cadastros';
-        const idx = ['membros','pastores','links','cultos','ministerios','salas',
+        const idx = ['dashboard','membros','pastores','links','cultos','ministerios','salas',
             'cursos','keola','loja','eventos','tipos_evento','configuracoes'];
         const ni = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
         if (ni) ni.classList.add('active');
@@ -297,6 +299,9 @@
     async function carregarSecao() {
         document.getElementById('main-content').innerHTML =
             '<div class="loading"><div class="spin"></div>A carregar...</div>';
+        if (secaoAtiva === 'dashboard') {
+            renderDashboardGeral(); return;
+        }
         if (secaoAtiva === 'tipos_evento') {
             renderTiposEvento(); return;
         }
@@ -708,9 +713,9 @@
     function toggleFiltroInativo() { filtroInativo = !filtroInativo; renderSecao(); }
     async function setSubTab(idx) {
         subTabAtiva = idx;
-        // Garante que visitantes estão carregados ao mudar para essa aba
-        if (secaoAtiva === 'membros' && idx === 2 && !visitantes.length) {
-            await carregarVisitantes();
+        if (secaoAtiva === 'membros' && idx === 2) {
+            // Sempre recarrega visitantes ao entrar nesta aba
+            visitantes = await sb('visitantes?select=*&order=nome') || [];
         }
         renderSecao();
     }
@@ -2302,6 +2307,27 @@
         const win=window.open('','_blank');
         win.document.write(htm);
         win.document.close();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // DASHBOARD GERAL
+    // ══════════════════════════════════════════════════════════════════════════
+    function renderDashboardGeral() {
+        document.getElementById('main-content').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;gap:16px">
+            <div style="font-size:48px">🏗️</div>
+            <div style="font-family:var(--font-title);font-size:16px;letter-spacing:2px;color:var(--primary-dark)">EM CONSTRUÇÃO</div>
+            <div style="font-size:13px;color:var(--text-faint);max-width:280px;line-height:1.7">
+                O Dashboard geral está a ser preparado.<br>Em breve terás aqui uma visão completa da Zion Lisboa.
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+                <span class="badge badge-gray">Membros</span>
+                <span class="badge badge-gray">Visitantes</span>
+                <span class="badge badge-gray">Eventos</span>
+                <span class="badge badge-gray">Dízimos</span>
+                <span class="badge badge-gray">Ministérios</span>
+            </div>
+        </div>`;
     }
 
     init();

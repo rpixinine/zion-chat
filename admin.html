@@ -835,7 +835,7 @@ function showFormMsg(txt, tipo) {
 let membroMinisteriosData = []; // cache local dos vinculos do membro aberto
 
 async function carregarMembroMinisterios(membroId) {
-  const items = await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${membroId}&ativo=eq.true&order=created_at`) || [];
+  const items = await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${membroId}&ativo=eq.true&order=id`) || [];
   membroMinisteriosData = items;
   renderSubListMins(membroId);
 }
@@ -870,8 +870,7 @@ async function addMembroMinisterio(membroId) {
   }
   try {
     await sb('membro_ministerios', {method:'POST', body:JSON.stringify({
-      membro_id: membroId, ministerio_id: minId, papel: papel||null, ativo: true,
-      data_entrada: new Date().toISOString().split('T')[0]
+      membro_id: membroId, ministerio_id: minId, papel: papel||null, ativo: true
     })});
     await carregarMembroMinisterios(membroId);
     document.getElementById('sub-min-id').value = '';
@@ -1422,6 +1421,8 @@ function renderEventos() {
     if (e.status === 'em_curso') btns.push(`<button class="btn-toggle ativo" style="background:var(--green-bg);color:var(--green);border-color:var(--green-border)" onclick="concluirEvento('${e.id}')">Concluir</button>`);
     if (e.status !== 'cancelado' && e.status !== 'concluido') btns.push(`<button class="btn-toggle ativo" onclick="cancelarEvento('${e.id}')">Cancelar</button>`);
     if (e.status === 'concluido' || e.status === 'cancelado') btns.push(`<button class="btn-edit" onclick="abrirPresencas('${e.id}')">Ver Resumo</button>`);
+    if (e.status === 'concluido') btns.push(`<button class="btn-edit" style="color:var(--red);border-color:rgba(180,0,0,0.2)" onclick="gerarRelatorioEvento('${e.id}')">Relatorio PDF</button>`);
+    if (e.status === 'concluido') btns.push(`<a href="relatorio-evento.html?evento=${e.id}" target="_blank" class="btn-edit" style="text-decoration:none;color:var(--gold-dark);border-color:var(--gold-light);background:rgba(184,146,42,0.06)">PDF</a>`);
 
     html += `
       <div class="admin-row" style="animation-delay:${Math.min(i,12)*0.02}s;flex-direction:column;align-items:stretch;gap:8px">
@@ -1482,7 +1483,7 @@ async function abrirPresencas(id) {
   eventoAtivo  = eventosData.find(e => e.id === id);
   eventoSubTab = 1;
   // Carrega presencas + nome do membro
-  presencasData = await sb(`evento_presencas?select=*,membros(id,nome,telefone)&evento_id=eq.${id}&order=created_at`) || [];
+  presencasData = await sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url)&evento_id=eq.${id}&order=created_at`) || [];
   // Carrega areas/ministerios de cada lider
   const membroIds = presencasData.map(p=>p.membro_id).filter(Boolean);
   lideresMinisterios = {};
@@ -1520,8 +1521,10 @@ function renderPresencas() {
   let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:6px">
       <button class="back-btn" style="position:static;width:auto;height:auto;border-radius:20px;padding:5px 12px;font-size:10px" onclick="voltarListaEventos()">← Voltar</button>
+      ${eventoAtivo?.status==='concluido'?`<a href="relatorio-evento.html?evento=${eventoAtivo.id}" target="_blank" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-dark);border:1px solid var(--gold-light);background:rgba(184,146,42,0.06);padding:5px 12px;border-radius:20px;text-decoration:none">Ver PDF</a>`:''}
       <input class="toolbar-search" id="pres-search" placeholder="Pesquisar lider..." oninput="presSearchQ=this.value;renderPresencas()" style="flex:1;min-width:120px">
       ${emCurso ? `<button class="btn-new" style="background:linear-gradient(135deg,var(--green),#4caf50)" onclick="finalizarEntradas()">Finalizar Entradas</button>` : ''}
+      ${evento?.status==='concluido' ? `<button class="btn-edit" style="color:var(--red);border-color:rgba(180,0,0,0.2)" onclick="gerarRelatorioEvento('${evento.id}')">Relatorio PDF</button>` : ''}
     </div>
     <div style="padding:10px 16px 4px">
       <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold-dark);margin-bottom:4px">${evento?.titulo||'—'}</div>
@@ -1579,21 +1582,37 @@ function renderPresencas() {
       if (emCurso && p.status !== 'pendente') {
         btns += `<button class="btn-edit" style="color:var(--text-faint);border-color:var(--border)" onclick="marcarPresenca('${p.id}','pendente')" title="Desfazer marcacao">Desfazer</button>`;
       }
+      // zap button is rendered separately near the name
+
+      // WhatsApp separado dos botoes de acao
+      let zapBtn = '';
       if (p.membros?.telefone) {
         const tel    = (p.membros.telefone).replace(/\D/g,'');
         const dEvt   = eventoAtivo?.data_inicio ? new Date(eventoAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '';
         const titulo = eventoAtivo?.titulo || 'reuniao de lideranca';
         const msg    = encodeURIComponent(`Ola ${p.membros.nome?.split(' ')[0]}! Gostariamos de confirmar a tua presenca na ${titulo} que acontecera ${dEvt}. Podes confirmar?`);
-        btns += `<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" class="btn-edit" style="color:#25D366;border-color:rgba(37,211,102,0.3);background:rgba(37,211,102,0.06);text-decoration:none">WhatsApp</a>`;
+        zapBtn = `<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#25D366;text-decoration:none;padding:2px 6px;border-radius:6px;border:1px solid rgba(37,211,102,0.3);background:rgba(37,211,102,0.06)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Zap
+        </a>`;
       }
 
+      // Foto ou iniciais
+      const fotoSrc = p.membros?.foto_url;
+      const fotoHtml = fotoSrc
+        ? `<img src="${fotoSrc}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${{ 'presente':'var(--green)','faltou':'var(--red)','faltou_motivo':'var(--orange)','pendente':'var(--border)'}[p.status]||'var(--border)'}" onerror="this.style.display='none'">`
+        : `<div class="admin-row-foto" style="font-size:13px;font-weight:bold;color:${{ 'presente':'var(--green)','faltou':'var(--red)','faltou_motivo':'var(--orange)','pendente':'var(--text-faint)'}[p.status]||'var(--text-faint)'}">${stIcon}</div>`;
+
       html += `
-        <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap">
-          <div class="admin-row-foto" style="font-size:13px;font-weight:bold;color:${{'presente':'var(--green)','faltou':'var(--red)','faltou_motivo':'var(--orange)','pendente':'var(--text-faint)'}[p.status]}">${stIcon}</div>
-          <div class="admin-row-info" style="min-width:0">
-            <div class="admin-row-nome">${nome}</div>
+        <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap;gap:6px">
+          ${fotoHtml}
+          <div class="admin-row-info" style="min-width:0;flex:1">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span class="admin-row-nome">${nome}</span>
+              ${zapBtn}
+            </div>
             <div class="admin-row-badges" style="margin-top:3px;flex-wrap:wrap;gap:3px">${minsHtml || '<span style="font-size:10px;color:var(--text-faint)">Sem areas associadas</span>'}</div>
-            ${p.motivo ? `<div class="admin-row-sub" style="color:var(--orange);margin-top:3px">${p.motivo}</div>` : ''}
+            ${p.motivo ? `<div class="admin-row-sub" style="color:var(--orange);margin-top:3px">Motivo: ${p.motivo}</div>` : ''}
           </div>
           <div class="admin-row-actions">${btns}</div>
         </div>`;
@@ -1615,9 +1634,11 @@ function voltarListaEventos() {
 }
 
 async function marcarPresenca(presencaId, novoStatus) {
-  await sb(`evento_presencas?id=eq.${presencaId}`, {method:'PATCH', body:JSON.stringify({status:novoStatus, registado_em: new Date().toISOString()})});
+  const patch = {status: novoStatus, registado_em: new Date().toISOString()};
+  if (novoStatus === 'pendente') patch.motivo = ''; // limpa motivo ao desfazer
+  await sb(`evento_presencas?id=eq.${presencaId}`, {method:'PATCH', body:JSON.stringify(patch)});
   const idx = presencasData.findIndex(p=>p.id===presencaId);
-  if (idx>=0) presencasData[idx].status = novoStatus;
+  if (idx>=0) { presencasData[idx].status = novoStatus; if (novoStatus==='pendente') presencasData[idx].motivo = ''; }
   renderPresencas();
 }
 
@@ -1733,6 +1754,122 @@ async function salvarEvento(id) {
 }
 
 function camposEventos() { return []; } // usado pelo SECOES mas render e customizado
+
+
+// ══════════════════════════════════════════════════════════
+// RELATORIO PDF DE EVENTO
+// ══════════════════════════════════════════════════════════
+
+async function gerarRelatorioEvento(eventoId) {
+  // Carrega dados frescos
+  const evento = eventosData.find(e=>e.id===eventoId);
+  if (!evento) return;
+
+  const pres = await sb(`evento_presencas?select=*,membros(id,nome,foto_url,telefone)&evento_id=eq.${eventoId}&order=created_at`) || [];
+  
+  // Carrega ministerios de cada membro
+  const membroIds = pres.map(p=>p.membro_id).filter(Boolean);
+  let minsMap = {};
+  if (membroIds.length) {
+    const vincs = await sb(`membro_ministerios?select=membro_id,papel,ministerios(nome,tipo)&membro_id=in.(${membroIds.join(',')})&ativo=eq.true`) || [];
+    vincs.forEach(v => {
+      if (!minsMap[v.membro_id]) minsMap[v.membro_id] = [];
+      minsMap[v.membro_id].push({
+        tipo:  v.ministerios?.tipo || '?',
+        nome:  v.ministerios?.nome || '—',
+        papel: v.papel || '',
+      });
+    });
+  }
+
+  const presentes   = pres.filter(p=>p.status==='presente');
+  const faltaram    = pres.filter(p=>p.status==='faltou');
+  const comMotivo   = pres.filter(p=>p.status==='faltou_motivo');
+  const dEvt = evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  // Agrupa por area/tipo para o resumo
+  const porArea = {};
+  pres.forEach(p => {
+    const mins = minsMap[p.membro_id] || [{tipo:'Sem area', nome:'Sem area', papel:''}];
+    mins.forEach(m => {
+      const chave = `${m.tipo}||${m.nome}`;
+      if (!porArea[chave]) porArea[chave] = {tipo:m.tipo, nome:m.nome, presentes:0, faltaram:0};
+      if (p.status==='presente') porArea[chave].presentes++;
+      else if (p.status==='faltou'||p.status==='faltou_motivo') porArea[chave].faltaram++;
+    });
+  });
+
+  const rowMembro = (p) => {
+    const mins = minsMap[p.membro_id] || [];
+    const areasStr = mins.map(m=>`[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}${m.papel?' · '+m.papel:''}`).join('  |  ');
+    return `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #eee">${p.membros?.nome||'—'}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;color:#666">${areasStr||'—'}</td>
+      ${p.motivo ? `<td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;color:#c07000">${p.motivo}</td>` : '<td style="padding:6px 8px;border-bottom:1px solid #eee">—</td>'}
+    </tr>`;
+  };
+
+  const rowArea = (a) => `<tr>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee">${a.tipo==='ministerio'?'Ministerio':'Area de Equipa'}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;font-weight:600">${a.nome}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;color:green;text-align:center">${a.presentes}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;color:red;text-align:center">${a.faltaram}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${Math.round(a.presentes/(a.presentes+a.faltaram||1)*100)}%</td>
+  </tr>`;
+
+  const html = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+  <title>Relatorio — ${evento.titulo}</title>
+  <style>
+    body{font-family:Arial,sans-serif;color:#222;padding:32px;max-width:900px;margin:0 auto}
+    h1{font-size:22px;margin-bottom:4px;color:#6b4f10}
+    h2{font-size:15px;margin:28px 0 10px;color:#6b4f10;border-bottom:2px solid #b8922a;padding-bottom:4px}
+    .meta{font-size:13px;color:#555;margin-bottom:24px}
+    .badges{display:flex;gap:10px;margin-bottom:20px}
+    .badge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold}
+    .g{background:#e8f5e9;color:#2e7d32}.r{background:#ffebee;color:#c62828}.o{background:#fff8e1;color:#e65100}.gr{background:#f5f5f5;color:#555}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f9f4ec;padding:8px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888}
+    @media print{body{padding:16px}}
+  </style></head><body>
+  <h1>${evento.titulo}</h1>
+  <div class="meta">${dEvt}${evento.local?' · '+evento.local:''}</div>
+  <div class="badges">
+    <span class="badge g">Presentes: ${presentes.length}</span>
+    <span class="badge r">Faltaram: ${faltaram.length}</span>
+    <span class="badge o">Com motivo: ${comMotivo.length}</span>
+    <span class="badge gr">Total: ${pres.length}</span>
+  </div>
+
+  <h2>Presentes (${presentes.length})</h2>
+  <table><thead><tr><th>Nome</th><th>Areas / Ministerios</th><th>—</th></tr></thead><tbody>
+    ${presentes.map(rowMembro).join('')}
+  </tbody></table>
+
+  ${comMotivo.length ? `<h2>Faltaram com Motivo (${comMotivo.length})</h2>
+  <table><thead><tr><th>Nome</th><th>Areas / Ministerios</th><th>Motivo</th></tr></thead><tbody>
+    ${comMotivo.map(rowMembro).join('')}
+  </tbody></table>` : ''}
+
+  ${faltaram.length ? `<h2>Faltaram (${faltaram.length})</h2>
+  <table><thead><tr><th>Nome</th><th>Areas / Ministerios</th><th>—</th></tr></thead><tbody>
+    ${faltaram.map(rowMembro).join('')}
+  </tbody></table>` : ''}
+
+  <h2>Resumo por Area / Ministerio</h2>
+  <table><thead><tr><th>Tipo</th><th>Nome</th><th style="text-align:center">Presentes</th><th style="text-align:center">Faltaram</th><th style="text-align:center">Presenca</th></tr></thead><tbody>
+    ${Object.values(porArea).sort((a,b)=>a.nome.localeCompare(b.nome)).map(rowArea).join('')}
+  </tbody></table>
+
+  <div style="margin-top:40px;font-size:11px;color:#aaa;text-align:center">
+    Gerado em ${new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})} · Zion Lisboa
+  </div>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+}
 
 init();
 </script>

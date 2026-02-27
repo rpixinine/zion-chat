@@ -5,114 +5,394 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Localização — Zion Church Lisboa</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
     <style>
-        :root { --gold:#B8922A;--gold-light:#D4A843;--gold-dark:#8B6914;--border:rgba(184,146,42,0.22);--bg-page:#F5EFE4;--bg-card:#FFFFFF;--bg-input:#FAF7F2;--bg-footer:#F0E8D8;--text-main:#1A1410;--text-muted:#7A6A52;--text-faint:#A89878;--shadow:0 8px 40px rgba(100,70,20,0.13); }
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-        html,body{height:100%;background:var(--bg-page);font-family:'Lato',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
-        body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 15%,rgba(201,168,76,0.09) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(201,168,76,0.06) 0%,transparent 55%);pointer-events:none}
-        .page-wrapper{position:relative;z-index:1;display:flex;flex-direction:column;width:640px;max-width:96vw;height:96vh;max-height:900px;background:var(--bg-card);border-radius:16px;box-shadow:var(--shadow),0 0 0 1px var(--border);overflow:hidden}
-        .banner{width:100%;position:relative;background:#111;flex-shrink:0}
-        .banner img{width:100%;height:120px;object-fit:cover;display:block}
-        .banner-fallback{display:none;width:100%;height:120px;background:linear-gradient(135deg,#0d0d0d 0%,#1c1408 50%,#0d0d0d 100%);align-items:center;justify-content:center;flex-direction:column;gap:8px}
-        .banner-fallback.show{display:flex}
-        .banner-title{font-family:'Cinzel',serif;color:#C9A84C;font-size:28px;font-weight:700;letter-spacing:10px}
-        .banner-sub{color:rgba(201,168,76,0.6);font-size:10px;letter-spacing:4px;text-transform:uppercase}
-        .banner-overlay{position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(to top,rgba(255,255,255,0.95),transparent)}
-        .banner-nav{position:absolute;bottom:10px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
-        .back-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;color:var(--gold-dark);text-decoration:none;backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:all 0.2s}
-        .back-btn:hover{background:#fff;border-color:var(--gold-light)}
-        .page-badge{font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:20px;padding:5px 14px;backdrop-filter:blur(8px)}
-        .gold-line{height:2px;background:linear-gradient(90deg,transparent,var(--gold-light),transparent);flex-shrink:0;opacity:0.5}
-        .content{flex:1;overflow-y:auto;padding:20px 18px;background:var(--bg-input)}
-        .content::-webkit-scrollbar{width:4px}
-        .content::-webkit-scrollbar-thumb{background:rgba(184,146,42,0.25);border-radius:2px}
-        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(100,70,20,0.05);animation:fadeUp 0.4s ease both}
-        .card--highlight{background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.02));border-color:rgba(184,146,42,0.35)}
-        .card-badge{display:inline-block;padding:2px 10px;border-radius:20px;background:rgba(184,146,42,0.1);border:1px solid var(--border);font-family:'Cinzel',serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
-        .card-title{font-family:'Cinzel',serif;font-size:16px;font-weight:600;color:var(--gold-dark);margin-bottom:8px}
-        .section-label{font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-faint);margin:18px 0 10px}
-        .info-row{display:flex;align-items:flex-start;gap:14px;padding:13px 0;border-bottom:1px solid rgba(184,146,42,0.1)}
-        .info-row:last-child{border-bottom:none}
-        .info-icon{width:36px;height:36px;border-radius:10px;background:rgba(184,146,42,0.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-        .info-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-faint);font-family:'Cinzel',serif;margin-bottom:3px}
-        .info-value{font-size:14px;color:var(--text-main);line-height:1.5}
-        .info-value a{color:var(--gold);text-decoration:none}
-        .info-value a:hover{color:var(--gold-dark)}
-        .map-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:linear-gradient(135deg,var(--gold-dark),var(--gold-light));border-radius:8px;color:#fff;text-decoration:none;font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:4px;transition:all 0.2s;box-shadow:0 2px 8px rgba(139,105,20,0.25)}
-        .map-btn:hover{filter:brightness(1.08);box-shadow:0 4px 14px rgba(139,105,20,0.35)}
-        .footer{background:var(--bg-footer);border-top:1px solid var(--border);padding:10px 18px;flex-shrink:0}
-        .footer-links{display:flex;justify-content:center;gap:12px;margin-bottom:8px}
-        .footer-link{display:flex;align-items:center;gap:5px;color:var(--gold);text-decoration:none;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;font-family:'Cinzel',serif;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:rgba(255,255,255,0.6);transition:all 0.2s}
-        .footer-link:hover{background:rgba(255,255,255,0.95);border-color:var(--gold-light)}
-        .footer-link svg{width:12px;height:12px}
-        .footer-divider{height:1px;background:var(--border);margin:8px 0}
-        .footer-bottom{display:flex;flex-direction:column;align-items:center;gap:2px}
-        .footer-copy{color:var(--text-muted);font-size:10px;letter-spacing:1px;text-transform:uppercase;font-family:'Cinzel',serif;text-align:center}
-        .footer-address{color:var(--text-faint);font-size:10px;text-align:center}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        .d1{animation-delay:0.05s}.d2{animation-delay:0.10s}.d3{animation-delay:0.15s}.d4{animation-delay:0.20s}
+        /* ── Content ─────────────────────────────────────── */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 18px 24px;
+            background: var(--bg-input);
+        }
+        .content::-webkit-scrollbar { width: 4px; }
+        .content::-webkit-scrollbar-thumb { background: rgba(0,144,152,0.25); border-radius: 2px; }
+
+        /* ── Cards ───────────────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow-sm);
+            animation: fadeUp 0.4s ease both;
+        }
+        .card--highlight {
+            background: linear-gradient(135deg, var(--primary-faint), rgba(0,144,152,0.01));
+            border-color: var(--border-strong);
+        }
+
+        .card-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+
+        /* ── Section label ───────────────────────────────── */
+        .section-label {
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin: 18px 0 10px;
+        }
+        .section-label:first-child { margin-top: 0; }
+
+        /* ── Info rows ───────────────────────────────────── */
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 13px 0;
+            border-bottom: 1px solid rgba(0,144,152,0.08);
+        }
+        .info-row:last-of-type { border-bottom: none; }
+
+        .info-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--primary-dark);
+        }
+        .info-icon svg { width: 16px; height: 16px; }
+
+        .info-label {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            font-family: var(--font-title);
+            margin-bottom: 3px;
+        }
+        .info-value {
+            font-size: 14px;
+            color: var(--text-main);
+            line-height: 1.55;
+        }
+        .info-value a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .info-value a:hover { color: var(--primary-dark); text-decoration: underline; }
+
+        /* ── Horário row ─────────────────────────────────── */
+        .culto-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0,144,152,0.08);
+        }
+        .culto-row:last-child { border-bottom: none; }
+
+        .culto-nome {
+            font-family: var(--font-title);
+            font-size: 13px;
+            color: var(--primary-dark);
+            margin-bottom: 2px;
+        }
+        .culto-desc {
+            font-size: 11px;
+            color: var(--text-faint);
+        }
+        .culto-hora {
+            font-family: var(--font-title);
+            font-size: 13px;
+            color: var(--text-main);
+            text-align: right;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        .culto-hora span {
+            display: block;
+            font-size: 10px;
+            color: var(--text-faint);
+            font-family: var(--font-body);
+            margin-top: 1px;
+        }
+
+        /* ── Map button ──────────────────────────────────── */
+        .map-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            border-radius: var(--radius-sm);
+            color: #fff;
+            text-decoration: none;
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 14px;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+        .map-btn:hover { filter: brightness(1.08); box-shadow: var(--shadow-hover); }
+        .map-btn svg { width: 14px; height: 14px; }
+
+        /* ── Animation delays ────────────────────────────── */
+        .d1{animation-delay:0.05s} .d2{animation-delay:0.10s}
+        .d3{animation-delay:0.15s} .d4{animation-delay:0.20s}
+
+        /* ── Banner nav ──────────────────────────────────── */
+        .banner-nav {
+            position: absolute;
+            bottom: 10px; left: 0; right: 0;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px;
+        }
+        .back-btn {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--border); border-radius: var(--radius-full);
+            padding: 5px 14px; font-family: var(--font-title); font-size: 10px;
+            letter-spacing: 1.5px; color: var(--primary-dark); text-decoration: none;
+            backdrop-filter: blur(8px); box-shadow: var(--shadow-sm); transition: all 0.2s;
+        }
+        .back-btn:hover { background: #fff; border-color: var(--primary-light); }
+
+        .page-badge {
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
+            color: var(--primary); text-transform: uppercase;
+            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+            border-radius: var(--radius-full); padding: 5px 14px; backdrop-filter: blur(8px);
+        }
+        .banner-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+            background: linear-gradient(to top, rgba(255,255,255,0.95), transparent);
+        }
     </style>
 </head>
 <body>
 <div class="page-wrapper">
+
     <div class="banner">
-        <img src="banner zion.jpg" alt="Zion Lisboa" onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');">
-        <div class="banner-fallback"><div class="banner-title">ZION</div><div class="banner-sub">Lisboa · Portugal</div></div>
+        <img src="banner zion.jpg" alt="Zion Lisboa"
+             onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');">
+        <div class="banner-fallback">
+            <div class="banner-title">ZION</div>
+            <div class="banner-sub">Lisboa · Portugal</div>
+        </div>
         <div class="banner-overlay"></div>
         <div class="banner-nav">
             <a href="index.html" class="back-btn">← Início</a>
             <span class="page-badge">Localização</span>
         </div>
     </div>
+
     <div class="gold-line"></div>
-    <div class="content">
-        <p class="section-label">Campus Lisboa</p>
-        <div class="card d1">
-            <div class="info-row">
-                <div class="info-icon">📍</div>
-                <div><div class="info-label">Endereço</div><div class="info-value">Rua do Centro Cultural, 11<br>1700-036 Alvalade — Lisboa</div></div>
-            </div>
-            <div class="info-row">
-                <div class="info-icon">🗺️</div>
-                <div><div class="info-label">Mapa</div><div class="info-value"><a href="https://maps.google.com/?q=Rua+do+Centro+Cultural+11+Lisboa" target="_blank">Ver no Google Maps →</a></div></div>
-            </div>
-            <a href="https://maps.google.com/?q=Rua+do+Centro+Cultural+11+Lisboa" target="_blank" class="map-btn">📍 Abrir no Google Maps</a>
-        </div>
-        <p class="section-label">Cultos Semanais</p>
-        <div class="card d2">
-            <div class="card-badge">Domingo</div>
-            <div class="info-row">
-                <div class="info-icon">🌅</div>
-                <div><div class="info-label">Culto Manhã</div><div class="info-value">10h00 às 13h00</div></div>
-            </div>
-            <div class="info-row">
-                <div class="info-icon">🌆</div>
-                <div><div class="info-label">Culto Tarde</div><div class="info-value">17h00 às 21h00</div></div>
-            </div>
-        </div>
-        <div class="card d3">
-            <div class="card-badge">Sábado</div>
-            <div class="info-row">
-                <div class="info-icon">🌊</div>
-                <div><div class="info-label">Culto Flow — 15 a 17 anos</div><div class="info-value">15h00 às 17h00</div></div>
-            </div>
-            <div class="info-row">
-                <div class="info-icon">🎤</div>
-                <div><div class="info-label">Culto Vox — 18 a 29 anos</div><div class="info-value">17h00 às 21h00</div></div>
-            </div>
-        </div>
+
+    <div class="content" id="main-content">
+        <div class="loading"><div class="spin"></div>A carregar...</div>
     </div>
+
     <div class="footer">
-        <div class="footer-links">
-            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
-            <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>@ZionLisboa</a>
+        <div class="footer-links" id="footer-links">
+            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Site Oficial
+            </a>
+            <a class="footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                @ZionLisboa
+            </a>
         </div>
         <div class="footer-divider"></div>
         <div class="footer-bottom">
-            <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
-            <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+            <div class="footer-copy" id="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+            <div class="footer-address" id="footer-addr">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
         </div>
     </div>
+
 </div>
+
+<script>
+const SUPA_URL = window.SUPABASE_URL      || '';
+const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+
+async function sb(path) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+    });
+    if (!r.ok) throw new Error(`Supabase ${r.status}`);
+    return r.json();
+}
+
+// "10:00:00" → "10h00"
+function fmtHora(h) {
+    if (!h) return '';
+    const [hh, mm] = h.split(':');
+    return `${hh}h${mm}`;
+}
+
+// SVG icons (sem emojis)
+const SVG = {
+    pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+    map: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`,
+    tel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.71 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 5.82 5.82l1.62-1.62a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+    clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    nav: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>`,
+};
+
+async function init() {
+    try {
+        const [cultos, configs] = await Promise.all([
+            sb('cultos?select=*&ativo=eq.true&order=created_at.asc'),
+            sb('configuracoes?select=chave,valor'),
+        ]);
+
+        // Mapa de configs
+        const cfg = {};
+        (Array.isArray(configs) ? configs : []).forEach(r => { cfg[r.chave] = r.valor; });
+
+        // Dados de endereço
+        const endereco  = cfg['endereco']      || 'Rua do Centro Cultural, 11';
+        const cp        = cfg['codigo_postal'] || '1700-036';
+        const cidade    = cfg['cidade']        || 'Alvalade — Lisboa, Portugal';
+        const mapsUrl   = cfg['maps_url']      || 'https://maps.google.com/?q=Rua+do+Centro+Cultural+11+Lisboa';
+        const telefone  = cfg['telefone']      || null;
+        const instagram = cfg['instagram']     || 'https://www.instagram.com/zionlisboa/';
+        const site      = cfg['site']          || 'https://zionchurch.org.br/';
+
+        // Footer
+        if (cfg['copy']) document.getElementById('footer-copy').textContent = cfg['copy'];
+        const addrLine = [endereco, [cp, cidade].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+        if (addrLine) document.getElementById('footer-addr').textContent = addrLine;
+
+        // Footer links dinâmicos
+        document.getElementById('footer-links').innerHTML = `
+            <a class="footer-link" href="${site}" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Site Oficial
+            </a>
+            <a class="footer-link" href="${instagram}" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                @ZionLisboa
+            </a>`;
+
+        // Agrupar cultos por dia_semana
+        const porDia = {};
+        (Array.isArray(cultos) ? cultos : []).forEach(c => {
+            const dia = c.dia_semana || 'Outro';
+            if (!porDia[dia]) porDia[dia] = [];
+            porDia[dia].push(c);
+        });
+
+        // Ordem preferencial dos dias
+        const ORDEM_DIAS = ['Segunda','Terca','Quarta','Quinta','Sexta','Sabado','Domingo'];
+        const diasOrdenados = Object.keys(porDia).sort((a, b) => {
+            const ia = ORDEM_DIAS.indexOf(a);
+            const ib = ORDEM_DIAS.indexOf(b);
+            if (ia === -1 && ib === -1) return 0;
+            if (ia === -1) return 1;
+            if (ib === -1) return -1;
+            return ia - ib;
+        });
+
+        // Render
+        let html = '';
+        let delay = 0.05;
+
+        // ── Endereço ──
+        html += `<p class="section-label">Campus Lisboa</p>`;
+        html += `
+        <div class="card d1" style="animation-delay:${delay}s">
+            <div class="info-row">
+                <div class="info-icon">${SVG.pin}</div>
+                <div>
+                    <div class="info-label">Endereço</div>
+                    <div class="info-value">${endereco}<br>${cp} ${cidade}</div>
+                </div>
+            </div>
+            ${telefone ? `
+            <div class="info-row">
+                <div class="info-icon">${SVG.tel}</div>
+                <div>
+                    <div class="info-label">Telefone</div>
+                    <div class="info-value"><a href="tel:${telefone}">${telefone}</a></div>
+                </div>
+            </div>` : ''}
+            <div class="info-row">
+                <div class="info-icon">${SVG.map}</div>
+                <div>
+                    <div class="info-label">Mapa</div>
+                    <div class="info-value"><a href="${mapsUrl}" target="_blank">Ver no Google Maps →</a></div>
+                </div>
+            </div>
+            <a href="${mapsUrl}" target="_blank" class="map-btn">
+                ${SVG.nav}
+                Abrir no Google Maps
+            </a>
+        </div>`;
+        delay += 0.07;
+
+        // ── Cultos por dia ──
+        if (diasOrdenados.length) {
+            html += `<p class="section-label" style="animation-delay:${delay}s">Cultos Semanais</p>`;
+
+            diasOrdenados.forEach(dia => {
+                const lista = porDia[dia];
+                html += `
+                <div class="card" style="animation-delay:${delay}s">
+                    <div class="card-badge">${dia}</div>
+                    ${lista.map(c => `
+                    <div class="culto-row">
+                        <div>
+                            <div class="culto-nome">${c.nome}</div>
+                            ${c.descricao ? `<div class="culto-desc">${c.descricao}</div>` : ''}
+                        </div>
+                        <div class="culto-hora">
+                            ${fmtHora(c.hora_inicio)} — ${fmtHora(c.hora_fim)}
+                            <span>${c.recorrente ? 'Semanal' : 'Data especial'}</span>
+                        </div>
+                    </div>`).join('')}
+                </div>`;
+                delay += 0.07;
+            });
+        }
+
+        document.getElementById('main-content').innerHTML = html;
+
+    } catch (e) {
+        console.error('Localização init error:', e);
+        document.getElementById('main-content').innerHTML =
+            `<div class="empty"><div class="empty-icon" style="font-size:36px;opacity:0.3;margin-bottom:8px">!</div><div class="empty-txt">Erro ao carregar. Tenta novamente.</div></div>`;
+    }
+}
+
+init();
+</script>
 </body>
 </html>

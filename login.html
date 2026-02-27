@@ -304,6 +304,11 @@
                        onkeydown="if(event.key==='Enter') doLogin()">
             </div>
             <button class="submit-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+            <div style="text-align:center;margin-top:14px">
+                <button onclick="abrirForgot()" style="background:none;border:none;cursor:pointer;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;color:var(--text-faint,#7A9A9A);text-decoration:underline;text-underline-offset:3px;">
+                    Esqueci a password
+                </button>
+            </div>
         </div>
 
         <!-- ── REGISTER ─────────────────────────────────── -->
@@ -388,6 +393,34 @@
 
     </div>
 </div>
+
+<!-- Modal: Esqueci a password -->
+<div id="forgot-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+    <div style="width:100%;max-width:400px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.15);animation:scaleIn 0.2s ease">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border,rgba(0,144,152,0.2));display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;color:var(--primary-dark,#007078)">Recuperar Password</span>
+            <button onclick="fecharForgot()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border,rgba(0,144,152,0.2));background:none;cursor:pointer;font-size:14px;color:var(--text-faint,#7A9A9A);display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <div style="padding:20px">
+            <p style="font-size:13px;color:var(--text-muted,#4A6A6A);line-height:1.6;margin:0 0 16px">
+                Introduz o teu email e enviaremos um link para definires uma nova password.
+            </p>
+            <div class="msg-box" id="forgot-msg"></div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-input" id="forgot-email" type="email" placeholder="o.teu@email.com"
+                       onkeydown="if(event.key==='Enter') enviarReset()">
+            </div>
+            <button class="submit-btn" id="forgot-btn" onclick="enviarReset()" style="margin-top:0">
+                Enviar Link de Recuperação
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes scaleIn { from { opacity:0;transform:scale(0.95) } to { opacity:1;transform:scale(1) } }
+</style>
 
 <script>
 // ── Tabs ───────────────────────────────────────────────────
@@ -537,7 +570,63 @@ async function doRegister() {
     }
 }
 
-// Redireciona se já está logado
+// ── ESQUECI A PASSWORD ─────────────────────────────────────
+function abrirForgot() {
+    const overlay = document.getElementById('forgot-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('forgot-email').value = document.getElementById('login-email').value || '';
+    document.getElementById('forgot-msg').className = 'msg-box';
+    document.getElementById('forgot-btn').disabled = false;
+    document.getElementById('forgot-btn').textContent = 'Enviar Link de Recuperação';
+    setTimeout(() => document.getElementById('forgot-email').focus(), 100);
+}
+
+function fecharForgot() {
+    document.getElementById('forgot-overlay').style.display = 'none';
+}
+
+document.getElementById('forgot-overlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharForgot();
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharForgot(); });
+
+async function enviarReset() {
+    const email = document.getElementById('forgot-email').value.trim();
+    const msgEl = document.getElementById('forgot-msg');
+    msgEl.className = 'msg-box';
+
+    if (!email) {
+        msgEl.textContent = 'Introduz o teu email.';
+        msgEl.className = 'msg-box error';
+        return;
+    }
+
+    const btn = document.getElementById('forgot-btn');
+    btn.disabled = true;
+    btn.textContent = 'A enviar...';
+
+    try {
+        const res = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+
+        // Mostra sempre mensagem de sucesso (por segurança não revelamos se email existe)
+        msgEl.textContent = data.message || 'Se este email tiver conta, receberás instruções em breve.';
+        msgEl.className = 'msg-box success';
+        btn.textContent = 'Email enviado';
+
+    } catch(e) {
+        msgEl.textContent = 'Erro ao enviar. Tenta novamente.';
+        msgEl.className = 'msg-box error';
+        btn.disabled = false;
+        btn.textContent = 'Enviar Link de Recuperação';
+    }
+}
+
 if (ZionAuth.isLoggedIn()) {
     const redirect = sessionStorage.getItem('zion_redirect');
     sessionStorage.removeItem('zion_redirect');

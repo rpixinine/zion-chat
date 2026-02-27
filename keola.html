@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Keola — Zion Church Lisboa</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
     <style>
-        /* ── Estilos exclusivos do Keola ── */
+        /* ── Content ─────────────────────────────────────── */
         .content {
             flex: 1;
             overflow-y: auto;
@@ -19,6 +20,7 @@
         .content::-webkit-scrollbar { width: 4px; }
         .content::-webkit-scrollbar-thumb { background: rgba(0, 144, 152, 0.25); border-radius: 2px; }
 
+        /* ── Cards ───────────────────────────────────────── */
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -33,6 +35,7 @@
             border-color: var(--border-strong);
         }
 
+        /* ── Section label ───────────────────────────────── */
         .section-label {
             font-family: var(--font-title);
             font-size: 10px;
@@ -42,6 +45,7 @@
             margin: 18px 0 10px;
         }
 
+        /* ── Menu rows ───────────────────────────────────── */
         .menu-row {
             display: flex;
             align-items: center;
@@ -51,9 +55,8 @@
         }
         .menu-row:last-child { border-bottom: none; }
 
-        .menu-name { font-size: 14px; color: var(--text-main); font-weight: 400; }
-        .menu-desc { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
-
+        .menu-name  { font-size: 14px; color: var(--text-main); font-weight: 400; }
+        .menu-desc  { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
         .menu-price {
             font-family: var(--font-title);
             font-size: 15px;
@@ -63,12 +66,11 @@
             margin-left: 12px;
         }
 
-        /* Nav sobre o banner */
+        /* ── Banner nav (igual às outras páginas) ─────────── */
         .banner-nav {
             position: absolute;
             bottom: 10px;
-            left: 0;
-            right: 0;
+            left: 0; right: 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -108,17 +110,12 @@
 
         .banner-overlay {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             height: 60px;
             background: linear-gradient(to top, rgba(255, 255, 255, 0.95), transparent);
         }
 
-        /* Altura do banner nesta página */
-        .banner img { height: 120px; }
-        .banner-fallback { height: 120px !important; }
-
+        /* ── Animation delays ────────────────────────────── */
         .d1{animation-delay:0.05s} .d2{animation-delay:0.10s}
         .d3{animation-delay:0.15s} .d4{animation-delay:0.20s}
         .d5{animation-delay:0.25s} .d6{animation-delay:0.30s}
@@ -163,10 +160,13 @@
                 @ZionLisboa
             </a>
         </div>
-        <div class="footer-div"></div>
-        <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
-        <div class="footer-addr">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+        <div class="footer-divider"></div>
+        <div class="footer-bottom">
+            <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+            <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+        </div>
     </div>
+
 </div>
 
 <script>
@@ -179,22 +179,25 @@
         outro:      { l: '🛒 Outros',     o: 6 },
     };
 
-    const FALLBACK = [
-        { categoria:'almoco',  nome:'Prato do Dia',    descricao:'Bitoque',              preco:8.00,  disponivel:true, especial_hoje:true  },
-        { categoria:'almoco',  nome:'Hambúrguer',      descricao:'Kit menu com batatas', preco:11.00, disponivel:true, especial_hoje:false },
-        { categoria:'bebidas', nome:'Café Expresso',   descricao:null,                   preco:2.50,  disponivel:true, especial_hoje:false },
-        { categoria:'bebidas', nome:'Café com Leite',  descricao:null,                   preco:2.00,  disponivel:true, especial_hoje:false },
-        { categoria:'bebidas', nome:'Coca Cola',       descricao:null,                   preco:4.00,  disponivel:true, especial_hoje:false },
-        { categoria:'snacks',  nome:'Bolo de Chocolate', descricao:null,                 preco:2.50,  disponivel:true, especial_hoje:false },
-    ];
+    const SUPA_URL = window.SUPABASE_URL      || '';
+    const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
     async function load() {
         try {
-            const r = await fetch('/api/keola');
-            if (!r.ok) throw 0;
-            render(await r.json());
-        } catch {
-            render(FALLBACK);
+            const r = await fetch(
+                `${SUPA_URL}/rest/v1/keola_menu?select=*&disponivel=eq.true&order=ordem.asc`,
+                { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }
+            );
+            if (!r.ok) throw new Error(`Supabase ${r.status}`);
+            const data = await r.json();
+            if (!Array.isArray(data) || !data.length) throw new Error('empty');
+            render(data);
+        } catch (e) {
+            console.error('Keola load error:', e);
+            document.getElementById('menu-section').innerHTML =
+                `<div class="card" style="text-align:center;color:var(--text-faint);font-size:13px;padding:24px">
+                    ⚠️ Erro ao carregar o cardápio. Tenta novamente.
+                </div>`;
         }
     }
 

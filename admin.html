@@ -10,12 +10,14 @@
     <link rel="stylesheet" href="css/components.css">
     <script src="config.js"></script>
     <script src="auth.js"></script>
+
 </head>
 <body>
 <div class="page-wrapper">
     <div class="banner">
-        <img src="banner%20zion.jpg" alt="Zion Lisboa" onerror="this.onerror=null;this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
+        <img src="banner_zion.jpg" alt="Zion Lisboa" onerror="this.onerror=null;this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
         <div class="banner-fallback"><div class="banner-title">ZION</div><div class="banner-sub">Lisboa · Portugal</div></div>
+
     </div>
     <div class="gold-line"></div>
     <div class="user-bar">
@@ -103,22 +105,25 @@
     // ── INIT ───────────────────────────────────────────────────
     async function init() {
         document.getElementById('top-user').textContent = currentUser.nome?.split(' ')[0] || '';
+        // Data de hoje
         const hoje = new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'});
         document.getElementById('data-hoje').textContent = hoje.charAt(0).toUpperCase()+hoje.slice(1);
 
+        // Verifica acesso
         const check = await sb(`membros?select=e_admin,e_presbitero&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`);
         const m = check?.[0];
         if (!m || (!m.e_admin && !m.e_presbitero)) {
             document.getElementById('nav-bar').style.display = 'none';
             document.getElementById('main-content').innerHTML = `
       <div class="acesso-negado">
-        <div class="acesso-negado-icon">🔒</div>
+        <div class="acesso-negado-icon">X</div>
         <div class="acesso-negado-title">Acesso Restrito</div>
         <div class="acesso-negado-txt">Esta area e exclusiva para Administradores e Presbiteros.</div>
       </div>`;
             return;
         }
 
+        // Pre-carrega membros para selects
         membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
         await setSecao('membros');
     }
@@ -151,6 +156,7 @@
             return;
         }
         registos  = await sb(`${cfg.tabela}?select=*&order=${cfg.orderBy||'nome'}`) || [];
+        // Para membros, pre-carrega também links e visitantes
         if (secaoAtiva === 'membros') {
             if (!links_cache.length) links_cache = await sb('links?select=id,nome&ativo=eq.true&order=nome') || [];
             await carregarVisitantes();
@@ -175,7 +181,11 @@
     // ── RENDER SECAO ───────────────────────────────────────────
     function renderSecao() {
         const cfg      = SECOES[secaoAtiva];
-        if (cfg.customRender && secaoAtiva === 'eventos') { renderEventos(); return; }
+        // Render customizado para eventos
+        if (cfg.customRender && secaoAtiva === 'eventos') {
+            renderEventos();
+            return;
+        }
         const ativoKey = cfg.ativoKey || 'ativo';
         const temSubTabs = !!cfg.subTabs;
         const q        = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
@@ -194,9 +204,10 @@
 
         if (temSubTabs && subTabAtiva >= 1) {
             if (secaoAtiva === 'membros' && subTabAtiva === 1) {
+                // Sub-aba Filhos: abre pelo form de edicao do membro
                 const cfg2 = SECOES['membros'];
                 html += `<div class="sub-tabs">${cfg2.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}</div>`;
-                html += `<div class="admin-list"><div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;text-align:center;color:var(--text-faint);font-size:13px;line-height:1.8">Para gerir os filhos de um membro, abre o registo do membro e edita a partir dai.</div></div>`;
+                html += `<div class="admin-list"><div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;color:var(--text-faint);font-size:13px;line-height:1.8">Para gerir os filhos de um membro, abre o registo do membro e edita a partir dai.</div></div>`;
                 document.getElementById('main-content').innerHTML = html;
                 return;
             }
@@ -219,7 +230,7 @@
         }
 
         if (lista.length === 0) {
-            html += `<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">${filtroInativo?'Nenhum registo inativo.':'Nenhum registo. Clica em Novo.'}</div></div>`;
+            html += `<div class="empty"><div class="empty-icon">-</div><div class="empty-txt">${filtroInativo?'Nenhum registo inativo.':'Nenhum registo. Clica em Novo.'}</div></div>`;
             document.getElementById('main-content').innerHTML = html;
             return;
         }
@@ -268,41 +279,55 @@
 
     function buildBadges(r) {
         const badges = [];
-        if (r.e_lider)       badges.push(`<span class="badge badge-primary">Lider</span>`);
-        if (r.e_presbitero)  badges.push(`<span class="badge badge-primary">Presbitero</span>`);
+        if (r.e_lider)       badges.push(`<span class="badge badge-gold">Lider</span>`);
+        if (r.e_presbitero)  badges.push(`<span class="badge badge-gold">Presbitero</span>`);
         if (r.e_voluntario)  badges.push(`<span class="badge badge-green">Voluntario</span>`);
         if (r.e_admin)       badges.push(`<span class="badge badge-red">Admin</span>`);
-        if (r.online)        badges.push(`<span class="badge badge-primary">Online</span>`);
+        if (r.online)        badges.push(`<span class="badge badge-gold">Online</span>`);
         if (r.recorrente)    badges.push(`<span class="badge badge-green">Recorrente</span>`);
         if (r.gratuito)      badges.push(`<span class="badge badge-green">Gratuito</span>`);
-        if (r.especial_hoje) badges.push(`<span class="badge badge-primary">Especial hoje</span>`);
-        if (r.destaque)      badges.push(`<span class="badge badge-primary">Destaque</span>`);
+        if (r.especial_hoje) badges.push(`<span class="badge badge-gold">Especial hoje</span>`);
+        if (r.destaque)      badges.push(`<span class="badge badge-gold">Destaque</span>`);
         if (r.disponivel===false || r.ativo===false) badges.push(`<span class="badge badge-gray">Inativo</span>`);
         return badges.join('');
     }
 
-    function toggleFiltroInativo() { filtroInativo = !filtroInativo; renderSecao(); }
-    function setSubTab(idx) { subTabAtiva = idx; renderSecao(); }
+    function toggleFiltroInativo() {
+        filtroInativo = !filtroInativo;
+        renderSecao();
+    }
+
+    function setSubTab(idx) {
+        subTabAtiva = idx;
+        renderSecao();
+    }
 
     // ── SUB-TAB LIDERES / INSTRUTORES ──────────────────────────
     function renderSubTabLideres() {
         const cfg = SECOES[secaoAtiva];
-        if (secaoAtiva === 'membros' && subTabAtiva === 2) return renderVisitantes();
+
+        // Membros: subTab 2 = Visitantes
+        if (secaoAtiva === 'membros' && subTabAtiva === 2) {
+            return renderVisitantes();
+        }
+
         const isMin   = secaoAtiva === 'ministerios';
+        const tabela  = isMin ? 'ministerio_lideres' : 'zao_curso_instrutores';
         const label   = isMin ? 'Lideres' : 'Instrutores';
         const parentLabel = isMin ? 'Ministerio' : 'Curso';
+
         return `
     <div class="sub-tabs">
       ${cfg.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}
     </div>
     <div class="admin-list">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;color:var(--text-faint);font-size:13px;line-height:1.7">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;color:var(--text-faint);font-size:13px;line-height:1.7">
         Para gerir ${label.toLowerCase()}, abre o registo do ${parentLabel.toLowerCase()} e edita a partir dai.
       </div>
     </div>`;
     }
 
-    // ── VISITANTES ─────────────────────────────────────────────
+    // ── VISITANTES (subtab de Membros) ─────────────────────────
     let visitantes = [];
     async function carregarVisitantes() {
         visitantes = await sb('visitantes?select=*&order=nome') || [];
@@ -312,6 +337,7 @@
         const cfg = SECOES['membros'];
         const q   = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
         let lista = [...visitantes];
+        // Por default mostra so nao convertidos e ativos; botao Inativos mostra os convertidos/inativos
         if (!filtroInativo) lista = lista.filter(r => r.ativo !== false && !r.convertido);
         else lista = lista.filter(r => r.convertido || r.ativo === false);
         if (q) lista = lista.filter(r => (r.nome||'').toLowerCase().includes(q));
@@ -327,7 +353,7 @@
     </div>`;
 
         if (lista.length === 0) {
-            html += '<div class="empty"><div class="empty-icon">🙋</div><div class="empty-txt">Nenhum visitante encontrado.</div></div>';
+            html += '<div class="empty"><div class="empty-icon">-</div><div class="empty-txt">Nenhum visitante encontrado.</div></div>';
             return html;
         }
 
@@ -416,6 +442,7 @@
         const v = visitantes.find(x=>x.id===visitanteId);
         if (!v) return;
         try {
+            // Cria membro com dados do visitante
             const novoMembro = await sb('membros', {method:'POST', body:JSON.stringify({
                     nome: v.nome, email: v.email, telefone: v.telefone,
                     zona: v.zona, onde_conheceu: v.onde_conheceu,
@@ -424,6 +451,7 @@
                     data_entrada: new Date().toISOString().split('T')[0],
                 })});
             const membroId = novoMembro?.[0]?.id;
+            // Marca visitante como convertido
             await sb(`visitantes?id=eq.${visitanteId}`, {method:'PATCH', body:JSON.stringify({convertido:true, membro_id:membroId})});
             alert('Visitante convertido em membro com sucesso!');
             await carregarVisitantes();
@@ -447,6 +475,7 @@
         const registo = id ? registos.find(r=>r.id===id) : null;
         const isNovo  = !registo;
 
+        // Garante que membros/ministerios estao carregados antes de construir o form
         if (secaoAtiva==='ministerios'||secaoAtiva==='cursos') {
             try {
                 const filtroMembro = secaoAtiva==='cursos' ? '&professor=eq.true' : '';
@@ -467,6 +496,7 @@
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
 
+        // Carrega sub-lista de filhos (membros), instrutores ou lideres
         if (!isNovo && secaoAtiva==='membros') {
             await carregarFilhos(registo.id);
             await carregarMembroMinisterios(registo.id);
@@ -479,13 +509,17 @@
         const campos = typeof cfg.campos === 'function' ? cfg.campos(r) : cfg.campos;
         let html = `<div class="form-grid"><div class="msg-form" id="form-msg"></div>`;
         campos.forEach(c => {
+            // Render especial para link_id em membros
             if (c.key === 'link_id' && secaoAtiva === 'membros') {
                 const val2 = r?.[c.key] ?? '';
                 const opts2 = links_cache.map(l=>`<option value="${l.id}" ${val2===l.id?'selected':''}>${l.nome}</option>`).join('');
                 html += `<div class="form-group form-full"><label class="form-label">${c.label}</label><select class="form-select" id="f_link_id"><option value="">-- Sem Link --</option>${opts2}</select></div>`;
                 return;
             }
-            if (c.type === 'section') { html += `<div class="form-section-title">${c.label}</div>`; return; }
+            if (c.type === 'section') {
+                html += `<div class="form-section-title">${c.label}</div>`;
+                return;
+            }
             const val = r?.[c.key] ?? c.default ?? '';
             const fullClass = c.full ? 'form-full' : '';
             if (c.type === 'checkbox') {
@@ -502,6 +536,7 @@
             }
         });
 
+        // Sub-list de filhos (membros)
         if (r && secaoAtiva==='membros') {
             html += `
       <div class="form-section-title">Filhos (membros_filhos)</div>
@@ -514,6 +549,7 @@
       </div>`;
         }
 
+        // Sub-list de ministerios/areas do membro
         if (r && secaoAtiva==='membros') {
             const minsOpts = ministeriosCache.map(m=>`<option value="${m.id}">[${m.tipo||'?'}] ${m.nome}</option>`).join('');
             html += `
@@ -528,6 +564,7 @@
       </div>`;
         }
 
+        // Sub-list de lideres/instrutores se for edição
         if (r && (secaoAtiva==='ministerios'||secaoAtiva==='cursos')) {
             const sublabel = secaoAtiva==='ministerios' ? 'Lideres' : 'Instrutores';
             html += `
@@ -542,6 +579,7 @@
       </div>`;
         }
 
+        // Se cursos, campo nome_instrutor tambem
         if (r && secaoAtiva==='cursos') {
             html = html.replace(
                 `<button class="btn-sub-add" onclick="addSubItem('${r.id}')">Adicionar</button>`,
@@ -581,8 +619,11 @@
         btn.disabled = true; btn.textContent = 'A guardar...';
 
         try {
-            if (isNovo) await sb(cfg.tabela, { method:'POST', body:JSON.stringify(body) });
-            else await sb(`${cfg.tabela}?id=eq.${id}`, { method:'PATCH', body:JSON.stringify(body) });
+            if (isNovo) {
+                await sb(cfg.tabela, { method:'POST', body:JSON.stringify(body) });
+            } else {
+                await sb(`${cfg.tabela}?id=eq.${id}`, { method:'PATCH', body:JSON.stringify(body) });
+            }
             showFormMsg('Guardado com sucesso!', 'success');
             await carregarSecao();
             setTimeout(closeDrawer, 800);
@@ -599,11 +640,11 @@
         el.scrollIntoView({behavior:'smooth',block:'nearest'});
     }
 
-    // ── SUB-ITEMS ──────────────────────────────────────────────
-    let membroMinisteriosData = [];
+    // ── SUB-ITEMS (lideres / instrutores) ──────────────────────
+    let membroMinisteriosData = []; // cache local dos vinculos do membro aberto
 
     async function carregarMembroMinisterios(membroId) {
-        const items = await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${membroId}&ativo=eq.true&order=created_at`) || [];
+        const items = await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${membroId}&ativo=eq.true&order=id`) || [];
         membroMinisteriosData = items;
         renderSubListMins(membroId);
     }
@@ -611,7 +652,10 @@
     function renderSubListMins(membroId) {
         const el = document.getElementById('sub-list-mins');
         if (!el) return;
-        if (!membroMinisteriosData.length) { el.innerHTML = '<div class="sub-list-empty">Sem ministerios/areas associados.</div>'; return; }
+        if (!membroMinisteriosData.length) {
+            el.innerHTML = '<div class="sub-list-empty">Sem ministerios/areas associados.</div>';
+            return;
+        }
         el.innerHTML = membroMinisteriosData.map(item => {
             const tipo  = item.ministerios?.tipo || '?';
             const nome  = item.ministerios?.nome || '—';
@@ -629,11 +673,13 @@
         const minId = document.getElementById('sub-min-id')?.value;
         const papel = document.getElementById('sub-min-papel')?.value?.trim();
         if (!minId) { alert('Seleciona um ministerio ou area.'); return; }
-        if (membroMinisteriosData.find(m=>m.ministerio_id===minId)) { alert('Este membro ja esta associado a este ministerio/area.'); return; }
+        // Verifica duplicado
+        if (membroMinisteriosData.find(m=>m.ministerio_id===minId)) {
+            alert('Este membro ja esta associado a este ministerio/area.'); return;
+        }
         try {
             await sb('membro_ministerios', {method:'POST', body:JSON.stringify({
-                    membro_id: membroId, ministerio_id: minId, papel: papel||null, ativo: true,
-                    data_entrada: new Date().toISOString().split('T')[0]
+                    membro_id: membroId, ministerio_id: minId, papel: papel||null, ativo: true
                 })});
             await carregarMembroMinisterios(membroId);
             document.getElementById('sub-min-id').value = '';
@@ -643,6 +689,7 @@
 
     async function removeMembroMinisterio(itemId, membroId) {
         if (!confirm('Remover desta area/ministerio?')) return;
+        // Inativa em vez de apagar
         await sb(`membro_ministerios?id=eq.${itemId}`, {method:'PATCH', body:JSON.stringify({ativo:false})});
         await carregarMembroMinisterios(membroId);
     }
@@ -667,6 +714,7 @@
         if (!filhoId) { alert('Seleciona um membro.'); return; }
         try {
             await sb('membros_filhos', {method:'POST', body:JSON.stringify({pai_id:paiId, filho_id:filhoId})});
+            // reload membros for the select
             membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
             await carregarFilhos(paiId);
             document.getElementById('sub-filho-id').value = '';
@@ -686,7 +734,12 @@
         const items   = await sb(`${tabela}?select=*&${fkKey}=eq.${parentId}&order=created_at`) || [];
         const el      = document.getElementById('sub-list');
         if (!el) return;
-        if (!items.length) { el.innerHTML = '<div class="sub-list-empty">Sem registos.</div>'; return; }
+
+        if (!items.length) {
+            el.innerHTML = '<div class="sub-list-empty">Sem registos.</div>';
+            return;
+        }
+
         el.innerHTML = items.map(item => {
             const membro = membros.find(m=>m.id===item.membro_id);
             const nome   = membro?.nome || item.nome_instrutor || '—';
@@ -706,10 +759,13 @@
         const memId   = document.getElementById('sub-membro-id')?.value;
         const cargo   = document.getElementById('sub-cargo')?.value;
         const nomeExt = document.getElementById('sub-nome-instrutor')?.value;
+
         if (!memId && !nomeExt) { alert('Seleciona um membro ou indica um nome.'); return; }
+
         const body = { [fkKey]: parentId, cargo: cargo||null };
         if (memId) body.membro_id = memId;
         if (!isMin && nomeExt) body.nome_instrutor = nomeExt;
+
         try {
             await sb(tabela, { method:'POST', body:JSON.stringify(body) });
             await carregarSubList(parentId);
@@ -726,14 +782,17 @@
     }
 
     // ── IMAGE UPLOAD ───────────────────────────────────────────
+    const uploadBuckets = {}; // cache de bucket por campo
+
     function buildImageUpload(key, label, currentUrl, bucket) {
         const hasImg = !!currentUrl;
         const imgHtml = hasImg
             ? `<img class="img-upload-preview" src="${currentUrl}" alt="${label}" onerror="this.style.display='none'">`
             : `<div class="img-upload-placeholder">
-        <div class="img-upload-placeholder-icon">📷</div>
+        <div class="img-upload-placeholder-icon">+</div>
         <div class="img-upload-placeholder-txt">Clica para escolher uma imagem<br>ou usa a camara / URL abaixo</div>
        </div>`;
+
         return `
     <div class="form-group img-upload-wrap">
       <label class="form-label">${label}</label>
@@ -757,8 +816,12 @@
     </div>`;
     }
 
-    function triggerFileInput(key) { document.getElementById('img-file-'+key)?.click(); }
-    function triggerCamera(key)    { document.getElementById('img-cam-'+key)?.click(); }
+    function triggerFileInput(key) {
+        document.getElementById('img-file-'+key)?.click();
+    }
+    function triggerCamera(key) {
+        document.getElementById('img-cam-'+key)?.click();
+    }
     function applyUrlInput(key, bucket) {
         const url = document.getElementById('img-url-input-'+key)?.value?.trim();
         if (!url) return;
@@ -770,7 +833,7 @@
         document.getElementById(hiddenId).value = '';
         document.getElementById('img-url-input-'+key).value = '';
         const box = document.getElementById('img-box-'+key);
-        box.innerHTML = `<div class="img-upload-placeholder"><div class="img-upload-placeholder-icon">📷</div><div class="img-upload-placeholder-txt">Clica para escolher uma imagem</div></div>`;
+        box.innerHTML = `<div class="img-upload-placeholder"><div class="img-upload-placeholder-icon">+</div><div class="img-upload-placeholder-txt">Clica para escolher uma imagem</div></div>`;
         box.classList.remove('has-img');
         setImgStatus(key, '', '');
     }
@@ -787,13 +850,18 @@
         el.className = 'img-upload-status' + (tipo?' '+tipo:'');
     }
 
+    // Redimensiona imagem antes do upload (max 800px, qualidade 0.82, sempre JPEG)
     function resizeImage(file, maxW=800, maxH=800, quality=0.82) {
         return new Promise((resolve) => {
             const img = new Image();
             const url = URL.createObjectURL(file);
             img.onload = () => {
                 let {width:w, height:h} = img;
-                if (w > maxW || h > maxH) { const ratio = Math.min(maxW/w, maxH/h); w = Math.round(w*ratio); h = Math.round(h*ratio); }
+                if (w > maxW || h > maxH) {
+                    const ratio = Math.min(maxW/w, maxH/h);
+                    w = Math.round(w*ratio);
+                    h = Math.round(h*ratio);
+                }
                 const canvas = document.createElement('canvas');
                 canvas.width=w; canvas.height=h;
                 canvas.getContext('2d').drawImage(img,0,0,w,h);
@@ -808,37 +876,54 @@
     async function handleFileSelect(key, bucket, input) {
         const file = input.files?.[0];
         if (!file) return;
+
+        // Preview local imediato
         const localUrl = URL.createObjectURL(file);
         updateImagePreview(key, localUrl);
         setImgStatus(key, 'A comprimir imagem...', '');
+
         const prog = document.getElementById('img-prog-'+key);
         const bar  = document.getElementById('img-prog-bar-'+key);
         if (prog) prog.classList.add('active');
         if (bar) bar.style.width = '20%';
+
         try {
+            // Redimensiona e comprime para JPEG max 800px
             const blob     = await resizeImage(file);
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
             const path     = `${secaoAtiva}/${filename}`;
+
             setImgStatus(key, 'A fazer upload...', '');
             if (bar) bar.style.width = '50%';
+
+            // Envia via backend proprio (usa service_role key, sem problemas de RLS)
             const formData = new FormData();
             formData.append('file', new File([blob], filename, {type:'image/jpeg'}));
             formData.append('path', path);
             formData.append('bucket', bucket);
+
             const res = await fetch('/api/upload', {
                 method:  'POST',
                 headers: { 'Authorization': `Bearer ${currentUser?.token || ''}` },
                 body:    formData,
             });
-            if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err?.error || err?.message || 'Erro no upload'); }
+
+            if (!res.ok) {
+                const err = await res.json().catch(()=>({}));
+                throw new Error(err?.error || err?.message || 'Erro no upload');
+            }
+
             const data      = await res.json();
             const publicUrl = data.url;
+
             if (bar) bar.style.width = '100%';
             document.getElementById('f_'+key).value = publicUrl;
             document.getElementById('img-url-input-'+key).value = publicUrl;
             updateImagePreview(key, publicUrl);
+
             const kb = Math.round(blob.size/1024);
             setImgStatus(key, `Upload concluido! (${kb} KB)`, 'ok');
+
         } catch(e) {
             setImgStatus(key, 'Erro: '+e.message, 'err');
         } finally {
@@ -858,7 +943,7 @@
     document.addEventListener('keydown', e => { if (e.key==='Escape') closeDrawer(); });
 
     // ══════════════════════════════════════════════════════════
-    // CAMPOS DAS SECOES (idêntico ao original)
+    // CAMPOS DAS SECOES
     // ══════════════════════════════════════════════════════════
 
     function camposMembros() { return [
@@ -1009,6 +1094,7 @@
     ];}
 
     function camposLoja() { return [
+        // Identificacao
         {type:'section', label:'Identificacao'},
         {key:'nome',              label:'Nome',             ph:'Ex: Camisola ZION',                 full:true},
         {key:'categoria',         label:'Categoria',        type:'select', options:[
@@ -1023,6 +1109,7 @@
         {key:'tags',              label:'Tags',             ph:'Ex: lancamento,verao',              full:true},
         {key:'data_lancamento',   label:'Data Lancamento',  type:'date'},
         {key:'descricao',         label:'Descricao',        type:'textarea', ph:'Descricao do produto...', full:true},
+        // Precos
         {type:'section', label:'Precos'},
         {key:'preco',             label:'Preco Normal (€)',        type:'number', ph:'0.00'},
         {key:'preco_custo',       label:'Preco de Custo (€)',      type:'number', ph:'0.00'},
@@ -1031,6 +1118,7 @@
         {key:'margem_lucro',      label:'Margem de Lucro (%)',     type:'number', ph:'0'},
         {key:'data_inicio_promo', label:'Inicio Promocao',        type:'date'},
         {key:'data_fim_promo',    label:'Fim Promocao',           type:'date'},
+        // Estoque
         {type:'section', label:'Estoque e Logistica'},
         {key:'stock',             label:'Quantidade em Estoque',  type:'number', ph:'0'},
         {key:'stock_minimo',      label:'Estoque Minimo',         type:'number', ph:'0'},
@@ -1044,6 +1132,7 @@
         {key:'comprimento',       label:'Comprimento (cm)',       type:'number', ph:'0'},
         {key:'frete_gratis',      label:'Frete Gratis',           type:'checkbox'},
         {key:'classe_envio',      label:'Classe de Envio',        ph:'Ex: Standard'},
+        // Variacao / Material
         {type:'section', label:'Variacao e Material'},
         {key:'cor',               label:'Cor',                    ph:'Ex: Preto'},
         {key:'tamanho',           label:'Tamanho',                ph:'Ex: M / 42'},
@@ -1057,6 +1146,7 @@
         {key:'sku_variacao',      label:'SKU da Variacao',        ph:'Ex: ZN-CAM-001-PT-M'},
         {key:'preco_variacao',    label:'Preco da Variacao (€)',  type:'number', ph:'0.00'},
         {key:'estoque_variacao',  label:'Estoque da Variacao',    type:'number', ph:'0'},
+        // Livros / Publicacoes
         {type:'section', label:'Livros e Publicacoes'},
         {key:'autor',             label:'Autor',                  ph:'Nome do autor'},
         {key:'editora',           label:'Editora',                ph:'Nome da editora'},
@@ -1065,6 +1155,7 @@
         {key:'ano_publicacao',    label:'Ano de Publicacao',      type:'number', ph:'2025'},
         {key:'idioma',            label:'Idioma',                 ph:'Ex: Portugues'},
         {key:'tipo_capa',         label:'Tipo de Capa',           type:'select', options:[{v:'mole',l:'Mole'},{v:'dura',l:'Dura'},{v:'espiralada',l:'Espiralada'}]},
+        // Imagem e Destaque
         {type:'section', label:'Imagem e Destaque'},
         {key:'imagem_url',        label:'Imagem Principal',       type:'image', bucket:'imagens', full:true},
         {key:'ordem',             label:'Ordem de Exibicao',      type:'number', ph:'1'},
@@ -1075,23 +1166,25 @@
         {key:'mais_vendido',      label:'Mais Vendido',           type:'checkbox'},
     ];}
 
+
     // ══════════════════════════════════════════════════════════
-    // EVENTOS
+    // EVENTOS — render, presencas, campos
     // ══════════════════════════════════════════════════════════
+
     const STATUS_EVENTO = {
-        aberto:    { label:'Aberto',    cls:'badge-green'   },
-        em_curso:  { label:'Em Curso',  cls:'badge-primary' },
-        concluido: { label:'Concluido', cls:'badge-gray'    },
-        cancelado: { label:'Cancelado', cls:'badge-red'     },
+        aberto:    { label:'Aberto',    cls:'badge-green'  },
+        em_curso:  { label:'Em Curso',  cls:'badge-gold'   },
+        concluido: { label:'Concluido', cls:'badge-gray'   },
+        cancelado: { label:'Cancelado', cls:'badge-red'    },
     };
 
     let eventosData     = [];
     let presencasData   = [];
     let lideresData     = [];
-    let eventoAtivo        = null;
-    let lideresMinisterios = {};
-    let presSearchQ        = '';
-    let eventoSubTab    = 0;
+    let eventoAtivo        = null; // evento aberto na aba de presencas
+    let lideresMinisterios = {};   // { membro_id: [{nome, tipo, papel}] }
+    let presSearchQ        = '';   // valor da pesquisa de presencas (evita perda de foco)
+    let eventoSubTab    = 0;    // 0=lista, 1=presencas
 
     function renderEventos() {
         const q         = document.querySelector('.toolbar-search')?.value?.toLowerCase() || '';
@@ -1100,12 +1193,15 @@
         if (q)       lista = lista.filter(e => (e.titulo||'').toLowerCase().includes(q) || (e.local||'').toLowerCase().includes(q));
         if (filtroSt) lista = lista.filter(e => e.status === filtroSt);
 
-        if (eventoAtivo && eventoSubTab === 1) { renderPresencas(); return; }
+        if (eventoAtivo && eventoSubTab === 1) {
+            renderPresencas();
+            return;
+        }
 
         let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
       <input class="toolbar-search" placeholder="Pesquisar evento..." oninput="renderEventos()">
-      <select class="toolbar-filter" id="evt-filtro-status" onchange="renderEventos()" style="border-radius:var(--radius-full);padding:7px 12px;border:1px solid var(--border);background:var(--bg-input);font-family:var(--font-title);font-size:9px;color:var(--text-muted);cursor:pointer">
+      <select class="toolbar-filter" id="evt-filtro-status" onchange="renderEventos()" style="border-radius:20px;padding:7px 12px;border:1px solid var(--border);background:var(--bg-input);font-family:'Cinzel',serif;font-size:9px;color:var(--text-muted);cursor:pointer">
         <option value="">Todos</option>
         <option value="aberto">Abertos</option>
         <option value="em_curso">Em Curso</option>
@@ -1116,7 +1212,7 @@
     </div>`;
 
         if (lista.length === 0) {
-            html += '<div class="empty"><div class="empty-icon">📅</div><div class="empty-txt">Nenhum evento encontrado.</div></div>';
+            html += '<div class="empty"><div class="empty-icon">-</div><div class="empty-txt">Nenhum evento encontrado.</div></div>';
             document.getElementById('main-content').innerHTML = html;
             return;
         }
@@ -1129,23 +1225,25 @@
 
             const btns = [];
             if (e.status === 'aberto')   btns.push(`<button class="btn-edit" onclick="abrirFormEvento('${e.id}')">Editar</button>`);
-            if (e.status === 'aberto')   btns.push(`<button class="btn-toggle inativo" onclick="iniciarEvento('${e.id}')">Iniciar</button>`);
+            if (e.status === 'aberto')   btns.push(`<button class="btn-toggle ativo" style="background:var(--green-bg);color:var(--green);border-color:var(--green-border)" onclick="iniciarEvento('${e.id}')">Iniciar</button>`);
             if (e.status === 'em_curso') btns.push(`<button class="btn-edit" onclick="abrirPresencas('${e.id}')">Presencas</button>`);
-            if (e.status === 'em_curso') btns.push(`<button class="btn-toggle inativo" onclick="concluirEvento('${e.id}')">Concluir</button>`);
+            if (e.status === 'em_curso') btns.push(`<button class="btn-toggle ativo" style="background:var(--green-bg);color:var(--green);border-color:var(--green-border)" onclick="concluirEvento('${e.id}')">Concluir</button>`);
             if (e.status !== 'cancelado' && e.status !== 'concluido') btns.push(`<button class="btn-toggle ativo" onclick="cancelarEvento('${e.id}')">Cancelar</button>`);
             if (e.status === 'concluido' || e.status === 'cancelado') btns.push(`<button class="btn-edit" onclick="abrirPresencas('${e.id}')">Ver Resumo</button>`);
+            if (e.status === 'concluido') btns.push(`<button class="btn-edit" style="color:var(--red);border-color:rgba(180,0,0,0.2)" onclick="gerarRelatorioEvento('${e.id}')">Relatorio PDF</button>`);
+            if (e.status === 'concluido') btns.push(`<a href="relatorio-evento.html?evento=${e.id}" target="_blank" class="btn-edit" style="text-decoration:none;color:var(--gold-dark);border-color:var(--gold-light);background:rgba(184,146,42,0.06)">PDF</a>`);
 
             html += `
       <div class="admin-row" style="animation-delay:${Math.min(i,12)*0.02}s;flex-direction:column;align-items:stretch;gap:8px">
         <div style="display:flex;align-items:center;gap:12px">
-          <div class="admin-row-foto">📅</div>
+          <div class="admin-row-foto" style="background:linear-gradient(135deg,rgba(184,146,42,0.15),rgba(184,146,42,0.05))">${(e.titulo||'E')[0]}</div>
           <div class="admin-row-info">
             <div class="admin-row-nome">${e.titulo||'—'}</div>
             <div class="admin-row-sub">${dInicio}${dFim?' — '+dFim:''} ${e.local?'· '+e.local:''}</div>
             <div class="admin-row-badges">
               <span class="badge ${st.cls}">${st.label}</span>
               ${e.gratuito?'<span class="badge badge-green">Gratuito</span>':''}
-              ${e.destaque?'<span class="badge badge-primary">Destaque</span>':''}
+              ${e.destaque?'<span class="badge badge-gold">Destaque</span>':''}
               ${e.tipo?'<span class="badge badge-gray">'+e.tipo+'</span>':''}
             </div>
           </div>
@@ -1157,9 +1255,11 @@
         document.getElementById('main-content').innerHTML = html;
     }
 
+    // ── Acoes de status ────────────────────────────────────────
     async function iniciarEvento(id) {
         if (!confirm('Iniciar este evento? Sera criada a lista de presencas com todos os lideres.')) return;
         await sb(`eventos?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'em_curso'})});
+        // Cria presencas para todos os lideres
         const lideres = await sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true');
         if (lideres?.length) {
             const rows = lideres.map(l => ({evento_id:id, membro_id:l.id, status:'pendente'}));
@@ -1178,24 +1278,33 @@
 
     async function concluirEvento(id) {
         if (!confirm('Concluir evento? Todos os lideres ainda pendentes serao marcados como faltaram.')) return;
+        // Marca pendentes como faltou
         await sb(`evento_presencas?evento_id=eq.${id}&status=eq.pendente`, {method:'PATCH', body:JSON.stringify({status:'faltou'})});
         await sb(`eventos?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'concluido'})});
         eventosData = await sb('eventos?select=*&order=data_inicio') || [];
-        eventoAtivo = null; eventoSubTab = 0;
+        eventoAtivo = null;
+        eventoSubTab = 0;
         renderEventos();
     }
 
+    // ── Presencas ──────────────────────────────────────────────
     async function abrirPresencas(id) {
         eventoAtivo  = eventosData.find(e => e.id === id);
         eventoSubTab = 1;
-        presencasData = await sb(`evento_presencas?select=*,membros(id,nome,telefone)&evento_id=eq.${id}&order=created_at`) || [];
+        // Carrega presencas + nome do membro
+        presencasData = await sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url)&evento_id=eq.${id}&order=created_at`) || [];
+        // Carrega areas/ministerios de cada lider
         const membroIds = presencasData.map(p=>p.membro_id).filter(Boolean);
         lideresMinisterios = {};
         if (membroIds.length) {
             const vincs = await sb(`membro_ministerios?select=membro_id,papel,ativo,ministerios(id,nome,tipo)&membro_id=in.(${membroIds.join(',')})&ativo=eq.true`) || [];
             vincs.forEach(v => {
                 if (!lideresMinisterios[v.membro_id]) lideresMinisterios[v.membro_id] = [];
-                lideresMinisterios[v.membro_id].push({ papel: v.papel, nome: v.ministerios?.nome || '—', tipo: v.ministerios?.tipo || '—' });
+                lideresMinisterios[v.membro_id].push({
+                    papel: v.papel,
+                    nome:  v.ministerios?.nome || '—',
+                    tipo:  v.ministerios?.tipo || '—',
+                });
             });
         }
         renderPresencas();
@@ -1205,11 +1314,13 @@
         const evento  = eventoAtivo;
         const st      = STATUS_EVENTO[evento?.status] || STATUS_EVENTO.aberto;
         const emCurso = evento?.status === 'em_curso';
+        // Usa ID proprio para nao conflituar com outras pesquisas
         const q = presSearchQ.toLowerCase();
 
         let lista = [...presencasData];
         if (q) lista = lista.filter(p => (p.membros?.nome||'').toLowerCase().includes(q));
 
+        // Contadores
         const total     = presencasData.length;
         const presentes = presencasData.filter(p=>p.status==='presente').length;
         const faltaram  = presencasData.filter(p=>p.status==='faltou').length;
@@ -1218,17 +1329,19 @@
 
         let html = `
     <div class="section-toolbar" style="position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:6px">
-      <button class="btn-edit" style="border-radius:var(--radius-full);padding:5px 12px;font-size:10px" onclick="voltarListaEventos()">← Voltar</button>
+      <button class="back-btn" style="position:static;width:auto;height:auto;border-radius:20px;padding:5px 12px;font-size:10px" onclick="voltarListaEventos()">← Voltar</button>
+      ${eventoAtivo?.status==='concluido'?`<a href="relatorio-evento.html?evento=${eventoAtivo.id}" target="_blank" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-dark);border:1px solid var(--gold-light);background:rgba(184,146,42,0.06);padding:5px 12px;border-radius:20px;text-decoration:none">Ver PDF</a>`:''}
       <input class="toolbar-search" id="pres-search" placeholder="Pesquisar lider..." oninput="presSearchQ=this.value;renderPresencas()" style="flex:1;min-width:120px">
-      ${emCurso ? `<button class="btn-new" onclick="finalizarEntradas()">Finalizar Entradas</button>` : ''}
+      ${emCurso ? `<button class="btn-new" style="background:linear-gradient(135deg,var(--green),#4caf50)" onclick="finalizarEntradas()">Finalizar Entradas</button>` : ''}
+      ${evento?.status==='concluido' ? `<button class="btn-edit" style="color:var(--red);border-color:rgba(180,0,0,0.2)" onclick="gerarRelatorioEvento('${evento.id}')">Relatorio PDF</button>` : ''}
     </div>
     <div style="padding:10px 16px 4px">
-      <div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark);margin-bottom:4px">${evento?.titulo||'—'}</div>
+      <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold-dark);margin-bottom:4px">${evento?.titulo||'—'}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <span class="badge ${st.cls}">${st.label}</span>
         <span class="badge badge-green">Presentes: ${presentes}</span>
         <span class="badge badge-red">Faltaram: ${faltaram+comMotivo}</span>
-        ${comMotivo ? `<span class="badge badge-primary">Com motivo: ${comMotivo}</span>` : ''}
+        ${comMotivo ? `<span class="badge badge-gold">Com motivo: ${comMotivo}</span>` : ''}
         ${pendentes ? `<span class="badge badge-gray">Pendentes: ${pendentes}</span>` : ''}
       </div>
     </div>
@@ -1242,20 +1355,23 @@
             return;
         }
 
+        // Agrupa por status para o resumo final
         const grupos = [
-            {key:'presente',     label:'Presentes',         items: lista.filter(p=>p.status==='presente')},
-            {key:'pendente',     label:'Pendentes',          items: lista.filter(p=>p.status==='pendente')},
-            {key:'faltou_motivo',label:'Faltaram c/ Motivo', items: lista.filter(p=>p.status==='faltou_motivo')},
-            {key:'faltou',       label:'Faltaram',           items: lista.filter(p=>p.status==='faltou')},
+            {key:'presente',     label:'Presentes',        items: lista.filter(p=>p.status==='presente')},
+            {key:'pendente',     label:'Pendentes',         items: lista.filter(p=>p.status==='pendente')},
+            {key:'faltou_motivo',label:'Faltaram c/ Motivo',items: lista.filter(p=>p.status==='faltou_motivo')},
+            {key:'faltou',       label:'Faltaram',          items: lista.filter(p=>p.status==='faltou')},
         ].filter(g => g.items.length > 0);
 
         grupos.forEach(grupo => {
-            html += `<div style="padding:8px 16px 2px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">${grupo.label} (${grupo.items.length})</div>`;
+            html += `<div style="padding:8px 16px 2px;font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">${grupo.label} (${grupo.items.length})</div>`;
             html += '<div class="admin-list" style="padding:4px 16px 8px">';
             grupo.items.forEach((p, i) => {
                 const nome   = p.membros?.nome || '—';
                 const stIcon = {presente:'✓', faltou:'✗', faltou_motivo:'!', pendente:'·'}[p.status]||'·';
-                const stCls  = {presente:'badge-green', faltou:'badge-red', faltou_motivo:'badge-primary', pendente:'badge-gray'}[p.status]||'badge-gray';
+                const stCls  = {presente:'badge-green', faltou:'badge-red', faltou_motivo:'badge-gold', pendente:'badge-gray'}[p.status]||'badge-gray';
+
+                // Ministerios/areas do lider
                 const mins = lideresMinisterios[p.membro_id] || [];
                 const minsHtml = mins.map(m => {
                     const tipoCurto = m.tipo === 'ministerio' ? 'MIN' : 'AE';
@@ -1263,25 +1379,49 @@
                 }).join('');
 
                 let btns = '';
-                if (emCurso && p.status !== 'presente')      btns += `<button class="btn-toggle inativo" onclick="marcarPresenca('${p.id}','presente')">Presente</button>`;
-                if (emCurso && p.status !== 'faltou')        btns += `<button class="btn-toggle ativo" onclick="marcarPresenca('${p.id}','faltou')">Faltou</button>`;
-                if (emCurso && p.status !== 'faltou_motivo') btns += `<button class="btn-edit" onclick="abrirMotivo('${p.id}','${nome.replace(/'/g,"\'")}')">Com Motivo</button>`;
-                if (emCurso && p.status !== 'pendente')      btns += `<button class="btn-edit" style="color:var(--text-faint)" onclick="marcarPresenca('${p.id}','pendente')" title="Desfazer">Desfazer</button>`;
+                if (emCurso && p.status !== 'presente') {
+                    btns += `<button class="btn-toggle inativo" onclick="marcarPresenca('${p.id}','presente')">Presente</button>`;
+                }
+                if (emCurso && p.status !== 'faltou') {
+                    btns += `<button class="btn-toggle ativo" onclick="marcarPresenca('${p.id}','faltou')">Faltou</button>`;
+                }
+                if (emCurso && p.status !== 'faltou_motivo') {
+                    btns += `<button class="btn-edit" onclick="abrirMotivo('${p.id}','${nome.replace(/'/g,"\'")}')">Com Motivo</button>`;
+                }
+                if (emCurso && p.status !== 'pendente') {
+                    btns += `<button class="btn-edit" style="color:var(--text-faint);border-color:var(--border)" onclick="marcarPresenca('${p.id}','pendente')" title="Desfazer marcacao">Desfazer</button>`;
+                }
+                // zap button is rendered separately near the name
+
+                // WhatsApp separado dos botoes de acao
+                let zapBtn = '';
                 if (p.membros?.telefone) {
                     const tel    = (p.membros.telefone).replace(/\D/g,'');
                     const dEvt   = eventoAtivo?.data_inicio ? new Date(eventoAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '';
                     const titulo = eventoAtivo?.titulo || 'reuniao de lideranca';
                     const msg    = encodeURIComponent(`Ola ${p.membros.nome?.split(' ')[0]}! Gostariamos de confirmar a tua presenca na ${titulo} que acontecera ${dEvt}. Podes confirmar?`);
-                    btns += `<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" class="btn-edit" style="color:#25D366;border-color:rgba(37,211,102,0.3);background:rgba(37,211,102,0.06);text-decoration:none">WhatsApp</a>`;
+                    zapBtn = `<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#25D366;text-decoration:none;padding:2px 6px;border-radius:6px;border:1px solid rgba(37,211,102,0.3);background:rgba(37,211,102,0.06)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Zap
+        </a>`;
                 }
 
+                // Foto ou iniciais
+                const fotoSrc = p.membros?.foto_url;
+                const fotoHtml = fotoSrc
+                    ? `<img src="${fotoSrc}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${{ 'presente':'var(--green)','faltou':'var(--red)','faltou_motivo':'var(--orange)','pendente':'var(--border)'}[p.status]||'var(--border)'}" onerror="this.style.display='none'">`
+                    : `<div class="admin-row-foto" style="font-size:13px;font-weight:bold;color:${{ 'presente':'var(--green)','faltou':'var(--red)','faltou_motivo':'var(--orange)','pendente':'var(--text-faint)'}[p.status]||'var(--text-faint)'}">${stIcon}</div>`;
+
                 html += `
-        <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap">
-          <div class="admin-row-foto" style="font-size:13px;font-weight:bold;color:${{presente:'var(--green)',faltou:'var(--red)',faltou_motivo:'var(--orange)',pendente:'var(--text-faint)'}[p.status]}">${stIcon}</div>
-          <div class="admin-row-info" style="min-width:0">
-            <div class="admin-row-nome">${nome}</div>
+        <div class="admin-row" style="animation-delay:${Math.min(i,20)*0.01}s;flex-wrap:wrap;gap:6px">
+          ${fotoHtml}
+          <div class="admin-row-info" style="min-width:0;flex:1">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span class="admin-row-nome">${nome}</span>
+              ${zapBtn}
+            </div>
             <div class="admin-row-badges" style="margin-top:3px;flex-wrap:wrap;gap:3px">${minsHtml || '<span style="font-size:10px;color:var(--text-faint)">Sem areas associadas</span>'}</div>
-            ${p.motivo ? `<div class="admin-row-sub" style="color:var(--orange);margin-top:3px">${p.motivo}</div>` : ''}
+            ${p.motivo ? `<div class="admin-row-sub" style="color:var(--orange);margin-top:3px">Motivo: ${p.motivo}</div>` : ''}
           </div>
           <div class="admin-row-actions">${btns}</div>
         </div>`;
@@ -1290,27 +1430,37 @@
         });
 
         document.getElementById('main-content').innerHTML = html;
+        // Restaura valor e foco no campo de pesquisa
         const si = document.getElementById('pres-search');
         if(si){si.value=presSearchQ;si.focus();si.setSelectionRange(si.value.length,si.value.length);}
     }
 
-    function voltarListaEventos() { eventoAtivo = null; eventoSubTab = 0; presSearchQ = ''; renderEventos(); }
+    function voltarListaEventos() {
+        eventoAtivo  = null;
+        eventoSubTab = 0;
+        presSearchQ  = '';
+        renderEventos();
+    }
 
     async function marcarPresenca(presencaId, novoStatus) {
-        await sb(`evento_presencas?id=eq.${presencaId}`, {method:'PATCH', body:JSON.stringify({status:novoStatus, registado_em: new Date().toISOString()})});
+        const patch = {status: novoStatus, registado_em: new Date().toISOString()};
+        if (novoStatus === 'pendente') patch.motivo = ''; // limpa motivo ao desfazer
+        await sb(`evento_presencas?id=eq.${presencaId}`, {method:'PATCH', body:JSON.stringify(patch)});
         const idx = presencasData.findIndex(p=>p.id===presencaId);
-        if (idx>=0) presencasData[idx].status = novoStatus;
+        if (idx>=0) { presencasData[idx].status = novoStatus; if (novoStatus==='pendente') presencasData[idx].motivo = ''; }
         renderPresencas();
     }
 
     async function finalizarEntradas() {
         if (!eventoAtivo) return;
         if (!confirm('Finalizar entradas? Todos os lideres ainda pendentes serao marcados como faltaram.')) return;
-        await sb(`evento_presencas?evento_id=eq.${eventoAtivo.id}&status=eq.pendente`, {method:'PATCH', body:JSON.stringify({status:'faltou'})});
+        await sb(`evento_presencas?evento_id=eq.${eventoAtivo.id}&status=eq.pendente`,
+            {method:'PATCH', body:JSON.stringify({status:'faltou'})});
         presencasData.forEach(p => { if (p.status==='pendente') p.status='faltou'; });
         renderPresencas();
     }
 
+    // ── Modal motivo ───────────────────────────────────────────
     let motivoPresencaId = null;
 
     function abrirMotivo(presencaId, nome) {
@@ -1342,6 +1492,7 @@
         renderPresencas();
     }
 
+    // ── Form de evento ─────────────────────────────────────────
     function abrirFormEvento(id) {
         const e = id ? eventosData.find(x=>x.id===id) : null;
         document.getElementById('drawer-title').textContent = e ? 'Editar Evento' : 'Novo Evento';
@@ -1352,7 +1503,12 @@
 
     function buildFormEvento(e) {
         const fv = (k, def='') => e?.[k] ?? def;
-        const fdt = (k) => { const v = e?.[k]; if (!v) return ''; return new Date(v).toISOString().slice(0,16); };
+        const fdt = (k) => {
+            const v = e?.[k];
+            if (!v) return '';
+            // converte para formato datetime-local
+            return new Date(v).toISOString().slice(0,16);
+        };
         return `<div class="form-grid">
     <div class="msg-form" id="form-msg"></div>
     <div class="form-section-title">Identificacao</div>
@@ -1406,7 +1562,123 @@
         }
     }
 
-    function camposEventos() { return []; }
+    function camposEventos() { return []; } // usado pelo SECOES mas render e customizado
+
+
+    // ══════════════════════════════════════════════════════════
+    // RELATORIO PDF DE EVENTO
+    // ══════════════════════════════════════════════════════════
+
+    async function gerarRelatorioEvento(eventoId) {
+        // Carrega dados frescos
+        const evento = eventosData.find(e=>e.id===eventoId);
+        if (!evento) return;
+
+        const pres = await sb(`evento_presencas?select=*,membros(id,nome,foto_url,telefone)&evento_id=eq.${eventoId}&order=created_at`) || [];
+
+        // Carrega ministerios de cada membro
+        const membroIds = pres.map(p=>p.membro_id).filter(Boolean);
+        let minsMap = {};
+        if (membroIds.length) {
+            const vincs = await sb(`membro_ministerios?select=membro_id,papel,ministerios(nome,tipo)&membro_id=in.(${membroIds.join(',')})&ativo=eq.true`) || [];
+            vincs.forEach(v => {
+                if (!minsMap[v.membro_id]) minsMap[v.membro_id] = [];
+                minsMap[v.membro_id].push({
+                    tipo:  v.ministerios?.tipo || '?',
+                    nome:  v.ministerios?.nome || '—',
+                    papel: v.papel || '',
+                });
+            });
+        }
+
+        const presentes   = pres.filter(p=>p.status==='presente');
+        const faltaram    = pres.filter(p=>p.status==='faltou');
+        const comMotivo   = pres.filter(p=>p.status==='faltou_motivo');
+        const dEvt = evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+
+        // Agrupa por area/tipo para o resumo
+        const porArea = {};
+        pres.forEach(p => {
+            const mins = minsMap[p.membro_id] || [{tipo:'Sem area', nome:'Sem area', papel:''}];
+            mins.forEach(m => {
+                const chave = `${m.tipo}||${m.nome}`;
+                if (!porArea[chave]) porArea[chave] = {tipo:m.tipo, nome:m.nome, presentes:0, faltaram:0};
+                if (p.status==='presente') porArea[chave].presentes++;
+                else if (p.status==='faltou'||p.status==='faltou_motivo') porArea[chave].faltaram++;
+            });
+        });
+
+        const rowMembro = (p) => {
+            const mins = minsMap[p.membro_id] || [];
+            const areasStr = mins.map(m=>`[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}${m.papel?' · '+m.papel:''}`).join('  |  ');
+            return `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #eee">${p.membros?.nome||'—'}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;color:#666">${areasStr||'—'}</td>
+      ${p.motivo ? `<td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;color:#c07000">${p.motivo}</td>` : '<td style="padding:6px 8px;border-bottom:1px solid #eee">—</td>'}
+    </tr>`;
+        };
+
+        const rowArea = (a) => `<tr>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee">${a.tipo==='ministerio'?'Ministerio':'Area de Equipa'}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;font-weight:600">${a.nome}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;color:green;text-align:center">${a.presentes}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;color:red;text-align:center">${a.faltaram}</td>
+    <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${Math.round(a.presentes/(a.presentes+a.faltaram||1)*100)}%</td>
+  </tr>`;
+
+        const html = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+  <title>Relatorio — ${evento.titulo}</title>
+  <style>
+    body{font-family:Arial,sans-serif;color:#222;padding:32px;max-width:900px;margin:0 auto}
+    h1{font-size:22px;margin-bottom:4px;color:#6b4f10}
+    h2{font-size:15px;margin:28px 0 10px;color:#6b4f10;border-bottom:2px solid #b8922a;padding-bottom:4px}
+    .meta{font-size:13px;color:#555;margin-bottom:24px}
+    .badges{display:flex;gap:10px;margin-bottom:20px}
+    .badge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold}
+    .g{background:#e8f5e9;color:#2e7d32}.r{background:#ffebee;color:#c62828}.o{background:#fff8e1;color:#e65100}.gr{background:#f5f5f5;color:#555}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f9f4ec;padding:8px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888}
+    @media print{body{padding:16px}}
+  </style></head><body>
+  <h1>${evento.titulo}</h1>
+  <div class="meta">${dEvt}${evento.local?' · '+evento.local:''}</div>
+  <div class="badges">
+    <span class="badge g">Presentes: ${presentes.length}</span>
+    <span class="badge r">Faltaram: ${faltaram.length}</span>
+    <span class="badge o">Com motivo: ${comMotivo.length}</span>
+    <span class="badge gr">Total: ${pres.length}</span>
+  </div>
+
+  <h2>Presentes (${presentes.length})</h2>
+  <table><thead><tr><th>Nome</th><th>Areas / Ministerios</th><th>—</th></tr></thead><tbody>
+    ${presentes.map(rowMembro).join('')}
+  </tbody></table>
+
+  ${comMotivo.length ? `<h2>Faltaram com Motivo (${comMotivo.length})</h2>
+  <table><thead><tr><th>Nome</th><th>Areas / Ministerios</th><th>Motivo</th></tr></thead><tbody>
+    ${comMotivo.map(rowMembro).join('')}
+  </tbody></table>` : ''}
+
+  ${faltaram.length ? `<h2>Faltaram (${faltaram.length})</h2>
+  <table><thead><tr><th>Nome</th><th>Areas / Ministerios</th><th>—</th></tr></thead><tbody>
+    ${faltaram.map(rowMembro).join('')}
+  </tbody></table>` : ''}
+
+  <h2>Resumo por Area / Ministerio</h2>
+  <table><thead><tr><th>Tipo</th><th>Nome</th><th style="text-align:center">Presentes</th><th style="text-align:center">Faltaram</th><th style="text-align:center">Presenca</th></tr></thead><tbody>
+    ${Object.values(porArea).sort((a,b)=>a.nome.localeCompare(b.nome)).map(rowArea).join('')}
+  </tbody></table>
+
+  <div style="margin-top:40px;font-size:11px;color:#aaa;text-align:center">
+    Gerado em ${new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})} · Zion Lisboa
+  </div>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+        const win = window.open('','_blank');
+        win.document.write(html);
+        win.document.close();
+    }
 
     init();
 </script>

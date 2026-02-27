@@ -88,9 +88,56 @@
         </div>
     </div>
     <div class="footer">
-        <!-- footer igual ao original -->
+        <div class="footer-links">
+            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
+            <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>@ZionLisboa</a>
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-bottom">
+            <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+            <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+        </div>
     </div>
 </div>
-<!-- script igual ao original -->
+<script>
+    const CATS={almoco:{l:'🍽️ Almoço',o:1},bebidas:{l:'☕ Bebidas',o:2},sumos:{l:'🧃 Sumos',o:3},snacks:{l:'🥪 Snacks',o:4},sobremesas:{l:'🍰 Sobremesas',o:5},outro:{l:'🛒 Outros',o:6}};
+    const FALLBACK=[
+        {categoria:'almoco',nome:'Prato do Dia',descricao:'Bitoque',preco:8.00,disponivel:true,especial_hoje:true},
+        {categoria:'almoco',nome:'Hambúrguer',descricao:'Kit menu com batatas',preco:11.00,disponivel:true,especial_hoje:false},
+        {categoria:'bebidas',nome:'Café Expresso',descricao:null,preco:2.50,disponivel:true,especial_hoje:false},
+        {categoria:'bebidas',nome:'Café com Leite',descricao:null,preco:2.00,disponivel:true,especial_hoje:false},
+        {categoria:'bebidas',nome:'Coca Cola',descricao:null,preco:4.00,disponivel:true,especial_hoje:false},
+        {categoria:'snacks',nome:'Bolo de Chocolate',descricao:null,preco:2.50,disponivel:true,especial_hoje:false},
+    ];
+    async function load(){
+        try{const r=await fetch('/api/keola');if(!r.ok)throw 0;render(await r.json());}
+        catch{render(FALLBACK);}
+    }
+    function p(v){return Number(v).toFixed(2)+'€';}
+    function render(items){
+        const esp=items.find(i=>i.especial_hoje&&i.disponivel);
+        document.getElementById('especial-section').innerHTML=esp?`
+    <p class="section-label">⭐ Especial do Dia</p>
+    <div class="card card--especial d1">
+      <div class="menu-row">
+        <div><div class="menu-name">${esp.nome}</div>${esp.descricao?`<div class="menu-desc">${esp.descricao}</div>`:''}</div>
+        <div class="menu-price">${p(esp.preco)}</div>
+      </div>
+    </div>`:'';
+        const byCat={};
+        items.forEach(i=>{const c=i.categoria||'outro';if(!byCat[c])byCat[c]=[];byCat[c].push(i);});
+        const sorted=Object.entries(byCat).sort(([a],[b])=>(CATS[a]?.o||99)-(CATS[b]?.o||99));
+        let d=2;
+        document.getElementById('menu-section').innerHTML=sorted.map(([cat,its])=>`
+    <p class="section-label">${CATS[cat]?.l||cat}</p>
+    <div class="card d${Math.min(d++,6)}">
+      ${its.map(i=>`<div class="menu-row">
+        <div><div class="menu-name">${i.nome}${!i.disponivel?' <small style="color:var(--text-faint)">(esgotado)</small>':''}</div>${i.descricao?`<div class="menu-desc">${i.descricao}</div>`:''}</div>
+        <div class="menu-price">${p(i.preco)}</div>
+      </div>`).join('')}
+    </div>`).join('');
+    }
+    load();
+</script>
 </body>
 </html>

@@ -5,355 +5,536 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>LINKs — Zion Church Lisboa</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
     <style>
-        :root{
-            --gold:#B8922A;--gold-light:#D4A843;--gold-dark:#8B6914;
-            --border:rgba(184,146,42,0.22);--bg-page:#F5EFE4;--bg-card:#FFFFFF;
-            --bg-input:#FAF7F2;--bg-footer:#F0E8D8;--text-main:#1A1410;
-            --text-muted:#7A6A52;--text-faint:#A89878;
-            --shadow:0 8px 40px rgba(100,70,20,0.13);
-            --green:#25D366;--green-dark:#128C7E;
+        /* ── Content ─────────────────────────────────────── */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-input);
         }
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-        html,body{height:100%;background:var(--bg-page);font-family:'Lato',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
-        body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 15%,rgba(201,168,76,0.09) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(201,168,76,0.06) 0%,transparent 55%);pointer-events:none}
-        .page-wrapper{position:relative;z-index:1;display:flex;flex-direction:column;width:640px;max-width:96vw;height:96vh;max-height:900px;background:var(--bg-card);border-radius:16px;box-shadow:var(--shadow),0 0 0 1px var(--border);overflow:hidden}
+        .content::-webkit-scrollbar { width: 4px; }
+        .content::-webkit-scrollbar-thumb { background: rgba(0,144,152,0.25); border-radius: 2px; }
 
-        /* Banner */
-        .banner{width:100%;position:relative;background:#111;flex-shrink:0}
-        .banner img{width:100%;height:110px;object-fit:cover;display:block}
-        .banner-fallback{display:none;width:100%;height:110px;background:linear-gradient(135deg,#0d0d0d 0%,#1c1408 50%,#0d0d0d 100%);align-items:center;justify-content:center;flex-direction:column;gap:8px}
-        .banner-fallback.show{display:flex}
-        .banner-title{font-family:'Cinzel',serif;color:#C9A84C;font-size:26px;font-weight:700;letter-spacing:10px}
-        .banner-sub{color:rgba(201,168,76,0.6);font-size:10px;letter-spacing:4px;text-transform:uppercase}
-        .banner-overlay{position:absolute;bottom:0;left:0;right:0;height:55px;background:linear-gradient(to top,rgba(255,255,255,0.97),transparent)}
-        .banner-nav{position:absolute;bottom:10px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
-        .back-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;color:var(--gold-dark);text-decoration:none;backdrop-filter:blur(8px)}
-        .page-badge{font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:20px;padding:5px 14px;backdrop-filter:blur(8px)}
-        .gold-line{height:2px;background:linear-gradient(90deg,transparent,var(--gold-light),transparent);flex-shrink:0;opacity:0.5}
+        /* ── Search bar ──────────────────────────────────── */
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+            flex-shrink: 0;
+        }
+        .search-input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            padding: 8px 14px;
+            font-family: var(--font-body);
+            font-size: 13px;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input::placeholder { color: var(--text-faint); }
+        .search-input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px var(--primary-faint); }
 
-        /* Search & filter bar */
-        .search-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg-card);flex-shrink:0}
-        .search-input{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-family:'Lato',sans-serif;font-size:13px;color:var(--text-main);outline:none;transition:border-color 0.2s}
-        .search-input::placeholder{color:var(--text-faint)}
-        .search-input:focus{border-color:var(--gold-light)}
+        /* ── Filter chips ────────────────────────────────── */
+        .filters-row {
+            display: flex;
+            gap: 6px;
+            padding: 8px 16px;
+            overflow-x: auto;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+        .filters-row::-webkit-scrollbar { height: 0; }
 
-        /* Filter chips */
-        .filters-row{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border);background:var(--bg-card)}
-        .filters-row::-webkit-scrollbar{height:0}
-        .filter-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg-input);font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);cursor:pointer;transition:all 0.2s;white-space:nowrap}
-        .filter-chip:hover{border-color:var(--gold-light)}
-        .filter-chip.active{background:linear-gradient(135deg,var(--gold-dark),var(--gold-light));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(139,105,20,0.2)}
-        .filter-chip.all.active{background:linear-gradient(135deg,var(--gold-dark),var(--gold-light))}
+        .filter-chip {
+            flex-shrink: 0;
+            padding: 5px 12px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .filter-chip:hover { border-color: var(--primary-light); color: var(--primary-dark); }
+        .filter-chip.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: var(--shadow-sm);
+        }
 
-        /* Content */
-        .content{flex:1;overflow-y:auto;background:var(--bg-input)}
-        .content::-webkit-scrollbar{width:4px}
-        .content::-webkit-scrollbar-thumb{background:rgba(184,146,42,0.25);border-radius:2px}
+        .filters-sep {
+            color: var(--text-faint);
+            font-size: 9px;
+            font-family: var(--font-title);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            align-self: center;
+            flex-shrink: 0;
+            margin-left: 4px;
+        }
 
-        /* Stats */
-        .stats-bar{display:flex;gap:8px;padding:12px 16px 4px}
-        .stat-pill{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:9px;text-align:center}
-        .stat-num{font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--gold-dark)}
-        .stat-label{font-size:10px;color:var(--text-faint);margin-top:1px}
+        /* ── Stats bar ───────────────────────────────────── */
+        .stats-bar {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px 4px;
+        }
+        .stat-pill {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 9px;
+            text-align: center;
+        }
+        .stat-num {
+            font-family: var(--font-title);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        .stat-label { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
 
-        /* Section group header */
-        .group-header{font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-faint);padding:12px 16px 6px;display:flex;align-items:center;gap:8px}
-        .group-header-count{font-size:9px;background:rgba(184,146,42,0.12);color:var(--gold-dark);padding:1px 7px;border-radius:10px;letter-spacing:1px}
+        /* ── Group header ────────────────────────────────── */
+        .group-header {
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            padding: 12px 16px 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .group-header-count {
+            font-size: 9px;
+            background: var(--primary-faint);
+            color: var(--primary-dark);
+            padding: 1px 7px;
+            border-radius: var(--radius-full);
+            letter-spacing: 1px;
+            border: 1px solid var(--border);
+        }
 
-        /* Link row — uma linha por link */
-        .links-list{display:flex;flex-direction:column;gap:0;padding:0 16px 16px}
-        .link-row{display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:11px 14px;transition:all 0.2s;animation:fadeUp 0.3s ease both;margin-bottom:6px}
-        .link-row:hover{box-shadow:0 3px 14px rgba(100,70,20,0.1);border-color:var(--gold-light)}
+        /* ── Link row ────────────────────────────────────── */
+        .links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            padding: 0 16px 16px;
+        }
+        .link-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 11px 14px;
+            transition: all 0.2s;
+            animation: fadeUp 0.3s ease both;
+            margin-bottom: 6px;
+        }
+        .link-row:hover { box-shadow: var(--shadow-sm); border-color: var(--primary-light); }
 
-        /* Ícone tipo */
-        .link-type-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05));border:1px solid rgba(184,146,42,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+        .link-type-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--primary-dark);
+        }
+        .link-type-icon svg { width: 18px; height: 18px; }
 
-        /* Info do link */
-        .link-info{flex:1;min-width:0}
-        .link-nome{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--gold-dark);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .link-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-        .link-meta-item{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted)}
-        .link-meta-item svg{width:11px;height:11px;color:var(--text-faint);flex-shrink:0}
-        .link-lider{font-size:11px;color:var(--text-faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .link-zona-badge{font-family:'Cinzel',serif;font-size:8px;letter-spacing:1px;padding:2px 7px;border-radius:8px;background:rgba(184,146,42,0.1);color:var(--gold-dark);border:1px solid rgba(184,146,42,0.15);white-space:nowrap;flex-shrink:0}
-        .link-dia-badge{font-family:'Cinzel',serif;font-size:8px;letter-spacing:0.5px;padding:2px 7px;border-radius:8px;background:rgba(100,130,200,0.1);color:#1565c0;border:1px solid rgba(100,130,200,0.2);white-space:nowrap;flex-shrink:0}
+        .link-info { flex: 1; min-width: 0; }
 
-        /* Botão WhatsApp */
-        .wap-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--green-dark),var(--green));color:#fff;font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;flex-shrink:0;text-decoration:none;box-shadow:0 2px 8px rgba(37,211,102,0.25)}
-        .wap-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
-        .wap-btn svg{width:14px;height:14px;flex-shrink:0}
+        .link-nome {
+            font-family: var(--font-title);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-        /* Online badge */
-        .online-badge{font-size:9px;padding:1px 6px;border-radius:6px;background:rgba(46,125,50,0.1);color:#2e7d32;border:1px solid rgba(46,125,50,0.2);font-family:'Cinzel',serif;letter-spacing:0.5px}
+        .link-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
-        /* Empty / Loading */
-        .empty{text-align:center;padding:48px 20px;color:var(--text-faint)}
-        .empty-icon{font-size:44px;margin-bottom:10px;opacity:0.35}
-        .empty-txt{font-size:13px}
-        .loading{text-align:center;padding:48px;color:var(--text-faint);font-size:13px}
-        .spin{width:26px;height:26px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
+        .link-zona-badge {
+            font-family: var(--font-title);
+            font-size: 8px;
+            letter-spacing: 1px;
+            padding: 2px 7px;
+            border-radius: var(--radius-sm);
+            background: var(--primary-faint);
+            color: var(--primary-dark);
+            border: 1px solid var(--border);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .link-dia-badge {
+            font-family: var(--font-title);
+            font-size: 8px;
+            letter-spacing: 0.5px;
+            padding: 2px 7px;
+            border-radius: var(--radius-sm);
+            background: rgba(21,101,192,0.08);
+            color: #1565c0;
+            border: 1px solid rgba(21,101,192,0.2);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .online-badge {
+            font-size: 9px;
+            padding: 1px 6px;
+            border-radius: var(--radius-sm);
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid var(--green-border);
+            font-family: var(--font-title);
+            letter-spacing: 0.5px;
+        }
 
-        /* Footer */
-        .footer{background:var(--bg-footer);border-top:1px solid var(--border);padding:10px 18px;flex-shrink:0}
-        .footer-links{display:flex;justify-content:center;gap:12px;margin-bottom:8px}
-        .footer-link{display:flex;align-items:center;gap:5px;color:var(--gold);text-decoration:none;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;font-family:'Cinzel',serif;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:rgba(255,255,255,0.6)}
-        .footer-link svg{width:12px;height:12px}
-        .footer-div{height:1px;background:var(--border);margin:8px 0}
-        .footer-copy{color:var(--text-muted);font-size:10px;letter-spacing:1px;text-transform:uppercase;font-family:'Cinzel',serif;text-align:center}
-        .footer-addr{color:var(--text-faint);font-size:10px;text-align:center;margin-top:2px}
+        .link-lider {
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .link-lider svg { width: 11px; height: 11px; flex-shrink: 0; }
 
-        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes spin{to{transform:rotate(360deg)}}
+        /* ── WhatsApp button ─────────────────────────────── */
+        .wap-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: linear-gradient(135deg, #128C7E, #25D366);
+            color: #fff;
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(37,211,102,0.25);
+        }
+        .wap-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        .wap-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+        /* ── Empty ───────────────────────────────────────── */
+        .empty { text-align: center; padding: 48px 20px; color: var(--text-faint); }
+        .empty-txt { font-size: 13px; }
+
+        /* ── Banner nav ──────────────────────────────────── */
+        .banner-nav {
+            position: absolute;
+            bottom: 10px; left: 0; right: 0;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px;
+        }
+        .back-btn {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--border); border-radius: var(--radius-full);
+            padding: 5px 14px; font-family: var(--font-title); font-size: 10px;
+            letter-spacing: 1.5px; color: var(--primary-dark); text-decoration: none;
+            backdrop-filter: blur(8px); box-shadow: var(--shadow-sm); transition: all 0.2s;
+        }
+        .back-btn:hover { background: #fff; border-color: var(--primary-light); }
+
+        .page-badge {
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
+            color: var(--primary); text-transform: uppercase;
+            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+            border-radius: var(--radius-full); padding: 5px 14px; backdrop-filter: blur(8px);
+        }
+        .banner-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 55px;
+            background: linear-gradient(to top, rgba(255,255,255,0.97), transparent);
+        }
     </style>
 </head>
 <body>
 <div class="page-wrapper">
+
     <div class="banner">
-        <img src="banner zion.jpg" alt="Zion Lisboa" onerror="this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
-        <div class="banner-fallback"><div class="banner-title">ZION</div><div class="banner-sub">Lisboa · Portugal</div></div>
+        <img src="banner zion.jpg" alt="Zion Lisboa"
+             onerror="this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
+        <div class="banner-fallback">
+            <div class="banner-title">ZION</div>
+            <div class="banner-sub">Lisboa · Portugal</div>
+        </div>
         <div class="banner-overlay"></div>
         <div class="banner-nav">
             <a href="index.html" class="back-btn">← Início</a>
             <span class="page-badge">LINKs</span>
         </div>
     </div>
+
     <div class="gold-line"></div>
 
-    <!-- Pesquisa -->
     <div class="search-bar">
-        <input class="search-input" id="search-input" type="text" placeholder="🔍  Pesquisar link, zona ou líder..." oninput="filtrar()">
+        <input class="search-input" id="search-input" type="text"
+               placeholder="Pesquisar link, zona ou líder..."
+               oninput="filtrar()">
     </div>
 
-    <!-- Filtros -->
     <div class="filters-row" id="filters-row">
-        <button class="filter-chip all active" onclick="setFiltro('todos','todos')" id="chip-todos">Todos</button>
-        <!-- chips dinâmicos -->
+        <button class="filter-chip active" onclick="setFiltro('todos','todos')" id="chip-todos">Todos</button>
     </div>
 
-    <!-- Content -->
     <div class="content" id="main-content">
         <div class="loading"><div class="spin"></div>A carregar LINKs...</div>
     </div>
 
     <div class="footer">
         <div class="footer-links">
-            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
-            <a class="footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>@ZionLisboa</a>
+            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Site Oficial
+            </a>
+            <a class="footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                @ZionLisboa
+            </a>
         </div>
-        <div class="footer-div"></div>
-        <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
-        <div class="footer-addr">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+        <div class="footer-divider"></div>
+        <div class="footer-bottom">
+            <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+            <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+        </div>
     </div>
+
 </div>
 
 <script>
-    const SUPA_URL = window.SUPABASE_URL || '';
-    const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+const SUPA_URL = window.SUPABASE_URL      || '';
+const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
-    let todosLinks   = [];
-    let filtroTipo   = 'todos'; // 'todos' | 'tipo' | 'zona' | 'dia'
-    let filtroValor  = 'todos';
+let todosLinks  = [];
+let filtroTipo  = 'todos';
+let filtroValor = 'todos';
 
-    // Emojis por tipo
-    const tipoIcone = {
-        'Famílias'  : '',
-        'Flow'      : '',
-        'VOX'       : '',
-        'Online'    : '',
-    };
-    function icone(tipo) { return tipoIcone[tipo] || ''; }
+// SVG icon para o tipo de link (sem emojis)
+const SVG_LINK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+const SVG_PIN  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+const SVG_CAL  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+const SVG_USER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+const SVG_WAP  = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>`;
 
-    // ── SUPABASE ───────────────────────────────────────────────
-    async function sb(path) {
-        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-            headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Content-Type':'application/json'}
+async function sb(path) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' }
+    });
+    return r.json();
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+    try {
+        const data = await sb('links?select=*&ativo=eq.true&order=tipo,nome');
+        todosLinks = Array.isArray(data) ? data : [];
+        construirFiltros();
+        renderLinks(todosLinks);
+    } catch(e) {
+        document.getElementById('main-content').innerHTML =
+            '<div class="loading">Erro ao carregar LINKs.</div>';
+    }
+}
+
+// ── FILTROS DINÂMICOS ─────────────────────────────────────
+function construirFiltros() {
+    const tipos = [...new Set(todosLinks.map(l => l.tipo).filter(Boolean))].sort();
+    const zonas = [...new Set(todosLinks.map(l => l.zona).filter(Boolean))].sort();
+    const dias  = [...new Set(todosLinks.map(l => l.dia).filter(Boolean))];
+
+    const ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+    dias.sort((a, b) => {
+        const ia = ordemDias.findIndex(d => a.toLowerCase().includes(d.toLowerCase()));
+        const ib = ordemDias.findIndex(d => b.toLowerCase().includes(d.toLowerCase()));
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+
+    const row = document.getElementById('filters-row');
+
+    if (tipos.length) {
+        row.insertAdjacentHTML('beforeend', `<span class="filters-sep">Tipo</span>`);
+        tipos.forEach(t => {
+            row.insertAdjacentHTML('beforeend',
+                `<button class="filter-chip" onclick="setFiltro('tipo','${t}')" data-tipo="${t}">${t}</button>`);
         });
-        return r.json();
     }
 
-    // ── INIT ───────────────────────────────────────────────────
-    async function init() {
-        try {
-            const data = await sb('links?select=*&ativo=eq.true&order=tipo,nome');
-            todosLinks = Array.isArray(data) ? data : [];
-            construirFiltros();
-            renderLinks(todosLinks);
-        } catch(e) {
-            document.getElementById('main-content').innerHTML =
-                '<div class="loading">Erro ao carregar LINKs.</div>';
-        }
-    }
-
-    // ── FILTROS DINÂMICOS ──────────────────────────────────────
-    function construirFiltros() {
-        const tipos  = [...new Set(todosLinks.map(l=>l.tipo).filter(Boolean))].sort();
-        const zonas  = [...new Set(todosLinks.map(l=>l.zona).filter(Boolean))].sort();
-        const dias   = [...new Set(todosLinks.map(l=>l.dia).filter(Boolean))];
-
-        // Ordena dias da semana
-        const ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-        dias.sort((a,b) => {
-            const ia = ordemDias.findIndex(d => a.toLowerCase().includes(d.toLowerCase()));
-            const ib = ordemDias.findIndex(d => b.toLowerCase().includes(d.toLowerCase()));
-            return (ia===-1?99:ia) - (ib===-1?99:ib);
+    if (zonas.length) {
+        row.insertAdjacentHTML('beforeend', `<span class="filters-sep">Zona</span>`);
+        zonas.forEach(z => {
+            row.insertAdjacentHTML('beforeend',
+                `<button class="filter-chip" onclick="setFiltro('zona','${z}')" data-zona="${z}">${z}</button>`);
         });
-
-        const row = document.getElementById('filters-row');
-
-        // Separador de tipos
-        if (tipos.length > 0) {
-            row.insertAdjacentHTML('beforeend',
-                `<span style="color:var(--text-faint);font-size:9px;font-family:Cinzel,serif;letter-spacing:1px;text-transform:uppercase;align-self:center;flex-shrink:0">Tipo</span>`
-            );
-            tipos.forEach(t => {
-                row.insertAdjacentHTML('beforeend',
-                    `<button class="filter-chip" onclick="setFiltro('tipo','${t}')" data-tipo="${t}">${icone(t)} ${t}</button>`
-                );
-            });
-        }
-
-        if (zonas.length > 0) {
-            row.insertAdjacentHTML('beforeend',
-                `<span style="color:var(--text-faint);font-size:9px;font-family:Cinzel,serif;letter-spacing:1px;text-transform:uppercase;align-self:center;flex-shrink:0;margin-left:4px">Zona</span>`
-            );
-            zonas.forEach(z => {
-                row.insertAdjacentHTML('beforeend',
-                    `<button class="filter-chip" onclick="setFiltro('zona','${z}')" data-zona="${z}">📍 ${z}</button>`
-                );
-            });
-        }
-
-        if (dias.length > 0) {
-            row.insertAdjacentHTML('beforeend',
-                `<span style="color:var(--text-faint);font-size:9px;font-family:Cinzel,serif;letter-spacing:1px;text-transform:uppercase;align-self:center;flex-shrink:0;margin-left:4px">Dia</span>`
-            );
-            dias.forEach(d => {
-                const curto = d.replace('-feira','').replace('Terça','Ter').replace('Quarta','Qua').replace('Quinta','Qui').replace('Segunda','Seg').replace('Sexta','Sex');
-                row.insertAdjacentHTML('beforeend',
-                    `<button class="filter-chip" onclick="setFiltro('dia','${d}')" data-dia="${d}">📅 ${curto}</button>`
-                );
-            });
-        }
     }
 
-    function setFiltro(tipo, valor) {
-        filtroTipo  = tipo;
-        filtroValor = valor;
-        // Reset all chips
-        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        // Activate correct chip
-        if (tipo === 'todos') {
-            document.getElementById('chip-todos').classList.add('active');
-        } else {
-            const attr = tipo === 'tipo' ? 'data-tipo' : tipo === 'zona' ? 'data-zona' : 'data-dia';
-            const chip = document.querySelector(`[${attr}="${valor}"]`);
-            if (chip) chip.classList.add('active');
-        }
-        filtrar();
+    if (dias.length) {
+        row.insertAdjacentHTML('beforeend', `<span class="filters-sep">Dia</span>`);
+        dias.forEach(d => {
+            const curto = d.replace('-feira','')
+                .replace('Segunda','Seg').replace('Terça','Ter')
+                .replace('Quarta','Qua').replace('Quinta','Qui')
+                .replace('Sexta','Sex');
+            row.insertAdjacentHTML('beforeend',
+                `<button class="filter-chip" onclick="setFiltro('dia','${d}')" data-dia="${d}">${curto}</button>`);
+        });
+    }
+}
+
+function setFiltro(tipo, valor) {
+    filtroTipo  = tipo;
+    filtroValor = valor;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    if (tipo === 'todos') {
+        document.getElementById('chip-todos').classList.add('active');
+    } else {
+        const attr = tipo === 'tipo' ? 'data-tipo' : tipo === 'zona' ? 'data-zona' : 'data-dia';
+        const chip = document.querySelector(`[${attr}="${valor}"]`);
+        if (chip) chip.classList.add('active');
+    }
+    filtrar();
+}
+
+// ── FILTRAR ───────────────────────────────────────────────
+function filtrar() {
+    const q = document.getElementById('search-input').value.toLowerCase().trim();
+    let lista = [...todosLinks];
+
+    if (filtroTipo !== 'todos') {
+        if (filtroTipo === 'tipo') lista = lista.filter(l => l.tipo === filtroValor);
+        if (filtroTipo === 'zona') lista = lista.filter(l => l.zona === filtroValor);
+        if (filtroTipo === 'dia')  lista = lista.filter(l => l.dia  === filtroValor);
     }
 
-    // ── FILTRAR ────────────────────────────────────────────────
-    function filtrar() {
-        const q = document.getElementById('search-input').value.toLowerCase().trim();
-        let lista = [...todosLinks];
-
-        if (filtroTipo !== 'todos') {
-            if (filtroTipo === 'tipo') lista = lista.filter(l => l.tipo === filtroValor);
-            if (filtroTipo === 'zona') lista = lista.filter(l => l.zona === filtroValor);
-            if (filtroTipo === 'dia')  lista = lista.filter(l => l.dia  === filtroValor);
-        }
-
-        if (q) {
-            lista = lista.filter(l =>
-                (l.nome         || '').toLowerCase().includes(q) ||
-                (l.zona         || '').toLowerCase().includes(q) ||
-                (l.responsavel  || '').toLowerCase().includes(q) ||
-                (l.co_responsavel||'').toLowerCase().includes(q) ||
-                (l.dia          || '').toLowerCase().includes(q)
-            );
-        }
-
-        renderLinks(lista);
+    if (q) {
+        lista = lista.filter(l =>
+            (l.nome          || '').toLowerCase().includes(q) ||
+            (l.zona          || '').toLowerCase().includes(q) ||
+            (l.responsavel   || '').toLowerCase().includes(q) ||
+            (l.co_responsavel|| '').toLowerCase().includes(q) ||
+            (l.dia           || '').toLowerCase().includes(q)
+        );
     }
 
-    // ── RENDER ─────────────────────────────────────────────────
-    function renderLinks(lista) {
-        const total   = todosLinks.length;
-        const online  = todosLinks.filter(l=>l.online).length;
-        const zonas   = new Set(todosLinks.map(l=>l.zona).filter(Boolean)).size;
+    renderLinks(lista);
+}
 
-        let html = `
+// ── RENDER ────────────────────────────────────────────────
+function renderLinks(lista) {
+    const total  = todosLinks.length;
+    const online = todosLinks.filter(l => l.online).length;
+    const zonas  = new Set(todosLinks.map(l => l.zona).filter(Boolean)).size;
+
+    let html = `
     <div class="stats-bar">
-      <div class="stat-pill"><div class="stat-num">${total}</div><div class="stat-label">LINKs</div></div>
-      <div class="stat-pill"><div class="stat-num">${zonas}</div><div class="stat-label">Zonas</div></div>
-      <div class="stat-pill"><div class="stat-num">${online}</div><div class="stat-label">Online</div></div>
+        <div class="stat-pill"><div class="stat-num">${total}</div><div class="stat-label">LINKs</div></div>
+        <div class="stat-pill"><div class="stat-num">${zonas}</div><div class="stat-label">Zonas</div></div>
+        <div class="stat-pill"><div class="stat-num">${online}</div><div class="stat-label">Online</div></div>
     </div>`;
 
-        if (lista.length === 0) {
-            html += `<div class="empty"><div class="empty-icon">🔗</div><div class="empty-txt">Nenhum LINK encontrado.</div></div>`;
-            document.getElementById('main-content').innerHTML = html;
-            return;
-        }
-
-        // Agrupa por tipo
-        const grupos = {};
-        lista.forEach(l => {
-            const t = l.tipo || 'Outros';
-            if (!grupos[t]) grupos[t] = [];
-            grupos[t].push(l);
-        });
-
-        Object.entries(grupos).forEach(([tipo, items]) => {
-            html += `
-      <div class="group-header">
-        ${icone(tipo)} ${tipo}
-        <span class="group-header-count">${items.length}</span>
-      </div>
-      <div class="links-list">`;
-
-            items.forEach((l, i) => {
-                const lider     = [l.responsavel, l.co_responsavel].filter(Boolean).join(' · ');
-                const horario   = l.horario ? `${l.dia||''} ${l.horario}`.trim() : l.dia || '';
-                const wapNum    = (l.contato||'').replace(/\D/g,'');
-                const linkNome  = encodeURIComponent(l.nome||'LINK');
-                const wapMsg    = encodeURIComponent(`Olá! Gostaria de saber mais sobre o ${l.nome||'LINK'} e participar. Podem me informar como funciona? 🙏`);
-                const wapUrl    = wapNum ? `https://api.whatsapp.com/send?phone=${wapNum}&text=${wapMsg}` : null;
-
-                html += `
-        <div class="link-row" style="animation-delay:${Math.min(i,10)*0.03}s">
-          <div class="link-type-icon">${icone(tipo)}</div>
-          <div class="link-info">
-            <div class="link-nome">
-              ${l.nome}
-              ${l.online ? '<span class="online-badge">Online</span>' : ''}
-            </div>
-            <div class="link-meta">
-              ${l.zona ? `<span class="link-zona-badge">📍 ${l.zona}</span>` : ''}
-              ${horario ? `<span class="link-dia-badge">📅 ${horario}</span>` : ''}
-            </div>
-            ${lider ? `<div class="link-lider">👤 ${lider}</div>` : ''}
-          </div>
-          ${wapUrl ? `
-          <a class="wap-btn" href="${wapUrl}" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-            Entrar em Contato
-          </a>` : ''}
-        </div>`;
-            });
-
-            html += '</div>';
-        });
-
+    if (!lista.length) {
+        html += `<div class="empty"><div class="empty-txt">Nenhum LINK encontrado.</div></div>`;
         document.getElementById('main-content').innerHTML = html;
+        return;
     }
 
-    init();
+    // Agrupa por tipo
+    const grupos = {};
+    lista.forEach(l => {
+        const t = l.tipo || 'Outros';
+        if (!grupos[t]) grupos[t] = [];
+        grupos[t].push(l);
+    });
+
+    Object.entries(grupos).forEach(([tipo, items]) => {
+        html += `
+        <div class="group-header">
+            ${SVG_LINK.replace('viewBox', 'width="14" height="14" viewBox')}
+            ${tipo}
+            <span class="group-header-count">${items.length}</span>
+        </div>
+        <div class="links-list">`;
+
+        items.forEach((l, i) => {
+            const lider   = [l.responsavel, l.co_responsavel].filter(Boolean).join(' · ');
+            const horario = l.horario ? `${l.dia || ''} ${l.horario}`.trim() : (l.dia || '');
+            const wapNum  = (l.contato || '').replace(/\D/g, '');
+            const wapMsg  = encodeURIComponent(`Olá! Gostaria de saber mais sobre o ${l.nome || 'LINK'} e participar. Podem me informar como funciona?`);
+            const wapUrl  = wapNum ? `https://api.whatsapp.com/send?phone=${wapNum}&text=${wapMsg}` : null;
+
+            html += `
+            <div class="link-row" style="animation-delay:${Math.min(i, 10) * 0.03}s">
+                <div class="link-type-icon">${SVG_LINK}</div>
+                <div class="link-info">
+                    <div class="link-nome">
+                        ${l.nome}
+                        ${l.online ? '<span class="online-badge">Online</span>' : ''}
+                    </div>
+                    <div class="link-meta">
+                        ${l.zona    ? `<span class="link-zona-badge">${l.zona}</span>` : ''}
+                        ${horario   ? `<span class="link-dia-badge">${horario}</span>` : ''}
+                    </div>
+                    ${lider ? `<div class="link-lider">${SVG_USER} ${lider}</div>` : ''}
+                </div>
+                ${wapUrl ? `
+                <a class="wap-btn" href="${wapUrl}" target="_blank" rel="noopener">
+                    ${SVG_WAP}
+                    Entrar
+                </a>` : ''}
+            </div>`;
+        });
+
+        html += '</div>';
+    });
+
+    document.getElementById('main-content').innerHTML = html;
+}
+
+init();
 </script>
 </body>
 </html>

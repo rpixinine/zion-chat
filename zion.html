@@ -5,74 +5,481 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Zion — Zion Church Lisboa</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
-    <script src="config.js"></script>
+    <style>
+        /* ── Layout geral ────────────────────────────────── */
+        html, body {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                    radial-gradient(ellipse at 15% 15%, var(--primary-faint) 0%, transparent 55%),
+                    radial-gradient(ellipse at 85% 85%, rgba(0,144,152,0.04) 0%, transparent 55%);
+            pointer-events: none;
+        }
 
+        /* ── Page wrapper — centralizado (não fixed) ─────── */
+        .page-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 640px;
+            max-width: 96vw;
+            height: 96vh;
+            max-height: 900px;
+        }
+
+        /* ── Content ─────────────────────────────────────── */
+        .content { padding: 20px 18px 24px; }
+
+        /* ── Cards ───────────────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow-sm);
+            animation: fadeUp 0.4s ease both;
+        }
+        .card--highlight {
+            background: linear-gradient(135deg, var(--primary-faint), rgba(0,144,152,0.01));
+            border-color: var(--border-strong);
+        }
+        .card--verse {
+            text-align: center;
+            padding: 24px 20px;
+            background: linear-gradient(135deg, var(--primary-faint), rgba(0,144,152,0.01));
+            border-color: var(--border-strong);
+        }
+
+        .card-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+        .card-title {
+            font-family: var(--font-title);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+        }
+        .card-text {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.75;
+            white-space: pre-line;
+        }
+        .card-ref {
+            font-style: italic;
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-top: 8px;
+            display: block;
+        }
+
+        /* ── Pastor ──────────────────────────────────────── */
+        .pastor-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .pastor-foto {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: var(--primary-faint);
+            border: 2px solid var(--border-strong);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-title);
+            font-size: 20px;
+            color: var(--primary-dark);
+            overflow: hidden;
+        }
+        .pastor-foto img {
+            width: 100%; height: 100%;
+            object-fit: cover; object-position: center top; display: block;
+        }
+        .pastor-info { flex: 1; min-width: 0; }
+        .pastor-links {
+            display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+        }
+        .pastor-link {
+            display: flex; align-items: center; gap: 4px;
+            font-family: var(--font-title); font-size: 9px; letter-spacing: 1px;
+            color: var(--primary); text-decoration: none;
+            padding: 3px 10px; border-radius: var(--radius-full);
+            border: 1px solid var(--border); background: var(--primary-faint);
+            transition: all 0.2s;
+        }
+        .pastor-link:hover { background: var(--primary-soft); border-color: var(--primary-light); }
+
+        /* ── Versículo ───────────────────────────────────── */
+        .verse-text {
+            font-family: var(--font-title); font-style: italic;
+            font-size: 16px; color: var(--primary-dark); line-height: 1.6; margin-bottom: 10px;
+        }
+        .verse-ref {
+            font-size: 11px; color: var(--text-faint);
+            letter-spacing: 2px; text-transform: uppercase;
+        }
+
+        /* ── Section label ───────────────────────────────── */
+        .content .section-label { margin: 20px 0 10px; text-align: left; }
+        .content .section-label:first-child { margin-top: 0; }
+
+        /* ── Outras Informações ──────────────────────────── */
+        .other-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 400px) { .other-grid { grid-template-columns: 1fr; } }
+
+        .other-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            animation: fadeUp 0.4s ease both;
+        }
+        .other-item-label {
+            font-family: var(--font-title); font-size: 8px;
+            letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-faint); margin-bottom: 4px;
+        }
+        .other-item-value {
+            font-size: 13px; color: var(--text-main);
+            line-height: 1.5; word-break: break-word;
+        }
+        .other-item-value a { color: var(--primary); text-decoration: none; }
+        .other-item-value a:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
 <div class="page-wrapper">
+
+    <!-- Banner -->
     <div class="banner">
-        <img src="assets/banner_zion.jpg" alt="Zion Lisboa" onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');">
-        <div class="banner-fallback"><div class="banner-title">ZION</div><div class="banner-sub">Lisboa · Portugal</div></div>
-        <div class="banner-overlay"></div>
-        <div class="banner-nav">
-            <a href="index.html" class="back-btn">← Início</a>
-            <span class="page-badge">Zion</span>
+        <img
+                src="banner zion.jpg"
+                alt="Zion Lisboa"
+                onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');"
+        >
+        <div class="banner-fallback">
+            <div class="banner-title">ZION</div>
+            <div class="banner-sub">Lisboa · Portugal</div>
+        </div>
+        <div class="auth-bar" style="top:10px; left:14px; right:auto;">
+            <a href="index.html" class="auth-login">← Início</a>
+        </div>
+        <div class="auth-bar">
+            <span class="auth-login" style="pointer-events:none; cursor:default;">Zion</span>
         </div>
     </div>
+
     <div class="gold-line"></div>
-    <div class="content">
-        <p class="section-label">Liderança</p>
-        <div class="card card--highlight d1">
-            <div class="card-badge">Pastor Principal</div>
-            <div class="card-title">Pastor Eddie Nunes</div>
-            <div class="card-text">Pastor principal da Zion Church Lisboa, lidera a igreja com visão, propósito e fé. Plantou a Zion Lisboa com o coração voltado para ver uma geração transformada pelo poder do Espírito Santo.</div>
-        </div>
-        <div class="card card--highlight d2">
-            <div class="card-badge">Pastora</div>
-            <div class="card-title">Pastora Kristin Nunes</div>
-            <div class="card-text">Esposa do Pastor Eddie e co-líder da Zion Church Lisboa. Lidera com graça, amor e dedicação, sendo um pilar fundamental na comunidade e no desenvolvimento das famílias da igreja.</div>
-        </div>
-        <p class="section-label">Visão & Valores</p>
-        <div class="card d3">
-            <div class="card-badge">Nossa Visão</div>
-            <div class="card-title">Transformar a Terra</div>
-            <div class="card-text">Formar discípulos e líderes que manifestam o Reino de Deus para transformar a Terra, através do amor de Cristo, verdade da Palavra e poder do Espírito Santo.</div>
-        </div>
-        <div class="card d4">
-            <div class="card-badge">Valor</div>
-            <div class="card-title">Intimidade com Deus</div>
-            <div class="card-text">Buscar a presença de Deus é algo prioritário em nossas vidas. Um estilo de vida de adoração, oração e leitura da Palavra é a base para a intimidade com o nosso Deus. Manifestamos em público o que somos no secreto.</div>
-            <span class="card-ref">Mt 6.6 · Sl 27.4 · Sl 63.1-8 · Lc 7.37-38 · II Cor 3:18</span>
-        </div>
-        <div class="card d5">
-            <div class="card-badge">Valor</div>
-            <div class="card-title">Família</div>
-            <div class="card-text">Acreditamos que a família é o alicerce da sociedade e da igreja. Investimos em casamentos, pais, filhos e nas gerações que estão por vir.</div>
-        </div>
-        <div class="card d6">
-            <div class="card-badge">Valor</div>
-            <div class="card-title">Discipulado</div>
-            <div class="card-text">Somos chamados a fazer discípulos. Cada membro é encorajado a ser discipulado e a discipular outros, multiplicando o Reino de Deus.</div>
-        </div>
-        <div class="card card-verse d7">
-            <div class="card-verse-text">"Nem por força, nem por violência,<br>mas pelo favor de Deus"</div>
-            <div class="card-verse-ref">Zacarias 4:6</div>
-        </div>
+
+    <!-- Conteúdo dinâmico -->
+    <div class="content" id="main-content">
+        <div class="loading"><div class="spin"></div>A carregar...</div>
     </div>
-    <div class="footer">
-        <div class="footer-links">
-            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
-            <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>@ZionLisboa</a>
+
+    <!-- Footer -->
+    <div class="footer" id="main-footer">
+        <div class="footer-links" id="footer-links">
+            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Site Oficial
+            </a>
+            <a class="footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                @ZionLisboa
+            </a>
         </div>
         <div class="footer-divider"></div>
         <div class="footer-bottom">
-            <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
-            <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
+            <div class="footer-copy" id="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
+            <div class="footer-address" id="footer-addr">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
         </div>
     </div>
+
 </div>
+
+<script>
+    // ════════════════════════════════════════════════════════
+    //  CONFIG
+    // ════════════════════════════════════════════════════════
+    const SUPA_URL = window.SUPABASE_URL   || '';
+    const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+
+    // Chaves que têm slot fixo no layout — NÃO vão para "Outras Informações"
+    const CHAVES_FIXAS = new Set([
+        'nossa_visao', 'lema', 'copy',
+        'endereco', 'codigo_postal', 'cidade', 'maps_url',
+        'instagram', 'site', 'telefone',
+    ]);
+
+    const PREFIXO_VALOR = 'valor_';
+
+    // ════════════════════════════════════════════════════════
+    //  HELPERS
+    // ════════════════════════════════════════════════════════
+    async function sb(path) {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+            headers: {
+                'apikey': SUPA_KEY,
+                'Authorization': `Bearer ${SUPA_KEY}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        if (!r.ok) throw new Error(`Supabase ${r.status}`);
+        return r.json();
+    }
+
+    function esc(s) {
+        return String(s || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function isUrl(str) {
+        try { return ['http:','https:'].includes(new URL(str).protocol); } catch { return false; }
+    }
+
+    function getInitials(nome) {
+        return (nome || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    }
+
+    // "Texto lema (Referência 4:6)" → { texto, ref }
+    function parseLema(valor) {
+        const m = valor.match(/^(.*?)\s*\(([^)]+)\)\s*$/s);
+        return m ? { texto: m[1].trim(), ref: m[2].trim() } : { texto: valor, ref: null };
+    }
+
+    // "valor_discipulado" → "Discipulado"
+    function chaveToLabel(chave) {
+        return chave.replace(PREFIXO_VALOR, '').replace(/_/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  RENDER PASTOR
+    // ════════════════════════════════════════════════════════
+    function renderPastor(p, delay) {
+        const initials = getInitials(p.nome);
+        const fotoHtml = p.foto_url
+            ? `<div class="pastor-foto"><img src="${esc(p.foto_url)}" alt="${esc(p.nome)}"
+               onerror="this.parentElement.textContent='${initials}'"></div>`
+            : `<div class="pastor-foto">${initials}</div>`;
+
+        const svgIG   = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`;
+        const svgMail = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>`;
+        const svgTel  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.71 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 5.82 5.82l1.62-1.62a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+
+        const links = [
+            p.instagram ? `<a class="pastor-link" href="${esc(p.instagram)}" target="_blank">${svgIG} Instagram</a>` : '',
+            p.email     ? `<a class="pastor-link" href="mailto:${esc(p.email)}">${svgMail} Email</a>` : '',
+            p.telefone  ? `<a class="pastor-link" href="tel:${esc(p.telefone)}">${svgTel} Telefone</a>` : '',
+        ].filter(Boolean).join('');
+
+        return `
+    <div class="card card--highlight" style="animation-delay:${delay}s">
+        <div class="card-badge">${esc(p.cargo)}</div>
+        <div class="pastor-row">
+            ${fotoHtml}
+            <div class="pastor-info">
+                <div class="card-title" style="margin-bottom:4px">${esc(p.nome)}</div>
+                ${p.bio ? `<div class="card-text" style="font-size:13px">${esc(p.bio)}</div>` : ''}
+            </div>
+        </div>
+        ${links ? `<div class="pastor-links">${links}</div>` : ''}
+    </div>`;
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  RENDER VALOR
+    // ════════════════════════════════════════════════════════
+    function renderValor(chave, cfg, delay) {
+        const label = cfg.descricao || chaveToLabel(chave);
+        // Separa texto principal de referências bíblicas (separados por linha em branco)
+        const partes    = cfg.valor.split('\n\n');
+        const textoMain = partes[0];
+        const textoRef  = partes.length > 1 ? partes.slice(1).join(' ').trim() : null;
+
+        return `
+    <div class="card" style="animation-delay:${delay}s">
+        <div class="card-badge">Valor</div>
+        <div class="card-title">${esc(label)}</div>
+        <div class="card-text">${esc(textoMain)}</div>
+        ${textoRef ? `<span class="card-ref">${esc(textoRef)}</span>` : ''}
+    </div>`;
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  RENDER OUTRAS INFORMAÇÕES
+    // ════════════════════════════════════════════════════════
+    function renderOutras(itens, startDelay) {
+        if (!itens.length) return '';
+
+        const pills = itens.map((item, i) => {
+            const label    = item.descricao || chaveToLabel(item.chave);
+            const valorHtml = isUrl(item.valor)
+                ? `<a href="${esc(item.valor)}" target="_blank">${esc(item.valor)}</a>`
+                : esc(item.valor).replace(/\n/g, '<br>');
+
+            return `
+        <div class="other-item" style="animation-delay:${startDelay + i * 0.05}s">
+            <div class="other-item-label">${esc(label)}</div>
+            <div class="other-item-value">${valorHtml}</div>
+        </div>`;
+        }).join('');
+
+        return `
+    <p class="section-label">Outras Informações</p>
+    <div class="other-grid">${pills}</div>`;
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  FOOTER DINÂMICO
+    // ════════════════════════════════════════════════════════
+    function renderFooter(cfg) {
+        const instagram = cfg['instagram']?.valor || 'https://www.instagram.com/zionlisboa/';
+        const site      = cfg['site']?.valor      || 'https://zionchurch.org.br/';
+        const copy      = cfg['copy']?.valor      || '© 2026 Zion Lisboa — Todos os direitos reservados';
+        const addr      = cfg['endereco']?.valor  || '';
+        const cp        = cfg['codigo_postal']?.valor || '';
+        const cidade    = cfg['cidade']?.valor    || '';
+        const addrLine  = [addr, [cp, cidade].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+
+        document.getElementById('footer-links').innerHTML = `
+        <a class="footer-link" href="${esc(site)}" target="_blank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Site Oficial
+        </a>
+        <a class="footer-link" href="${esc(instagram)}" target="_blank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            @ZionLisboa
+        </a>`;
+
+        document.getElementById('footer-copy').textContent = copy;
+        if (addrLine) document.getElementById('footer-addr').textContent = addrLine;
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  INIT
+    // ════════════════════════════════════════════════════════
+    async function init() {
+        try {
+            const [pastoresRaw, configsRaw] = await Promise.all([
+                sb('pastores?select=*&ativo=eq.true&order=created_at.asc'),
+                sb('configuracoes?select=*'),
+            ]);
+
+            // Mapa de configurações: chave → { valor, descricao }
+            const cfg = {};
+            (Array.isArray(configsRaw) ? configsRaw : []).forEach(row => {
+                cfg[row.chave] = { valor: row.valor, descricao: row.descricao };
+            });
+
+            // Pastores: Principal primeiro
+            const pastores = Array.isArray(pastoresRaw) ? pastoresRaw : [];
+            pastores.sort((a, b) => {
+                const aP = (a.cargo || '').toLowerCase().includes('principal');
+                const bP = (b.cargo || '').toLowerCase().includes('principal');
+                if (aP && !bP) return -1;
+                if (!aP && bP) return 1;
+                return 0;
+            });
+
+            // Separar: valores fixos vs. chaves extras
+            const valoresChaves = Object.keys(cfg).filter(k => k.startsWith(PREFIXO_VALOR));
+            const outrasChaves  = Object.keys(cfg).filter(k =>
+                !CHAVES_FIXAS.has(k) && !k.startsWith(PREFIXO_VALOR)
+            );
+
+            let html  = '';
+            let delay = 0.05;
+
+            // ── Liderança ──
+            if (pastores.length) {
+                html += `<p class="section-label">Liderança</p>`;
+                pastores.forEach(p => { html += renderPastor(p, delay); delay += 0.07; });
+            }
+
+            // ── Visão & Valores ──
+            const temVisao  = !!cfg['nossa_visao'];
+            const temValores = valoresChaves.length > 0;
+
+            if (temVisao || temValores) {
+                html += `<p class="section-label">Visão & Valores</p>`;
+            }
+
+            if (temVisao) {
+                html += `
+            <div class="card" style="animation-delay:${delay}s">
+                <div class="card-badge">Nossa Visão</div>
+                <div class="card-title">${esc(cfg['nossa_visao'].descricao || 'Transformar a Terra')}</div>
+                <div class="card-text">${esc(cfg['nossa_visao'].valor)}</div>
+            </div>`;
+                delay += 0.07;
+            }
+
+            valoresChaves.forEach(chave => {
+                html += renderValor(chave, cfg[chave], delay);
+                delay += 0.07;
+            });
+
+            // ── Lema / Versículo ──
+            if (cfg['lema']) {
+                const { texto, ref } = parseLema(cfg['lema'].valor);
+                html += `
+            <div class="card card--verse" style="animation-delay:${delay}s">
+                <div class="verse-text">"${esc(texto)}"</div>
+                ${ref ? `<div class="verse-ref">${esc(ref)}</div>` : ''}
+            </div>`;
+                delay += 0.07;
+            }
+
+            // ── Outras Informações (novas chaves entram aqui automaticamente) ──
+            const outrasItens = outrasChaves.map(k => ({ chave: k, ...cfg[k] }));
+            html += renderOutras(outrasItens, delay);
+
+            document.getElementById('main-content').innerHTML = html ||
+                `<div class="empty"><div class="empty-icon">📖</div><div class="empty-txt">Sem conteúdo disponível.</div></div>`;
+
+            renderFooter(cfg);
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById('main-content').innerHTML =
+                `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">Erro ao carregar. Tenta novamente.</div></div>`;
+        }
+    }
+
+    init();
+</script>
 </body>
 </html>

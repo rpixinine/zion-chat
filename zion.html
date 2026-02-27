@@ -11,37 +11,15 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
     <style>
-        /* ── Layout geral ────────────────────────────────── */
-        html, body {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background:
-                    radial-gradient(ellipse at 15% 15%, var(--primary-faint) 0%, transparent 55%),
-                    radial-gradient(ellipse at 85% 85%, rgba(0,144,152,0.04) 0%, transparent 55%);
-            pointer-events: none;
-        }
-
-        /* ── Page wrapper — centralizado (não fixed) ─────── */
-        .page-wrapper {
-            position: relative;
-            z-index: 1;
-            width: 640px;
-            max-width: 96vw;
-            height: 96vh;
-            max-height: 900px;
-        }
-
         /* ── Content ─────────────────────────────────────── */
-        .content { padding: 20px 18px 24px; }
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 18px 24px;
+            background: var(--bg-input);
+        }
+        .content::-webkit-scrollbar { width: 4px; }
+        .content::-webkit-scrollbar-thumb { background: rgba(0, 144, 152, 0.25); border-radius: 2px; }
 
         /* ── Cards ───────────────────────────────────────── */
         .card {
@@ -185,9 +163,9 @@
     <!-- Banner -->
     <div class="banner">
         <img
-                src="banner zion.jpg"
-                alt="Zion Lisboa"
-                onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');"
+            src="banner zion.jpg"
+            alt="Zion Lisboa"
+            onerror="this.style.display='none'; document.querySelector('.banner-fallback').classList.add('show');"
         >
         <div class="banner-fallback">
             <div class="banner-title">ZION</div>
@@ -230,82 +208,82 @@
 </div>
 
 <script>
-    // ════════════════════════════════════════════════════════
-    //  CONFIG
-    // ════════════════════════════════════════════════════════
-    const SUPA_URL = window.SUPABASE_URL   || '';
-    const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+// ════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════
+const SUPA_URL = window.SUPABASE_URL   || '';
+const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
-    // Chaves que têm slot fixo no layout — NÃO vão para "Outras Informações"
-    const CHAVES_FIXAS = new Set([
-        'nossa_visao', 'lema', 'copy',
-        'endereco', 'codigo_postal', 'cidade', 'maps_url',
-        'instagram', 'site', 'telefone',
-    ]);
+// Chaves que têm slot fixo no layout — NÃO vão para "Outras Informações"
+const CHAVES_FIXAS = new Set([
+    'nossa_visao', 'lema', 'copy',
+    'endereco', 'codigo_postal', 'cidade', 'maps_url',
+    'instagram', 'site', 'telefone',
+]);
 
-    const PREFIXO_VALOR = 'valor_';
+const PREFIXO_VALOR = 'valor_';
 
-    // ════════════════════════════════════════════════════════
-    //  HELPERS
-    // ════════════════════════════════════════════════════════
-    async function sb(path) {
-        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-            headers: {
-                'apikey': SUPA_KEY,
-                'Authorization': `Bearer ${SUPA_KEY}`,
-                'Content-Type': 'application/json',
-            }
-        });
-        if (!r.ok) throw new Error(`Supabase ${r.status}`);
-        return r.json();
-    }
+// ════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════
+async function sb(path) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+        headers: {
+            'apikey': SUPA_KEY,
+            'Authorization': `Bearer ${SUPA_KEY}`,
+            'Content-Type': 'application/json',
+        }
+    });
+    if (!r.ok) throw new Error(`Supabase ${r.status}`);
+    return r.json();
+}
 
-    function esc(s) {
-        return String(s || '')
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+function esc(s) {
+    return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-    function isUrl(str) {
-        try { return ['http:','https:'].includes(new URL(str).protocol); } catch { return false; }
-    }
+function isUrl(str) {
+    try { return ['http:','https:'].includes(new URL(str).protocol); } catch { return false; }
+}
 
-    function getInitials(nome) {
-        return (nome || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-    }
+function getInitials(nome) {
+    return (nome || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
 
-    // "Texto lema (Referência 4:6)" → { texto, ref }
-    function parseLema(valor) {
-        const m = valor.match(/^(.*?)\s*\(([^)]+)\)\s*$/s);
-        return m ? { texto: m[1].trim(), ref: m[2].trim() } : { texto: valor, ref: null };
-    }
+// "Texto lema (Referência 4:6)" → { texto, ref }
+function parseLema(valor) {
+    const m = valor.match(/^(.*?)\s*\(([^)]+)\)\s*$/s);
+    return m ? { texto: m[1].trim(), ref: m[2].trim() } : { texto: valor, ref: null };
+}
 
-    // "valor_discipulado" → "Discipulado"
-    function chaveToLabel(chave) {
-        return chave.replace(PREFIXO_VALOR, '').replace(/_/g, ' ')
-            .replace(/\b\w/g, c => c.toUpperCase());
-    }
+// "valor_discipulado" → "Discipulado"
+function chaveToLabel(chave) {
+    return chave.replace(PREFIXO_VALOR, '').replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+}
 
-    // ════════════════════════════════════════════════════════
-    //  RENDER PASTOR
-    // ════════════════════════════════════════════════════════
-    function renderPastor(p, delay) {
-        const initials = getInitials(p.nome);
-        const fotoHtml = p.foto_url
-            ? `<div class="pastor-foto"><img src="${esc(p.foto_url)}" alt="${esc(p.nome)}"
+// ════════════════════════════════════════════════════════
+//  RENDER PASTOR
+// ════════════════════════════════════════════════════════
+function renderPastor(p, delay) {
+    const initials = getInitials(p.nome);
+    const fotoHtml = p.foto_url
+        ? `<div class="pastor-foto"><img src="${esc(p.foto_url)}" alt="${esc(p.nome)}"
                onerror="this.parentElement.textContent='${initials}'"></div>`
-            : `<div class="pastor-foto">${initials}</div>`;
+        : `<div class="pastor-foto">${initials}</div>`;
 
-        const svgIG   = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`;
-        const svgMail = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>`;
-        const svgTel  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.71 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 5.82 5.82l1.62-1.62a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+    const svgIG   = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`;
+    const svgMail = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>`;
+    const svgTel  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.71 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 5.82 5.82l1.62-1.62a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
 
-        const links = [
-            p.instagram ? `<a class="pastor-link" href="${esc(p.instagram)}" target="_blank">${svgIG} Instagram</a>` : '',
-            p.email     ? `<a class="pastor-link" href="mailto:${esc(p.email)}">${svgMail} Email</a>` : '',
-            p.telefone  ? `<a class="pastor-link" href="tel:${esc(p.telefone)}">${svgTel} Telefone</a>` : '',
-        ].filter(Boolean).join('');
+    const links = [
+        p.instagram ? `<a class="pastor-link" href="${esc(p.instagram)}" target="_blank">${svgIG} Instagram</a>` : '',
+        p.email     ? `<a class="pastor-link" href="mailto:${esc(p.email)}">${svgMail} Email</a>` : '',
+        p.telefone  ? `<a class="pastor-link" href="tel:${esc(p.telefone)}">${svgTel} Telefone</a>` : '',
+    ].filter(Boolean).join('');
 
-        return `
+    return `
     <div class="card card--highlight" style="animation-delay:${delay}s">
         <div class="card-badge">${esc(p.cargo)}</div>
         <div class="pastor-row">
@@ -317,64 +295,64 @@
         </div>
         ${links ? `<div class="pastor-links">${links}</div>` : ''}
     </div>`;
-    }
+}
 
-    // ════════════════════════════════════════════════════════
-    //  RENDER VALOR
-    // ════════════════════════════════════════════════════════
-    function renderValor(chave, cfg, delay) {
-        const label = cfg.descricao || chaveToLabel(chave);
-        // Separa texto principal de referências bíblicas (separados por linha em branco)
-        const partes    = cfg.valor.split('\n\n');
-        const textoMain = partes[0];
-        const textoRef  = partes.length > 1 ? partes.slice(1).join(' ').trim() : null;
+// ════════════════════════════════════════════════════════
+//  RENDER VALOR
+// ════════════════════════════════════════════════════════
+function renderValor(chave, cfg, delay) {
+    const label = cfg.descricao || chaveToLabel(chave);
+    // Separa texto principal de referências bíblicas (separados por linha em branco)
+    const partes    = cfg.valor.split('\n\n');
+    const textoMain = partes[0];
+    const textoRef  = partes.length > 1 ? partes.slice(1).join(' ').trim() : null;
 
-        return `
+    return `
     <div class="card" style="animation-delay:${delay}s">
         <div class="card-badge">Valor</div>
         <div class="card-title">${esc(label)}</div>
         <div class="card-text">${esc(textoMain)}</div>
         ${textoRef ? `<span class="card-ref">${esc(textoRef)}</span>` : ''}
     </div>`;
-    }
+}
 
-    // ════════════════════════════════════════════════════════
-    //  RENDER OUTRAS INFORMAÇÕES
-    // ════════════════════════════════════════════════════════
-    function renderOutras(itens, startDelay) {
-        if (!itens.length) return '';
+// ════════════════════════════════════════════════════════
+//  RENDER OUTRAS INFORMAÇÕES
+// ════════════════════════════════════════════════════════
+function renderOutras(itens, startDelay) {
+    if (!itens.length) return '';
 
-        const pills = itens.map((item, i) => {
-            const label    = item.descricao || chaveToLabel(item.chave);
-            const valorHtml = isUrl(item.valor)
-                ? `<a href="${esc(item.valor)}" target="_blank">${esc(item.valor)}</a>`
-                : esc(item.valor).replace(/\n/g, '<br>');
+    const pills = itens.map((item, i) => {
+        const label    = item.descricao || chaveToLabel(item.chave);
+        const valorHtml = isUrl(item.valor)
+            ? `<a href="${esc(item.valor)}" target="_blank">${esc(item.valor)}</a>`
+            : esc(item.valor).replace(/\n/g, '<br>');
 
-            return `
+        return `
         <div class="other-item" style="animation-delay:${startDelay + i * 0.05}s">
             <div class="other-item-label">${esc(label)}</div>
             <div class="other-item-value">${valorHtml}</div>
         </div>`;
-        }).join('');
+    }).join('');
 
-        return `
+    return `
     <p class="section-label">Outras Informações</p>
     <div class="other-grid">${pills}</div>`;
-    }
+}
 
-    // ════════════════════════════════════════════════════════
-    //  FOOTER DINÂMICO
-    // ════════════════════════════════════════════════════════
-    function renderFooter(cfg) {
-        const instagram = cfg['instagram']?.valor || 'https://www.instagram.com/zionlisboa/';
-        const site      = cfg['site']?.valor      || 'https://zionchurch.org.br/';
-        const copy      = cfg['copy']?.valor      || '© 2026 Zion Lisboa — Todos os direitos reservados';
-        const addr      = cfg['endereco']?.valor  || '';
-        const cp        = cfg['codigo_postal']?.valor || '';
-        const cidade    = cfg['cidade']?.valor    || '';
-        const addrLine  = [addr, [cp, cidade].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+// ════════════════════════════════════════════════════════
+//  FOOTER DINÂMICO
+// ════════════════════════════════════════════════════════
+function renderFooter(cfg) {
+    const instagram = cfg['instagram']?.valor || 'https://www.instagram.com/zionlisboa/';
+    const site      = cfg['site']?.valor      || 'https://zionchurch.org.br/';
+    const copy      = cfg['copy']?.valor      || '© 2026 Zion Lisboa — Todos os direitos reservados';
+    const addr      = cfg['endereco']?.valor  || '';
+    const cp        = cfg['codigo_postal']?.valor || '';
+    const cidade    = cfg['cidade']?.valor    || '';
+    const addrLine  = [addr, [cp, cidade].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
 
-        document.getElementById('footer-links').innerHTML = `
+    document.getElementById('footer-links').innerHTML = `
         <a class="footer-link" href="${esc(site)}" target="_blank">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             Site Oficial
@@ -384,102 +362,102 @@
             @ZionLisboa
         </a>`;
 
-        document.getElementById('footer-copy').textContent = copy;
-        if (addrLine) document.getElementById('footer-addr').textContent = addrLine;
-    }
+    document.getElementById('footer-copy').textContent = copy;
+    if (addrLine) document.getElementById('footer-addr').textContent = addrLine;
+}
 
-    // ════════════════════════════════════════════════════════
-    //  INIT
-    // ════════════════════════════════════════════════════════
-    async function init() {
-        try {
-            const [pastoresRaw, configsRaw] = await Promise.all([
-                sb('pastores?select=*&ativo=eq.true&order=created_at.asc'),
-                sb('configuracoes?select=*'),
-            ]);
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+async function init() {
+    try {
+        const [pastoresRaw, configsRaw] = await Promise.all([
+            sb('pastores?select=*&ativo=eq.true&order=created_at.asc'),
+            sb('configuracoes?select=*'),
+        ]);
 
-            // Mapa de configurações: chave → { valor, descricao }
-            const cfg = {};
-            (Array.isArray(configsRaw) ? configsRaw : []).forEach(row => {
-                cfg[row.chave] = { valor: row.valor, descricao: row.descricao };
-            });
+        // Mapa de configurações: chave → { valor, descricao }
+        const cfg = {};
+        (Array.isArray(configsRaw) ? configsRaw : []).forEach(row => {
+            cfg[row.chave] = { valor: row.valor, descricao: row.descricao };
+        });
 
-            // Pastores: Principal primeiro
-            const pastores = Array.isArray(pastoresRaw) ? pastoresRaw : [];
-            pastores.sort((a, b) => {
-                const aP = (a.cargo || '').toLowerCase().includes('principal');
-                const bP = (b.cargo || '').toLowerCase().includes('principal');
-                if (aP && !bP) return -1;
-                if (!aP && bP) return 1;
-                return 0;
-            });
+        // Pastores: Principal primeiro
+        const pastores = Array.isArray(pastoresRaw) ? pastoresRaw : [];
+        pastores.sort((a, b) => {
+            const aP = (a.cargo || '').toLowerCase().includes('principal');
+            const bP = (b.cargo || '').toLowerCase().includes('principal');
+            if (aP && !bP) return -1;
+            if (!aP && bP) return 1;
+            return 0;
+        });
 
-            // Separar: valores fixos vs. chaves extras
-            const valoresChaves = Object.keys(cfg).filter(k => k.startsWith(PREFIXO_VALOR));
-            const outrasChaves  = Object.keys(cfg).filter(k =>
-                !CHAVES_FIXAS.has(k) && !k.startsWith(PREFIXO_VALOR)
-            );
+        // Separar: valores fixos vs. chaves extras
+        const valoresChaves = Object.keys(cfg).filter(k => k.startsWith(PREFIXO_VALOR));
+        const outrasChaves  = Object.keys(cfg).filter(k =>
+            !CHAVES_FIXAS.has(k) && !k.startsWith(PREFIXO_VALOR)
+        );
 
-            let html  = '';
-            let delay = 0.05;
+        let html  = '';
+        let delay = 0.05;
 
-            // ── Liderança ──
-            if (pastores.length) {
-                html += `<p class="section-label">Liderança</p>`;
-                pastores.forEach(p => { html += renderPastor(p, delay); delay += 0.07; });
-            }
+        // ── Liderança ──
+        if (pastores.length) {
+            html += `<p class="section-label">Liderança</p>`;
+            pastores.forEach(p => { html += renderPastor(p, delay); delay += 0.07; });
+        }
 
-            // ── Visão & Valores ──
-            const temVisao  = !!cfg['nossa_visao'];
-            const temValores = valoresChaves.length > 0;
+        // ── Visão & Valores ──
+        const temVisao  = !!cfg['nossa_visao'];
+        const temValores = valoresChaves.length > 0;
 
-            if (temVisao || temValores) {
-                html += `<p class="section-label">Visão & Valores</p>`;
-            }
+        if (temVisao || temValores) {
+            html += `<p class="section-label">Visão & Valores</p>`;
+        }
 
-            if (temVisao) {
-                html += `
+        if (temVisao) {
+            html += `
             <div class="card" style="animation-delay:${delay}s">
                 <div class="card-badge">Nossa Visão</div>
                 <div class="card-title">${esc(cfg['nossa_visao'].descricao || 'Transformar a Terra')}</div>
                 <div class="card-text">${esc(cfg['nossa_visao'].valor)}</div>
             </div>`;
-                delay += 0.07;
-            }
+            delay += 0.07;
+        }
 
-            valoresChaves.forEach(chave => {
-                html += renderValor(chave, cfg[chave], delay);
-                delay += 0.07;
-            });
+        valoresChaves.forEach(chave => {
+            html += renderValor(chave, cfg[chave], delay);
+            delay += 0.07;
+        });
 
-            // ── Lema / Versículo ──
-            if (cfg['lema']) {
-                const { texto, ref } = parseLema(cfg['lema'].valor);
-                html += `
+        // ── Lema / Versículo ──
+        if (cfg['lema']) {
+            const { texto, ref } = parseLema(cfg['lema'].valor);
+            html += `
             <div class="card card--verse" style="animation-delay:${delay}s">
                 <div class="verse-text">"${esc(texto)}"</div>
                 ${ref ? `<div class="verse-ref">${esc(ref)}</div>` : ''}
             </div>`;
-                delay += 0.07;
-            }
-
-            // ── Outras Informações (novas chaves entram aqui automaticamente) ──
-            const outrasItens = outrasChaves.map(k => ({ chave: k, ...cfg[k] }));
-            html += renderOutras(outrasItens, delay);
-
-            document.getElementById('main-content').innerHTML = html ||
-                `<div class="empty"><div class="empty-icon">📖</div><div class="empty-txt">Sem conteúdo disponível.</div></div>`;
-
-            renderFooter(cfg);
-
-        } catch (e) {
-            console.error(e);
-            document.getElementById('main-content').innerHTML =
-                `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">Erro ao carregar. Tenta novamente.</div></div>`;
+            delay += 0.07;
         }
-    }
 
-    init();
+        // ── Outras Informações (novas chaves entram aqui automaticamente) ──
+        const outrasItens = outrasChaves.map(k => ({ chave: k, ...cfg[k] }));
+        html += renderOutras(outrasItens, delay);
+
+        document.getElementById('main-content').innerHTML = html ||
+            `<div class="empty"><div class="empty-icon">📖</div><div class="empty-txt">Sem conteúdo disponível.</div></div>`;
+
+        renderFooter(cfg);
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById('main-content').innerHTML =
+            `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">Erro ao carregar. Tenta novamente.</div></div>`;
+    }
+}
+
+init();
 </script>
 </body>
 </html>

@@ -31,9 +31,9 @@
             position: absolute;
             inset: 0;
             background: linear-gradient(135deg,
-                rgba(0,80,85,0.55) 0%,
-                rgba(0,40,45,0.3) 60%,
-                rgba(0,0,0,0.15) 100%);
+            rgba(0,80,85,0.55) 0%,
+            rgba(0,40,45,0.3) 60%,
+            rgba(0,0,0,0.15) 100%);
         }
         .auth-image-brand {
             position: absolute;
@@ -419,219 +419,219 @@
 </div>
 
 <style>
-@keyframes scaleIn { from { opacity:0;transform:scale(0.95) } to { opacity:1;transform:scale(1) } }
+    @keyframes scaleIn { from { opacity:0;transform:scale(0.95) } to { opacity:1;transform:scale(1) } }
 </style>
 
 <script>
-// ── Tabs ───────────────────────────────────────────────────
-function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t, i) =>
-        t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
-    document.getElementById('tab-login').classList.toggle('active', tab==='login');
-    document.getElementById('tab-register').classList.toggle('active', tab==='register');
-    clearMsgs();
-}
+    // ── Tabs ───────────────────────────────────────────────────
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach((t, i) =>
+            t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+        document.getElementById('tab-login').classList.toggle('active', tab==='login');
+        document.getElementById('tab-register').classList.toggle('active', tab==='register');
+        clearMsgs();
+    }
 
-function clearMsgs() {
-    ['login-msg','reg-msg'].forEach(id => {
+    function clearMsgs() {
+        ['login-msg','reg-msg'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.className = 'msg-box';
+        });
+        document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
+        document.querySelectorAll('.photo-preview.error-photo').forEach(el => el.classList.remove('error-photo'));
+    }
+
+    function showMsg(id, txt, tipo) {
         const el = document.getElementById(id);
-        if (el) el.className = 'msg-box';
-    });
-    document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
-    document.querySelectorAll('.photo-preview.error-photo').forEach(el => el.classList.remove('error-photo'));
-}
-
-function showMsg(id, txt, tipo) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = txt;
-    el.className = `msg-box ${tipo}`;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-function markError(inputId) {
-    const el = document.getElementById(inputId);
-    if (el) el.classList.add('error');
-}
-
-// ── Foto preview ───────────────────────────────────────────
-let fotoFile = null;
-function previewFoto(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    fotoFile = file;
-    const reader = new FileReader();
-    reader.onload = function() {
-        const preview = document.getElementById('photo-preview');
-        preview.style.backgroundImage = `url('${reader.result}')`;
-        preview.classList.add('has-image');
-        preview.classList.remove('error-photo');
-    };
-    reader.readAsDataURL(file);
-}
-
-// ── LOGIN ──────────────────────────────────────────────────
-async function doLogin() {
-    clearMsgs();
-    const email    = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
-
-    if (!email)    { markError('login-email');    return showMsg('login-msg', 'Email obrigatório.', 'error'); }
-    if (!password) { markError('login-password'); return showMsg('login-msg', 'Password obrigatória.', 'error'); }
-
-    const btn = document.getElementById('login-btn');
-    btn.disabled = true; btn.textContent = 'A entrar...';
-
-    try {
-        await ZionAuth.login(email, password);
-        showMsg('login-msg', 'Bem-vindo! A redirecionar...', 'success');
-        setTimeout(() => {
-            const redirect = sessionStorage.getItem('zion_redirect');
-            sessionStorage.removeItem('zion_redirect');
-            window.location.href = redirect || 'index.html';
-        }, 800);
-    } catch(e) {
-        showMsg('login-msg', e.message || 'Email ou password incorretos.', 'error');
-        btn.disabled = false; btn.textContent = 'Entrar';
+        if (!el) return;
+        el.textContent = txt;
+        el.className = `msg-box ${tipo}`;
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-}
 
-// ── REGISTER ───────────────────────────────────────────────
-async function doRegister() {
-    clearMsgs();
-
-    const nome      = document.getElementById('reg-nome').value.trim();
-    const apelido   = document.getElementById('reg-apelido').value.trim();
-    const email     = document.getElementById('reg-email').value.trim();
-    const telefone  = document.getElementById('reg-telefone').value.trim();
-    const onde      = document.getElementById('reg-onde').value.trim();
-    const password  = document.getElementById('reg-password').value;
-    const password2 = document.getElementById('reg-password2').value;
-
-    // Validações
-    let ok = true;
-    if (!fotoFile) {
-        document.getElementById('photo-preview').classList.add('error-photo');
-        showMsg('reg-msg', 'A foto de perfil é obrigatória.', 'error');
-        ok = false;
+    function markError(inputId) {
+        const el = document.getElementById(inputId);
+        if (el) el.classList.add('error');
     }
-    if (!nome)   { markError('reg-nome');   if (ok) showMsg('reg-msg', 'Nome obrigatório.', 'error'); ok = false; }
-    if (!apelido){ markError('reg-apelido');if (ok) showMsg('reg-msg', 'Apelido obrigatório.', 'error'); ok = false; }
-    if (!email)  { markError('reg-email');  if (ok) showMsg('reg-msg', 'Email obrigatório.', 'error'); ok = false; }
-    if (!password)  { markError('reg-password');  if (ok) showMsg('reg-msg', 'Password obrigatória.', 'error'); ok = false; }
-    if (password.length < 6) { markError('reg-password'); if (ok) showMsg('reg-msg', 'Password deve ter pelo menos 6 caracteres.', 'error'); ok = false; }
-    if (password !== password2) { markError('reg-password2'); if (ok) showMsg('reg-msg', 'As passwords não coincidem.', 'error'); ok = false; }
-    if (!ok) return;
 
-    const btn = document.getElementById('reg-btn');
-    btn.disabled = true; btn.textContent = 'A criar conta...';
+    // ── Foto preview ───────────────────────────────────────────
+    let fotoFile = null;
+    function previewFoto(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        fotoFile = file;
+        const reader = new FileReader();
+        reader.onload = function() {
+            const preview = document.getElementById('photo-preview');
+            preview.style.backgroundImage = `url('${reader.result}')`;
+            preview.classList.add('has-image');
+            preview.classList.remove('error-photo');
+        };
+        reader.readAsDataURL(file);
+    }
 
-    try {
-        // 1. Faz upload da foto para o Supabase Storage
-        let fotoUrl = null;
-        if (fotoFile) {
-            const ext      = fotoFile.name.split('.').pop();
-            const filename = `visitantes/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-            const SUPA_URL = window.SUPABASE_URL || '';
-            const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+    // ── LOGIN ──────────────────────────────────────────────────
+    async function doLogin() {
+        clearMsgs();
+        const email    = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
 
-            const uploadRes = await fetch(`${SUPA_URL}/storage/v1/object/fotos/${filename}`, {
-                method: 'POST',
-                headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': fotoFile.type },
-                body: fotoFile,
+        if (!email)    { markError('login-email');    return showMsg('login-msg', 'Email obrigatório.', 'error'); }
+        if (!password) { markError('login-password'); return showMsg('login-msg', 'Password obrigatória.', 'error'); }
+
+        const btn = document.getElementById('login-btn');
+        btn.disabled = true; btn.textContent = 'A entrar...';
+
+        try {
+            await ZionAuth.login(email, password);
+            showMsg('login-msg', 'Bem-vindo! A redirecionar...', 'success');
+            setTimeout(() => {
+                const redirect = sessionStorage.getItem('zion_redirect');
+                sessionStorage.removeItem('zion_redirect');
+                window.location.href = redirect || 'index.html';
+            }, 800);
+        } catch(e) {
+            showMsg('login-msg', e.message || 'Email ou password incorretos.', 'error');
+            btn.disabled = false; btn.textContent = 'Entrar';
+        }
+    }
+
+    // ── REGISTER ───────────────────────────────────────────────
+    async function doRegister() {
+        clearMsgs();
+
+        const nome      = document.getElementById('reg-nome').value.trim();
+        const apelido   = document.getElementById('reg-apelido').value.trim();
+        const email     = document.getElementById('reg-email').value.trim();
+        const telefone  = document.getElementById('reg-telefone').value.trim();
+        const onde      = document.getElementById('reg-onde').value.trim();
+        const password  = document.getElementById('reg-password').value;
+        const password2 = document.getElementById('reg-password2').value;
+
+        // Validações
+        let ok = true;
+        if (!fotoFile) {
+            document.getElementById('photo-preview').classList.add('error-photo');
+            showMsg('reg-msg', 'A foto de perfil é obrigatória.', 'error');
+            ok = false;
+        }
+        if (!nome)   { markError('reg-nome');   if (ok) showMsg('reg-msg', 'Nome obrigatório.', 'error'); ok = false; }
+        if (!apelido){ markError('reg-apelido');if (ok) showMsg('reg-msg', 'Apelido obrigatório.', 'error'); ok = false; }
+        if (!email)  { markError('reg-email');  if (ok) showMsg('reg-msg', 'Email obrigatório.', 'error'); ok = false; }
+        if (!password)  { markError('reg-password');  if (ok) showMsg('reg-msg', 'Password obrigatória.', 'error'); ok = false; }
+        if (password.length < 6) { markError('reg-password'); if (ok) showMsg('reg-msg', 'Password deve ter pelo menos 6 caracteres.', 'error'); ok = false; }
+        if (password !== password2) { markError('reg-password2'); if (ok) showMsg('reg-msg', 'As passwords não coincidem.', 'error'); ok = false; }
+        if (!ok) return;
+
+        const btn = document.getElementById('reg-btn');
+        btn.disabled = true; btn.textContent = 'A criar conta...';
+
+        try {
+            // 1. Faz upload da foto para o Supabase Storage
+            let fotoUrl = null;
+            if (fotoFile) {
+                const ext      = fotoFile.name.split('.').pop();
+                const filename = `visitantes/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                const SUPA_URL = window.SUPABASE_URL || '';
+                const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+
+                const uploadRes = await fetch(`${SUPA_URL}/storage/v1/object/fotos/${filename}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': fotoFile.type },
+                    body: fotoFile,
+                });
+
+                if (uploadRes.ok) {
+                    fotoUrl = `${SUPA_URL}/storage/v1/object/public/fotos/${filename}`;
+                }
+                // Se o upload falhar não bloqueia o registo — continua sem foto
+            }
+
+            // 2. Regista utilizador
+            await ZionAuth.register({
+                nome:          `${nome} ${apelido}`.trim(),
+                email,
+                telefone:      telefone || null,
+                onde_conheceu: onde     || null,
+                foto_url:      fotoUrl,
+                password,
             });
 
-            if (uploadRes.ok) {
-                fotoUrl = `${SUPA_URL}/storage/v1/object/public/fotos/${filename}`;
-            }
-            // Se o upload falhar não bloqueia o registo — continua sem foto
+            showMsg('reg-msg', 'Conta criada! A redirecionar...', 'success');
+            setTimeout(() => {
+                const redirect = sessionStorage.getItem('zion_redirect');
+                sessionStorage.removeItem('zion_redirect');
+                window.location.href = redirect || 'index.html';
+            }, 900);
+
+        } catch(e) {
+            showMsg('reg-msg', e.message || 'Erro ao criar conta. Tenta novamente.', 'error');
+            btn.disabled = false; btn.textContent = 'Criar Conta';
+        }
+    }
+
+    // ── ESQUECI A PASSWORD ─────────────────────────────────────
+    function abrirForgot() {
+        const overlay = document.getElementById('forgot-overlay');
+        overlay.style.display = 'flex';
+        document.getElementById('forgot-email').value = document.getElementById('login-email').value || '';
+        document.getElementById('forgot-msg').className = 'msg-box';
+        document.getElementById('forgot-btn').disabled = false;
+        document.getElementById('forgot-btn').textContent = 'Enviar Link de Recuperação';
+        setTimeout(() => document.getElementById('forgot-email').focus(), 100);
+    }
+
+    function fecharForgot() {
+        document.getElementById('forgot-overlay').style.display = 'none';
+    }
+
+    document.getElementById('forgot-overlay').addEventListener('click', function(e) {
+        if (e.target === this) fecharForgot();
+    });
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharForgot(); });
+
+    async function enviarReset() {
+        const email = document.getElementById('forgot-email').value.trim();
+        const msgEl = document.getElementById('forgot-msg');
+        msgEl.className = 'msg-box';
+
+        if (!email) {
+            msgEl.textContent = 'Introduz o teu email.';
+            msgEl.className = 'msg-box error';
+            return;
         }
 
-        // 2. Regista utilizador
-        await ZionAuth.register({
-            nome:          `${nome} ${apelido}`.trim(),
-            email,
-            telefone:      telefone || null,
-            onde_conheceu: onde     || null,
-            foto_url:      fotoUrl,
-            password,
-        });
+        const btn = document.getElementById('forgot-btn');
+        btn.disabled = true;
+        btn.textContent = 'A enviar...';
 
-        showMsg('reg-msg', 'Conta criada! A redirecionar...', 'success');
-        setTimeout(() => {
-            const redirect = sessionStorage.getItem('zion_redirect');
-            sessionStorage.removeItem('zion_redirect');
-            window.location.href = redirect || 'index.html';
-        }, 900);
+        try {
+            const res = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const data = await res.json();
 
-    } catch(e) {
-        showMsg('reg-msg', e.message || 'Erro ao criar conta. Tenta novamente.', 'error');
-        btn.disabled = false; btn.textContent = 'Criar Conta';
-    }
-}
+            // Mostra sempre mensagem de sucesso (por segurança não revelamos se email existe)
+            msgEl.textContent = data.message || 'Se este email tiver conta, receberás instruções em breve.';
+            msgEl.className = 'msg-box success';
+            btn.textContent = 'Email enviado';
 
-// ── ESQUECI A PASSWORD ─────────────────────────────────────
-function abrirForgot() {
-    const overlay = document.getElementById('forgot-overlay');
-    overlay.style.display = 'flex';
-    document.getElementById('forgot-email').value = document.getElementById('login-email').value || '';
-    document.getElementById('forgot-msg').className = 'msg-box';
-    document.getElementById('forgot-btn').disabled = false;
-    document.getElementById('forgot-btn').textContent = 'Enviar Link de Recuperação';
-    setTimeout(() => document.getElementById('forgot-email').focus(), 100);
-}
-
-function fecharForgot() {
-    document.getElementById('forgot-overlay').style.display = 'none';
-}
-
-document.getElementById('forgot-overlay').addEventListener('click', function(e) {
-    if (e.target === this) fecharForgot();
-});
-
-document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharForgot(); });
-
-async function enviarReset() {
-    const email = document.getElementById('forgot-email').value.trim();
-    const msgEl = document.getElementById('forgot-msg');
-    msgEl.className = 'msg-box';
-
-    if (!email) {
-        msgEl.textContent = 'Introduz o teu email.';
-        msgEl.className = 'msg-box error';
-        return;
+        } catch(e) {
+            msgEl.textContent = 'Erro ao enviar. Tenta novamente.';
+            msgEl.className = 'msg-box error';
+            btn.disabled = false;
+            btn.textContent = 'Enviar Link de Recuperação';
+        }
     }
 
-    const btn = document.getElementById('forgot-btn');
-    btn.disabled = true;
-    btn.textContent = 'A enviar...';
-
-    try {
-        const res = await fetch('/api/auth/forgot-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-        });
-        const data = await res.json();
-
-        // Mostra sempre mensagem de sucesso (por segurança não revelamos se email existe)
-        msgEl.textContent = data.message || 'Se este email tiver conta, receberás instruções em breve.';
-        msgEl.className = 'msg-box success';
-        btn.textContent = 'Email enviado';
-
-    } catch(e) {
-        msgEl.textContent = 'Erro ao enviar. Tenta novamente.';
-        msgEl.className = 'msg-box error';
-        btn.disabled = false;
-        btn.textContent = 'Enviar Link de Recuperação';
+    if (ZionAuth.isLoggedIn()) {
+        const redirect = sessionStorage.getItem('zion_redirect');
+        sessionStorage.removeItem('zion_redirect');
+        window.location.href = redirect || 'index.html';
     }
-}
-
-if (ZionAuth.isLoggedIn()) {
-    const redirect = sessionStorage.getItem('zion_redirect');
-    sessionStorage.removeItem('zion_redirect');
-    window.location.href = redirect || 'index.html';
-}
 </script>
 </body>
 </html>

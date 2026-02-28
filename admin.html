@@ -3891,14 +3891,14 @@
             });
         }
 
-        const body = {
+        // Corpo base (campos que sempre existem)
+        const bodyBase = {
             nome:  get('nome'),
             email,
             tipo:  get('tipo'),
             e_admin: isAdmin,
             ativo: chk('ativo'),
             updated_at: new Date().toISOString(),
-            ...perms,
         };
 
         const btn = document.getElementById('btn-save');
@@ -3911,12 +3911,31 @@
                 if (existente?.length) { showFormMsg('Já existe um utilizador com este email.','error'); btn.disabled=false; btn.textContent='Guardar'; return; }
                 const password = get('password');
                 if (!password || password.length < 6) { showFormMsg('Password mínima de 6 caracteres.','error'); btn.disabled=false; btn.textContent='Guardar'; return; }
-                // Hash simples (usa o mesmo que o registo usa — btoa para dev, substituir por bcrypt em prod)
-                body.password_hash = btoa(password);
-                await sb('usuarios', {method:'POST', body:JSON.stringify(body)});
+                bodyBase.password_hash = btoa(password);
+                await sb('usuarios', {method:'POST', body:JSON.stringify(bodyBase)});
             } else {
-                await sb(`usuarios?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(body)});
+                // Primeiro guardar campos base (sempre funcionam)
+                await sb(`usuarios?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(bodyBase)});
             }
+
+            // Tentar guardar flags de permissão separadamente
+            // (se as colunas não existirem ainda, avisa mas não bloqueia)
+            const targetId = id || (await sb(`usuarios?email=eq.${encodeURIComponent(email)}&select=id`).catch(()=>[]))?.[0]?.id;
+            if (targetId && Object.keys(perms).length > 0) {
+                try {
+                    await sb(`usuarios?id=eq.${targetId}`, {method:'PATCH', body:JSON.stringify(perms)});
+                } catch(permErr) {
+                    const msg = permErr?.message || JSON.stringify(permErr);
+                    if (msg.includes('column') || msg.includes('schema cache')) {
+                        showFormMsg('⚠ Dados base guardados. Permissões ainda não disponíveis — executa o SQL permissoes_keola.sql no Supabase e depois faz NOTIFY pgrst, 'reload schema';', 'error');
+                        utilizadoresData = await sb('usuarios?select=*&order=nome') || [];
+                        btn.disabled = false; btn.textContent = 'Guardar';
+                        return;
+                    }
+                    throw permErr;
+                }
+            }
+
             showFormMsg('Guardado!','success');
             utilizadoresData = await sb('usuarios?select=*&order=nome') || [];
             setTimeout(closeDrawer, 700);

@@ -965,7 +965,7 @@ function setAba(aba) {
 // ── CARREGAR TUDO ─────────────────────────────────────────────────────────────
 async function carregarTudo() {
     const [loja, keola, mbs] = await Promise.all([
-        sb('loja_produtos?select=*&ativo=eq.true&order=categoria,nome').catch(() => []),
+        sb('loja_produtos?select=*&ativo=eq.true&mostrar_pdv=eq.true&order=categoria,nome').catch(() => []),
         sb('keola_menu?select=*&disponivel=eq.true&mostrar_pdv=eq.true&order=ordem.asc,nome.asc').catch(() => []),
         sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(() => []),
     ]);
@@ -976,12 +976,13 @@ async function carregarTudo() {
         .map(k => ({
             ...k,
             _keola: true,
-            // Stock: kits usam stock_kits, items de venda usam stock
-            stock: k.tipo_item === 'kit' ? (k.stock_kits ?? null) : (k.stock ?? null),
-            controlar_estoque: k.tipo_item !== 'kit' ? (k.stock != null) : (k.stock_kits != null),
-            imagem_url:    k.imagem_url || k.foto_url || null,
-            sku:           k.sku || null,
-            codigo_barras: null,
+            // Kits usam stock_kits (pratos montados), itens de venda usam stock normal
+            stock:             k.tipo_item === 'kit' ? (k.stock_kits ?? 0) : (k.stock ?? 0),
+            controlar_estoque: k.controlar_estoque !== false,
+            venda_sem_estoque: k.venda_sem_estoque || false,
+            imagem_url:        k.imagem_url || k.foto_url || null,
+            sku:               k.sku || null,
+            codigo_barras:     null,
         }));
     membros = mbs || [];
 

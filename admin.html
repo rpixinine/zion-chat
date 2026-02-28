@@ -444,20 +444,28 @@
     }
 
     async function renderVisitantesTab() {
-        const cfg = SECOES['membros'];
+        const mc = document.getElementById('main-content');
+        if (!mc) { console.error('main-content não existe'); return; }
 
-        // Mostra loading primeiro
-        document.getElementById('main-content').innerHTML = `
+        const cfg = SECOES['membros'];
+        if (!cfg) { mc.innerHTML = '<div style="padding:20px;color:red">ERRO: SECOES[membros] não definido</div>'; return; }
+
+        // Loading
+        mc.innerHTML = `
     <div class="sub-tabs">
         ${cfg.subTabs.map((t,i)=>`<button class="sub-tab ${subTabAtiva===i?'active':''}" onclick="setSubTab(${i})">${t}</button>`).join('')}
     </div>
-    <div class="loading"><div class="spin"></div>A carregar visitantes...</div>`;
+    <div style="padding:20px;color:var(--text-faint)">⏳ A carregar visitantes do Supabase...</div>`;
 
         // Carrega SEMPRE directamente do Supabase
+        let rawData = [];
         try {
-            visitantes = await sb('visitantes?select=*&order=nome') || [];
+            rawData = await sb('visitantes?select=*&order=nome') || [];
+            visitantes = rawData;
+            console.log('Visitantes carregados:', visitantes.length, visitantes);
         } catch(e) {
-            document.getElementById('main-content').innerHTML += `<div style="padding:16px;color:red">Erro ao carregar: ${e?.message||JSON.stringify(e)}</div>`;
+            console.error('Erro visitantes:', e);
+            mc.innerHTML += `<div style="padding:16px;color:red;font-size:12px">Erro: ${e?.message||e?.code||JSON.stringify(e)}</div>`;
             return;
         }
 
@@ -1501,25 +1509,96 @@
         {key:'especial_hoje', label:'Especial Hoje',    type:'checkbox'},
     ];}
     function camposLoja() { return [
-        {type:'section',label:'Identificação'},
-        {key:'nome',              label:'Nome',              ph:'Ex: Camisola ZION', full:true},
-        {key:'categoria',         label:'Categoria',         type:'select', options:[
-                {v:'Vestuario',l:'Vestuário'},{v:'Acessorios',l:'Acessórios'},{v:'Livros',l:'Livros'},
-                {v:'Musica',l:'Música'},{v:'Decoracao',l:'Decoração'},{v:'Infantil',l:'Infantil'},{v:'Outros',l:'Outros'}
-            ]},
-        {key:'descricao',         label:'Descrição',         type:'textarea', ph:'...', full:true},
-        {type:'section',label:'Preços'},
-        {key:'preco',             label:'Preço (€)',          type:'number', ph:'0.00'},
-        {key:'preco_promocional', label:'Preço Promo (€)',   type:'number', ph:'0.00'},
-        {type:'section',label:'Estoque'},
-        {key:'stock',             label:'Quantidade',        type:'number', ph:'0'},
-        {key:'controlar_estoque', label:'Controlar Estoque', type:'checkbox', default:true},
-        {type:'section',label:'Imagem e Destaque'},
-        {key:'imagem_url',        label:'Imagem',            type:'image', bucket:'imagens', full:true},
-        {key:'ordem',             label:'Ordem',             type:'number', ph:'1'},
-        {key:'disponivel',        label:'Disponível',        type:'checkbox', default:true},
-        {key:'ativo',             label:'Ativo',             type:'checkbox', default:true},
-        {key:'destaque',          label:'Destaque',          type:'checkbox'},
+        // ── IDENTIFICAÇÃO ─────────────────────────────────────────────────────
+        {type:'section', label:'Identificação'},
+        {key:'nome',          label:'Nome *',        ph:'Ex: Bíblia NVI Capa Dura', full:true},
+        {key:'categoria',     label:'Categoria',     type:'select', options:[
+            {v:'Livros',l:'Livros'},{v:'Biblia',l:'Bíblias'},{v:'Vestuario',l:'Vestuário'},
+            {v:'Acessorios',l:'Acessórios'},{v:'Musica',l:'Música'},{v:'Decoracao',l:'Decoração'},
+            {v:'Infantil',l:'Infantil'},{v:'Papelaria',l:'Papelaria'},{v:'Outros',l:'Outros'},
+        ]},
+        {key:'subcategoria',  label:'Subcategoria',  ph:'Ex: Devocionais'},
+        {key:'descricao',     label:'Descrição',     type:'textarea', ph:'Descrição do produto...', full:true},
+        {key:'sku',           label:'SKU',           ph:'Ex: BIB-NVI-001'},
+        {key:'codigo_barras', label:'Cód. Barras',   ph:'Ex: 7891234567890'},
+        {key:'marca',         label:'Marca',         ph:'Ex: Editora Vida'},
+        {key:'fornecedor',    label:'Fornecedor',    ph:'Ex: Distribuidora X'},
+        {key:'tags',          label:'Tags',          ph:'livro, bíblia, nvi (separado por vírgula)', full:true},
+        {key:'modelo',        label:'Modelo',        ph:'Ex: Standard'},
+
+        // ── PREÇOS ────────────────────────────────────────────────────────────
+        {type:'section', label:'Preços'},
+        {key:'preco',              label:'Preço de Venda (€)',  type:'number', ph:'0.00'},
+        {key:'preco_custo',        label:'Preço de Custo (€)',  type:'number', ph:'0.00'},
+        {key:'preco_promocional',  label:'Preço Promo (€)',     type:'number', ph:'0.00'},
+        {key:'desconto_pct',       label:'Desconto (%)',        type:'number', ph:'0'},
+        {key:'margem_lucro',       label:'Margem Lucro (%)',    type:'number', ph:'0'},
+        {key:'data_inicio_promo',  label:'Início Promoção',     type:'date'},
+        {key:'data_fim_promo',     label:'Fim Promoção',        type:'date'},
+
+        // ── ESTOQUE ───────────────────────────────────────────────────────────
+        {type:'section', label:'Estoque'},
+        {key:'stock',           label:'Estoque Actual',    type:'number', ph:'0'},
+        {key:'stock_minimo',    label:'Estoque Mínimo',   type:'number', ph:'0'},
+        {key:'stock_maximo',    label:'Estoque Máximo',   type:'number', ph:'0'},
+        {key:'localizacao',     label:'Localização',       ph:'Ex: Prateleira A2'},
+        {key:'controlar_estoque',   label:'Controlar Estoque',   type:'checkbox', default:true},
+        {key:'venda_sem_estoque',   label:'Vender sem Estoque',  type:'checkbox'},
+
+        // ── VARIAÇÕES ─────────────────────────────────────────────────────────
+        {type:'section', label:'Variações (Roupa / Produto)'},
+        {key:'cor',          label:'Cor',         ph:'Ex: Azul, Preto'},
+        {key:'tamanho',      label:'Tamanho',     ph:'Ex: M, G, 42'},
+        {key:'genero',       label:'Género',      type:'select', options:[
+            {v:'',l:'--'},{v:'masculino',l:'Masculino'},{v:'feminino',l:'Feminino'},
+            {v:'unissex',l:'Unissex'},{v:'infantil',l:'Infantil'},
+        ]},
+        {key:'material',     label:'Material',    ph:'Ex: Algodão 100%'},
+        {key:'tipo_tecido',  label:'Tipo Tecido', ph:'Ex: Jersey, Flanela'},
+        {key:'estacao',      label:'Estação',     type:'select', options:[
+            {v:'',l:'--'},{v:'verao',l:'Verão'},{v:'inverno',l:'Inverno'},{v:'primavera',l:'Primavera'},{v:'outono',l:'Outono'},{v:'todas',l:'Todas'},
+        ]},
+        {key:'voltagem',     label:'Voltagem',    ph:'Ex: 110V / 220V'},
+        {key:'edicao',       label:'Edição',      ph:'Ex: 1ª Edição'},
+        {key:'sku_variacao',         label:'SKU Variação',      ph:'Ex: BIB-NVI-001-AZ-G'},
+        {key:'preco_variacao',       label:'Preço Variação (€)', type:'number', ph:'0.00'},
+        {key:'estoque_variacao',     label:'Estoque Variação',  type:'number', ph:'0'},
+
+        // ── LIVROS / BÍBLIAS ──────────────────────────────────────────────────
+        {type:'section', label:'Livros & Bíblias'},
+        {key:'autor',            label:'Autor',           ph:'Ex: Charles Spurgeon'},
+        {key:'editora',          label:'Editora',         ph:'Ex: Editora Vida Nova'},
+        {key:'isbn',             label:'ISBN',            ph:'Ex: 978-85-000-0000-0'},
+        {key:'num_paginas',      label:'Nº de Páginas',   type:'number', ph:'0'},
+        {key:'ano_publicacao',   label:'Ano Publicação',  type:'number', ph:'2024'},
+        {key:'idioma',           label:'Idioma',          type:'select', options:[
+            {v:'',l:'--'},{v:'portugues',l:'Português'},{v:'ingles',l:'Inglês'},
+            {v:'espanhol',l:'Espanhol'},{v:'outro',l:'Outro'},
+        ]},
+        {key:'tipo_capa',        label:'Tipo de Capa',    type:'select', options:[
+            {v:'',l:'--'},{v:'dura',l:'Capa Dura'},{v:'brochura',l:'Brochura'},{v:'flexivel',l:'Flexível'},
+        ]},
+
+        // ── ENVIO / DIMENSÕES ─────────────────────────────────────────────────
+        {type:'section', label:'Dimensões & Envio'},
+        {key:'peso',          label:'Peso (kg)',       type:'number', ph:'0.00'},
+        {key:'altura',        label:'Altura (cm)',     type:'number', ph:'0'},
+        {key:'largura',       label:'Largura (cm)',    type:'number', ph:'0'},
+        {key:'comprimento',   label:'Comprimento (cm)',type:'number', ph:'0'},
+        {key:'frete_gratis',  label:'Frete Grátis',   type:'checkbox'},
+        {key:'classe_envio',  label:'Classe Envio',   ph:'Ex: Standard, Expresso'},
+
+        // ── IMAGEM & DESTAQUE ─────────────────────────────────────────────────
+        {type:'section', label:'Imagem & Visibilidade'},
+        {key:'imagem_url',    label:'Imagem',          type:'image', bucket:'imagens', full:true},
+        {key:'data_lancamento', label:'Data Lançamento', type:'date'},
+        {key:'ordem',         label:'Ordem Exibição',  type:'number', ph:'1'},
+        {key:'disponivel',    label:'Disponível',      type:'checkbox', default:true},
+        {key:'ativo',         label:'Ativo',           type:'checkbox', default:true},
+        {key:'destaque',      label:'Destaque',        type:'checkbox'},
+        {key:'novo_lancamento',label:'Novo Lançamento',type:'checkbox'},
+        {key:'mais_vendido',  label:'Mais Vendido',    type:'checkbox'},
+        {key:'frete_gratis',  label:'Frete Grátis',   type:'checkbox'},
     ];}
 
     // ══════════════════════════════════════════════════════════════════════════

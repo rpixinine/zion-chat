@@ -153,21 +153,22 @@
     </div>
 
     <div class="nav-bar" id="nav-bar">
-        <div class="nav-item"         onclick="setSecao('dashboard')">Dashboard</div>
-        <div class="nav-item active"  onclick="setSecao('membros')">Membros</div>
-        <div class="nav-item"         onclick="setSecao('pastores')">Pastores</div>
-        <div class="nav-item"         onclick="setSecao('links')">Links</div>
-        <div class="nav-item"         onclick="setSecao('cultos')">Cultos</div>
-        <div class="nav-item"         onclick="setSecao('ministerios')">Ministérios</div>
-        <div class="nav-item"         onclick="setSecao('salas')">Salas</div>
-        <div class="nav-item"         onclick="setSecao('cursos')">Cursos ZAO</div>
-        <div class="nav-item"         onclick="setSecao('keola')">Keola</div>
-        <div class="nav-item"         onclick="setSecao('loja')">Loja</div>
-        <div class="nav-item"         onclick="setSecao('eventos')">Eventos</div>
-        <div class="nav-item"         onclick="setSecao('tipos_evento')">Tipos Evento</div>
-        <div class="nav-item"         onclick="setSecao('fornecedores')">Fornecedores</div>
-        <div class="nav-item"         onclick="setSecao('financeiro')">Financeiro</div>
-        <div class="nav-item"         onclick="setSecao('configuracoes')">⚙ Config</div>
+        <div class="nav-item"         onclick="setSecao('dashboard')" data-secao="dashboard">Dashboard</div>
+        <div class="nav-item active"  onclick="setSecao('membros')" data-secao="membros">Membros</div>
+        <div class="nav-item"         onclick="setSecao('pastores')" data-secao="pastores">Pastores</div>
+        <div class="nav-item"         onclick="setSecao('links')" data-secao="links">Links</div>
+        <div class="nav-item"         onclick="setSecao('cultos')" data-secao="cultos">Cultos</div>
+        <div class="nav-item"         onclick="setSecao('ministerios')" data-secao="ministerios">Ministérios</div>
+        <div class="nav-item"         onclick="setSecao('salas')" data-secao="salas">Salas</div>
+        <div class="nav-item"         onclick="setSecao('cursos')" data-secao="cursos">Cursos ZAO</div>
+        <div class="nav-item"         onclick="setSecao('keola')" data-secao="keola">Keola</div>
+        <div class="nav-item"         onclick="setSecao('loja')" data-secao="loja">Loja</div>
+        <div class="nav-item"         onclick="setSecao('eventos')" data-secao="eventos">Eventos</div>
+        <div class="nav-item"         onclick="setSecao('tipos_evento')" data-secao="eventos">Tipos Evento</div>
+        <div class="nav-item"         onclick="setSecao('fornecedores')" data-secao="fornecedores">Fornecedores</div>
+        <div class="nav-item"         onclick="setSecao('financeiro')" data-secao="financeiro">Financeiro</div>
+        <div class="nav-item"         onclick="setSecao('utilizadores')" data-secao="utilizadores">👤 Utilizadores</div>
+        <div class="nav-item"         onclick="setSecao('configuracoes')" data-secao="configuracoes">⚙ Config</div>
     </div>
 
     <div class="content" id="main-content">
@@ -215,6 +216,22 @@
     let links_cache      = [];
     let ministeriosCache = [];
 
+    // ── PERMISSÕES DO UTILIZADOR ──────────────────────────────────────────────
+    let userPerms = {};  // preenchido no init com as flags da tabela usuarios
+
+    // Verifica se o utilizador tem permissão para uma acção numa secção
+    // acção: 'ver' | 'criar' | 'editar' | 'eliminar'
+    function perm(secao, accao = 'ver') {
+        if (userPerms.e_admin) return true;            // admin vê tudo
+        return userPerms[`${accao}_${secao}`] === true;
+    }
+
+    // Devolve os atributos de disabled para botões consoante a permissão
+    function btnGuard(secao, accao) {
+        if (perm(secao, accao)) return '';
+        return 'disabled title="Sem permissão" style="opacity:0.35;cursor:not-allowed"';
+    }
+
     // ── TIPOS DE EVENTO (carregados dinamicamente do localStorage) ────────────
     // Definido mais abaixo em TIPOS DE EVENTO — gestão na tela,
     // mas precisamos do array disponível para buildFormEvento.
@@ -259,23 +276,65 @@
         document.getElementById('data-hoje').textContent =
             hoje.charAt(0).toUpperCase() + hoje.slice(1);
 
-        const check = await sb(
-            `membros?select=e_admin,e_presbitero&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`
-        );
-        const m = check?.[0];
-        if (!m || (!m.e_admin && !m.e_presbitero)) {
+        // Carregar permissões do utilizador (tabela usuarios)
+        const [userRow, membroRow] = await Promise.all([
+            sb(`usuarios?select=*&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`).catch(()=>[]),
+            sb(`membros?select=e_admin,e_presbitero&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`).catch(()=>[]),
+        ]);
+        const u = userRow?.[0];
+        const m = membroRow?.[0];
+
+        // Montar objecto de permissões
+        // Admin de membro ou admin de utilizador = acesso total
+        const isAdminGlobal = m?.e_admin || u?.e_admin || false;
+        const isPresbitero  = m?.e_presbitero || false;
+
+        if (isAdminGlobal) {
+            // Admin: todas as flags a true
+            const SECOES_LISTA = ['dashboard','membros','pastores','links','cultos','ministerios',
+                'salas','cursos','keola','loja','eventos','fornecedores','financeiro','utilizadores','configuracoes'];
+            userPerms = { e_admin: true };
+            SECOES_LISTA.forEach(s => {
+                userPerms[`ver_${s}`]      = true;
+                userPerms[`criar_${s}`]    = true;
+                userPerms[`editar_${s}`]   = true;
+                userPerms[`eliminar_${s}`] = true;
+            });
+        } else if (isPresbitero) {
+            // Presbítero: pode ver membros, eventos, dashboard — sem financeiro/config
+            userPerms = {
+                e_admin: false,
+                ver_dashboard:true, ver_membros:true, ver_eventos:true,
+                ver_ministerios:true, ver_links:true, ver_cultos:true,
+                criar_eventos:true, editar_eventos:true,
+                editar_membros:true,
+                ...(u || {}),  // flags da BD sobrepõem
+            };
+        } else if (u) {
+            // Utilizador com flags personalizadas na tabela usuarios
+            userPerms = { e_admin: false, ...u };
+        } else {
+            // Sem registo — sem acesso
             document.getElementById('nav-bar').style.display = 'none';
             document.getElementById('main-content').innerHTML = `
             <div class="acesso-negado">
                 <div class="acesso-negado-icon">✕</div>
                 <div class="acesso-negado-title">Acesso Restrito</div>
-                <div class="acesso-negado-txt">Esta área é exclusiva para Administradores e Presbíteros.</div>
+                <div class="acesso-negado-txt">Não tens permissões de acesso ao painel.</div>
             </div>`;
             return;
         }
+
+        // Ocultar abas que o utilizador não pode ver
+        aplicarPermissoesNav();
+
         membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
         syncTiposEvento();
-        await setSecao('membros');
+        // Ir para a primeira secção visível
+        const primeiraVisivel = ['dashboard','membros','pastores','links','cultos','ministerios',
+            'salas','cursos','keola','loja','eventos','fornecedores','financeiro','configuracoes']
+            .find(s => perm(s, 'ver')) || 'membros';
+        await setSecao(primeiraVisivel);
     }
 
     // ── SECÇÕES ───────────────────────────────────────────────────────────────
@@ -288,12 +347,12 @@
             ministerios:'Ministérios', salas:'Salas', cursos:'Cursos ZAO',
             keola:'Keola — Menu', loja:'Loja', eventos:'Eventos',
             tipos_evento:'Tipos de Evento', configuracoes:'Configurações',
-            fornecedores:'Fornecedores', financeiro:'Financeiro',
+            fornecedores:'Fornecedores', financeiro:'Financeiro', utilizadores:'Gestão de Utilizadores',
         };
         const sl = document.getElementById('secao-label');
         if (sl) sl.textContent = nomes[secao] || 'Cadastros';
         const idx = ['dashboard','membros','pastores','links','cultos','ministerios','salas',
-            'cursos','keola','loja','eventos','tipos_evento','fornecedores','financeiro','configuracoes'];
+            'cursos','keola','loja','eventos','tipos_evento','fornecedores','financeiro','utilizadores','configuracoes'];
         const ni = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
         if (ni) ni.classList.add('active');
         await carregarSecao();
@@ -316,6 +375,9 @@
         if (secaoAtiva === 'configuracoes') {
             await carregarConfiguracoes(); return;
         }
+        if (secaoAtiva === 'utilizadores') {
+            await carregarUtilizadores(); return;
+        }
         if (secaoAtiva === 'fornecedores') {
             await carregarFornecedores(); return;
         }
@@ -324,6 +386,7 @@
         }
         const cfg = SECOES[secaoAtiva];
         registos = await sb(`${cfg.tabela}?select=*&order=${cfg.orderBy||'nome'}`) || [];
+        if (secaoAtiva === 'keola') await carregarComponentesCache();
         if (secaoAtiva === 'membros') {
             if (!links_cache.length)
                 links_cache = await sb('links?select=id,nome&ativo=eq.true&order=nome') || [];
@@ -385,7 +448,7 @@
         <input class="toolbar-search" id="toolbar-search-input"
                placeholder="Pesquisar..." oninput="handleSearch()" value="">
         <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">Inativos</button>
-        <button class="btn-new" onclick="abrirForm(null)">+ Novo</button>
+        <button class="btn-new" onclick="abrirForm(null)" ${btnGuard(secaoAtiva,'criar')}>+ Novo</button>
     </div>`;
         if (temSubTabs) {
             html += `<div class="sub-tabs">
@@ -424,9 +487,10 @@
                 ${badges ? `<div class="admin-row-badges">${badges}</div>` : ''}
             </div>
             <div class="admin-row-actions">
-                <button class="btn-edit" onclick="abrirForm('${r.id}')">Editar</button>
+                ${secaoAtiva==='keola'&&r.tipo_item==='kit'?patchKeolaRow(r):''}
+                <button class="btn-edit" onclick="abrirFormKeola_or_default('${r.id}')" ${btnGuard(secaoAtiva,'editar')}>Editar</button>
                 <button class="btn-toggle ${ativo?'ativo':'inativo'}"
-                        onclick="toggleAtivo('${r.id}','${ativoKey}',${ativo})">
+                        onclick="toggleAtivo('${r.id}','${ativoKey}',${ativo})" ${btnGuard(secaoAtiva,'eliminar')}>
                     ${ativo?'Inativar':'Ativar'}
                 </button>
             </div>
@@ -894,6 +958,13 @@
     }
 
     // ── FORM ──────────────────────────────────────────────────────────────────
+    async function abrirFormKeola_or_default(id) {
+        if (secaoAtiva === 'keola') {
+            await abrirKeolaComCustom(id);
+        }
+        await abrirForm(id);
+    }
+
     async function abrirForm(id) {
         const cfg     = SECOES[secaoAtiva];
         const registo = id ? registos.find(r=>r.id===id) : null;
@@ -914,6 +985,12 @@
         document.getElementById('drawer-title').textContent =
             isNovo ? `Novo — ${cfg.label||secaoAtiva}` : 'Editar';
         document.getElementById('drawer-body').innerHTML = buildForm(cfg, registo);
+        // Para Keola: injectar painel de componentes de kit
+        if (secaoAtiva === 'keola') {
+            injectKitPanel(id || null);
+        }
+        // Aplicar guard de permissões nos campos do form
+        setTimeout(() => aplicarPermissoesSecao(secaoAtiva), 50);
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
         if (!isNovo&&secaoAtiva==='membros') {
@@ -1011,6 +1088,18 @@
             if (isNovo) await sb(cfg.tabela,{method:'POST',body:JSON.stringify(body)});
             else        await sb(`${cfg.tabela}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
             showFormMsg('Guardado com sucesso!','success');
+            // Se Keola kit — guardar componentes
+            if (secaoAtiva === 'keola') {
+                const tipoSel = [...document.querySelectorAll('select')].find(s =>
+                    s.closest('.form-group')?.querySelector('label')?.textContent?.includes('Tipo de Item')
+                );
+                if (tipoSel?.value === 'kit' || keolaKitItensTemp.length > 0) {
+                    // Obter ID do item (novo ou existente)
+                    const itemId = id || (await sb(`keola_menu?select=id&order=created_at.desc&limit=1`).catch(()=>[]))?.[0]?.id;
+                    if (itemId) await salvarComponentesKit(itemId);
+                }
+                await carregarComponentesCache();
+            }
             await carregarSecao();
             setTimeout(closeDrawer, 800);
         } catch(e) {
@@ -3543,6 +3632,648 @@
             showFormMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
             btn.disabled=false; btn.textContent='Guardar';
         }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PERMISSÕES — NAV HIDE + GUARD
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function aplicarPermissoesNav() {
+        document.querySelectorAll('.nav-item[data-secao]').forEach(el => {
+            const secao = el.dataset.secao;
+            if (secao && !perm(secao, 'ver')) {
+                el.style.display = 'none';
+            } else {
+                el.style.display = '';
+            }
+        });
+    }
+
+    // Aplica guard nos botões de acção da secção activa
+    function aplicarPermissoesSecao(secao) {
+        // Botão Novo
+        document.querySelectorAll('.btn-new').forEach(btn => {
+            if (!perm(secao, 'criar')) {
+                btn.style.display = 'none';
+            }
+        });
+        // Botões Editar
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            if (!perm(secao, 'editar')) {
+                btn.disabled = true;
+                btn.style.opacity = '0.35';
+                btn.title = 'Sem permissão para editar';
+            }
+        });
+        // Botões Toggle/Delete/Inativar
+        document.querySelectorAll('.btn-toggle').forEach(btn => {
+            if (!perm(secao, 'eliminar')) {
+                btn.disabled = true;
+                btn.style.opacity = '0.35';
+                btn.title = 'Sem permissão';
+            }
+        });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // GESTÃO DE UTILIZADORES
+    // ══════════════════════════════════════════════════════════════════════════
+    let utilizadoresData = [];
+
+    const TODAS_SECOES = [
+        { key: 'dashboard',    label: 'Dashboard' },
+        { key: 'membros',      label: 'Membros' },
+        { key: 'pastores',     label: 'Pastores' },
+        { key: 'links',        label: 'Links' },
+        { key: 'cultos',       label: 'Cultos' },
+        { key: 'ministerios',  label: 'Ministérios' },
+        { key: 'salas',        label: 'Salas' },
+        { key: 'cursos',       label: 'Cursos ZAO' },
+        { key: 'keola',        label: 'Keola' },
+        { key: 'loja',         label: 'Loja' },
+        { key: 'eventos',      label: 'Eventos' },
+        { key: 'fornecedores', label: 'Fornecedores' },
+        { key: 'financeiro',   label: 'Financeiro' },
+        { key: 'configuracoes',label: 'Configurações' },
+    ];
+
+    async function carregarUtilizadores() {
+        utilizadoresData = await sb('usuarios?select=*&order=nome') || [];
+        renderUtilizadores();
+    }
+
+    function renderUtilizadores() {
+        const q = getQ();
+        let lista = utilizadoresData;
+        if (!filtroInativo) lista = lista.filter(u => u.ativo !== false);
+        else lista = lista.filter(u => u.ativo === false);
+        if (q) lista = lista.filter(u =>
+            (u.nome||'').toLowerCase().includes(q) ||
+            (u.email||'').toLowerCase().includes(q)
+        );
+
+        const TIPO_LABEL = { admin:'Admin', membro:'Membro', visitante:'Visitante', outro:'Outro' };
+        const TIPO_COR   = { admin:'badge-red', membro:'badge-primary', visitante:'badge-gray', outro:'badge-gray' };
+
+        let html = `
+        <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
+            <input class="toolbar-search" id="toolbar-search-input" placeholder="Pesquisar utilizador..." oninput="handleSearch()" value="${q}">
+            <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">Inativos</button>
+            <button class="btn-new" onclick="abrirFormUtilizador(null)" ${btnGuard('utilizadores','criar')}>+ Novo</button>
+        </div>
+        <div style="padding:8px 16px 0;font-size:11px;color:var(--text-faint)">${lista.length} utilizador(es)</div>
+        <div class="admin-list">`;
+
+        lista.forEach((u, i) => {
+            const tipo  = TIPO_LABEL[u.tipo] || u.tipo || '—';
+            const badge = TIPO_COR[u.tipo]   || 'badge-gray';
+            // Contar quantas secções tem acesso
+            const numAcessos = TODAS_SECOES.filter(s => u[`ver_${s.key}`] || u.e_admin).length;
+            html += `
+            <div class="admin-row" style="animation-delay:${Math.min(i,12)*0.02}s">
+                <div class="admin-row-foto" style="background:var(--primary-faint);color:var(--primary-dark);font-size:13px;font-weight:700">${(u.nome||u.email||'U')[0].toUpperCase()}</div>
+                <div class="admin-row-info">
+                    <div class="admin-row-nome">${u.nome || u.email || '—'}</div>
+                    <div class="admin-row-sub">${u.email || ''}</div>
+                    <div class="admin-row-badges">
+                        <span class="badge ${badge}">${tipo}</span>
+                        ${u.e_admin ? '<span class="badge badge-red">Admin Total</span>' : `<span class="badge badge-gray">${numAcessos} secções</span>`}
+                        ${u.ativo===false ? '<span class="badge badge-gray">Inativo</span>' : ''}
+                    </div>
+                </div>
+                <div class="admin-row-actions">
+                    <button class="btn-edit" onclick="abrirFormUtilizador('${u.id}')" ${btnGuard('utilizadores','editar')}>Editar</button>
+                    <button class="btn-toggle ${u.ativo!==false?'ativo':'inativo'}" onclick="toggleAtivoUtilizador('${u.id}',${u.ativo!==false})" ${btnGuard('utilizadores','eliminar')}>${u.ativo!==false?'Inativar':'Ativar'}</button>
+                </div>
+            </div>`;
+        });
+
+        html += '</div>';
+        document.getElementById('main-content').innerHTML = html;
+        restoreSearch(q);
+    }
+
+    async function toggleAtivoUtilizador(id, ativo) {
+        await sb(`usuarios?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({ativo:!ativo})});
+        await carregarUtilizadores();
+    }
+
+    function abrirFormUtilizador(id) {
+        const u = id ? utilizadoresData.find(x => x.id === id) : null;
+        document.getElementById('drawer-title').textContent = u ? 'Editar Utilizador' : 'Novo Utilizador';
+        document.getElementById('drawer-body').innerHTML = buildFormUtilizador(u);
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        // Listener para "Admin Total" toggle
+        document.getElementById('uf_admin')?.addEventListener('change', function() {
+            const bloco = document.getElementById('bloco-perms');
+            if (bloco) bloco.style.opacity = this.checked ? '0.35' : '1';
+            if (bloco) bloco.style.pointerEvents = this.checked ? 'none' : '';
+        });
+    }
+
+    function buildFormUtilizador(u) {
+        const fv  = (k, d='') => u?.[k] ?? d;
+        const chk = (k, d=false) => (u?.[k] ?? d) ? 'checked' : '';
+
+        // Construir a tabela de permissões por secção
+        const headerPerms = `
+        <div style="display:grid;grid-template-columns:1fr repeat(4,56px);gap:4px;font-size:9px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);text-transform:uppercase;padding:4px 8px;border-bottom:1px solid var(--border);margin-bottom:4px">
+            <div>Secção</div><div style="text-align:center">Ver</div><div style="text-align:center">Criar</div><div style="text-align:center">Editar</div><div style="text-align:center">Eliminar</div>
+        </div>`;
+
+        const linhasPerms = TODAS_SECOES.map(s => `
+        <div style="display:grid;grid-template-columns:1fr repeat(4,56px);gap:4px;align-items:center;padding:5px 8px;border-radius:6px;background:var(--bg-card);margin-bottom:3px">
+            <div style="font-size:12px">${s.label}</div>
+            <div style="text-align:center"><input type="checkbox" id="pv_ver_${s.key}"      ${chk('ver_'+s.key)}      onchange="sincronizarPerms('${s.key}','ver',this.checked)"></div>
+            <div style="text-align:center"><input type="checkbox" id="pv_criar_${s.key}"    ${chk('criar_'+s.key)}    onchange="sincronizarPerms('${s.key}','criar',this.checked)"></div>
+            <div style="text-align:center"><input type="checkbox" id="pv_editar_${s.key}"   ${chk('editar_'+s.key)}   onchange="sincronizarPerms('${s.key}','editar',this.checked)"></div>
+            <div style="text-align:center"><input type="checkbox" id="pv_eliminar_${s.key}" ${chk('eliminar_'+s.key)} onchange="sincronizarPerms('${s.key}','eliminar',this.checked)"></div>
+        </div>`).join('');
+
+        return `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+
+        <div class="form-section-title">Dados do Utilizador</div>
+        <div class="form-group form-full"><label class="form-label">Nome</label>
+            <input class="form-input" id="uf_nome" type="text" value="${fv('nome')}" placeholder="Nome completo"></div>
+        <div class="form-group form-full"><label class="form-label">Email *</label>
+            <input class="form-input" id="uf_email" type="email" value="${fv('email')}" placeholder="email@exemplo.com" ${u?'readonly':''}></div>
+        ${!u ? `<div class="form-group form-full"><label class="form-label">Password (inicial)</label>
+            <input class="form-input" id="uf_password" type="password" placeholder="Mínimo 6 caracteres"></div>` : ''}
+        <div class="form-group"><label class="form-label">Tipo</label>
+            <select class="form-select" id="uf_tipo">
+                <option value="membro"    ${fv('tipo','membro')==='membro'?'selected':''}>Membro</option>
+                <option value="visitante" ${fv('tipo')==='visitante'?'selected':''}>Visitante</option>
+                <option value="admin"     ${fv('tipo')==='admin'?'selected':''}>Admin</option>
+                <option value="outro"     ${fv('tipo')==='outro'?'selected':''}>Outro</option>
+            </select></div>
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:20px">
+            <label class="form-toggle">
+                <input type="checkbox" id="uf_admin" ${chk('e_admin')}>
+                <span>Admin Total (acesso a tudo)</span>
+            </label>
+        </div>
+        <div class="form-group">
+            <label class="form-toggle">
+                <input type="checkbox" id="uf_ativo" ${u?.ativo===false?'':'checked'}><span>Ativo</span>
+            </label>
+        </div>
+
+        <div class="form-section-title" style="display:flex;justify-content:space-between;align-items:center;grid-column:1/-1">
+            <span>Permissões por Secção</span>
+            <div style="display:flex;gap:6px">
+                <button type="button" onclick="definirTodasPerms(true)"  style="font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--primary);background:var(--primary-faint);color:var(--primary-dark);cursor:pointer">Selecionar Tudo</button>
+                <button type="button" onclick="definirTodasPerms(false)" style="font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-faint);cursor:pointer">Limpar Tudo</button>
+            </div>
+        </div>
+
+        <div class="form-full" id="bloco-perms" style="${chk('e_admin')?'opacity:0.35;pointer-events:none':''}">
+            <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">
+                💡 <strong>Ver</strong> = acesso à aba · <strong>Criar</strong> = pode adicionar · <strong>Editar</strong> = pode modificar · <strong>Eliminar</strong> = pode desativar/apagar
+            </div>
+            ${headerPerms}
+            ${linhasPerms}
+        </div>
+
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" id="btn-save" onclick="salvarUtilizador('${u?.id||''}')">Guardar</button>
+        </div></div>`;
+    }
+
+    // Quando marca Criar/Editar/Eliminar — garante que Ver também fica marcado
+    function sincronizarPerms(secao, accao, checked) {
+        if (checked && accao !== 'ver') {
+            const verEl = document.getElementById(`pv_ver_${secao}`);
+            if (verEl) verEl.checked = true;
+        }
+        // Se desmarcar Ver — desmarca tudo
+        if (!checked && accao === 'ver') {
+            ['criar','editar','eliminar'].forEach(a => {
+                const el = document.getElementById(`pv_${a}_${secao}`);
+                if (el) el.checked = false;
+            });
+        }
+    }
+
+    function definirTodasPerms(valor) {
+        TODAS_SECOES.forEach(s => {
+            ['ver','criar','editar','eliminar'].forEach(a => {
+                const el = document.getElementById(`pv_${a}_${s.key}`);
+                if (el) el.checked = valor;
+            });
+        });
+    }
+
+    async function salvarUtilizador(id) {
+        const get = k => { const el = document.getElementById('uf_'+k); return el ? el.value?.trim()||null : null; };
+        const chk = k => { const el = document.getElementById('uf_'+k); return el ? el.checked : false; };
+
+        const email = get('email');
+        if (!email) { showFormMsg('Email obrigatório.','error'); return; }
+
+        // Recolher todas as flags de permissão
+        const perms = {};
+        TODAS_SECOES.forEach(s => {
+            ['ver','criar','editar','eliminar'].forEach(a => {
+                const el = document.getElementById(`pv_${a}_${s.key}`);
+                perms[`${a}_${s.key}`] = el ? el.checked : false;
+            });
+        });
+
+        const isAdmin = chk('admin');
+        if (isAdmin) {
+            // Admin total — activar tudo
+            TODAS_SECOES.forEach(s => {
+                ['ver','criar','editar','eliminar'].forEach(a => { perms[`${a}_${s.key}`] = true; });
+            });
+        }
+
+        const body = {
+            nome:  get('nome'),
+            email,
+            tipo:  get('tipo'),
+            e_admin: isAdmin,
+            ativo: chk('ativo'),
+            updated_at: new Date().toISOString(),
+            ...perms,
+        };
+
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true; btn.textContent = 'A guardar...';
+
+        try {
+            if (!id) {
+                // Novo utilizador — verificar se já existe
+                const existente = await sb(`usuarios?email=eq.${encodeURIComponent(email)}&select=id`).catch(()=>[]);
+                if (existente?.length) { showFormMsg('Já existe um utilizador com este email.','error'); btn.disabled=false; btn.textContent='Guardar'; return; }
+                const password = get('password');
+                if (!password || password.length < 6) { showFormMsg('Password mínima de 6 caracteres.','error'); btn.disabled=false; btn.textContent='Guardar'; return; }
+                // Hash simples (usa o mesmo que o registo usa — btoa para dev, substituir por bcrypt em prod)
+                body.password_hash = btoa(password);
+                await sb('usuarios', {method:'POST', body:JSON.stringify(body)});
+            } else {
+                await sb(`usuarios?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(body)});
+            }
+            showFormMsg('Guardado!','success');
+            utilizadoresData = await sb('usuarios?select=*&order=nome') || [];
+            setTimeout(closeDrawer, 700);
+        } catch(e) {
+            showFormMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
+            btn.disabled = false; btn.textContent = 'Guardar';
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // KEOLA MELHORADO — CAMPOS + KIT SYSTEM
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // Override da função camposKeola com campos completos
+    // (a função original será sobreposta por esta)
+    function camposKeola() { return [
+        {type:'section', label:'Identificação'},
+        {key:'nome',      label:'Nome *', ph:'Ex: Bitoque, Café, Sumo', full:true},
+        {key:'tipo_item', label:'Tipo de Item', type:'select', options:[
+            {v:'normal',     l:'Normal (sem stock)'},
+            {v:'componente', l:'Componente (ingrediente c/ stock)'},
+            {v:'kit',        l:'Kit / Prato (montado com componentes)'},
+        ]},
+        {key:'categoria', label:'Categoria', type:'select', options:[
+            {v:'almoco',l:'Almoço'},{v:'bebidas',l:'Bebidas'},{v:'sumos',l:'Sumos'},
+            {v:'snacks',l:'Snacks'},{v:'sobremesas',l:'Sobremesas'},{v:'outro',l:'Outros'}
+        ]},
+        {key:'tipo_comida', label:'Tipo de Comida', type:'select', options:[
+            {v:'',l:'— Nenhum —'},{v:'carne',l:'Carne'},{v:'peixe',l:'Peixe'},
+            {v:'vegetariano',l:'Vegetariano'},{v:'vegan',l:'Vegan'},
+            {v:'sem_gluten',l:'Sem Glúten'},{v:'sobremesa',l:'Sobremesa'},
+            {v:'bebida',l:'Bebida'},{v:'outro',l:'Outro'},
+        ]},
+        {key:'descricao', label:'Descrição', type:'textarea', ph:'Breve descrição...', full:true},
+
+        {type:'section', label:'Preços'},
+        {key:'preco',       label:'Preço de Venda (€)', type:'number', ph:'0.00'},
+        {key:'preco_custo', label:'Custo por Unidade/Kg/L (€)', type:'number', ph:'0.0000'},
+        {key:'iva_pct',     label:'IVA (%)', type:'number', ph:'13'},
+
+        {type:'section', label:'Stock'},
+        {key:'unidade',     label:'Unidade de Stock', type:'select', options:[
+            {v:'un',l:'Unidade (un)'},{v:'g',l:'Gramas (g)'},{v:'kg',l:'Quilograma (kg)'},
+            {v:'ml',l:'Mililitro (ml)'},{v:'l',l:'Litro (l)'},
+        ]},
+        {key:'stock',         label:'Stock Actual', type:'number', ph:'0'},
+        {key:'stock_minimo',  label:'Stock Mínimo', type:'number', ph:'0'},
+
+        {key:'alergenos',  label:'Alérgenos', ph:'Glúten, Lactose...', full:true},
+        {key:'ordem',      label:'Ordem no Menu', type:'number', ph:'1'},
+        {key:'imagem_url', label:'Foto', type:'image', bucket:'imagens', full:true},
+        {key:'disponivel',    label:'Disponível',   type:'checkbox', default:true},
+        {key:'especial_hoje', label:'Especial Hoje',type:'checkbox'},
+    ];}
+
+    // Override do renderSecao para Keola — adicionar botão Kit e painel de componentes
+    const _renderSecaoOriginal = typeof renderSecao === 'function' ? renderSecao : null;
+
+    // Hook: após abrir drawer para keola, mostrar/esconder secção kit
+    const _buildFormOriginal = typeof buildForm === 'function' ? buildForm : null;
+
+    // ── Keola custom render após guard padrão ────────────────────────────────
+    // Adiciona o botão "Montar Pratos" aos kits na listagem
+    function patchKeolaRow(r) {
+        if (r.tipo_item !== 'kit') return '';
+        const maxKits = calcularMaxKits(r.id);
+        return `<button class="btn-sub-add" style="font-size:11px" onclick="abrirModalMontarKit('${r.id}','${r.nome?.replace(/'/g,"\\'")}')">🍽 Montar (${maxKits} possíveis)</button>`;
+    }
+
+    // Cache de componentes para calcular max kits
+    let keolaComponentesCache = {}; // kit_id -> [{componente_id, quantidade, unidade, stock, nome}]
+
+    async function carregarComponentesCache() {
+        const comps = await sb('keola_kit_componentes?select=*,keola_menu!keola_kit_componentes_componente_id_fkey(id,nome,stock,unidade)').catch(()=>[]);
+        keolaComponentesCache = {};
+        (comps||[]).forEach(c => {
+            if (!keolaComponentesCache[c.kit_id]) keolaComponentesCache[c.kit_id] = [];
+            keolaComponentesCache[c.kit_id].push({
+                ...c,
+                stock:  c.keola_menu?.stock  || 0,
+                nome:   c.keola_menu?.nome   || '—',
+                unidade:c.keola_menu?.unidade|| 'un',
+            });
+        });
+    }
+
+    function calcularMaxKits(kitId) {
+        const comps = keolaComponentesCache[kitId];
+        if (!comps || !comps.length) return '?';
+        let max = Infinity;
+        comps.forEach(c => {
+            if (c.quantidade > 0) {
+                const possivel = Math.floor(c.stock / c.quantidade);
+                max = Math.min(max, possivel);
+            }
+        });
+        return max === Infinity ? 0 : max;
+    }
+
+    // ── Modal: Montar Kit ────────────────────────────────────────────────────
+    function abrirModalMontarKit(kitId, kitNome) {
+        const comps = keolaComponentesCache[kitId] || [];
+        const maxKits = calcularMaxKits(kitId);
+
+        const linhasComps = comps.map(c => {
+            const possivel = c.quantidade > 0 ? Math.floor(c.stock / c.quantidade) : '∞';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-card);border-radius:6px;margin-bottom:3px;font-size:12px">
+                <span>${c.nome}</span>
+                <span style="color:var(--text-faint)">${c.quantidade} ${c.unidade} × prato · Stock: <strong>${c.stock}</strong> · Possível: <strong style="color:${possivel<5?'var(--red)':'var(--green)'}">${possivel}</strong></span>
+            </div>`;
+        }).join('');
+
+        document.getElementById('drawer-title').textContent = `Montar: ${kitNome}`;
+        document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+
+        <div class="form-section-title">Componentes necessários por prato</div>
+        <div class="form-full">${linhasComps || '<div style="color:var(--text-faint);font-size:12px">Nenhum componente configurado. Edita o item e define os componentes.</div>'}</div>
+
+        <div class="form-section-title" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center">
+            <span>Quantos pratos montar?</span>
+            <span style="font-size:11px;color:var(--${maxKits>0?'green':'red'})">Máximo possível: <strong>${maxKits}</strong></span>
+        </div>
+
+        <div class="form-group form-full">
+            <input class="form-input" id="mk_quantidade" type="number" min="1" max="${maxKits}" value="${Math.min(1, maxKits)}" style="font-size:20px;text-align:center;height:60px;font-family:var(--font-title)">
+        </div>
+
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" id="btn-save" onclick="executarMontagem('${kitId}','${kitNome?.replace(/'/g,"\\'")}',${maxKits})" ${maxKits<=0?'disabled':''}>
+                🍽 Confirmar Montagem
+            </button>
+        </div></div>`;
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function executarMontagem(kitId, kitNome, maxKits) {
+        const qty = parseInt(document.getElementById('mk_quantidade')?.value || 0);
+        if (!qty || qty <= 0) { showFormMsg('Quantidade inválida.','error'); return; }
+        if (qty > maxKits) { showFormMsg(`Máximo possível: ${maxKits} pratos.`,'error'); return; }
+
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true; btn.textContent = 'A montar...';
+
+        const comps = keolaComponentesCache[kitId] || [];
+        const consumidos = [];
+
+        try {
+            // 1. Reduzir stock de cada componente
+            for (const c of comps) {
+                const consumo    = c.quantidade * qty;
+                const novoStock  = Math.max(0, c.stock - consumo);
+                await sb(`keola_menu?id=eq.${c.componente_id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ stock: novoStock, updated_at: new Date().toISOString() }),
+                });
+                // Log de movimento
+                await sb('keola_stock_movimentos', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        item_id: c.componente_id, item_nome: c.nome,
+                        tipo: 'montagem', quantidade: -consumo,
+                        stock_antes: c.stock, stock_depois: novoStock,
+                        referencia: `montagem_kit_${kitId}`,
+                        notas: `Montagem de ${qty}× ${kitNome}`,
+                        operador: currentUser?.nome || null,
+                    }),
+                });
+                consumidos.push({ id: c.componente_id, nome: c.nome, consumido: consumo, stock_depois: novoStock });
+                // Actualizar cache local
+                c.stock = novoStock;
+            }
+
+            // 2. Aumentar stock do kit
+            const kitActual = registos.find(r => r.id === kitId);
+            const stockKitAntes  = kitActual?.stock_kits || 0;
+            const stockKitDepois = stockKitAntes + qty;
+            await sb(`keola_menu?id=eq.${kitId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ stock_kits: stockKitDepois, updated_at: new Date().toISOString() }),
+            });
+
+            // 3. Registar montagem no histórico
+            await sb('keola_montagens', {
+                method: 'POST',
+                body: JSON.stringify({
+                    kit_id: kitId, kit_nome: kitNome,
+                    quantidade: qty,
+                    stock_antes: stockKitAntes, stock_depois: stockKitDepois,
+                    componentes_consumidos: consumidos,
+                    operador: currentUser?.nome || null,
+                }),
+            });
+
+            showFormMsg(`✓ ${qty} prato(s) montado(s)! Stock actualizado.`, 'success');
+            // Recarregar
+            registos = await sb(`keola_menu?select=*&order=categoria,nome`) || [];
+            await carregarComponentesCache();
+            setTimeout(() => { closeDrawer(); renderSecao(); }, 1000);
+
+        } catch(e) {
+            showFormMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
+            btn.disabled = false; btn.textContent = '🍽 Confirmar Montagem';
+        }
+    }
+
+    // ── Painel de componentes no drawer de edição Keola ──────────────────────
+    let keolaKitItensTemp = []; // componentes em edição no formulário
+
+    async function abrirKeolaComCustom(id) {
+        // Carregar componentes do kit se for edição
+        keolaKitItensTemp = [];
+        if (id) {
+            const comps = await sb(`keola_kit_componentes?select=*,keola_menu!keola_kit_componentes_componente_id_fkey(id,nome,unidade)&kit_id=eq.${id}`).catch(()=>[]);
+            keolaKitItensTemp = (comps||[]).map(c => ({
+                componente_id: c.componente_id,
+                nome: c.keola_menu?.nome || '—',
+                quantidade: c.quantidade,
+                unidade: c.unidade || c.keola_menu?.unidade || 'un',
+            }));
+        }
+    }
+
+    // Injectar painel Kit após o formulário standard ser renderizado
+    function injectKitPanel(kitId) {
+        const drawer = document.getElementById('drawer-body');
+        if (!drawer) return;
+
+        // Remover painel anterior se existir
+        document.getElementById('kit-panel')?.remove();
+
+        const tipoEl = drawer.querySelector('#form-tipo_item, [data-key="tipo_item"] select, select');
+        // Encontrar o select de tipo_item
+        const selTipo = drawer.querySelector('select[id*="tipo_item"]') ||
+                        [...drawer.querySelectorAll('select')].find(s =>
+                            s.closest('.form-group')?.querySelector('label')?.textContent?.includes('Tipo de Item')
+                        );
+
+        if (selTipo) {
+            selTipo.addEventListener('change', () => toggleKitPanel(selTipo.value, kitId));
+            // Mostrar se já é kit
+            if (selTipo.value === 'kit') toggleKitPanel('kit', kitId);
+        }
+    }
+
+    function toggleKitPanel(tipoItem, kitId) {
+        document.getElementById('kit-panel')?.remove();
+        if (tipoItem !== 'kit') return;
+
+        // Buscar itens do tipo componente disponíveis
+        const componentes = registos.filter(r => r.tipo_item === 'componente');
+        const compOpts = componentes.map(c =>
+            `<option value="${c.id}" data-nome="${c.nome?.replace(/"/g,'&quot;')}" data-unidade="${c.unidade||'un'}">${c.nome} (${c.unidade||'un'} · Stock: ${c.stock||0})</option>`
+        ).join('');
+
+        const panel = document.createElement('div');
+        panel.id = 'kit-panel';
+        panel.style.cssText = 'grid-column:1/-1;background:var(--bg-input);border:1px solid var(--primary);border-radius:10px;padding:14px;margin-top:4px';
+        panel.innerHTML = `
+        <div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--primary-dark);margin-bottom:10px">🧩 Componentes do Kit</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">Define quais os ingredientes/componentes e a quantidade necessária para montar 1 unidade deste prato.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <select class="form-select" id="kc-sel" style="flex:2;min-width:150px">
+                <option value="">Seleciona componente...</option>${compOpts}
+            </select>
+            <input class="form-input" id="kc-qty" type="number" value="1" step="0.001" min="0.001" placeholder="Qtd" style="width:80px">
+            <input class="form-input" id="kc-unit" type="text" value="" placeholder="Un." style="width:60px" readonly>
+            <button class="btn-sub-add" onclick="adicionarComponenteKit()">+ Add</button>
+        </div>
+        <div id="kit-comp-lista"></div>`;
+
+        // Inserir antes dos form-actions
+        const actions = document.querySelector('.form-actions');
+        if (actions) actions.parentNode.insertBefore(panel, actions);
+        else document.getElementById('drawer-body').appendChild(panel);
+
+        // Auto-preencher unidade ao selecionar componente
+        document.getElementById('kc-sel')?.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            const unit = document.getElementById('kc-unit');
+            if (unit) unit.value = opt?.dataset?.unidade || 'un';
+        });
+
+        renderComponentesKitTemp();
+    }
+
+    function adicionarComponenteKit() {
+        const sel   = document.getElementById('kc-sel');
+        const opt   = sel?.options[sel.selectedIndex];
+        const qty   = parseFloat(document.getElementById('kc-qty')?.value || 0);
+        const unit  = document.getElementById('kc-unit')?.value || 'un';
+        const compId = sel?.value;
+        if (!compId) { alert('Seleciona um componente.'); return; }
+        if (qty <= 0) { alert('Quantidade deve ser > 0.'); return; }
+        if (keolaKitItensTemp.find(c => c.componente_id === compId)) {
+            alert('Componente já adicionado. Remove e adiciona novamente se precisares de alterar a quantidade.'); return;
+        }
+        keolaKitItensTemp.push({ componente_id: compId, nome: opt?.dataset?.nome || opt?.text || '—', quantidade: qty, unidade: unit });
+        sel.value = ''; document.getElementById('kc-qty').value = '1'; document.getElementById('kc-unit').value = '';
+        renderComponentesKitTemp();
+    }
+
+    function removerComponenteKit(idx) {
+        keolaKitItensTemp.splice(idx, 1);
+        renderComponentesKitTemp();
+    }
+
+    function renderComponentesKitTemp() {
+        const el = document.getElementById('kit-comp-lista');
+        if (!el) return;
+        if (!keolaKitItensTemp.length) {
+            el.innerHTML = '<div style="font-size:11px;color:var(--text-faint);padding:4px 0">Nenhum componente definido.</div>';
+            return;
+        }
+        el.innerHTML = keolaKitItensTemp.map((c, i) => `
+        <div style="display:flex;align-items:center;gap:8px;background:var(--bg-card);border-radius:6px;padding:7px 10px;margin-bottom:3px;font-size:12px">
+            <span style="flex:1">${c.nome}</span>
+            <span style="color:var(--primary-dark);font-weight:700">${c.quantidade} ${c.unidade}</span>
+            <button onclick="removerComponenteKit(${i})" style="color:var(--red);background:none;border:none;cursor:pointer;font-size:12px;padding:2px 6px">✕</button>
+        </div>`).join('');
+    }
+
+    // Guardar componentes do kit após guardar o item keola
+    async function salvarComponentesKit(kitId) {
+        // Apagar existentes
+        await sb(`keola_kit_componentes?kit_id=eq.${kitId}`, {method:'DELETE'}).catch(()=>{});
+        // Inserir novos
+        for (const c of keolaKitItensTemp) {
+            await sb('keola_kit_componentes', {
+                method: 'POST',
+                body: JSON.stringify({
+                    kit_id: kitId,
+                    componente_id: c.componente_id,
+                    quantidade: c.quantidade,
+                    unidade: c.unidade,
+                }),
+            });
+        }
+        // Actualizar cache
+        await carregarComponentesCache();
+    }
+
+    // Patch: interceptar o btn-save do keola para guardar também os componentes
+    function patchKeolaSave(itemId) {
+        const btn = document.getElementById('btn-save');
+        if (!btn) return;
+        const originalOnclick = btn.getAttribute('onclick');
+        btn.setAttribute('onclick', '');
+        btn.onclick = async function() {
+            // Executar o save original
+            btn.setAttribute('onclick', originalOnclick);
+            btn.click();
+            // Aguardar o registo ser criado/atualizado
+            // O save original fecha o drawer — interceptamos antes disso
+        };
     }
 
 

@@ -165,6 +165,8 @@
         <div class="nav-item"         onclick="setSecao('loja')">Loja</div>
         <div class="nav-item"         onclick="setSecao('eventos')">Eventos</div>
         <div class="nav-item"         onclick="setSecao('tipos_evento')">Tipos Evento</div>
+        <div class="nav-item"         onclick="setSecao('fornecedores')">Fornecedores</div>
+        <div class="nav-item"         onclick="setSecao('financeiro')">Financeiro</div>
         <div class="nav-item"         onclick="setSecao('configuracoes')">⚙ Config</div>
     </div>
 
@@ -286,11 +288,12 @@
             ministerios:'Ministérios', salas:'Salas', cursos:'Cursos ZAO',
             keola:'Keola — Menu', loja:'Loja', eventos:'Eventos',
             tipos_evento:'Tipos de Evento', configuracoes:'Configurações',
+            fornecedores:'Fornecedores', financeiro:'Financeiro',
         };
         const sl = document.getElementById('secao-label');
         if (sl) sl.textContent = nomes[secao] || 'Cadastros';
         const idx = ['dashboard','membros','pastores','links','cultos','ministerios','salas',
-            'cursos','keola','loja','eventos','tipos_evento','configuracoes'];
+            'cursos','keola','loja','eventos','tipos_evento','fornecedores','financeiro','configuracoes'];
         const ni = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
         if (ni) ni.classList.add('active');
         await carregarSecao();
@@ -312,6 +315,12 @@
         }
         if (secaoAtiva === 'configuracoes') {
             await carregarConfiguracoes(); return;
+        }
+        if (secaoAtiva === 'fornecedores') {
+            await carregarFornecedores(); return;
+        }
+        if (secaoAtiva === 'financeiro') {
+            await carregarFinanceiro(); return;
         }
         const cfg = SECOES[secaoAtiva];
         registos = await sb(`${cfg.tabela}?select=*&order=${cfg.orderBy||'nome'}`) || [];
@@ -2474,6 +2483,1068 @@
             </div>
         </div>`;
     }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // MÓDULO FINANCEIRO — FORNECEDORES
+    // ══════════════════════════════════════════════════════════════════════════
+    let fornecedoresData = [];
+
+    async function carregarFornecedores() {
+        fornecedoresData = await sb('fornecedores?select=*&order=nome') || [];
+        renderFornecedores();
+    }
+
+    function renderFornecedores() {
+        const q = getQ();
+        let lista = [...fornecedoresData].filter(f => f.ativo !== false);
+        if (filtroInativo) lista = fornecedoresData.filter(f => f.ativo === false);
+        if (q) lista = lista.filter(f => (f.nome||'').toLowerCase().includes(q) || (f.categoria||'').toLowerCase().includes(q));
+
+        let html = `
+        <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
+            <input class="toolbar-search" id="toolbar-search-input" placeholder="Pesquisar fornecedor..." oninput="handleSearch()" value="${q}">
+            <button class="toolbar-filter ${filtroInativo?'active':''}" onclick="toggleFiltroInativo()">Inativos</button>
+            <button class="btn-new" onclick="abrirFormFornecedor(null)">+ Novo</button>
+        </div>`;
+
+        if (!lista.length) {
+            html += `<div class="empty"><div class="empty-icon">—</div><div class="empty-txt">Nenhum fornecedor. Clica em + Novo.</div></div>`;
+            document.getElementById('main-content').innerHTML = html;
+            return;
+        }
+
+        html += '<div class="admin-list">';
+        lista.forEach((f, i) => {
+            const sub = [f.categoria, f.cidade, f.telefone].filter(Boolean).join(' · ');
+            const badges = [];
+            if (f.tipo === 'prestador') badges.push('<span class="badge badge-primary">Prestador</span>');
+            if (f.tipo === 'outro') badges.push('<span class="badge badge-gray">Outro</span>');
+            if (f.prazo_pagamento) badges.push(`<span class="badge badge-gray">${f.prazo_pagamento}d</span>`);
+            html += `
+            <div class="admin-row" style="animation-delay:${Math.min(i,12)*0.02}s">
+                <div class="admin-row-foto" style="background:var(--primary-faint);color:var(--primary-dark);font-size:13px;font-weight:700">${(f.nome||'F')[0]}</div>
+                <div class="admin-row-info">
+                    <div class="admin-row-nome">${f.nome}</div>
+                    ${sub ? `<div class="admin-row-sub">${sub}</div>` : ''}
+                    ${badges.length ? `<div class="admin-row-badges">${badges.join('')}</div>` : ''}
+                </div>
+                <div class="admin-row-actions">
+                    <button class="btn-edit" onclick="abrirFormFornecedor('${f.id}')">Editar</button>
+                    <button class="btn-toggle ${f.ativo!==false?'ativo':'inativo'}" onclick="toggleAtivoFornecedor('${f.id}',${f.ativo!==false})">${f.ativo!==false?'Inativar':'Ativar'}</button>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        document.getElementById('main-content').innerHTML = html;
+        restoreSearch(q);
+    }
+
+    function abrirFormFornecedor(id) {
+        const f = id ? fornecedoresData.find(x => x.id === id) : null;
+        document.getElementById('drawer-title').textContent = f ? 'Editar Fornecedor' : 'Novo Fornecedor';
+        document.getElementById('drawer-body').innerHTML = buildFormFornecedor(f);
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function buildFormFornecedor(f) {
+        const fv = (k, d='') => f?.[k] ?? d;
+        return `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+
+        <div class="form-section-title">Identificação</div>
+        <div class="form-group form-full"><label class="form-label">Nome *</label>
+            <input class="form-input" id="ff_nome" type="text" value="${fv('nome')}" placeholder="Nome do fornecedor"></div>
+        <div class="form-group"><label class="form-label">Tipo</label>
+            <select class="form-select" id="ff_tipo">
+                <option value="fornecedor" ${fv('tipo','fornecedor')==='fornecedor'?'selected':''}>Fornecedor</option>
+                <option value="prestador"  ${fv('tipo')==='prestador'?'selected':''}>Prestador de Serviços</option>
+                <option value="outro"      ${fv('tipo')==='outro'?'selected':''}>Outro</option>
+            </select></div>
+        <div class="form-group"><label class="form-label">Categoria</label>
+            <input class="form-input" id="ff_categoria" type="text" value="${fv('categoria')}" placeholder="Ex: Alimentação, Vestuário..."></div>
+        <div class="form-group"><label class="form-label">NIF</label>
+            <input class="form-input" id="ff_nif" type="text" value="${fv('nif')}" placeholder="PT000000000"></div>
+        <div class="form-group"><label class="form-label">Email</label>
+            <input class="form-input" id="ff_email" type="email" value="${fv('email')}"></div>
+        <div class="form-group"><label class="form-label">Telefone</label>
+            <input class="form-input" id="ff_telefone" type="tel" value="${fv('telefone')}"></div>
+        <div class="form-group"><label class="form-label">Website</label>
+            <input class="form-input" id="ff_website" type="url" value="${fv('website')}" placeholder="https://..."></div>
+
+        <div class="form-section-title">Morada</div>
+        <div class="form-group form-full"><label class="form-label">Rua</label>
+            <input class="form-input" id="ff_rua" type="text" value="${fv('rua')}"></div>
+        <div class="form-group"><label class="form-label">Número</label>
+            <input class="form-input" id="ff_numero" type="text" value="${fv('numero')}"></div>
+        <div class="form-group"><label class="form-label">Cód. Postal</label>
+            <input class="form-input" id="ff_codigo_postal" type="text" value="${fv('codigo_postal')}" placeholder="0000-000"></div>
+        <div class="form-group"><label class="form-label">Cidade</label>
+            <input class="form-input" id="ff_cidade" type="text" value="${fv('cidade')}" placeholder="Lisboa"></div>
+        <div class="form-group"><label class="form-label">País</label>
+            <input class="form-input" id="ff_pais" type="text" value="${fv('pais','Portugal')}"></div>
+
+        <div class="form-section-title">Dados Bancários</div>
+        <div class="form-group form-full"><label class="form-label">IBAN</label>
+            <input class="form-input" id="ff_iban" type="text" value="${fv('iban')}" placeholder="PT50 0000 0000 0000 0000 0000 0"></div>
+        <div class="form-group"><label class="form-label">Banco</label>
+            <input class="form-input" id="ff_banco" type="text" value="${fv('banco')}"></div>
+        <div class="form-group"><label class="form-label">SWIFT/BIC</label>
+            <input class="form-input" id="ff_swift" type="text" value="${fv('swift')}"></div>
+
+        <div class="form-section-title">Condições Comerciais</div>
+        <div class="form-group"><label class="form-label">Prazo Pagamento (dias)</label>
+            <input class="form-input" id="ff_prazo_pagamento" type="number" value="${fv('prazo_pagamento',30)}" placeholder="30"></div>
+        <div class="form-group"><label class="form-label">Contacto Principal</label>
+            <input class="form-input" id="ff_contacto_nome" type="text" value="${fv('contacto_nome')}"></div>
+        <div class="form-group form-full"><label class="form-label">Condições / Notas</label>
+            <textarea class="form-textarea" id="ff_condicoes" placeholder="Condições especiais, descontos...">${fv('condicoes')}</textarea></div>
+        <div class="form-group"><label class="form-toggle"><input type="checkbox" id="ff_ativo" ${fv('ativo',true)!==false?'checked':''}><span>Ativo</span></label></div>
+
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" id="btn-save" onclick="salvarFornecedor('${f?.id||''}')">Guardar</button>
+        </div></div>`;
+    }
+
+    async function salvarFornecedor(id) {
+        const get = k => { const el = document.getElementById('ff_'+k); return el ? el.value||null : null; };
+        const chk = k => { const el = document.getElementById('ff_'+k); return el ? el.checked : false; };
+        const nome = get('nome');
+        if (!nome) { showFormMsg('Nome obrigatório.','error'); return; }
+        const body = {
+            nome, tipo:get('tipo'), categoria:get('categoria'), nif:get('nif'),
+            email:get('email'), telefone:get('telefone'), website:get('website'),
+            rua:get('rua'), numero:get('numero'), codigo_postal:get('codigo_postal'),
+            cidade:get('cidade'), pais:get('pais'),
+            iban:get('iban'), banco:get('banco'), swift:get('swift'),
+            prazo_pagamento:get('prazo_pagamento')?Number(get('prazo_pagamento')):30,
+            contacto_nome:get('contacto_nome'), condicoes:get('condicoes'),
+            ativo:chk('ativo'), updated_at:new Date().toISOString(),
+        };
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true; btn.textContent = 'A guardar...';
+        try {
+            if (!id) await sb('fornecedores', {method:'POST', body:JSON.stringify(body)});
+            else     await sb(`fornecedores?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(body)});
+            showFormMsg('Guardado!', 'success');
+            fornecedoresData = await sb('fornecedores?select=*&order=nome') || [];
+            setTimeout(closeDrawer, 700);
+        } catch(e) {
+            showFormMsg('Erro: '+(e?.message||JSON.stringify(e)), 'error');
+            btn.disabled = false; btn.textContent = 'Guardar';
+        }
+    }
+
+    async function toggleAtivoFornecedor(id, ativo) {
+        await sb(`fornecedores?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({ativo:!ativo})});
+        await carregarFornecedores();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // MÓDULO FINANCEIRO — ECRÃ PRINCIPAL (3 abas)
+    // ══════════════════════════════════════════════════════════════════════════
+    let finTab        = 0; // 0=Faturas 1=Contas a Pagar 2=Contas a Receber
+    let comprasData   = [];
+    let contasPagarData = [];
+    let contasReceberData = [];
+    let produtosCache = []; // loja + keola combinados
+
+    // Filtros
+    let finFiltros = {
+        fornecedor_id: '', status: '', mes: '', categoria: '',
+    };
+
+    async function carregarFinanceiro() {
+        finTab = finTab || 0;
+        await Promise.all([
+            carregarDadosFinanceiros(),
+        ]);
+        renderFinanceiro();
+    }
+
+    async function carregarDadosFinanceiros() {
+        [comprasData, contasPagarData, contasReceberData, fornecedoresData] = await Promise.all([
+            sb('compras?select=*,fornecedores(id,nome)&order=data_fatura.desc').catch(()=>[]),
+            sb('contas_pagar?select=*,fornecedores(id,nome)&order=data_vencimento').catch(()=>[]),
+            sb('contas_receber?select=*&order=data_vencimento').catch(()=>[]),
+            fornecedoresData.length ? Promise.resolve(fornecedoresData) : sb('fornecedores?select=*&order=nome').catch(()=>[]),
+        ]);
+        // Marcar atrasados automaticamente (client-side)
+        const hoje = new Date().toISOString().split('T')[0];
+        contasPagarData.forEach(c => {
+            if (c.status === 'pendente' && c.data_vencimento && c.data_vencimento < hoje) c.status = 'atrasado';
+        });
+    }
+
+    function renderFinanceiro() {
+        const tabs = ['Entrada de Faturas','Contas a Pagar','Contas a Receber'];
+        let html = `<div class="sub-tabs">
+            ${tabs.map((t,i)=>`<button class="sub-tab ${finTab===i?'active':''}" onclick="setFinTab(${i})">${t}</button>`).join('')}
+        </div>`;
+        document.getElementById('main-content').innerHTML = html + '<div id="fin-content"><div class="loading"><div class="spin"></div></div></div>';
+        renderFinTab();
+    }
+
+    async function setFinTab(i) {
+        finTab = i;
+        await carregarDadosFinanceiros();
+        renderFinanceiro();
+    }
+
+    function renderFinTab() {
+        const el = document.getElementById('fin-content');
+        if (!el) return;
+        if (finTab === 0) el.innerHTML = renderFaturas();
+        if (finTab === 1) el.innerHTML = renderContasPagar();
+        if (finTab === 2) el.innerHTML = renderContasReceber();
+    }
+
+    // ── RESUMO STATS BAR ─────────────────────────────────────────────────────
+    function statBox(label, valor, cor, sub='') {
+        return `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;flex:1;min-width:120px">
+            <div style="font-family:var(--font-title);font-size:20px;font-weight:700;color:${cor}">€${Number(valor||0).toFixed(2)}</div>
+            <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;margin-top:3px">${label}</div>
+            ${sub?`<div style="font-size:10px;color:var(--text-faint);margin-top:2px">${sub}</div>`:''}
+        </div>`;
+    }
+
+    // ── ABA 0: ENTRADA DE FATURAS ────────────────────────────────────────────
+    function renderFaturas() {
+        const q = '';
+        const totalFaturas = comprasData.length;
+        const totalValor   = comprasData.reduce((a,c) => a + Number(c.total||0), 0);
+        const pendentes    = comprasData.filter(c => c.status === 'pendente').length;
+
+        let html = `
+        <div style="display:flex;gap:8px;padding:12px 16px 8px;flex-wrap:wrap">
+            ${statBox('Total Faturas', totalValor, 'var(--primary-dark)', totalFaturas+' registos')}
+            ${statBox('Pendentes', comprasData.filter(c=>c.status==='pendente').reduce((a,c)=>a+Number(c.total||0),0), 'var(--orange,#e65100)', pendentes+' faturas')}
+            ${statBox('Pagas', comprasData.filter(c=>c.status==='pago').reduce((a,c)=>a+Number(c.total||0),0), 'var(--green)', comprasData.filter(c=>c.status==='pago').length+' faturas')}
+        </div>
+        <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
+            <input class="toolbar-search" id="toolbar-search-input" placeholder="Pesquisar fatura..." oninput="handleSearch()" value="">
+            <button class="btn-new" onclick="abrirFormCompra(null)">+ Nova Fatura</button>
+        </div>`;
+
+        if (!comprasData.length) {
+            return html + `<div class="empty"><div class="empty-icon">—</div><div class="empty-txt">Nenhuma fatura registada. Clica em + Nova Fatura.</div></div>`;
+        }
+
+        const STATUS_COR = {pendente:'var(--orange,#e65100)',pago:'var(--green)',parcial:'var(--primary)',cancelado:'var(--text-faint)',atrasado:'var(--red)'};
+        const STATUS_LABEL = {pendente:'Pendente',pago:'Pago',parcial:'Parcial',cancelado:'Cancelado',atrasado:'Atrasado'};
+
+        html += '<div class="admin-list" style="padding:0 16px 16px">';
+        comprasData.forEach((c, i) => {
+            const forn  = c.fornecedores?.nome || c.fornecedor_nome || '—';
+            const data  = c.data_fatura ? new Date(c.data_fatura).toLocaleDateString('pt-PT') : '—';
+            const venc  = c.data_vencimento ? new Date(c.data_vencimento).toLocaleDateString('pt-PT') : '—';
+            const cor   = STATUS_COR[c.status]  || 'var(--text-faint)';
+            const label = STATUS_LABEL[c.status] || c.status;
+            html += `
+            <div class="admin-row" style="animation-delay:${Math.min(i,12)*0.02}s;flex-wrap:wrap;gap:6px">
+                <div class="admin-row-foto" style="background:var(--primary-faint);color:var(--primary-dark);font-size:11px;font-weight:700">${(forn[0]||'F')}</div>
+                <div class="admin-row-info" style="flex:1;min-width:0">
+                    <div class="admin-row-nome">${forn}${c.numero_fatura?` <span style="font-size:11px;color:var(--text-faint)">· Nº ${c.numero_fatura}</span>`:''}</div>
+                    <div class="admin-row-sub">Emissão: ${data} · Vence: ${venc} · ${c.forma_pagamento||'—'}</div>
+                    <div class="admin-row-badges">
+                        <span class="badge" style="background:${cor}22;color:${cor};border:1px solid ${cor}44">${label}</span>
+                        ${c.categoria?`<span class="badge badge-gray">${c.categoria}</span>`:''}
+                    </div>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                    <div style="font-family:var(--font-title);font-size:16px;font-weight:700;color:var(--primary-dark)">€${Number(c.total||0).toFixed(2)}</div>
+                    <div style="font-size:10px;color:var(--text-faint)">IVA: €${Number(c.iva||0).toFixed(2)}</div>
+                </div>
+                <div class="admin-row-actions" style="width:100%;justify-content:flex-end">
+                    <button class="btn-edit" onclick="abrirFormCompra('${c.id}')">Ver / Editar</button>
+                    ${c.status!=='pago'?`<button class="btn-toggle ativo" onclick="marcarCompraPaga('${c.id}')">Marcar Pago</button>`:''}
+                    <button class="btn-edit" style="color:var(--red);border-color:rgba(192,57,43,0.3)" onclick="abrirContaPagarDeCompra('${c.id}')">Ver Conta</button>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        return html;
+    }
+
+    // ── FORM COMPRA (entrada de fatura) ──────────────────────────────────────
+    let compraItensTemp = []; // itens em edição
+
+    async function abrirFormCompra(id) {
+        const compra = id ? comprasData.find(x => x.id === id) : null;
+        // Carregar produtos (loja + keola)
+        if (!produtosCache.length) {
+            const [loja, keola] = await Promise.all([
+                sb('loja_produtos?select=id,nome,categoria,sku,preco_custo,stock&ativo=eq.true&order=categoria,nome').catch(()=>[]),
+                sb('keola_menu?select=id,nome,categoria&disponivel=eq.true&order=categoria,nome').catch(()=>[]),
+            ]);
+            produtosCache = [
+                ...(loja||[]).map(p => ({...p, origem:'loja', label:`[Loja] ${p.categoria ? p.categoria+' — ' : ''}${p.nome}`})),
+                ...(keola||[]).map(p => ({...p, origem:'keola', label:`[Keola] ${p.categoria ? p.categoria+' — ' : ''}${p.nome}`})),
+            ];
+        }
+        // Carregar itens existentes se edição
+        compraItensTemp = [];
+        if (id) {
+            const itens = await sb(`compra_itens?select=*&compra_id=eq.${id}&order=created_at`).catch(()=>[]);
+            compraItensTemp = itens || [];
+        }
+        document.getElementById('drawer-title').textContent = compra ? `Fatura — ${compra.numero_fatura||compra.id.slice(0,8)}` : 'Nova Entrada de Fatura';
+        document.getElementById('drawer-body').innerHTML = buildFormCompra(compra);
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        renderItensCompra();
+        calcularTotaisCompra();
+    }
+
+    function buildFormCompra(c) {
+        const fv = (k,d='') => c?.[k] ?? d;
+        const fornOpts = fornecedoresData.map(f =>
+            `<option value="${f.id}" ${fv('fornecedor_id')===f.id?'selected':''}>${f.nome}</option>`
+        ).join('');
+        const prodOpts = produtosCache.map(p =>
+            `<option value="${p.id}" data-origem="${p.origem}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-custo="${p.preco_custo||0}">${p.label}</option>`
+        ).join('');
+
+        return `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+
+        <div class="form-section-title">Fornecedor & Fatura</div>
+        <div class="form-group form-full"><label class="form-label">Fornecedor</label>
+            <select class="form-select" id="fc_fornecedor_id">
+                <option value="">-- Sem fornecedor cadastrado --</option>${fornOpts}
+            </select></div>
+        <div class="form-group form-full"><label class="form-label">Nome Fornecedor (manual)</label>
+            <input class="form-input" id="fc_fornecedor_nome" type="text" value="${fv('fornecedor_nome')}" placeholder="Se não estiver na lista acima"></div>
+        <div class="form-group"><label class="form-label">Nº Fatura</label>
+            <input class="form-input" id="fc_numero_fatura" type="text" value="${fv('numero_fatura')}" placeholder="FT 2026/001"></div>
+        <div class="form-group"><label class="form-label">Data Fatura *</label>
+            <input class="form-input" id="fc_data_fatura" type="date" value="${fv('data_fatura', new Date().toISOString().split('T')[0])}"></div>
+        <div class="form-group"><label class="form-label">Data Vencimento</label>
+            <input class="form-input" id="fc_data_vencimento" type="date" value="${fv('data_vencimento')}"></div>
+        <div class="form-group"><label class="form-label">Categoria</label>
+            <select class="form-select" id="fc_categoria">
+                <option value="stock"        ${fv('categoria')==='stock'?'selected':''}>Stock / Mercadoria</option>
+                <option value="servicos"     ${fv('categoria')==='servicos'?'selected':''}>Serviços</option>
+                <option value="manutencao"   ${fv('categoria')==='manutencao'?'selected':''}>Manutenção</option>
+                <option value="utilities"    ${fv('categoria')==='utilities'?'selected':''}>Água / Luz / Gás</option>
+                <option value="renda"        ${fv('categoria')==='renda'?'selected':''}>Renda</option>
+                <option value="outros"       ${fv('categoria')==='outros'?'selected':''}>Outros</option>
+            </select></div>
+
+        <div class="form-section-title">Pagamento</div>
+        <div class="form-group"><label class="form-label">Forma de Pagamento</label>
+            <select class="form-select" id="fc_forma_pagamento">
+                <option value="transferencia" ${fv('forma_pagamento','transferencia')==='transferencia'?'selected':''}>Transferência Bancária</option>
+                <option value="mbway"         ${fv('forma_pagamento')==='mbway'?'selected':''}>MBWay</option>
+                <option value="multibanco"    ${fv('forma_pagamento')==='multibanco'?'selected':''}>Multibanco / Referência</option>
+                <option value="dinheiro"      ${fv('forma_pagamento')==='dinheiro'?'selected':''}>Dinheiro</option>
+                <option value="cheque"        ${fv('forma_pagamento')==='cheque'?'selected':''}>Cheque</option>
+                <option value="credito"       ${fv('forma_pagamento')==='credito'?'selected':''}>Crédito</option>
+            </select></div>
+        <div class="form-group"><label class="form-label">Condição de Pagamento</label>
+            <select class="form-select" id="fc_condicao_pagamento">
+                <option value="a_vista"   ${fv('condicao_pagamento')==='a_vista'?'selected':''}>A Vista</option>
+                <option value="30_dias"   ${fv('condicao_pagamento','30_dias')==='30_dias'?'selected':''}>30 dias</option>
+                <option value="60_dias"   ${fv('condicao_pagamento')==='60_dias'?'selected':''}>60 dias</option>
+                <option value="90_dias"   ${fv('condicao_pagamento')==='90_dias'?'selected':''}>90 dias</option>
+                <option value="parcelado" ${fv('condicao_pagamento')==='parcelado'?'selected':''}>Parcelado</option>
+            </select></div>
+
+        <div class="form-section-title">Itens da Fatura</div>
+        <div class="form-full" style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:12px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+                <select class="form-select" id="item-produto-sel" style="flex:2;min-width:180px">
+                    <option value="">Seleciona produto (Loja ou Keola)...</option>${prodOpts}
+                </select>
+                <input class="form-input" id="item-desc-manual" type="text" placeholder="Ou descrição manual" style="flex:1;min-width:120px">
+                <input class="form-input" id="item-qty" type="number" value="1" min="0.001" step="0.001" placeholder="Qtd" style="width:70px">
+                <input class="form-input" id="item-preco" type="number" value="0" min="0" step="0.01" placeholder="€ unit." style="width:90px">
+                <input class="form-input" id="item-iva" type="number" value="23" min="0" step="1" placeholder="IVA%" style="width:65px">
+                <button class="btn-sub-add" onclick="adicionarItemCompra()">+ Adicionar</button>
+            </div>
+            <div id="itens-compra-lista"></div>
+            <div id="itens-compra-totais" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)"></div>
+        </div>
+
+        <div class="form-section-title">Notas</div>
+        <div class="form-group form-full"><label class="form-label">Observações</label>
+            <textarea class="form-textarea" id="fc_observacoes" placeholder="Notas adicionais...">${fv('observacoes')}</textarea></div>
+
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" id="btn-save" onclick="salvarCompra('${c?.id||''}')">Guardar e Criar Conta a Pagar</button>
+        </div></div>`;
+    }
+
+    function adicionarItemCompra() {
+        const sel    = document.getElementById('item-produto-sel');
+        const opt    = sel?.options[sel.selectedIndex];
+        const descManual = document.getElementById('item-desc-manual')?.value?.trim();
+        const qty    = parseFloat(document.getElementById('item-qty')?.value || 1);
+        const preco  = parseFloat(document.getElementById('item-preco')?.value || 0);
+        const iva    = parseFloat(document.getElementById('item-iva')?.value || 23);
+
+        const prodId = sel?.value;
+        const desc   = descManual || opt?.dataset?.nome || '';
+        const origem = opt?.dataset?.origem || 'outro';
+
+        if (!desc && !prodId) { alert('Seleciona um produto ou escreve uma descrição.'); return; }
+        if (qty <= 0)  { alert('Quantidade deve ser maior que 0.'); return; }
+
+        compraItensTemp.push({
+            _tmp: Date.now(),
+            produto_id: prodId || null,
+            origem,
+            descricao: desc || opt?.text || '—',
+            quantidade: qty,
+            preco_unitario: preco,
+            iva_pct: iva,
+            atualizar_stock: origem !== 'outro',
+        });
+
+        // Limpar campos
+        if (sel) sel.value = '';
+        document.getElementById('item-desc-manual').value = '';
+        document.getElementById('item-qty').value = '1';
+        document.getElementById('item-preco').value = '0';
+
+        renderItensCompra();
+        calcularTotaisCompra();
+    }
+
+    function removerItemCompra(idx) {
+        compraItensTemp.splice(idx, 1);
+        renderItensCompra();
+        calcularTotaisCompra();
+    }
+
+    function renderItensCompra() {
+        const el = document.getElementById('itens-compra-lista');
+        if (!el) return;
+        if (!compraItensTemp.length) {
+            el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:6px 0">Nenhum item adicionado.</div>';
+            return;
+        }
+        el.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px;font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:4px;padding:0 4px">
+            <div>DESCRIÇÃO</div><div style="text-align:center">QTD</div><div style="text-align:right">€ UNIT.</div><div style="text-align:right">IVA%</div><div style="text-align:right">TOTAL</div>
+        </div>` +
+        compraItensTemp.map((item, i) => {
+            const sub = (item.quantidade * item.preco_unitario * (1 + item.iva_pct/100)).toFixed(2);
+            return `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px;align-items:center;padding:6px 4px;border-radius:6px;background:var(--bg-card);margin-bottom:3px;font-size:12px">
+                <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    ${item.atualizar_stock?'<span title="Vai actualizar stock" style="color:var(--green);font-size:10px">📦 </span>':''}${item.descricao}
+                </div>
+                <div style="text-align:center;color:var(--text-faint)">${item.quantidade}</div>
+                <div style="text-align:right">€${Number(item.preco_unitario).toFixed(2)}</div>
+                <div style="text-align:right;color:var(--text-faint)">${item.iva_pct}%</div>
+                <div style="text-align:right;font-weight:700;color:var(--primary-dark)">€${sub}</div>
+                <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:4px">
+                    <label style="font-size:10px;color:var(--text-faint);display:flex;align-items:center;gap:4px;cursor:pointer">
+                        <input type="checkbox" ${item.atualizar_stock?'checked':''} onchange="compraItensTemp[${i}].atualizar_stock=this.checked"> Actualizar stock
+                    </label>
+                    <button onclick="removerItemCompra(${i})" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;padding:2px 6px">Remover</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function calcularTotaisCompra() {
+        const el = document.getElementById('itens-compra-totais');
+        if (!el) return;
+        let subtotal = 0, ivaTotal = 0;
+        compraItensTemp.forEach(item => {
+            const base = item.quantidade * item.preco_unitario;
+            subtotal += base;
+            ivaTotal += base * (item.iva_pct / 100);
+        });
+        const total = subtotal + ivaTotal;
+        el.innerHTML = `
+        <div style="display:flex;justify-content:flex-end;gap:20px;font-size:13px">
+            <div style="color:var(--text-faint)">Subtotal: <strong>€${subtotal.toFixed(2)}</strong></div>
+            <div style="color:var(--text-faint)">IVA: <strong>€${ivaTotal.toFixed(2)}</strong></div>
+            <div style="color:var(--primary-dark);font-weight:700;font-size:15px">Total: €${total.toFixed(2)}</div>
+        </div>`;
+    }
+
+    async function salvarCompra(id) {
+        const get = k => { const el = document.getElementById('fc_'+k); return el ? el.value||null : null; };
+        const fornId   = get('fornecedor_id');
+        const fornNome = fornId ? (fornecedoresData.find(f=>f.id===fornId)?.nome||null) : get('fornecedor_nome');
+        const dataFatura = get('data_fatura');
+        if (!dataFatura) { showFormMsg('Data da fatura obrigatória.','error'); return; }
+        if (!compraItensTemp.length) { showFormMsg('Adiciona pelo menos um item.','error'); return; }
+
+        let subtotal = 0, ivaTotal = 0;
+        compraItensTemp.forEach(item => {
+            const base = item.quantidade * item.preco_unitario;
+            subtotal += base;
+            ivaTotal += base * (item.iva_pct/100);
+        });
+        const total = subtotal + ivaTotal;
+
+        // Calcular vencimento
+        let dataVenc = get('data_vencimento');
+        if (!dataVenc) {
+            const cond = get('condicao_pagamento') || '30_dias';
+            const dias = {a_vista:0, '30_dias':30, '60_dias':60, '90_dias':90, parcelado:30}[cond] || 30;
+            const d = new Date(dataFatura);
+            d.setDate(d.getDate() + dias);
+            dataVenc = d.toISOString().split('T')[0];
+        }
+
+        const body = {
+            fornecedor_id: fornId || null,
+            fornecedor_nome: fornNome,
+            numero_fatura: get('numero_fatura'),
+            data_fatura: dataFatura,
+            data_vencimento: dataVenc,
+            categoria: get('categoria'),
+            forma_pagamento: get('forma_pagamento'),
+            condicao_pagamento: get('condicao_pagamento'),
+            observacoes: get('observacoes'),
+            subtotal: parseFloat(subtotal.toFixed(2)),
+            iva: parseFloat(ivaTotal.toFixed(2)),
+            total: parseFloat(total.toFixed(2)),
+            status: 'pendente',
+            operador: currentUser?.nome || null,
+            updated_at: new Date().toISOString(),
+        };
+
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true; btn.textContent = 'A guardar...';
+
+        try {
+            let compraId = id;
+            if (!id) {
+                const res = await sb('compras', {method:'POST', body:JSON.stringify(body)});
+                compraId = res?.[0]?.id;
+            } else {
+                await sb(`compras?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(body)});
+                // Apagar itens antigos
+                await sb(`compra_itens?compra_id=eq.${id}`, {method:'DELETE'});
+            }
+
+            if (!compraId) throw new Error('Erro ao obter ID da compra.');
+
+            // Inserir itens + actualizar stock
+            for (const item of compraItensTemp) {
+                // Guardar stock antes
+                let stockAntes = null;
+                if (item.produto_id && item.atualizar_stock) {
+                    const tabela = item.origem === 'loja' ? 'loja_produtos' : 'keola_menu';
+                    const campo  = item.origem === 'loja' ? 'stock' : null;
+                    if (campo) {
+                        const prod = await sb(`${tabela}?id=eq.${item.produto_id}&select=${campo}`).catch(()=>[]);
+                        stockAntes = prod?.[0]?.[campo] ?? null;
+                    }
+                }
+
+                const itemBody = {
+                    compra_id: compraId,
+                    produto_id: item.produto_id || null,
+                    origem: item.origem,
+                    descricao: item.descricao,
+                    quantidade: item.quantidade,
+                    preco_unitario: item.preco_unitario,
+                    iva_pct: item.iva_pct,
+                    atualizar_stock: item.atualizar_stock,
+                    stock_antes: stockAntes,
+                };
+
+                if (item.produto_id && item.atualizar_stock && item.origem === 'loja') {
+                    const novoStock = (stockAntes || 0) + Math.round(item.quantidade);
+                    itemBody.stock_depois = novoStock;
+                    await sb(`loja_produtos?id=eq.${item.produto_id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({stock: novoStock}),
+                    });
+                }
+
+                await sb('compra_itens', {method:'POST', body:JSON.stringify(itemBody)});
+            }
+
+            // Criar / actualizar Conta a Pagar automaticamente
+            const contaExistente = contasPagarData.find(cp => cp.compra_id === compraId);
+            const contaBody = {
+                compra_id: compraId,
+                fornecedor_id: fornId || null,
+                fornecedor_nome: fornNome,
+                descricao: `Fatura ${body.numero_fatura||compraId.slice(0,8)} — ${fornNome||'Fornecedor'}`,
+                numero_documento: body.numero_fatura,
+                categoria: body.categoria || 'fornecedor',
+                valor_total: body.total,
+                valor_pago: 0,
+                data_emissao: body.data_fatura,
+                data_vencimento: dataVenc,
+                forma_pagamento: body.forma_pagamento,
+                status: 'pendente',
+                updated_at: new Date().toISOString(),
+            };
+
+            if (!contaExistente) {
+                await sb('contas_pagar', {method:'POST', body:JSON.stringify(contaBody)});
+            } else {
+                await sb(`contas_pagar?id=eq.${contaExistente.id}`, {method:'PATCH', body:JSON.stringify(contaBody)});
+            }
+
+            showFormMsg('Fatura guardada! Stock e conta a pagar atualizados.', 'success');
+            await carregarDadosFinanceiros();
+            setTimeout(() => { closeDrawer(); renderFinanceiro(); }, 900);
+
+        } catch(e) {
+            showFormMsg('Erro: '+(e?.message||JSON.stringify(e)), 'error');
+            btn.disabled = false; btn.textContent = 'Guardar e Criar Conta a Pagar';
+        }
+    }
+
+    async function marcarCompraPaga(id) {
+        await sb(`compras?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'pago', updated_at:new Date().toISOString()})});
+        await sb(`contas_pagar?compra_id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'pago', data_pagamento:new Date().toISOString().split('T')[0], valor_pago:(contasPagarData.find(c=>c.compra_id===id)?.valor_total||0), updated_at:new Date().toISOString()})});
+        await carregarDadosFinanceiros();
+        renderFinanceiro();
+    }
+
+    function abrirContaPagarDeCompra(compraId) {
+        finTab = 1;
+        renderFinanceiro();
+        // Scroll / highlight da conta correspondente
+        setTimeout(() => {
+            const el = document.querySelector(`[data-compra-id="${compraId}"]`);
+            if (el) el.scrollIntoView({behavior:'smooth'});
+        }, 200);
+    }
+
+    // ── ABA 1: CONTAS A PAGAR ────────────────────────────────────────────────
+    function renderContasPagar() {
+        const hoje = new Date().toISOString().split('T')[0];
+        // Filtros
+        const filtForn  = finFiltros.fornecedor_id;
+        const filtSt    = finFiltros.status;
+        const filtMes   = finFiltros.mes;
+        const filtCat   = finFiltros.categoria;
+
+        let lista = [...contasPagarData];
+        if (filtForn) lista = lista.filter(c => c.fornecedor_id === filtForn);
+        if (filtSt)   lista = lista.filter(c => c.status === filtSt);
+        if (filtCat)  lista = lista.filter(c => c.categoria === filtCat);
+        if (filtMes)  lista = lista.filter(c => c.data_vencimento?.startsWith(filtMes));
+
+        const totalPendente = lista.filter(c => c.status==='pendente'||c.status==='atrasado').reduce((a,c) => a+Number(c.valor_pendente||c.valor_total||0),0);
+        const totalAtrasado = lista.filter(c => c.status==='atrasado').reduce((a,c) => a+Number(c.valor_pendente||c.valor_total||0),0);
+        const totalPago     = lista.filter(c => c.status==='pago').reduce((a,c) => a+Number(c.valor_total||0),0);
+
+        // Meses disponíveis
+        const meses = [...new Set(contasPagarData.map(c => c.data_vencimento?.slice(0,7)).filter(Boolean))].sort().reverse();
+        const fornDisponiveis = [...new Set(contasPagarData.map(c => c.fornecedor_id).filter(Boolean))];
+        const mesOpts = meses.map(m => {
+            const [ano,mes] = m.split('-');
+            const label = new Date(ano, mes-1).toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
+            return `<option value="${m}" ${filtMes===m?'selected':''}>${label}</option>`;
+        }).join('');
+        const fornOpts = fornecedoresData.filter(f => fornDisponiveis.includes(f.id))
+            .map(f => `<option value="${f.id}" ${filtForn===f.id?'selected':''}>${f.nome}</option>`).join('');
+
+        const STATUS_STYLE = {
+            pendente:  'background:rgba(230,81,0,0.1);color:#e65100;border:1px solid rgba(230,81,0,0.3)',
+            pago:      'background:rgba(46,125,50,0.1);color:#2e7d32;border:1px solid rgba(46,125,50,0.3)',
+            atrasado:  'background:rgba(198,40,40,0.1);color:#c62828;border:1px solid rgba(198,40,40,0.3)',
+            parcial:   'background:rgba(0,144,152,0.1);color:var(--primary-dark);border:1px solid rgba(0,144,152,0.3)',
+            cancelado: 'background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)',
+        };
+
+        let html = `
+        <div style="display:flex;gap:8px;padding:12px 16px 8px;flex-wrap:wrap">
+            ${statBox('A Pagar', totalPendente, 'var(--orange,#e65100)', lista.filter(c=>c.status==='pendente'||c.status==='atrasado').length+' contas')}
+            ${statBox('Em Atraso', totalAtrasado, 'var(--red)', lista.filter(c=>c.status==='atrasado').length+' contas')}
+            ${statBox('Pago (filtro)', totalPago, 'var(--green)', lista.filter(c=>c.status==='pago').length+' contas')}
+        </div>
+
+        <div style="padding:0 16px 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <select class="toolbar-filter" onchange="finFiltros.mes=this.value;setFinTab(1)" style="border-radius:20px;padding:7px 12px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;cursor:pointer">
+                <option value="">Todos os meses</option>${mesOpts}
+            </select>
+            <select class="toolbar-filter" onchange="finFiltros.fornecedor_id=this.value;setFinTab(1)" style="border-radius:20px;padding:7px 12px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;cursor:pointer">
+                <option value="">Todos os fornecedores</option>${fornOpts}
+            </select>
+            <select class="toolbar-filter" onchange="finFiltros.status=this.value;setFinTab(1)" style="border-radius:20px;padding:7px 12px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;cursor:pointer">
+                <option value="">Todos os estados</option>
+                <option value="pendente"  ${filtSt==='pendente'?'selected':''}>Pendente</option>
+                <option value="atrasado"  ${filtSt==='atrasado'?'selected':''}>Atrasado</option>
+                <option value="pago"      ${filtSt==='pago'?'selected':''}>Pago</option>
+                <option value="parcial"   ${filtSt==='parcial'?'selected':''}>Parcial</option>
+                <option value="cancelado" ${filtSt==='cancelado'?'selected':''}>Cancelado</option>
+            </select>
+            <select class="toolbar-filter" onchange="finFiltros.categoria=this.value;setFinTab(1)" style="border-radius:20px;padding:7px 12px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;cursor:pointer">
+                <option value="">Todas as categorias</option>
+                <option value="fornecedor">Fornecedor</option>
+                <option value="renda">Renda</option>
+                <option value="servicos">Serviços</option>
+                <option value="utilities">Utilities</option>
+                <option value="salarios">Salários</option>
+                <option value="impostos">Impostos</option>
+                <option value="outros">Outros</option>
+            </select>
+            <button class="btn-new" onclick="abrirFormContaPagar(null)">+ Manual</button>
+        </div>`;
+
+        if (!lista.length) {
+            return html + `<div class="empty"><div class="empty-icon">—</div><div class="empty-txt">Nenhuma conta a pagar com este filtro.</div></div>`;
+        }
+
+        // Agrupar por mês de vencimento
+        const grupos = {};
+        lista.forEach(c => {
+            const mes = c.data_vencimento?.slice(0,7) || 'sem-data';
+            if (!grupos[mes]) grupos[mes] = [];
+            grupos[mes].push(c);
+        });
+
+        html += '<div style="padding:0 16px 16px">';
+        Object.keys(grupos).sort().reverse().forEach(mes => {
+            const label = mes === 'sem-data' ? 'Sem Data' : (() => {
+                const [ano,m] = mes.split('-');
+                return new Date(ano,m-1).toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
+            })();
+            const totalMes = grupos[mes].reduce((a,c) => a+Number(c.valor_pendente||0),0);
+            html += `<div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);padding:12px 0 6px;display:flex;justify-content:space-between;align-items:center">
+                <span>${label}</span>
+                <span style="color:var(--primary-dark)">€${totalMes.toFixed(2)} pendente</span>
+            </div>`;
+            grupos[mes].forEach((c, i) => {
+                const venc = c.data_vencimento ? new Date(c.data_vencimento).toLocaleDateString('pt-PT') : '—';
+                const isAtrasado = c.status === 'atrasado';
+                const st = STATUS_STYLE[c.status] || STATUS_STYLE.pendente;
+                html += `
+                <div class="admin-row" data-compra-id="${c.compra_id||''}" style="margin-bottom:6px;flex-wrap:wrap;gap:6px;${isAtrasado?'border-color:rgba(198,40,40,0.3)':''}">
+                    <div class="admin-row-info" style="flex:1;min-width:0">
+                        <div class="admin-row-nome" style="font-size:13px">${c.descricao||'—'}</div>
+                        <div class="admin-row-sub">
+                            ${c.fornecedor_nome||c.fornecedores?.nome||'Sem fornecedor'} · Vence: ${venc}
+                            ${c.forma_pagamento?'· '+c.forma_pagamento:''}
+                        </div>
+                        <div class="admin-row-badges">
+                            <span class="badge" style="${st}">${c.status?.toUpperCase()}</span>
+                            ${c.categoria?`<span class="badge badge-gray">${c.categoria}</span>`:''}
+                            ${c.compra_id?'<span class="badge badge-primary">Fatura</span>':''}
+                        </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                        <div style="font-family:var(--font-title);font-size:16px;font-weight:700;color:${isAtrasado?'var(--red)':'var(--primary-dark)'}">€${Number(c.valor_total||0).toFixed(2)}</div>
+                        ${c.valor_pago>0?`<div style="font-size:10px;color:var(--green)">Pago: €${Number(c.valor_pago).toFixed(2)}</div>`:''}
+                    </div>
+                    <div class="admin-row-actions" style="width:100%;justify-content:flex-end">
+                        ${c.status!=='pago'&&c.status!=='cancelado'?`
+                            <button class="btn-toggle ativo" onclick="marcarContaPaga('${c.id}',${c.valor_total})">Marcar Pago</button>
+                            <button class="btn-edit" onclick="abrirPagamentoParcial('${c.id}','${c.descricao?.replace(/'/g,"\\'")}',${ c.valor_total},${c.valor_pago||0})">Parcial</button>
+                        `:''}
+                        <button class="btn-edit" onclick="abrirFormContaPagar('${c.id}')">Editar</button>
+                        ${c.status!=='cancelado'?`<button class="btn-toggle ativo" style="color:var(--text-faint)" onclick="cancelarConta('${c.id}')">Cancelar</button>`:''}
+                    </div>
+                </div>`;
+            });
+        });
+        html += '</div>';
+        return html;
+    }
+
+    async function marcarContaPaga(id, valorTotal) {
+        await sb(`contas_pagar?id=eq.${id}`, {
+            method:'PATCH',
+            body:JSON.stringify({
+                status:'pago', valor_pago:valorTotal,
+                data_pagamento:new Date().toISOString().split('T')[0],
+                updated_at:new Date().toISOString(),
+            })
+        });
+        await carregarDadosFinanceiros();
+        renderFinanceiro();
+    }
+
+    async function cancelarConta(id) {
+        if (!confirm('Cancelar esta conta a pagar?')) return;
+        await sb(`contas_pagar?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({status:'cancelado', updated_at:new Date().toISOString()})});
+        await carregarDadosFinanceiros();
+        renderFinanceiro();
+    }
+
+    function abrirPagamentoParcial(id, descricao, valorTotal, valorJaPago) {
+        document.getElementById('drawer-title').textContent = 'Pagamento Parcial';
+        const pendente = (valorTotal - valorJaPago).toFixed(2);
+        document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+        <div style="background:var(--primary-faint);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:4px;font-size:13px;line-height:1.8" class="form-full">
+            <strong>${descricao}</strong><br>
+            Total: €${Number(valorTotal).toFixed(2)} · Já pago: €${Number(valorJaPago).toFixed(2)} · <strong>Pendente: €${pendente}</strong>
+        </div>
+        <div class="form-group form-full"><label class="form-label">Valor a pagar agora (€)</label>
+            <input class="form-input" id="pp_valor" type="number" step="0.01" min="0.01" max="${pendente}" value="${pendente}"></div>
+        <div class="form-group form-full"><label class="form-label">Forma de Pagamento</label>
+            <select class="form-select" id="pp_forma">
+                <option value="transferencia">Transferência</option>
+                <option value="mbway">MBWay</option>
+                <option value="multibanco">Multibanco</option>
+                <option value="dinheiro">Dinheiro</option>
+            </select></div>
+        <div class="form-group form-full"><label class="form-label">Referência (opcional)</label>
+            <input class="form-input" id="pp_ref" type="text" placeholder="Nº transferência, comprovativo..."></div>
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" onclick="registarPagamentoParcial('${id}',${valorTotal},${valorJaPago})">Registar Pagamento</button>
+        </div></div>`;
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function registarPagamentoParcial(id, valorTotal, valorJaPago) {
+        const valor = parseFloat(document.getElementById('pp_valor')?.value || 0);
+        const forma = document.getElementById('pp_forma')?.value;
+        const ref   = document.getElementById('pp_ref')?.value;
+        if (!valor || valor <= 0) { showFormMsg('Valor inválido.','error'); return; }
+        const novoPago = valorJaPago + valor;
+        const novoStatus = novoPago >= valorTotal ? 'pago' : 'parcial';
+        await sb(`contas_pagar?id=eq.${id}`, {
+            method:'PATCH',
+            body:JSON.stringify({
+                valor_pago: parseFloat(novoPago.toFixed(2)),
+                status: novoStatus,
+                forma_pagamento: forma,
+                referencia_pagamento: ref || null,
+                data_pagamento: novoStatus==='pago' ? new Date().toISOString().split('T')[0] : null,
+                updated_at: new Date().toISOString(),
+            })
+        });
+        showFormMsg('Pagamento registado!','success');
+        await carregarDadosFinanceiros();
+        setTimeout(() => { closeDrawer(); renderFinanceiro(); }, 700);
+    }
+
+    function abrirFormContaPagar(id) {
+        const c = id ? contasPagarData.find(x => x.id === id) : null;
+        const fv = (k,d='') => c?.[k] ?? d;
+        const fornOpts = fornecedoresData.map(f =>
+            `<option value="${f.id}" ${fv('fornecedor_id')===f.id?'selected':''}>${f.nome}</option>`
+        ).join('');
+        document.getElementById('drawer-title').textContent = c ? 'Editar Conta a Pagar' : 'Nova Conta a Pagar';
+        document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+        <div class="form-group form-full"><label class="form-label">Descrição *</label>
+            <input class="form-input" id="cp_descricao" type="text" value="${fv('descricao')}" placeholder="Ex: Fatura energia setembro"></div>
+        <div class="form-group form-full"><label class="form-label">Fornecedor</label>
+            <select class="form-select" id="cp_fornecedor_id">
+                <option value="">-- Nenhum --</option>${fornOpts}
+            </select></div>
+        <div class="form-group form-full"><label class="form-label">Fornecedor (nome manual)</label>
+            <input class="form-input" id="cp_fornecedor_nome" type="text" value="${fv('fornecedor_nome')}" placeholder="Se não estiver na lista"></div>
+        <div class="form-group"><label class="form-label">Valor Total (€) *</label>
+            <input class="form-input" id="cp_valor_total" type="number" step="0.01" value="${fv('valor_total',0)}"></div>
+        <div class="form-group"><label class="form-label">Nº Documento</label>
+            <input class="form-input" id="cp_numero_documento" type="text" value="${fv('numero_documento')}"></div>
+        <div class="form-group"><label class="form-label">Data Emissão</label>
+            <input class="form-input" id="cp_data_emissao" type="date" value="${fv('data_emissao', new Date().toISOString().split('T')[0])}"></div>
+        <div class="form-group"><label class="form-label">Data Vencimento *</label>
+            <input class="form-input" id="cp_data_vencimento" type="date" value="${fv('data_vencimento')}"></div>
+        <div class="form-group"><label class="form-label">Categoria</label>
+            <select class="form-select" id="cp_categoria">
+                <option value="fornecedor" ${fv('categoria')==='fornecedor'?'selected':''}>Fornecedor</option>
+                <option value="renda"      ${fv('categoria')==='renda'?'selected':''}>Renda</option>
+                <option value="servicos"   ${fv('categoria')==='servicos'?'selected':''}>Serviços</option>
+                <option value="utilities"  ${fv('categoria')==='utilities'?'selected':''}>Utilities</option>
+                <option value="salarios"   ${fv('categoria')==='salarios'?'selected':''}>Salários</option>
+                <option value="impostos"   ${fv('categoria')==='impostos'?'selected':''}>Impostos / AT</option>
+                <option value="outros"     ${fv('categoria')==='outros'?'selected':''}>Outros</option>
+            </select></div>
+        <div class="form-group"><label class="form-label">Forma Pagamento</label>
+            <select class="form-select" id="cp_forma_pagamento">
+                <option value="transferencia">Transferência</option>
+                <option value="mbway">MBWay</option>
+                <option value="multibanco">Multibanco</option>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cheque">Cheque</option>
+            </select></div>
+        <div class="form-group"><label class="form-toggle"><input type="checkbox" id="cp_recorrente" ${fv('recorrente')?'checked':''}><span>Recorrente</span></label></div>
+        <div class="form-group form-full"><label class="form-label">Observações</label>
+            <textarea class="form-textarea" id="cp_observacoes">${fv('observacoes')}</textarea></div>
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" id="btn-save" onclick="salvarContaPagar('${c?.id||''}')">Guardar</button>
+        </div></div>`;
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function salvarContaPagar(id) {
+        const get = k => { const el = document.getElementById('cp_'+k); return el ? el.value||null : null; };
+        const chk = k => { const el = document.getElementById('cp_'+k); return el ? el.checked : false; };
+        const descricao = get('descricao');
+        const valorTotal = parseFloat(get('valor_total')||0);
+        const dataVenc   = get('data_vencimento');
+        if (!descricao)  { showFormMsg('Descrição obrigatória.','error'); return; }
+        if (!valorTotal) { showFormMsg('Valor obrigatório.','error'); return; }
+        if (!dataVenc)   { showFormMsg('Data de vencimento obrigatória.','error'); return; }
+        const fornId = get('fornecedor_id');
+        const body = {
+            descricao, valor_total:valorTotal,
+            fornecedor_id: fornId || null,
+            fornecedor_nome: fornId ? null : get('fornecedor_nome'),
+            numero_documento: get('numero_documento'),
+            data_emissao: get('data_emissao'),
+            data_vencimento: dataVenc,
+            categoria: get('categoria'),
+            forma_pagamento: get('forma_pagamento'),
+            recorrente: chk('recorrente'),
+            observacoes: get('observacoes'),
+            status: 'pendente',
+            updated_at: new Date().toISOString(),
+        };
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true; btn.textContent = 'A guardar...';
+        try {
+            if (!id) await sb('contas_pagar', {method:'POST', body:JSON.stringify(body)});
+            else     await sb(`contas_pagar?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(body)});
+            showFormMsg('Guardado!','success');
+            await carregarDadosFinanceiros();
+            setTimeout(() => { closeDrawer(); renderFinanceiro(); }, 700);
+        } catch(e) {
+            showFormMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
+            btn.disabled = false; btn.textContent = 'Guardar';
+        }
+    }
+
+    // ── ABA 2: CONTAS A RECEBER ──────────────────────────────────────────────
+    function renderContasReceber() {
+        const hoje = new Date().toISOString().split('T')[0];
+        const totalPendente = contasReceberData.filter(c=>c.status==='pendente'||c.status==='atrasado').reduce((a,c)=>a+Number(c.valor_pendente||0),0);
+        const totalRecebido = contasReceberData.filter(c=>c.status==='recebido').reduce((a,c)=>a+Number(c.valor_total||0),0);
+
+        const STATUS_STYLE = {
+            pendente:  'background:rgba(230,81,0,0.1);color:#e65100;border:1px solid rgba(230,81,0,0.3)',
+            recebido:  'background:rgba(46,125,50,0.1);color:#2e7d32;border:1px solid rgba(46,125,50,0.3)',
+            atrasado:  'background:rgba(198,40,40,0.1);color:#c62828;border:1px solid rgba(198,40,40,0.3)',
+            parcial:   'background:rgba(0,144,152,0.1);color:var(--primary-dark);border:1px solid rgba(0,144,152,0.3)',
+            cancelado: 'background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)',
+        };
+        const TIPO_LABEL = {dizimo:'Dízimo',oferta:'Oferta',venda:'Venda',evento:'Evento',curso:'Curso',outro:'Outro'};
+
+        let html = `
+        <div style="display:flex;gap:8px;padding:12px 16px 8px;flex-wrap:wrap">
+            ${statBox('A Receber', totalPendente, 'var(--primary-dark)', contasReceberData.filter(c=>c.status==='pendente'||c.status==='atrasado').length+' contas')}
+            ${statBox('Recebido', totalRecebido, 'var(--green)', contasReceberData.filter(c=>c.status==='recebido').length+' contas')}
+        </div>
+        <div style="padding:0 16px 8px;display:flex;justify-content:flex-end">
+            <button class="btn-new" onclick="abrirFormContaReceber(null)">+ Nova</button>
+        </div>`;
+
+        if (!contasReceberData.length) {
+            return html + `<div class="empty"><div class="empty-icon">—</div>
+            <div class="empty-txt">Em construção. Aqui aparecerão os dízimos, ofertas e outras entradas.<br>Podes já lançar entradas manualmente.</div></div>`;
+        }
+
+        html += '<div class="admin-list" style="padding:0 16px 16px">';
+        contasReceberData.forEach((c, i) => {
+            const venc = c.data_vencimento ? new Date(c.data_vencimento).toLocaleDateString('pt-PT') : '—';
+            const st   = STATUS_STYLE[c.status] || STATUS_STYLE.pendente;
+            html += `
+            <div class="admin-row" style="flex-wrap:wrap;gap:6px;animation-delay:${Math.min(i,12)*0.02}s">
+                <div class="admin-row-foto" style="background:var(--primary-faint);color:var(--primary-dark);font-size:10px;font-weight:700">${TIPO_LABEL[c.tipo]?.slice(0,3)||'OUT'}</div>
+                <div class="admin-row-info" style="flex:1;min-width:0">
+                    <div class="admin-row-nome">${c.descricao}</div>
+                    <div class="admin-row-sub">${c.membro_nome||'Sem membro'} · Vence: ${venc}</div>
+                    <div class="admin-row-badges">
+                        <span class="badge" style="${st}">${c.status?.toUpperCase()}</span>
+                        <span class="badge badge-gray">${TIPO_LABEL[c.tipo]||c.tipo}</span>
+                    </div>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                    <div style="font-family:var(--font-title);font-size:16px;font-weight:700;color:var(--primary-dark)">€${Number(c.valor_total||0).toFixed(2)}</div>
+                    ${c.valor_recebido>0?`<div style="font-size:10px;color:var(--green)">Recebido: €${Number(c.valor_recebido).toFixed(2)}</div>`:''}
+                </div>
+                <div class="admin-row-actions" style="width:100%;justify-content:flex-end">
+                    ${c.status!=='recebido'&&c.status!=='cancelado'?`<button class="btn-toggle ativo" onclick="marcarContaRecebida('${c.id}',${c.valor_total})">Marcar Recebido</button>`:''}
+                    <button class="btn-edit" onclick="abrirFormContaReceber('${c.id}')">Editar</button>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        return html;
+    }
+
+    async function marcarContaRecebida(id, valor) {
+        await sb(`contas_receber?id=eq.${id}`, {
+            method:'PATCH',
+            body:JSON.stringify({status:'recebido', valor_recebido:valor, data_recebimento:new Date().toISOString().split('T')[0], updated_at:new Date().toISOString()})
+        });
+        await carregarDadosFinanceiros();
+        renderFinanceiro();
+    }
+
+    function abrirFormContaReceber(id) {
+        const c = id ? contasReceberData.find(x=>x.id===id) : null;
+        const fv = (k,d='') => c?.[k] ?? d;
+        const membOpts = membros.map(m => `<option value="${m.id}" ${fv('membro_id')===m.id?'selected':''}>${m.nome}</option>`).join('');
+        document.getElementById('drawer-title').textContent = c ? 'Editar Conta a Receber' : 'Nova Conta a Receber';
+        document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
+        <div class="msg-form" id="form-msg"></div>
+        <div class="form-group form-full"><label class="form-label">Descrição *</label>
+            <input class="form-input" id="cr_descricao" type="text" value="${fv('descricao')}" placeholder="Ex: Dízimo João — Março 2026"></div>
+        <div class="form-group"><label class="form-label">Tipo</label>
+            <select class="form-select" id="cr_tipo">
+                <option value="dizimo"   ${fv('tipo','dizimo')==='dizimo'?'selected':''}>Dízimo</option>
+                <option value="oferta"   ${fv('tipo')==='oferta'?'selected':''}>Oferta</option>
+                <option value="venda"    ${fv('tipo')==='venda'?'selected':''}>Venda (Loja/Keola)</option>
+                <option value="evento"   ${fv('tipo')==='evento'?'selected':''}>Evento</option>
+                <option value="curso"    ${fv('tipo')==='curso'?'selected':''}>Curso ZAO</option>
+                <option value="outro"    ${fv('tipo')==='outro'?'selected':''}>Outro</option>
+            </select></div>
+        <div class="form-group form-full"><label class="form-label">Membro</label>
+            <select class="form-select" id="cr_membro_id">
+                <option value="">-- Sem membro --</option>${membOpts}
+            </select></div>
+        <div class="form-group"><label class="form-label">Valor Total (€) *</label>
+            <input class="form-input" id="cr_valor_total" type="number" step="0.01" value="${fv('valor_total',0)}"></div>
+        <div class="form-group"><label class="form-label">Data Vencimento</label>
+            <input class="form-input" id="cr_data_vencimento" type="date" value="${fv('data_vencimento')}"></div>
+        <div class="form-group form-full"><label class="form-label">Observações</label>
+            <textarea class="form-textarea" id="cr_observacoes">${fv('observacoes')}</textarea></div>
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+            <button class="btn-save" id="btn-save" onclick="salvarContaReceber('${c?.id||''}')">Guardar</button>
+        </div></div>`;
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function salvarContaReceber(id) {
+        const get = k => { const el = document.getElementById('cr_'+k); return el ? el.value||null : null; };
+        const desc = get('descricao');
+        const val  = parseFloat(get('valor_total')||0);
+        if (!desc) { showFormMsg('Descrição obrigatória.','error'); return; }
+        if (!val)  { showFormMsg('Valor obrigatório.','error'); return; }
+        const memId = get('membro_id');
+        const body = {
+            descricao:desc, tipo:get('tipo'), valor_total:val,
+            membro_id: memId||null,
+            membro_nome: memId ? (membros.find(m=>m.id===memId)?.nome||null) : null,
+            data_vencimento:get('data_vencimento'),
+            observacoes:get('observacoes'),
+            status:'pendente', updated_at:new Date().toISOString(),
+        };
+        const btn = document.getElementById('btn-save');
+        btn.disabled=true; btn.textContent='A guardar...';
+        try {
+            if (!id) await sb('contas_receber',{method:'POST',body:JSON.stringify(body)});
+            else     await sb(`contas_receber?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
+            showFormMsg('Guardado!','success');
+            await carregarDadosFinanceiros();
+            setTimeout(()=>{closeDrawer();renderFinanceiro();},700);
+        } catch(e) {
+            showFormMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
+            btn.disabled=false; btn.textContent='Guardar';
+        }
+    }
+
 
     init();
 </script>

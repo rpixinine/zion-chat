@@ -800,7 +800,13 @@
         if (s==='ministerios') return [r.tipo?'['+r.tipo+']':null,r.descricao?.substring(0,50)].filter(Boolean).join(' — ');
         if (s==='salas')       return [r.espaco,r.capacidade?r.capacidade+' pessoas':null].filter(Boolean).join(' · ');
         if (s==='cursos')      return [r.carga_horaria,r.gratuito?'Gratuito':r.valor?'€'+r.valor:null].filter(Boolean).join(' · ');
-        if (s==='keola')       return [r.categoria,r.preco?'€'+Number(r.preco).toFixed(2):null].filter(Boolean).join(' · ');
+        if (s==='keola') {
+            const TIPO_LABEL = {componente:'Componente', venda:'Venda', kit:'Kit', normal:'Normal'};
+            const tipoStr = TIPO_LABEL[r.tipo_item] || r.tipo_item || '';
+            const stockStr = r.stock != null ? `Stock: ${r.stock} ${r.unidade||'un'}` : '';
+            const precoStr = r.tipo_item !== 'componente' && r.preco ? '€'+Number(r.preco).toFixed(2) : '';
+            return [tipoStr, r.categoria, precoStr, stockStr].filter(Boolean).join(' · ');
+        }
         if (s==='loja')        return [r.categoria,r.preco?'€'+Number(r.preco).toFixed(2):null].filter(Boolean).join(' · ');
         return '';
     }
@@ -816,6 +822,13 @@
         if (r.gratuito)      b.push(`<span class="badge badge-green">Gratuito</span>`);
         if (r.especial_hoje) b.push(`<span class="badge badge-primary">Especial hoje</span>`);
         if (r.destaque)      b.push(`<span class="badge badge-primary">Destaque</span>`);
+        // Keola badges
+        if (r.tipo_item === 'componente') b.push(`<span class="badge badge-gray">Componente</span>`);
+        if (r.tipo_item === 'kit')        b.push(`<span class="badge badge-primary">Kit</span>`);
+        if (r.tipo_item === 'venda')      b.push(`<span class="badge badge-green">Venda</span>`);
+        if (r.mostrar_pdv === false)      b.push(`<span class="badge badge-gray">Oculto no PDV</span>`);
+        if (r.stock != null && r.stock_minimo != null && r.stock <= r.stock_minimo && r.stock_minimo > 0)
+            b.push(`<span class="badge badge-red">⚠ Stock baixo</span>`);
         if (r.disponivel===false||r.ativo===false) b.push(`<span class="badge badge-gray">Inativo</span>`);
         return b.join('');
     }
@@ -3886,20 +3899,26 @@
         const email = get('email');
         if (!email) { showFormMsg('Email obrigatório.','error'); return; }
 
-        // Recolher todas as flags de permissão
-        const perms = {};
-        TODAS_SECOES.forEach(s => {
-            ['ver','criar','editar','eliminar'].forEach(a => {
-                const el = document.getElementById(`pv_${a}_${s.key}`);
-                perms[`${a}_${s.key}`] = el ? el.checked : false;
+        // Colunas de permissão que existem na tabela usuarios
+        // (excluir 'utilizadores' e 'dashboard' que não têm colunas CRUD na BD)
+        const SECOES_BD = ['membros','pastores','links','cultos','ministerios',
+            'salas','cursos','keola','loja','eventos','fornecedores','financeiro','configuracoes'];
+        const ACCOES_BD = ['ver','criar','editar','eliminar'];
+        // ver_dashboard existe mas não tem criar/editar/eliminar
+        const perms = { ver_dashboard: document.getElementById('pv_ver_dashboard')?.checked || false };
+
+        SECOES_BD.forEach(s => {
+            ACCOES_BD.forEach(a => {
+                const el = document.getElementById(`pv_${a}_${s}`);
+                perms[`${a}_${s}`] = el ? el.checked : false;
             });
         });
 
         const isAdmin = chk('admin');
         if (isAdmin) {
-            // Admin total — activar tudo
-            TODAS_SECOES.forEach(s => {
-                ['ver','criar','editar','eliminar'].forEach(a => { perms[`${a}_${s.key}`] = true; });
+            perms.ver_dashboard = true;
+            SECOES_BD.forEach(s => {
+                ACCOES_BD.forEach(a => { perms[`${a}_${s}`] = true; });
             });
         }
 
@@ -3948,8 +3967,8 @@
         {type:'section', label:'Identificação'},
         {key:'nome',      label:'Nome *', ph:'Ex: Bitoque, Café, Sumo', full:true},
         {key:'tipo_item', label:'Tipo de Item', type:'select', options:[
-            {v:'normal',     l:'Normal (sem stock)'},
-            {v:'componente', l:'Componente (ingrediente c/ stock)'},
+            {v:'componente', l:'Componente (ingrediente / matéria-prima)'},
+            {v:'venda',      l:'Item de Venda (produto final)'},
             {v:'kit',        l:'Kit / Prato (montado com componentes)'},
         ]},
         {key:'categoria', label:'Categoria', type:'select', options:[
@@ -3966,7 +3985,8 @@
 
         {type:'section', label:'Preços'},
         {key:'preco',       label:'Preço de Venda (€)', type:'number', ph:'0.00'},
-        {key:'preco_custo', label:'Custo por Unidade/Kg/L (€)', type:'number', ph:'0.0000'},
+        // Nota: componentes não têm preço de venda — ocultado via JS no injectKitPanel
+        {key:'preco_custo', label:'Custo Unitário (€/un · €/g · €/kg · €/l)', type:'number', ph:'0.0000'},
         {key:'iva_pct',     label:'IVA (%)', type:'number', ph:'13'},
 
         {type:'section', label:'Stock'},
@@ -3975,13 +3995,14 @@
             {v:'ml',l:'Mililitro (ml)'},{v:'l',l:'Litro (l)'},
         ]},
         {key:'stock',         label:'Stock Actual', type:'number', ph:'0'},
-        {key:'stock_minimo',  label:'Stock Mínimo', type:'number', ph:'0'},
+        {key:'stock_minimo',  label:'Stock Mínimo (alerta)', type:'number', ph:'0'},
 
-        {key:'alergenos',  label:'Alérgenos', ph:'Glúten, Lactose...', full:true},
+        {key:'alergenos',  label:'Alérgenos', ph:'Glúten, Lactose, Soja...', full:true},
         {key:'ordem',      label:'Ordem no Menu', type:'number', ph:'1'},
         {key:'imagem_url', label:'Foto', type:'image', bucket:'imagens', full:true},
-        {key:'disponivel',    label:'Disponível',   type:'checkbox', default:true},
-        {key:'especial_hoje', label:'Especial Hoje',type:'checkbox'},
+        {key:'mostrar_pdv',   label:'Mostrar no PDV', type:'checkbox', default:true},
+        {key:'disponivel',    label:'Disponível',      type:'checkbox', default:true},
+        {key:'especial_hoje', label:'Especial Hoje',   type:'checkbox'},
     ];}
 
     // Override do renderSecao para Keola — adicionar botão Kit e painel de componentes
@@ -4159,21 +4180,38 @@
         const drawer = document.getElementById('drawer-body');
         if (!drawer) return;
 
-        // Remover painel anterior se existir
         document.getElementById('kit-panel')?.remove();
 
-        const tipoEl = drawer.querySelector('#form-tipo_item, [data-key="tipo_item"] select, select');
-        // Encontrar o select de tipo_item
         const selTipo = drawer.querySelector('select[id*="tipo_item"]') ||
                         [...drawer.querySelectorAll('select')].find(s =>
                             s.closest('.form-group')?.querySelector('label')?.textContent?.includes('Tipo de Item')
                         );
 
         if (selTipo) {
-            selTipo.addEventListener('change', () => toggleKitPanel(selTipo.value, kitId));
-            // Mostrar se já é kit
+            ajustarCamposKeolaPorTipo(selTipo.value);
+            selTipo.addEventListener('change', () => {
+                ajustarCamposKeolaPorTipo(selTipo.value);
+                toggleKitPanel(selTipo.value, kitId);
+            });
             if (selTipo.value === 'kit') toggleKitPanel('kit', kitId);
         }
+    }
+
+    function ajustarCamposKeolaPorTipo(tipo) {
+        // Campo preço de venda — ocultar para componentes
+        const camposPreco = [...document.querySelectorAll('#drawer-body .form-group')].filter(g =>
+            g.querySelector('label')?.textContent?.includes('Preço de Venda')
+        );
+        camposPreco.forEach(g => {
+            g.style.display = tipo === 'componente' ? 'none' : '';
+        });
+        // Campo mostrar_pdv — ocultar para componentes (nunca aparecem no PDV)
+        const camposPdv = [...document.querySelectorAll('#drawer-body .form-group')].filter(g =>
+            g.querySelector('label')?.textContent?.includes('Mostrar no PDV')
+        );
+        camposPdv.forEach(g => {
+            g.style.display = tipo === 'componente' ? 'none' : '';
+        });
     }
 
     function toggleKitPanel(tipoItem, kitId) {

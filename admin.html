@@ -276,23 +276,11 @@
         document.getElementById('data-hoje').textContent =
             hoje.charAt(0).toUpperCase() + hoje.slice(1);
 
-        // Carregar permissões do utilizador (tabela usuarios)
-        const [userRow, membroRow] = await Promise.all([
-            sb(`usuarios?select=*&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`).catch(()=>[]),
-            sb(`membros?select=e_admin,e_presbitero&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`).catch(()=>[]),
-        ]);
-        const u = userRow?.[0];
-        const m = membroRow?.[0];
+        // Carregar permissões — verificar tabela usuarios E membros em paralelo
+        const SECOES_LISTA = ['dashboard','membros','pastores','links','cultos','ministerios',
+            'salas','cursos','keola','loja','eventos','fornecedores','financeiro','utilizadores','configuracoes'];
 
-        // Montar objecto de permissões
-        // Admin de membro ou admin de utilizador = acesso total
-        const isAdminGlobal = m?.e_admin || u?.e_admin || false;
-        const isPresbitero  = m?.e_presbitero || false;
-
-        if (isAdminGlobal) {
-            // Admin: todas as flags a true
-            const SECOES_LISTA = ['dashboard','membros','pastores','links','cultos','ministerios',
-                'salas','cursos','keola','loja','eventos','fornecedores','financeiro','utilizadores','configuracoes'];
+        const darAcessoTotal = () => {
             userPerms = { e_admin: true };
             SECOES_LISTA.forEach(s => {
                 userPerms[`ver_${s}`]      = true;
@@ -300,29 +288,53 @@
                 userPerms[`editar_${s}`]   = true;
                 userPerms[`eliminar_${s}`] = true;
             });
-        } else if (isPresbitero) {
-            // Presbítero: pode ver membros, eventos, dashboard — sem financeiro/config
-            userPerms = {
-                e_admin: false,
-                ver_dashboard:true, ver_membros:true, ver_eventos:true,
-                ver_ministerios:true, ver_links:true, ver_cultos:true,
-                criar_eventos:true, editar_eventos:true,
-                editar_membros:true,
-                ...(u || {}),  // flags da BD sobrepõem
-            };
-        } else if (u) {
-            // Utilizador com flags personalizadas na tabela usuarios
-            userPerms = { e_admin: false, ...u };
+        };
+
+        // 1. Verificar membros (sistema original — mais fiável)
+        const membroRow = await sb(
+            `membros?select=e_admin,e_presbitero&email=eq.${encodeURIComponent(currentUser.email)}&ativo=eq.true`
+        ).catch(() => []);
+        const m = membroRow?.[0];
+
+        if (m?.e_admin) {
+            // Admin via tabela membros — acesso total, não precisa de mais nada
+            darAcessoTotal();
         } else {
-            // Sem registo — sem acesso
-            document.getElementById('nav-bar').style.display = 'none';
-            document.getElementById('main-content').innerHTML = `
-            <div class="acesso-negado">
-                <div class="acesso-negado-icon">✕</div>
-                <div class="acesso-negado-title">Acesso Restrito</div>
-                <div class="acesso-negado-txt">Não tens permissões de acesso ao painel.</div>
-            </div>`;
-            return;
+            // 2. Verificar tabela usuarios (novo sistema)
+            // Não filtrar por ativo=true para não bloquear se a flag estiver errada
+            const userRow = await sb(
+                `usuarios?select=*&email=eq.${encodeURIComponent(currentUser.email)}`
+            ).catch(() => []);
+            const u = userRow?.[0];
+
+            if (u?.e_admin) {
+                darAcessoTotal();
+            } else if (m?.e_presbitero) {
+                // Presbítero via membros
+                userPerms = {
+                    e_admin: false,
+                    ver_dashboard:true, ver_membros:true, ver_eventos:true,
+                    ver_ministerios:true, ver_links:true, ver_cultos:true,
+                    criar_eventos:true, editar_eventos:true, editar_membros:true,
+                    ...(u || {}),
+                };
+            } else if (u && Object.keys(u).some(k => k.startsWith('ver_') && u[k])) {
+                // Utilizador com pelo menos uma permissão activa
+                userPerms = { e_admin: false, ...u };
+            } else if (u) {
+                // Utilizador existe mas sem permissões específicas — dar acesso mínimo ao dashboard
+                userPerms = { e_admin: false, ver_dashboard: true, ...(u || {}) };
+            } else {
+                // Sem registo em nenhuma tabela — bloquear
+                document.getElementById('nav-bar').style.display = 'none';
+                document.getElementById('main-content').innerHTML = `
+                <div class="acesso-negado">
+                    <div class="acesso-negado-icon">✕</div>
+                    <div class="acesso-negado-title">Acesso Restrito</div>
+                    <div class="acesso-negado-txt">Não tens permissões de acesso ao painel.<br><small style="opacity:0.6">${currentUser.email}</small></div>
+                </div>`;
+                return;
+            }
         }
 
         // Ocultar abas que o utilizador não pode ver

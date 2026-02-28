@@ -789,31 +789,26 @@ async function sb(path, opts = {}) {
 }
 
 // Verificar autenticação e permissões
-async function verificarAcesso() {
-    if (typeof ZionAuth === 'undefined') {
-        window.location.href = 'index.html'; return false;
-    }
-    const user = ZionAuth.getUser();
-    if (!user) { window.location.href = 'index.html'; return false; }
+// ZionAuth.protect() redireciona para login.html se não autenticado
+// Para presbíteros verificamos o campo e_presbitero na tabela membros
+function verificarAcesso() {
+    // Redireciona para login.html se não logado (igual ao admin.html)
+    ZionAuth.protect({ tipo: 'membro' });
+    return ZionAuth.getUser();
+}
 
-    // Verificar se é presbítero ou admin na tabela usuarios
-    try {
-        const u = await sb(`usuarios?id=eq.${user.id}&select=tipo,membro_id`);
-        if (!u?.[0]) { window.location.href = 'index.html'; return false; }
-
-        // Verifica se é admin ou presbítero
-        if (u[0].tipo === 'admin') return user;
-        if (u[0].membro_id) {
-            const m = await sb(`membros?id=eq.${u[0].membro_id}&select=e_presbitero,e_admin`);
-            if (m?.[0]?.e_presbitero || m?.[0]?.e_admin) return user;
-        }
-        // Sem permissão
-        alert('Acesso restrito a Presbíteros e Administradores.');
-        window.location.href = 'index.html'; return false;
-    } catch {
-        // Se não conseguir verificar, deixa passar (ambientes de dev)
-        return user;
+async function verificarPermissao(user) {
+    if (!user) return false;
+    // Admin tem sempre acesso
+    if (user.tipo === 'admin') return true;
+    // Verifica se é presbítero
+    if (user.membro_id) {
+        try {
+            const m = await sb(`membros?id=eq.${user.membro_id}&select=e_presbitero,e_admin`);
+            if (m?.[0]?.e_presbitero || m?.[0]?.e_admin) return true;
+        } catch { return true; } // dev mode
     }
+    return false;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1280,14 +1275,21 @@ async function init() {
     loadCfg();
     carregarFormConfig();
 
-    try {
-        userAtual = await verificarAcesso();
-        if (!userAtual) return;
-    } catch {
-        // Dev mode — continua
+    // Auth — igual ao admin.html (ZionAuth.protect já redireciona se não logado)
+    userAtual = verificarAcesso();
+
+    // Verifica permissão (presbítero / admin)
+    const temPermissao = await verificarPermissao(userAtual);
+    if (!temPermissao && userAtual) {
+        document.getElementById('pdv-loading').innerHTML = `
+            <div style="font-size:32px">🔒</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:2px;margin-top:8px">ACESSO RESTRITO</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:6px">Apenas Presbíteros e Administradores</div>
+            <a href="index.html" style="margin-top:16px;color:var(--primary);font-size:12px">← Voltar ao início</a>`;
+        return;
     }
 
-    document.getElementById('operador-nome').textContent = cfg.operador || '';
+    document.getElementById('operador-nome').textContent = cfg.operador || (userAtual?.nome?.split(' ')[0] || '');
 
     // Carrega produtos da loja
     try {

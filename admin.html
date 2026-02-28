@@ -167,7 +167,7 @@
         <div class="nav-item"         onclick="setSecao('tipos_evento')" data-secao="eventos">Tipos Evento</div>
         <div class="nav-item"         onclick="setSecao('fornecedores')" data-secao="fornecedores">Fornecedores</div>
         <div class="nav-item"         onclick="setSecao('financeiro')" data-secao="financeiro">Financeiro</div>
-        <div class="nav-item"         onclick="setSecao('utilizadores')" data-secao="utilizadores">👤 Utilizadores</div>
+        <div class="nav-item"         onclick="setSecao('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">👤 Utilizadores</div>
         <div class="nav-item"         onclick="setSecao('configuracoes')" data-secao="configuracoes">⚙ Config</div>
     </div>
 
@@ -388,6 +388,15 @@
             await carregarConfiguracoes(); return;
         }
         if (secaoAtiva === 'utilizadores') {
+            if (!userPerms.e_admin) {
+                document.getElementById('main-content').innerHTML = `
+                <div class="acesso-negado">
+                    <div class="acesso-negado-icon">✕</div>
+                    <div class="acesso-negado-title">Acesso Restrito</div>
+                    <div class="acesso-negado-txt">Apenas administradores totais podem gerir utilizadores.</div>
+                </div>`;
+                return;
+            }
             await carregarUtilizadores(); return;
         }
         if (secaoAtiva === 'fornecedores') {
@@ -1769,6 +1778,7 @@
         {key:'imagem_url',    label:'Imagem',          type:'image', bucket:'imagens', full:true},
         {key:'data_lancamento', label:'Data Lançamento', type:'date'},
         {key:'ordem',         label:'Ordem Exibição',  type:'number', ph:'1'},
+        {key:'mostrar_pdv',   label:'Mostrar no PDV',  type:'checkbox', default:true},
         {key:'disponivel',    label:'Disponível',      type:'checkbox', default:true},
         {key:'ativo',         label:'Ativo',           type:'checkbox', default:true},
         {key:'destaque',      label:'Destaque',        type:'checkbox'},
@@ -3667,6 +3677,11 @@
     function aplicarPermissoesNav() {
         document.querySelectorAll('.nav-item[data-secao]').forEach(el => {
             const secao = el.dataset.secao;
+            // Utilizadores — só admin total
+            if (secao === 'utilizadores') {
+                el.style.display = userPerms.e_admin ? '' : 'none';
+                return;
+            }
             if (secao && !perm(secao, 'ver')) {
                 el.style.display = 'none';
             } else {
@@ -3994,8 +4009,10 @@
             {v:'un',l:'Unidade (un)'},{v:'g',l:'Gramas (g)'},{v:'kg',l:'Quilograma (kg)'},
             {v:'ml',l:'Mililitro (ml)'},{v:'l',l:'Litro (l)'},
         ]},
-        {key:'stock',         label:'Stock Actual', type:'number', ph:'0'},
-        {key:'stock_minimo',  label:'Stock Mínimo (alerta)', type:'number', ph:'0'},
+        {key:'stock',              label:'Stock Actual',       type:'number', ph:'0'},
+        {key:'stock_minimo',       label:'Stock Mínimo (alerta)',type:'number', ph:'0'},
+        {key:'controlar_estoque',  label:'Controlar Estoque',   type:'checkbox', default:true},
+        {key:'venda_sem_estoque',  label:'Vender sem Estoque',  type:'checkbox'},
 
         {key:'alergenos',  label:'Alérgenos', ph:'Glúten, Lactose, Soja...', full:true},
         {key:'ordem',      label:'Ordem no Menu', type:'number', ph:'1'},

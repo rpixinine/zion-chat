@@ -42,7 +42,7 @@
     .badge { padding:3px 9px; border-radius:20px; font-size:10px; font-family:var(--font-title); letter-spacing:0.5px; white-space:nowrap; display:inline-block; }
     .badge-lider    { background:rgba(0,144,152,0.12); color:var(--primary-dark); }
     .badge-membro   { background:rgba(0,0,0,0.05); color:var(--text-muted); }
-    .badge-treinamento { background:rgba(230,81,0,0.1); color:var(--orange); }
+    .badge-aprendiz { background:rgba(230,81,0,0.1); color:var(--orange); }
     .badge-servindo { background:rgba(0,144,152,0.1); color:var(--primary-dark); }
     .badge-extra    { background:rgba(21,101,192,0.1); color:#1565c0; }
     .badge-green    { background:rgba(46,125,50,0.1); color:var(--green); }
@@ -137,7 +137,7 @@
         <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:12px">Adicionar Membro</div>
         <div class="crud-group" style="margin-bottom:8px"><label>Pesquisar</label><input id="min-m-search" placeholder="Nome..." oninput="min_filtrarMembros()"></div>
         <div class="crud-group" style="margin-bottom:10px"><label>Papel</label>
-            <select id="min-m-papel"><option value="membro">Voluntário</option><option value="treinamento">Treinamento</option><option value="lider">Líder</option></select>
+            <select id="min-m-papel"><option value="membro">Membro</option><option value="aprendiz">Aprendiz</option><option value="lider">Líder</option></select>
         </div>
         <div id="min-m-lista" style="flex:1;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;min-height:80px"></div>
         <div class="form-msg" id="min-m-msg"></div>
@@ -149,9 +149,9 @@
 <div id="min-modal-ea" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:center;justify-content:center">
     <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:360px;box-shadow:var(--shadow-md)">
         <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:14px">Adicionar à Escala</div>
-        <div class="crud-group" style="margin-bottom:10px"><label>Voluntário</label><select id="min-ea-membro"></select></div>
+        <div class="crud-group" style="margin-bottom:10px"><label>Membro</label><select id="min-ea-membro"></select></div>
         <div class="crud-group" style="margin-bottom:10px"><label>Papel na Escala</label>
-            <select id="min-ea-papel"><option value="servindo">Servindo</option><option value="treinamento">Treinamento</option><option value="extra">Extra</option></select>
+            <select id="min-ea-papel"><option value="servindo">Servindo</option><option value="aprendiz">Aprendiz</option><option value="extra">Extra</option></select>
         </div>
         <div class="crud-group" style="margin-bottom:10px"><label>Notas</label><input id="min-ea-notas" placeholder="Opcional..."></div>
         <div class="form-msg" id="min-ea-msg"></div>
@@ -178,8 +178,8 @@
     var min_indMemSel = null;
     var min_eaCtx     = null;
 
-    const PAPEL_LBL = { lider:'Líder', membro:'Voluntário', treinamento:'treinamento' };
-    const PAPEL_ESC = { servindo:'badge-servindo', treinamento:'badge-treinamento', extra:'badge-extra' };
+    const PAPEL_LBL = { lider:'Líder', membro:'Membro', aprendiz:'Aprendiz' };
+    const PAPEL_ESC = { servindo:'badge-servindo', aprendiz:'badge-aprendiz', extra:'badge-extra' };
     const MESES_PT  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const MESES_ABV = ['','JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
     const DIAS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -267,8 +267,8 @@
             <tbody>${min_minMems.map(m=>`<tr>
                 <td style="font-weight:600">${m.membros?.nome||'—'}</td>
                 <td><select style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:11px" onchange="min_alterPapel('${m.id}',this.value)">
-                    <option value="membro"   ${m.papel==='membro'  ?'selected':''}>Voluntário</option>
-                    <option value="treinamento" ${m.papel==='treinamento'?'selected':''}>Treinamento</option>
+                    <option value="membro"   ${m.papel==='membro'  ?'selected':''}>Membro</option>
+                    <option value="aprendiz" ${m.papel==='aprendiz'?'selected':''}>Aprendiz</option>
                     <option value="lider"    ${m.papel==='lider'   ?'selected':''}>Líder</option>
                 </select></td>
                 <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
@@ -359,7 +359,7 @@
             <thead><tr><th>Membro</th><th>Papel</th>${cults.map(c=>`<th>${c.nome}<br><span style="font-weight:400;font-size:8px">${c.dia_semana} ${c.hora_inicio?.slice(0,5)}</span></th>`).join('')}</tr></thead>
             <tbody>${min_minMems.map(m=>`<tr>
                 <td>${m.membros?.nome||'—'}</td>
-                <td><span class="badge ${m.papel==='lider'?'badge-lider':m.papel==='treinamento'?'badge-treinamento':'badge-membro'}">${PAPEL_LBL[m.papel]||m.papel}</span></td>
+                <td><span class="badge ${m.papel==='lider'?'badge-lider':m.papel==='aprendiz'?'badge-aprendiz':'badge-membro'}">${PAPEL_LBL[m.papel]||m.papel}</span></td>
                 ${cults.map(c=>{ const k=m.membro_id+'_'+c.id; const d=min_dispMap[k]; const on=d?d.disponivel:true;
             return `<td><button class="disp-toggle ${on?'on':''}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
         }).join('')}
@@ -590,15 +590,15 @@
                     if(indSet.has(m.membro_id)||jaEsc[m.membro_id+'_'+iso]) return false;
                     const v=dMap[m.membro_id+'_'+c.id]; return v===undefined?true:v;
                 });
-                const ativos=dispMems.filter(m=>m.papel!=='treinamento').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
-                const aprs=dispMems.filter(m=>m.papel==='treinamento').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
+                const ativos=dispMems.filter(m=>m.papel!=='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
+                const aprs=dispMems.filter(m=>m.papel==='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
                 let escalados=0;
                 for(const mm of ativos){ if(escalados>=c.vagas) break;
                     novas.push({ministerio_id:min_minAtivo.id,membro_id:mm.membro_id,culto_id:c.id,data:iso,papel_escala:'servindo',gerado_auto:true});
                     jaEsc[mm.membro_id+'_'+iso]=true; srvRec[mm.membro_id]=(srvRec[mm.membro_id]||0)+1; escalados++;
                 }
                 if(escalados>0&&aprs.length){ const apr=aprs.find(mm=>!jaEsc[mm.membro_id+'_'+iso]);
-                    if(apr){ novas.push({ministerio_id:min_minAtivo.id,membro_id:apr.membro_id,culto_id:c.id,data:iso,papel_escala:'treinamento',gerado_auto:true});
+                    if(apr){ novas.push({ministerio_id:min_minAtivo.id,membro_id:apr.membro_id,culto_id:c.id,data:iso,papel_escala:'aprendiz',gerado_auto:true});
                         jaEsc[apr.membro_id+'_'+iso]=true; srvRec[apr.membro_id]=(srvRec[apr.membro_id]||0)+1; }
                 }
             });

@@ -1,0 +1,543 @@
+<!-- modules/cursos.html — Módulo completo de Cursos ZAO -->
+<style>
+    .mod-page { display:flex; height:100%; overflow:hidden; }
+    .mod-sidebar { width:240px; flex-shrink:0; background:var(--bg-card); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+    .mod-sidebar-hd { padding:12px 14px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .mod-sidebar-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+    .mod-list { flex:1; overflow-y:auto; padding:6px; }
+    .mod-item { padding:10px 12px; border-radius:8px; cursor:pointer; margin-bottom:2px; border:1px solid transparent; transition:all 0.15s; }
+    .mod-item:hover  { background:var(--bg-panel); border-color:var(--border); }
+    .mod-item.active { background:var(--primary-faint); border-color:var(--border-md); }
+    .mod-item-nome { font-size:13px; font-weight:600; }
+    .mod-item-sub  { font-size:11px; color:var(--text-faint); margin-top:2px; }
+
+    .mod-content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    .mod-tabs { display:flex; gap:2px; padding:10px 18px 0; border-bottom:1px solid var(--border); background:var(--bg-card); flex-shrink:0; }
+    .mod-tab { padding:7px 16px; border-radius:8px 8px 0 0; font-size:12px; font-weight:600; cursor:pointer; border:1px solid transparent; color:var(--text-faint); background:transparent; font-family:var(--font-body); transition:all 0.12s; }
+    .mod-tab.active { background:var(--primary-faint); border-color:var(--border); border-bottom-color:var(--bg-card); color:var(--primary-dark); }
+    .mod-tab-body { flex:1; overflow-y:auto; padding:18px; display:none; }
+    .mod-tab-body.active { display:block; }
+
+    .stats-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin-bottom:18px; }
+    .stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; text-align:center; }
+    .stat-num  { font-family:var(--font-title); font-size:24px; font-weight:700; color:var(--primary-dark); }
+    .stat-lbl  { font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+    .turma-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:10px; border-left:3px solid var(--border-md); }
+    .turma-card.em_curso   { border-left-color:var(--orange); }
+    .turma-card.concluida  { border-left-color:var(--green); }
+    .turma-card.cancelada  { border-left-color:var(--red); opacity:0.65; }
+
+    .aula-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; overflow:hidden; }
+    .aula-head { padding:10px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+    .aula-head:hover { background:var(--bg-panel); }
+    .aula-num  { font-family:var(--font-title); font-size:16px; color:var(--primary-dark); min-width:32px; }
+    .aula-body { padding:0 14px 14px; border-top:1px solid var(--border); display:none; }
+    .aula-body.open { display:block; }
+
+    .fg-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+    .fg-item { }
+    .fg-item.full { grid-column:1/-1; }
+    .fg-item label { display:block; font-size:9px; font-family:var(--font-title); letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; }
+    .fg-item input, .fg-item textarea, .fg-item select { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:12px; font-family:var(--font-body); color:var(--text-main); outline:none; }
+    .fg-item input:focus, .fg-item textarea:focus { border-color:var(--primary); }
+    .fg-item textarea { resize:vertical; min-height:52px; }
+
+    .pres-row { display:flex; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); gap:10px; }
+    .pres-row:last-child { border-bottom:none; }
+    .pres-nome { flex:1; font-size:13px; font-weight:600; }
+    .pres-toggle { width:42px; height:22px; border-radius:11px; border:none; cursor:pointer; background:var(--bg-panel); position:relative; transition:background 0.2s; flex-shrink:0; }
+    .pres-toggle.on { background:var(--green); }
+    .pres-toggle::after { content:''; position:absolute; width:16px; height:16px; border-radius:8px; background:white; top:3px; left:3px; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+    .pres-toggle.on::after { left:23px; }
+
+    .pbar { height:5px; border-radius:3px; background:var(--bg-panel); min-width:50px; overflow:hidden; }
+    .pbar-fill { height:100%; border-radius:3px; }
+    .pbar-ok { background:var(--green); } .pbar-med { background:var(--orange); } .pbar-low { background:var(--red); }
+
+    .crud-form { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:16px; display:none; }
+    .crud-form.open { display:block; }
+    .crud-form-title { font-family:var(--font-title); font-size:11px; letter-spacing:2px; color:var(--primary-dark); margin-bottom:14px; }
+    .crud-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .crud-section { grid-column:1/-1; font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); padding:6px 0 2px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+    .crud-full { grid-column:1/-1; }
+    .crud-group label { display:block; font-size:9px; font-family:var(--font-title); letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; }
+    .crud-group input, .crud-group select, .crud-group textarea { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:12px; font-family:var(--font-body); color:var(--text-main); outline:none; }
+    .crud-group input:focus, .crud-group select:focus { border-color:var(--primary); }
+    .crud-group textarea { resize:vertical; min-height:52px; }
+    .crud-actions { grid-column:1/-1; display:flex; gap:8px; margin-top:6px; }
+
+    .sec-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .sec-lbl { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+    .btn-add  { padding:5px 12px; border-radius:7px; background:var(--primary); color:white; border:none; font-size:12px; cursor:pointer; font-family:var(--font-body); font-weight:600; }
+    .btn-add:hover { background:var(--primary-dark); }
+    .btn-sm   { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:11px; cursor:pointer; color:var(--text-main); transition:all 0.15s; }
+    .btn-sm:hover { border-color:var(--primary); color:var(--primary-dark); background:var(--primary-faint); }
+    .btn-sm.danger  { color:var(--red); }
+    .btn-sm.danger:hover { border-color:var(--red); background:rgba(192,57,43,0.06); }
+    .btn-sm.primary { background:var(--primary); color:white; border-color:var(--primary); }
+    .btn-sm.primary:hover { background:var(--primary-dark); }
+    .form-msg-inline { font-size:12px; padding:6px 10px; border-radius:8px; display:none; margin-top:6px; }
+    .form-msg-inline.ok  { background:rgba(46,125,50,0.1); color:var(--green); display:block; }
+    .form-msg-inline.err { background:rgba(192,57,43,0.08); color:var(--red); display:block; }
+    .badge { padding:3px 8px; border-radius:20px; font-size:10px; white-space:nowrap; }
+    .badge-green { background:rgba(46,125,50,0.1); color:var(--green); }
+    .badge-orange { background:rgba(230,81,0,0.1); color:var(--orange); }
+    .badge-primary { background:var(--primary-faint); color:var(--primary-dark); }
+    .badge-gray { background:rgba(0,0,0,0.06); color:var(--text-faint); }
+    .badge-red { background:rgba(192,57,43,0.08); color:var(--red); }
+    table.mod-table { width:100%; border-collapse:collapse; font-size:13px; }
+    table.mod-table th { font-family:var(--font-title); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint); padding:8px 12px; border-bottom:1px solid var(--border); text-align:left; }
+    table.mod-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    table.mod-table tr:last-child td { border-bottom:none; }
+    table.mod-table tr:hover td { background:var(--bg-panel); }
+    .dias-checks { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+    .dias-checks label { display:flex; align-items:center; gap:5px; cursor:pointer; padding:4px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:12px; user-select:none; }
+</style>
+
+<div class="mod-page">
+    <div class="mod-sidebar">
+        <div class="mod-sidebar-hd">
+            <div class="mod-sidebar-title">Cursos ZAO</div>
+            <button class="btn-add" onclick="cz_novoCurso()">+ Novo</button>
+        </div>
+        <div class="mod-list" id="cz-sidebar"></div>
+    </div>
+    <div class="mod-content" id="cz-content">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-faint)">
+            <div style="text-align:center"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Selecciona um curso</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL MATRICULAR -->
+<div id="cz-modal-mat" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center">
+    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:400px;box-shadow:var(--shadow-md)">
+        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:16px">Matricular Membro</div>
+        <div class="crud-group" style="margin-bottom:10px"><label>Pesquisar</label><input id="cz-mat-search" placeholder="Nome..." oninput="cz_filtrarMembros()"></div>
+        <div id="cz-mat-lista" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px"></div>
+        <div class="form-msg-inline" id="cz-mat-msg"></div>
+        <button class="btn-sm" style="width:100%;margin-top:8px" onclick="cz_fecharModalMat()">Fechar</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+        let cz_cursos    = [];
+        let cz_membros   = [];
+        let cz_cursoAtivo = null;
+        let cz_turmaAtiva = null;
+        let cz_turmaMatId = null;
+        let cz_turmaMembrosMat = new Set();
+        let cz_turmaMatriculas = [];
+
+        const STATUS_BADGE = { aberta:'badge-primary', em_curso:'badge-orange', concluida:'badge-green', cancelada:'badge-gray' };
+        const STATUS_LABEL = { aberta:'Aberta', em_curso:'Em Curso', concluida:'Concluída', cancelada:'Cancelada' };
+
+        function cz_sb(p,o) { return window.sb ? window.sb(p,o) : Promise.reject('no sb'); }
+        function cz_toast(m,t='ok') { if(window.toast) window.toast(m,t); }
+        function showMsg(id,msg,tipo) { const el=document.getElementById(id); if(!el) return; el.textContent=msg; el.className='form-msg-inline '+tipo; }
+        function fmtD(d) { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric'}); }
+
+        const DIAS_SEMANA = [{key:'segunda',l:'Seg',n:1},{key:'terca',l:'Ter',n:2},{key:'quarta',l:'Qua',n:3},{key:'quinta',l:'Qui',n:4},{key:'sexta',l:'Sex',n:5},{key:'sabado',l:'Sáb',n:6},{key:'domingo',l:'Dom',n:0}];
+
+        async function cz_init() {
+            const [cs, ms] = await Promise.all([
+                cz_sb('zao_cursos?select=*&order=nome').catch(()=>[]),
+                cz_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
+            ]);
+            cz_cursos  = cs||[];
+            cz_membros = ms||[];
+            cz_renderSidebar();
+        }
+
+        function cz_renderSidebar() {
+            const el = document.getElementById('cz-sidebar');
+            if (!el) return;
+            if (!cz_cursos.length) { el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum curso</div>`; return; }
+            el.innerHTML = cz_cursos.map(c=>`
+        <div class="mod-item ${cz_cursoAtivo?.id===c.id?'active':''}" onclick="cz_selCurso('${c.id}')">
+            <div class="mod-item-nome">${c.nome}</div>
+            <div class="mod-item-sub">${[c.carga_horaria,c.gratuito?'Gratuito':c.valor?'€'+c.valor:null].filter(Boolean).join(' · ')}</div>
+        </div>`).join('');
+        }
+
+        async function cz_selCurso(id) {
+            cz_cursoAtivo = cz_cursos.find(c=>c.id===id);
+            cz_turmaAtiva = null;
+            cz_renderSidebar();
+            await cz_carregarCurso();
+        }
+
+// ── CURSO ────────────────────────────────────────────────────────────────────
+        async function cz_carregarCurso() {
+            if (!cz_cursoAtivo) return;
+            const turmas = await cz_sb(`zao_turmas?curso_id=eq.${cz_cursoAtivo.id}&select=*&order=data_inicio.desc`).catch(()=>[]);
+            const c = cz_cursoAtivo;
+            document.getElementById('cz-content').innerHTML = `
+    <div class="mod-tabs">
+        <button class="mod-tab active" id="czt-turmas"   onclick="cz_setTab('turmas')">Turmas (${turmas.length})</button>
+        <button class="mod-tab"        id="czt-detalhes" onclick="cz_setTab('detalhes')">Detalhes</button>
+    </div>
+    <div class="mod-tab-body active" id="cztb-turmas">
+        <div class="sec-hd">
+            <div style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark)">${c.nome}</div>
+            <button class="btn-add" onclick="cz_novaTurmaForm()">+ Nova Turma</button>
+        </div>
+        <div class="crud-form" id="cz-form-turma"></div>
+        ${turmas.map(t=>`
+        <div class="turma-card ${t.status}">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div style="flex:1;font-size:14px;font-weight:700">${t.nome}</div>
+                <span class="badge ${STATUS_BADGE[t.status]||'badge-gray'}">${STATUS_LABEL[t.status]||t.status}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+                ${t.data_inicio?`<span>Início: ${fmtD(t.data_inicio)}</span>`:''}
+                ${t.data_fim?`<span>Fim: ${fmtD(t.data_fim)}</span>`:''}
+                ${t.local?`<span>Local: ${t.local}</span>`:''}
+                ${t.pastor_diploma?`<span>Pastor: ${t.pastor_diploma}</span>`:''}
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn-sm primary" onclick="cz_abrirTurma('${t.id}')">Ver Turma</button>
+                <button class="btn-sm" onclick="cz_editarTurmaForm('${t.id}')">Editar</button>
+                <button class="btn-sm" onclick="cz_mudarStatus('${t.id}','${t.status}')">${t.status==='aberta'?'Iniciar':t.status==='em_curso'?'Concluir':'Reabrir'}</button>
+                <button class="btn-sm danger" onclick="cz_eliminarTurma('${t.id}')">Eliminar</button>
+            </div>
+        </div>`).join('')||`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhuma turma</div></div>`}
+    </div>
+    <div class="mod-tab-body" id="cztb-detalhes">
+        <div class="sec-hd"><div class="sec-lbl">Detalhes do Curso</div><button class="btn-sm" onclick="cz_editarCursoForm('${c.id}')">Editar</button></div>
+        <div class="crud-form" id="cz-form-curso"></div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-size:13px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><strong>Carga Horária:</strong> ${c.carga_horaria||'—'}</div>
+            <div><strong>Nível:</strong> ${c.nivel||'—'}</div>
+            <div><strong>Valor:</strong> ${c.gratuito?'Gratuito':c.valor?'€'+c.valor:'—'}</div>
+            <div><strong>% Mín. Presença:</strong> ${c.min_presenca_pct||75}%</div>
+            <div style="grid-column:1/-1"><strong>Título Diploma:</strong> ${c.certificado_titulo||c.nome}</div>
+            <div style="grid-column:1/-1"><strong>Descrição:</strong> ${c.descricao||'—'}</div>
+        </div>
+    </div>`;
+        }
+
+        function cz_setTab(tab) {
+            ['turmas','detalhes'].forEach(t=>{
+                document.getElementById(`czt-${t}`)?.classList.toggle('active',t===tab);
+                document.getElementById(`cztb-${t}`)?.classList.toggle('active',t===tab);
+            });
+        }
+
+// ── CRUD CURSO ────────────────────────────────────────────────────────────────
+        window.cz_novoCurso = function() {
+            cz_cursoAtivo=null; cz_renderSidebar();
+            document.getElementById('cz-content').innerHTML=`<div style="padding:20px"><div class="crud-form open" id="cz-form-curso" style="display:block"></div></div>`;
+            cz_renderFormCurso(null);
+        };
+        function cz_editarCursoForm(id) { cz_renderFormCurso(cz_cursoAtivo); document.getElementById('cz-form-curso')?.classList.add('open'); }
+        function cz_renderFormCurso(c) {
+            const el = document.getElementById('cz-form-curso'); if(!el) return;
+            el.innerHTML=`
+    <div class="crud-form-title">${c?'Editar Curso':'Novo Curso'}</div>
+    <div class="crud-grid">
+        <div class="crud-group crud-full"><label>Nome *</label><input id="czf-nome" value="${c?.nome||''}" placeholder="Ex: Escola de Líderes"></div>
+        <div class="crud-group"><label>Carga Horária</label><input id="czf-carga" value="${c?.carga_horaria||''}" placeholder="Ex: 40 horas"></div>
+        <div class="crud-group"><label>Nível</label>
+            <select id="czf-nivel">${['basico','intermediario','avancado'].map(v=>`<option value="${v}" ${c?.nivel===v?'selected':''}>${v[0].toUpperCase()+v.slice(1)}</option>`).join('')}</select>
+        </div>
+        <div class="crud-group"><label>Valor (€)</label><input type="number" id="czf-valor" value="${c?.valor||''}"></div>
+        <div class="crud-group" style="display:flex;align-items:center;gap:8px;padding-top:18px"><input type="checkbox" id="czf-gratis" ${c?.gratuito?'checked':''}><label for="czf-gratis" style="font-size:13px">Gratuito</label></div>
+        <div class="crud-group"><label>% Mín. Presença</label><input type="number" id="czf-minpres" value="${c?.min_presenca_pct||75}"></div>
+        <div class="crud-group crud-full"><label>Título no Diploma</label><input id="czf-titulo" value="${c?.certificado_titulo||''}" placeholder="Ex: Concluiu com sucesso..."></div>
+        <div class="crud-group crud-full"><label>Descrição</label><textarea id="czf-desc">${c?.descricao||''}</textarea></div>
+        <div class="crud-actions">
+            <button class="btn-sm" onclick="cz_cancelarFormCurso()">Cancelar</button>
+            <button class="btn-sm primary" onclick="cz_salvarCurso('${c?.id||''}')">Guardar</button>
+            <div class="form-msg-inline" id="czf-msg" style="margin:0;flex:1"></div>
+        </div>
+    </div>`;
+        }
+        async function cz_salvarCurso(id) {
+            const nome = document.getElementById('czf-nome')?.value.trim();
+            if (!nome) { showMsg('czf-msg','Nome obrigatório','err'); return; }
+            const body={nome,carga_horaria:document.getElementById('czf-carga')?.value||null,nivel:document.getElementById('czf-nivel')?.value,
+                valor:parseFloat(document.getElementById('czf-valor')?.value)||null,gratuito:document.getElementById('czf-gratis')?.checked,
+                min_presenca_pct:parseInt(document.getElementById('czf-minpres')?.value)||75,
+                certificado_titulo:document.getElementById('czf-titulo')?.value||null,
+                descricao:document.getElementById('czf-desc')?.value||null,ativo:true};
+            try {
+                if (id) await cz_sb(`zao_cursos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
+                else    await cz_sb('zao_cursos',{method:'POST',body:JSON.stringify(body)});
+                showMsg('czf-msg','Guardado!','ok');
+                cz_cursos=await cz_sb('zao_cursos?select=*&order=nome').catch(()=>[]);
+                if(id){cz_cursoAtivo=cz_cursos.find(c=>c.id===id);setTimeout(async()=>{ cz_renderSidebar(); await cz_carregarCurso(); },500);}
+                else{const n=cz_cursos[cz_cursos.length-1];if(n){cz_cursoAtivo=n;cz_renderSidebar();await cz_carregarCurso();}}
+            } catch(e){showMsg('czf-msg',e.message,'err');}
+        }
+        function cz_cancelarFormCurso() { const f=document.getElementById('cz-form-curso');if(f){f.classList.remove('open');f.innerHTML='';} }
+
+// ── CRUD TURMA ────────────────────────────────────────────────────────────────
+        window.cz_novaTurmaForm = function() { cz_renderFormTurma(null); document.getElementById('cz-form-turma')?.classList.add('open'); };
+        window.cz_editarTurmaForm = async function(id) {
+            const t = await cz_sb(`zao_turmas?id=eq.${id}&select=*`).then(r=>r[0]).catch(()=>null);
+            if (!t) return;
+            cz_renderFormTurma(t); document.getElementById('cz-form-turma')?.classList.add('open');
+        };
+        function cz_renderFormTurma(t) {
+            const el=document.getElementById('cz-form-turma'); if(!el) return;
+            let diasGuardados=[];
+            if(t?.dias_semana){try{diasGuardados=JSON.parse(t.dias_semana);}catch{}}
+            else if(t?.dia_semana) diasGuardados=[{dia:t.dia_semana,hora_inicio:t.hora_inicio,hora_fim:t.hora_fim}];
+            el.innerHTML=`
+    <div class="crud-form-title">${t?'Editar Turma':'Nova Turma'}</div>
+    <div class="crud-grid">
+        <div class="crud-group crud-full"><label>Nome *</label><input id="czft-nome" value="${t?.nome||''}" placeholder="Ex: Turma 1 — Janeiro 2026"></div>
+        <div class="crud-group"><label>Data de Início *</label><input type="date" id="czft-ini" value="${t?.data_inicio||''}"></div>
+        <div class="crud-group"><label>Data de Fim</label><input type="date" id="czft-fim" value="${t?.data_fim||''}"></div>
+        <div class="crud-group crud-full">
+            <label>Dias da Semana</label>
+            <div class="dias-checks" id="czft-dias-checks"></div>
+            <div id="czft-dias-horarios"></div>
+        </div>
+        <div class="crud-group"><label>Local</label><input id="czft-local" value="${t?.local||''}" placeholder="Ex: Sala Principal"></div>
+        <div class="crud-group"><label>Vagas (0=ilimitado)</label><input type="number" id="czft-vagas" value="${t?.vagas||0}"></div>
+        <div class="crud-group crud-full"><label>Pastor (diploma)</label><input id="czft-pastor" value="${t?.pastor_diploma||''}" placeholder="Ex: Ps. João Silva"></div>
+        <div class="crud-group crud-full"><label>Observações</label><textarea id="czft-obs">${t?.observacoes||''}</textarea></div>
+        <div class="crud-actions">
+            <button class="btn-sm" onclick="cz_cancelarFormTurma()">Cancelar</button>
+            <button class="btn-sm primary" onclick="cz_salvarTurma('${t?.id||''}')">Guardar</button>
+            <div class="form-msg-inline" id="czft-msg" style="margin:0;flex:1"></div>
+        </div>
+    </div>`;
+            cz_renderDiasChecks(diasGuardados);
+        }
+        function cz_renderDiasChecks(sel=[]) {
+            const el=document.getElementById('czft-dias-checks'); if(!el) return;
+            el.innerHTML=DIAS_SEMANA.map(d=>{
+                const s=sel.find(x=>x.dia===d.key);
+                return `<label style="${s?'background:var(--primary-faint);border-color:var(--border-md)':''}">
+            <input type="checkbox" value="${d.key}" ${s?'checked':''} onchange="cz_atualizarHorarios()"> ${d.l}</label>`;
+            }).join('');
+            cz_atualizarHorarios(sel);
+        }
+        window.cz_atualizarHorarios = function(vals=[]) {
+            const checks=[...document.querySelectorAll('#czft-dias-checks input:checked')];
+            const el=document.getElementById('czft-dias-horarios'); if(!el) return;
+            document.querySelectorAll('#czft-dias-checks label').forEach(lb=>{
+                const c=lb.querySelector('input'); lb.style.background=c.checked?'var(--primary-faint)':'var(--bg-input)'; lb.style.borderColor=c.checked?'var(--border-md)':'var(--border)';
+            });
+            if(!checks.length){el.innerHTML='';return;}
+            el.innerHTML=checks.map(c=>{
+                const d=c.value, lbl=DIAS_SEMANA.find(x=>x.key===d)?.l||d;
+                const v=Array.isArray(vals)?vals.find(x=>x.dia===d):null;
+                return `<div style="display:flex;align-items:center;gap:10px;background:var(--bg-panel);padding:7px 10px;border-radius:8px;margin-bottom:4px">
+            <span style="font-family:var(--font-title);font-size:10px;color:var(--primary-dark);min-width:26px">${lbl}</span>
+            Das <input type="time" id="czft-hi-${d}" value="${v?.hora_inicio?.substring(0,5)||''}" style="width:86px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px">
+            às  <input type="time" id="czft-hf-${d}" value="${v?.hora_fim?.substring(0,5)||''}"   style="width:86px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px">
+        </div>`;
+            }).join('');
+        };
+        function cz_getDias() {
+            return [...document.querySelectorAll('#czft-dias-checks input:checked')].map(c=>({
+                dia:c.value,hora_inicio:document.getElementById(`czft-hi-${c.value}`)?.value||null,hora_fim:document.getElementById(`czft-hf-${c.value}`)?.value||null
+            }));
+        }
+        async function cz_salvarTurma(id) {
+            const nome=document.getElementById('czft-nome')?.value.trim(), ini=document.getElementById('czft-ini')?.value;
+            if(!nome||!ini){showMsg('czft-msg','Nome e data de início obrigatórios','err');return;}
+            const dias=cz_getDias();
+            const body={curso_id:cz_cursoAtivo.id,nome,data_inicio:ini,data_fim:document.getElementById('czft-fim')?.value||null,
+                dias_semana:dias.length?JSON.stringify(dias):null,dia_semana:dias[0]?.dia||null,
+                hora_inicio:dias[0]?.hora_inicio||null,hora_fim:dias[0]?.hora_fim||null,
+                local:document.getElementById('czft-local')?.value||null,vagas:parseInt(document.getElementById('czft-vagas')?.value)||0,
+                pastor_diploma:document.getElementById('czft-pastor')?.value||null,observacoes:document.getElementById('czft-obs')?.value||null};
+            try {
+                let turmaId=id;
+                if(id) await cz_sb(`zao_turmas?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
+                else { const r=await cz_sb('zao_turmas',{method:'POST',body:JSON.stringify({...body,status:'aberta'})}); turmaId=r[0]?.id; }
+                showMsg('czft-msg','Guardado!','ok');
+                if(!id&&dias.length&&body.data_inicio&&body.data_fim) setTimeout(()=>{cz_cancelarFormTurma();cz_gerarAulasAuto(turmaId);},500);
+                else setTimeout(()=>{cz_cancelarFormTurma();cz_carregarCurso();},500);
+            } catch(e){showMsg('czft-msg',e.message,'err');}
+        }
+        function cz_cancelarFormTurma(){const f=document.getElementById('cz-form-turma');if(f){f.classList.remove('open');f.innerHTML='';}}
+        window.cz_mudarStatus=async function(id,s){const n={aberta:'em_curso',em_curso:'concluida',concluida:'aberta',cancelada:'aberta'};await cz_sb(`zao_turmas?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:n[s]})});cz_toast('Status actualizado');await cz_carregarCurso();};
+        window.cz_eliminarTurma=async function(id){if(!confirm('Eliminar turma e todos os dados?'))return;await cz_sb(`zao_turmas?id=eq.${id}`,{method:'DELETE'});cz_toast('Turma eliminada');await cz_carregarCurso();};
+
+// ── DETALHE TURMA ─────────────────────────────────────────────────────────────
+        window.cz_abrirTurma = async function(turmaId) {
+            const [turma,mats,aulas]=await Promise.all([
+                cz_sb(`zao_turmas?id=eq.${turmaId}&select=*`).then(r=>r[0]),
+                cz_sb(`zao_matriculas?turma_id=eq.${turmaId}&select=*,membros(id,nome)&order=created_at`).catch(()=>[]),
+                cz_sb(`zao_aulas?turma_id=eq.${turmaId}&select=*&order=numero`).catch(()=>[]),
+            ]);
+            cz_turmaAtiva=turma; cz_turmaMatriculas=mats||[];
+            cz_turmaMembrosMat=new Set(mats.map(m=>m.membro_id));
+            const minPct=cz_cursoAtivo?.min_presenca_pct||75;
+            document.getElementById('cz-content').innerHTML=`
+    <div class="mod-tabs">
+        <button class="mod-tab active" id="czt-mat"   onclick="cz_setTabT('mat')">Matrículas (${mats.length})</button>
+        <button class="mod-tab"        id="czt-aulas" onclick="cz_setTabT('aulas')">Aulas (${aulas.length})</button>
+        <button class="mod-tab"        onclick="cz_selCurso('${cz_cursoAtivo.id}')">← Turmas</button>
+    </div>
+    <div class="mod-tab-body active" id="cztb-mat">
+        <div class="sec-hd">
+            <div><div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${turma.nome}</div><div style="font-size:11px;color:var(--text-faint);margin-top:2px">${cz_cursoAtivo.nome}</div></div>
+            <button class="btn-add" onclick="cz_abrirModalMat('${turmaId}')">+ Matricular</button>
+        </div>
+        <table class="mod-table">
+            <thead><tr><th>Membro</th><th>Presença</th><th>Status</th><th>Diploma</th><th></th></tr></thead>
+            <tbody>${mats.length?mats.map(m=>{
+                const pct=m.pct_presenca||0, apto=pct>=minPct;
+                const cls=apto?'pbar-ok':pct>0?'pbar-low':'';
+                return `<tr>
+                    <td style="font-weight:600">${m.membros?.nome||'—'}</td>
+                    <td><div style="display:flex;align-items:center;gap:6px"><div class="pbar"><div class="pbar-fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div><span style="font-size:11px">${pct.toFixed(0)}%</span></div><div style="font-size:10px;color:var(--text-faint)">${m.presencas_total||0}/${m.aulas_total||0}</div></td>
+                    <td><span class="badge ${m.status==='concluido'?'badge-green':m.status==='desistiu'?'badge-red':'badge-primary'}">${m.status}</span></td>
+                    <td>${m.diploma_gerado?`<span style="color:var(--green);font-size:12px">Gerado</span>`
+                    :apto?`<button class="btn-sm" onclick="cz_gerarDiploma('${m.id}')">Gerar</button>`
+                        :`<span style="color:var(--text-faint);font-size:11px">Insuficiente</span>`}
+                        ${m.diploma_gerado?`<button class="btn-sm" style="margin-left:4px" onclick="cz_abrirDiploma('${m.id}')">Ver</button>`:''}
+                    </td>
+                    <td><button class="btn-sm danger" onclick="cz_removerMat('${m.id}')">✕</button></td>
+                </tr>`;
+            }).join(''):`<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:30px">Nenhum membro matriculado</td></tr>`}
+            </tbody>
+        </table>
+    </div>
+    <div class="mod-tab-body" id="cztb-aulas">
+        <div class="sec-hd">
+            <div class="sec-lbl">Aulas</div>
+            <div style="display:flex;gap:6px">
+                <button class="btn-sm" onclick="cz_gerarAulasAuto('${turmaId}')">Gerar Calendário</button>
+                <button class="btn-add" onclick="cz_novaAulaManual('${turmaId}')">+ Manual</button>
+            </div>
+        </div>
+        <div id="cz-lista-aulas">
+        ${aulas.length?aulas.map(a=>cz_renderAulaCard(a,mats)).join(''):`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhuma aula. Usa "Gerar Calendário" ou "+ Manual".</div></div>`}
+        </div>
+    </div>`;
+        }
+        function cz_setTabT(t){['mat','aulas'].forEach(x=>{document.getElementById(`czt-${x}`)?.classList.toggle('active',x===t);document.getElementById(`cztb-${x}`)?.classList.toggle('active',x===t);});}
+
+// ── MATRÍCULAS ────────────────────────────────────────────────────────────────
+        window.cz_abrirModalMat=function(turmaId){cz_turmaMatId=turmaId;document.getElementById('cz-mat-search').value='';document.getElementById('cz-mat-msg').className='form-msg-inline';cz_filtrarMembros();document.getElementById('cz-modal-mat').style.display='flex';};
+        window.cz_fecharModalMat=function(){document.getElementById('cz-modal-mat').style.display='none';};
+        window.cz_filtrarMembros=function(){
+            const q=document.getElementById('cz-mat-search')?.value.toLowerCase()||'';
+            const el=document.getElementById('cz-mat-lista'); if(!el) return;
+            const f=cz_membros.filter(m=>!cz_turmaMembrosMat.has(m.id)&&m.nome?.toLowerCase().includes(q)).slice(0,25);
+            el.innerHTML=f.length?f.map(m=>`<div style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);gap:10px"><span style="flex:1;font-size:13px;font-weight:600">${m.nome}</span><button class="btn-sm primary" onclick="cz_matricular('${m.id}','${m.nome.replace(/'/g,"\\'")}')">Matricular</button></div>`).join(''):`<div style="padding:14px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum disponível</div>`;
+        };
+        window.cz_matricular=async function(mId,nome){
+            try{await cz_sb('zao_matriculas',{method:'POST',body:JSON.stringify({turma_id:cz_turmaMatId,membro_id:mId,status:'activo'})});cz_turmaMembrosMat.add(mId);cz_filtrarMembros();showMsg('cz-mat-msg',`${nome} matriculado`,'ok');cz_toast(`${nome} matriculado`);}
+            catch(e){showMsg('cz-mat-msg',e.message,'err');}
+        };
+        window.cz_removerMat=async function(id){if(!confirm('Remover matrícula?'))return;await cz_sb(`zao_matriculas?id=eq.${id}`,{method:'DELETE'});cz_toast('Matrícula removida');await cz_abrirTurma(cz_turmaAtiva.id);};
+
+// ── AULAS ─────────────────────────────────────────────────────────────────────
+        function cz_renderAulaCard(a,mats) {
+            return `<div class="aula-card" id="czac-${a.id}">
+        <div class="aula-head" onclick="cz_toggleAula('${a.id}')">
+            <div class="aula-num">${String(a.numero).padStart(2,'0')}</div>
+            <div><div style="font-size:13px;font-weight:600">${a.titulo||'Aula '+a.numero}</div><div style="font-size:11px;color:var(--text-faint)">${fmtD(a.data_aula)}</div></div>
+            <span class="badge ${a.realizada?'badge-green':'badge-gray'}" style="margin-left:auto">${a.realizada?'Realizada':'Pendente'}</span>
+        </div>
+        <div class="aula-body" id="czab-${a.id}"></div>
+    </div>`;
+        }
+        window.cz_toggleAula=async function(aId){const b=document.getElementById(`czab-${aId}`);const o=b.classList.toggle('open');if(!o||b.dataset.loaded)return;b.dataset.loaded='1';await cz_carregarBodyAula(aId);};
+        async function cz_carregarBodyAula(aId) {
+            const b=document.getElementById(`czab-${aId}`);
+            const a=await cz_sb(`zao_aulas?id=eq.${aId}&select=*`).then(r=>r[0]).catch(()=>null); if(!a)return;
+            b.innerHTML=`
+    <div class="fg-grid">
+        <div class="fg-item"><label>Título</label><input id="czat-t-${a.id}" value="${a.titulo||''}" onblur="cz_saveAula('${a.id}','titulo',this.value)"></div>
+        <div class="fg-item"><label>Data</label><input type="date" id="czat-d-${a.id}" value="${a.data_aula||''}" onblur="cz_saveAula('${a.id}','data_aula',this.value)"></div>
+        <div class="fg-item full"><label>Resumo</label><textarea id="czat-r-${a.id}" onblur="cz_saveAula('${a.id}','resumo',this.value)">${a.resumo||''}</textarea></div>
+        <div class="fg-item full"><label>Avisos</label><textarea id="czat-av-${a.id}" onblur="cz_saveAula('${a.id}','avisos',this.value)">${a.avisos||''}</textarea></div>
+        <div class="fg-item"><label>Conversões</label><input type="number" id="czat-c-${a.id}" value="${a.conversoes||0}" onblur="cz_saveAula('${a.id}','conversoes',parseInt(this.value)||0)"></div>
+        <div class="fg-item" style="display:flex;align-items:center;gap:8px;padding-top:18px">
+            <input type="checkbox" id="czat-rl-${a.id}" ${a.realizada?'checked':''} onchange="cz_saveAula('${a.id}','realizada',this.checked)" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">
+            <label for="czat-rl-${a.id}" style="font-size:13px;cursor:pointer">Realizada</label>
+        </div>
+        <div class="fg-item full"><label>Notas</label><textarea id="czat-n-${a.id}" onblur="cz_saveAula('${a.id}','notas',this.value)">${a.notas||''}</textarea></div>
+    </div>
+    <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">LISTA DE PRESENÇA</div>
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden" id="czplist-${a.id}"><div style="padding:14px;text-align:center;color:var(--text-faint);font-size:12px">A carregar...</div></div>
+    <div style="margin-top:8px;display:flex;gap:6px">
+        <button class="btn-sm" onclick="cz_marcarTodosAula('${a.id}',true)">Todos presentes</button>
+        <button class="btn-sm" onclick="cz_marcarTodosAula('${a.id}',false)">Limpar</button>
+        <button class="btn-sm danger" style="margin-left:auto" onclick="cz_eliminarAula('${a.id}')">Eliminar</button>
+    </div>`;
+            cz_carregarPresencaAula(a.id);
+        }
+        window.cz_saveAula=async function(id,c,v){await cz_sb(`zao_aulas?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({[c]:v})}).catch(console.error);};
+        async function cz_carregarPresencaAula(aId) {
+            const el=document.getElementById(`czplist-${aId}`); if(!el) return;
+            const mats=await cz_sb(`zao_matriculas?turma_id=eq.${cz_turmaAtiva.id}&select=*,membros(id,nome)&status=neq.desistiu`).catch(()=>[]);
+            const pres=await cz_sb(`zao_presencas?aula_id=eq.${aId}&select=*`).catch(()=>[]);
+            const pMap={}; pres.forEach(p=>pMap[p.matricula_id]=p);
+            if(!mats.length){el.innerHTML=`<div style="padding:14px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum matriculado</div>`;return;}
+            el.innerHTML=mats.map(m=>{const p=pMap[m.id],pres=p?.presente||false;return `<div class="pres-row">
+        <span class="pres-nome">${m.membros?.nome||'—'}</span>
+        <button class="pres-toggle ${pres?'on':''}" id="cztog-${aId}-${m.id}" onclick="cz_togglePresAula('${aId}','${m.id}','${m.membro_id}','${p?.id||''}',this)"></button>
+        <span style="font-size:11px;color:var(--text-faint);min-width:50px">${pres?'Presente':'Ausente'}</span>
+    </div>`;}).join('');
+        }
+        window.cz_togglePresAula=async function(aId,mId,memId,pId,btn){
+            const n=!btn.classList.contains('on'); btn.classList.toggle('on',n); btn.nextElementSibling.textContent=n?'Presente':'Ausente';
+            if(pId) await cz_sb(`zao_presencas?id=eq.${pId}`,{method:'PATCH',body:JSON.stringify({presente:n})}).catch(console.error);
+            else { const nova=await cz_sb('zao_presencas',{method:'POST',body:JSON.stringify({aula_id:aId,matricula_id:mId,membro_id:memId,presente:n})}).catch(()=>null); if(nova?.[0]) btn.setAttribute('onclick',`cz_togglePresAula('${aId}','${mId}','${memId}','${nova[0].id}',this)`);}
+        };
+        window.cz_marcarTodosAula=async function(aId,p){
+            const mats=await cz_sb(`zao_matriculas?turma_id=eq.${cz_turmaAtiva.id}&select=*&status=neq.desistiu`).catch(()=>[]);
+            const pres=await cz_sb(`zao_presencas?aula_id=eq.${aId}&select=*`).catch(()=>[]);
+            const pM={}; pres.forEach(x=>pM[x.matricula_id]=x);
+            for(const m of mats){if(pM[m.id])await cz_sb(`zao_presencas?id=eq.${pM[m.id].id}`,{method:'PATCH',body:JSON.stringify({presente:p})}).catch(()=>{});else await cz_sb('zao_presencas',{method:'POST',body:JSON.stringify({aula_id:aId,matricula_id:m.id,membro_id:m.membro_id,presente:p})}).catch(()=>{});}
+            await cz_carregarPresencaAula(aId); cz_toast(p?'Todos presentes':'Presenças limpas');
+        };
+        window.cz_eliminarAula=async function(id){if(!confirm('Eliminar aula?'))return;await cz_sb(`zao_aulas?id=eq.${id}`,{method:'DELETE'});cz_toast('Aula eliminada');await cz_abrirTurma(cz_turmaAtiva.id);};
+
+        window.cz_novaAulaManual=async function(turmaId){
+            const ex=await cz_sb(`zao_aulas?turma_id=eq.${turmaId}&select=numero&order=numero.desc&limit=1`).catch(()=>[]);
+            const num=(ex[0]?.numero||0)+1,hoje=new Date().toISOString().split('T')[0];
+            await cz_sb('zao_aulas',{method:'POST',body:JSON.stringify({turma_id:turmaId,numero:num,data_aula:hoje})});
+            cz_toast('Aula adicionada'); await cz_abrirTurma(turmaId);
+        };
+
+        window.cz_gerarAulasAuto=async function(turmaId){
+            const t=await cz_sb(`zao_turmas?id=eq.${turmaId}&select=*`).then(r=>r[0]);
+            if(!t.data_inicio||!t.data_fim){cz_toast('Turma precisa de data início e fim','err');return;}
+            let dias=[];
+            if(t.dias_semana){try{dias=JSON.parse(t.dias_semana);}catch{}}
+            else if(t.dia_semana) dias=[{dia:t.dia_semana,hora_inicio:t.hora_inicio,hora_fim:t.hora_fim}];
+            if(!dias.length){cz_toast('Selecciona pelo menos um dia da semana','err');return;}
+            const DN={segunda:1,terca:2,quarta:3,quinta:4,sexta:5,sabado:6,domingo:0};
+            const ini=new Date(t.data_inicio+'T00:00:00'),fim=new Date(t.data_fim+'T00:00:00');
+            let ocorr=[];
+            for(const d of dias){const n=DN[d.dia];if(n===undefined)continue;let c=new Date(ini);while(c.getDay()!==n)c.setDate(c.getDate()+1);while(c<=fim){ocorr.push({data_aula:c.toISOString().split('T')[0],hora_inicio:d.hora_inicio||null,hora_fim:d.hora_fim||null});c.setDate(c.getDate()+7);}}
+            ocorr.sort((a,b)=>a.data_aula.localeCompare(b.data_aula));
+            const ex=await cz_sb(`zao_aulas?turma_id=eq.${turmaId}&select=data_aula,hora_inicio`).catch(()=>[]);
+            const exS=new Set(ex.map(a=>`${a.data_aula}_${a.hora_inicio||''}`));
+            const novas=ocorr.filter(o=>!exS.has(`${o.data_aula}_${o.hora_inicio||''}`));
+            if(!novas.length){cz_toast('Todas as aulas já criadas');return;}
+            const exN=await cz_sb(`zao_aulas?turma_id=eq.${turmaId}&select=numero&order=numero.desc&limit=1`).catch(()=>[]);
+            let num=exN[0]?.numero||0;
+            for(const o of novas){num++;await cz_sb('zao_aulas',{method:'POST',body:JSON.stringify({turma_id:turmaId,numero:num,data_aula:o.data_aula,hora_inicio:o.hora_inicio,hora_fim:o.hora_fim,realizada:false})}).catch(()=>{});}
+            cz_toast(`${novas.length} aulas geradas`); await cz_abrirTurma(turmaId);
+        };
+
+// ── DIPLOMA ───────────────────────────────────────────────────────────────────
+        window.cz_gerarDiploma=async function(matId){
+            await cz_sb(`zao_matriculas?id=eq.${matId}`,{method:'PATCH',body:JSON.stringify({diploma_gerado:true,diploma_gerado_em:new Date().toISOString()})});
+            cz_toast('Diploma gerado'); cz_abrirDiploma(matId); await cz_abrirTurma(cz_turmaAtiva.id);
+        };
+        window.cz_abrirDiploma=async function(matId){
+            const m=await cz_sb(`zao_matriculas?id=eq.${matId}&select=*,membros(nome),zao_turmas(nome,pastor_diploma,zao_cursos(nome,certificado_titulo,carga_horaria))`).then(r=>r[0]).catch(()=>null);
+            if(!m)return;
+            const p=new URLSearchParams({nome:m.membros?.nome||'',curso:m.zao_turmas?.zao_cursos?.certificado_titulo||m.zao_turmas?.zao_cursos?.nome||'',turma:m.zao_turmas?.nome||'',pastor:m.zao_turmas?.pastor_diploma||'',data:m.concluido_em||new Date().toISOString().split('T')[0],carga:m.zao_turmas?.zao_cursos?.carga_horaria||'',pct:m.pct_presenca?.toFixed(0)||'0'});
+            window.open(`diploma.html?${p.toString()}`,'_blank');
+        };
+
+        cz_init();
+    })();
+</script>

@@ -118,6 +118,13 @@
         .resumo-stat-num { font-family: var(--font-title); font-size: 22px; font-weight: 700; }
         .resumo-stat-label { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
         .resumo-stat-pct { font-size: 11px; font-weight: bold; margin-top: 2px; }
+        .user-bar-link {
+            padding: 4px 12px; border-radius: 7px; border: 1px solid var(--border);
+            background: var(--bg-input); font-size: 11px; color: var(--text-muted);
+            text-decoration: none; font-family: var(--font-title); letter-spacing: 1px;
+            transition: all 0.15s;
+        }
+        .user-bar-link:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-faint); }
     </style>
 </head>
 <body>
@@ -147,6 +154,8 @@
             <div class="user-bar-date" id="data-hoje"></div>
         </div>
         <div class="user-bar-right">
+            <a href="pdv.html" target="_blank" class="user-bar-link">PDV</a>
+            <a href="kds.html" target="_blank" class="user-bar-link">KDS</a>
             <div class="user-bar-nome" id="top-user"></div>
             <button class="logout-btn" onclick="ZionAuth.logout()">Sair</button>
         </div>
@@ -156,18 +165,19 @@
         <div class="nav-item"         onclick="setSecao('dashboard')" data-secao="dashboard">Dashboard</div>
         <div class="nav-item active"  onclick="setSecao('membros')" data-secao="membros">Membros</div>
         <div class="nav-item"         onclick="setSecao('pastores')" data-secao="pastores">Pastores</div>
-        <div class="nav-item"         onclick="setSecao('links')" data-secao="links">Links</div>
+        <div class="nav-item"         onclick="loadModule('links')" data-secao="links">Links</div>
         <div class="nav-item"         onclick="setSecao('cultos')" data-secao="cultos">Cultos</div>
         <div class="nav-item"         onclick="setSecao('ministerios')" data-secao="ministerios">Ministérios</div>
         <div class="nav-item"         onclick="setSecao('salas')" data-secao="salas">Salas</div>
-        <div class="nav-item"         onclick="setSecao('cursos')" data-secao="cursos">Cursos ZAO</div>
+        <div class="nav-item"         onclick="loadModule('cursos')" data-secao="cursos">Cursos ZAO</div>
         <div class="nav-item"         onclick="setSecao('keola')" data-secao="keola">Keola</div>
-        <div class="nav-item"         onclick="setSecao('loja')" data-secao="loja">Books Store</div>
+        <div class="nav-item"         onclick="setSecao('loja')" data-secao="loja">Loja</div>
         <div class="nav-item"         onclick="setSecao('eventos')" data-secao="eventos">Eventos</div>
         <div class="nav-item"         onclick="setSecao('tipos_evento')" data-secao="eventos">Tipos Evento</div>
         <div class="nav-item"         onclick="setSecao('fornecedores')" data-secao="fornecedores">Fornecedores</div>
         <div class="nav-item"         onclick="setSecao('financeiro')" data-secao="financeiro">Financeiro</div>
-        <div class="nav-item"         onclick="setSecao('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">Utilizadores</div>
+        <div class="nav-item"         onclick="loadModule('lista-compras')" data-secao="lista-compras">Lista de Compras</div>
+        <div class="nav-item"         onclick="setSecao('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">👤 Utilizadores</div>
         <div class="nav-item"         onclick="setSecao('configuracoes')" data-secao="configuracoes">⚙ Config</div>
     </div>
 
@@ -208,13 +218,14 @@
     const SUPA_URL    = window.SUPABASE_URL      || '';
     const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
 
-    let secaoAtiva       = 'dashboard';
+    let secaoAtiva       = 'membros';
     let subTabAtiva      = 0;
     let registos         = [];
     let filtroInativo    = false;
     let membros          = [];
     let links_cache      = [];
     let ministeriosCache = [];
+    let cursosCache = [];
 
     // ── PERMISSÕES DO UTILIZADOR ──────────────────────────────────────────────
     let userPerms = {};  // preenchido no init com as flags da tabela usuarios
@@ -822,9 +833,13 @@
 
     function buildBadges(r) {
         const b = [];
-        if (r.e_lider)       b.push(`<span class="badge badge-primary">Líder</span>`);
-        if (r.e_presbitero)  b.push(`<span class="badge badge-primary">Presbítero</span>`);
-        if (r.e_voluntario)  b.push(`<span class="badge badge-green">Voluntário</span>`);
+        if (r.e_lider)        b.push(`<span class="badge badge-primary">Líder</span>`);
+        if (r.e_presbitero)   b.push(`<span class="badge badge-primary">Presbítero</span>`);
+        if (r.e_voluntario)   b.push(`<span class="badge badge-green">Voluntário</span>`);
+        if (r.e_lider_link)   b.push(`<span class="badge badge-primary">Líder Link</span>`);
+        if (r.e_lider_area)   b.push(`<span class="badge badge-primary">Líder Área</span>`);
+        if (r.e_lider_pilar)  b.push(`<span class="badge badge-primary">Líder Pilar</span>`);
+        if (r.professor)      b.push(`<span class="badge badge-green">Professor</span>`);
         if (r.e_admin)       b.push(`<span class="badge badge-red">Admin</span>`);
         if (r.online)        b.push(`<span class="badge badge-primary">Online</span>`);
         if (r.recorrente)    b.push(`<span class="badge badge-green">Recorrente</span>`);
@@ -1014,11 +1029,16 @@
                 const rm = await sb('membros?select=id,nome&ativo=eq.true&order=nome');
                 if (Array.isArray(rm)&&rm.length) membros = rm;
                 ministeriosCache = await sb('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome')||[];
+                cursosCache = await sb('zao_cursos?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]);
             } catch(e){}
         }
         document.getElementById('drawer-title').textContent =
             isNovo ? `Novo — ${cfg.label||secaoAtiva}` : 'Editar';
         document.getElementById('drawer-body').innerHTML = buildForm(cfg, registo);
+        // Para Membros: carregar cursos e filhos
+        if (secaoAtiva === 'membros' && registo) {
+            carregarCursosMembro(registo.id);
+        }
         // Para Keola: injectar painel de componentes de kit
         if (secaoAtiva === 'keola') {
             injectKitPanel(id || null);
@@ -1061,6 +1081,21 @@
                 <textarea class="form-textarea" id="f_${c.key}" placeholder="${c.ph||''}">${val}</textarea></div>`;
             } else if (c.type==='image') {
                 html += buildImageUpload(c.key, c.label, val, c.bucket||'imagens');
+            } else if (c.type==='select-membro') {
+                // Cônjuge — select com pesquisa de membros
+                const conjNome = membros.find(m=>m.id===val)?.nome || '';
+                const opts = membros.filter(m=>m.id!==r?.id).map(m=>`<option value="${m.id}" ${val===m.id?'selected':''}>${m.nome}</option>`).join('');
+                html += `<div class="form-group form-full"><label class="form-label">${c.label}</label>
+                <select class="form-select" id="f_${c.key}"><option value="">— Sem cônjuge —</option>${opts}</select></div>`;
+            } else if (c.type==='custom-cursos') {
+                // Cursos concluídos — painel custom (preenchido via JS após render)
+                html += `<div class="form-group form-full">
+                <div id="cursos-membro-panel"><div class="sub-list-empty">A carregar...</div></div>
+                <div class="sub-add-row" style="margin-top:8px">
+                    <select class="form-select" id="sub-curso-id"><option value="">Seleciona curso</option>${cursosCache.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select>
+                    <input class="form-input" id="sub-curso-data" type="date" style="max-width:140px" title="Data de conclusão">
+                    <button class="btn-sub-add" onclick="addCursoMembro('${r?.id||''}')">Adicionar</button>
+                </div></div>`;
             } else {
                 html += `<div class="form-group ${fc}"><label class="form-label">${c.label}</label>
                 <input class="form-input" id="f_${c.key}" type="${c.type||'text'}" placeholder="${c.ph||''}" value="${val}"></div>`;
@@ -1108,6 +1143,8 @@
         const body   = {};
         campos.forEach(c => {
             if (c.type==='section') return;
+            if (c.type==='custom-cursos') return;  // gerido separadamente
+            if (c.key && c.key.startsWith('_')) return; // campos virtuais
             const el = document.getElementById(`f_${c.key}`);
             if (!el) return;
             if (c.type==='checkbox')  body[c.key] = el.checked;
@@ -1205,6 +1242,58 @@
         </div>`;
         }).join('');
     }
+    // ── CURSOS DO MEMBRO ──────────────────────────────────────────────────────
+    async function carregarCursosMembro(membroId) {
+        const el = document.getElementById('cursos-membro-panel');
+        if (!el) return;
+        const matriculas = await sb(`zao_matriculas?membro_id=eq.${membroId}&select=*,zao_turmas(nome,zao_cursos(nome))&status=eq.concluido&order=concluido_em.desc`).catch(()=>[]);
+        const membro = await sb(`membros?id=eq.${membroId}&select=cursos_concluidos`).then(r=>r[0]).catch(()=>null);
+        let manuais = [];
+        try { manuais = JSON.parse(membro?.cursos_concluidos || '[]'); } catch { manuais = []; }
+        if (!matriculas.length && !manuais.length) {
+            el.innerHTML = `<div class="sub-list-empty">Nenhum curso concluído</div>`; return;
+        }
+        let html = '<div class="sub-list">';
+        matriculas.forEach(m => {
+            const nome = m.zao_turmas?.zao_cursos?.nome || '—';
+            const data = m.concluido_em ? new Date(m.concluido_em+'T00:00:00').toLocaleDateString('pt-PT') : '—';
+            html += `<div class="sub-list-item"><span>${nome}</span><span style="font-size:11px;color:var(--text-faint)">${data} · Sistema</span></div>`;
+        });
+        manuais.forEach((m, i) => {
+            html += `<div class="sub-list-item">
+                <span>${m.nome}</span>
+                <span style="font-size:11px;color:var(--text-faint)">${m.data||'—'} · Manual</span>
+                <button class="sub-remove" onclick="removerCursoManual('${membroId}',${i})">✕</button>
+            </div>`;
+        });
+        html += '</div>';
+        el.innerHTML = html;
+    }
+
+    async function addCursoMembro(membroId) {
+        if (!membroId) { showFormMsg('Guarda o membro primeiro para adicionar cursos', 'error'); return; }
+        const cursoId = document.getElementById('sub-curso-id')?.value;
+        const data    = document.getElementById('sub-curso-data')?.value;
+        if (!cursoId) { showFormMsg('Selecciona um curso', 'error'); return; }
+        const curso = cursosCache.find(c => c.id === cursoId);
+        const membro = await sb(`membros?id=eq.${membroId}&select=cursos_concluidos`).then(r=>r[0]).catch(()=>null);
+        let lista = [];
+        try { lista = JSON.parse(membro?.cursos_concluidos || '[]'); } catch { lista = []; }
+        lista.push({ curso_id: cursoId, nome: curso?.nome || '—', data: data || null });
+        await sb(`membros?id=eq.${membroId}`, { method:'PATCH', body: JSON.stringify({ cursos_concluidos: JSON.stringify(lista) }) });
+        await carregarCursosMembro(membroId);
+        showFormMsg('Curso adicionado!', 'success');
+    }
+
+    async function removerCursoManual(membroId, idx) {
+        const membro = await sb(`membros?id=eq.${membroId}&select=cursos_concluidos`).then(r=>r[0]).catch(()=>null);
+        let lista = [];
+        try { lista = JSON.parse(membro?.cursos_concluidos || '[]'); } catch { lista = []; }
+        lista.splice(idx, 1);
+        await sb(`membros?id=eq.${membroId}`, { method:'PATCH', body: JSON.stringify({ cursos_concluidos: JSON.stringify(lista) }) });
+        await carregarCursosMembro(membroId);
+    }
+
     async function addFilho(paiId) {
         const filhoId = document.getElementById('sub-filho-id')?.value;
         if (!filhoId) { alert('Seleciona um membro.'); return; }
@@ -1581,12 +1670,19 @@
         {key:'data_batismo',    label:'Data Batismo',      type:'date'},
         {key:'tem_filhos',      label:'Tem Filhos',        type:'checkbox'},
         {key:'numero_filhos',   label:'Nr Filhos',         type:'number', ph:'0'},
+        {type:'section',label:'Cônjuge'},
+        {key:'conjuge_id',      label:'Cônjuge',           type:'select-membro', ph:'Pesquisar membro...'},
         {type:'section',label:'Funções'},
         {key:'e_lider',         label:'Líder',             type:'checkbox'},
         {key:'e_presbitero',    label:'Presbítero',        type:'checkbox'},
         {key:'e_voluntario',    label:'Voluntário',        type:'checkbox'},
         {key:'e_admin',         label:'Administrador',     type:'checkbox'},
         {key:'professor',       label:'Professor',         type:'checkbox'},
+        {key:'e_lider_link',    label:'Líder de Link',     type:'checkbox'},
+        {key:'e_lider_area',    label:'Líder de Área',     type:'checkbox'},
+        {key:'e_lider_pilar',   label:'Líder de Pilar',    type:'checkbox'},
+        {type:'section',label:'Cursos Concluídos'},
+        {key:'_cursos',         label:'Cursos',            type:'custom-cursos'},
         {type:'section',label:'História'},
         {key:'historia',        label:'História',          type:'textarea', ph:'História do membro...', full:true},
         {key:'ativo',           label:'Ativo',             type:'checkbox', default:true},
@@ -1647,7 +1743,7 @@
     ];}
     function camposMinisterios() { return [
         {key:'nome',         label:'Nome',         ph:'Ex: Ministério de Louvor', full:true},
-        {key:'tipo',         label:'Tipo',         type:'select', options:[{v:'ministerio',l:'Ministério'},{v:'ae',l:'Área Executiva'}, {v:'presbiterio', l:'presbiterio'}]},
+        {key:'tipo',         label:'Tipo',         type:'select', options:[{v:'ministerio',l:'Ministério'},{v:'area',l:'Área de Equipa'}]},
         {key:'slug',         label:'Slug',         ph:'Ex: louvor'},
         {key:'faixa_etaria', label:'Faixa Etária', ph:'Ex: Todas as idades'},
         {key:'instagram',    label:'Instagram',    ph:'@handle'},
@@ -2460,24 +2556,8 @@
             const as=mins.map(m=>`[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}${m.papel?' · '+m.papel:''}`).join(' | ');
             return `<tr><td>${p.membros?.nome||'—'}</td><td style="font-size:11px;color:#666">${as||'—'}</td><td style="font-size:11px;color:#c07000">${p.motivo||'—'}</td></tr>`;
         };
-        let tipoLabel;
-
-        switch (a.tipo) {
-            case 'ministerio':
-                tipoLabel = 'Ministério';
-                break;
-            case 'ae':
-                tipoLabel = 'Área Executiva';
-                break;
-            case 'presbiterio':
-                tipoLabel = 'Presbíterio';
-                break;
-            default:
-                tipoLabel = 'Não definido';
-        }
-
         const rowA=a=>`<tr>
-        <td>${tipoLabel}</td>
+        <td>${a.tipo==='ministerio'?'Ministério':'Área de Equipa'}</td>
         <td style="font-weight:600">${a.nome}</td>
         <td style="color:green;text-align:center">${a.presentes}</td>
         <td style="color:red;text-align:center">${a.faltaram}</td>
@@ -4160,11 +4240,11 @@
 
             // 2. Aumentar stock do kit
             const kitActual = registos.find(r => r.id === kitId);
-            const stockKitAntes  = kitActual?.stock || 0;
+            const stockKitAntes  = kitActual?.stock_kits || 0;
             const stockKitDepois = stockKitAntes + qty;
             await sb(`keola_menu?id=eq.${kitId}`, {
                 method: 'PATCH',
-                body: JSON.stringify({ stock_kits: stockKitDepois, stock: stockKitDepois, updated_at: new Date().toISOString() }),
+                body: JSON.stringify({ stock_kits: stockKitDepois, updated_at: new Date().toISOString() }),
             });
 
             // 3. Registar montagem no histórico
@@ -4361,6 +4441,59 @@
 
 
     init();
+    // ══════════════════════════════════════════════════════════════════════
+    // MODULE LOADER — carrega módulos externos em modules/nome.html
+    // ══════════════════════════════════════════════════════════════════════
+    let moduleCache = {};
+
+    async function loadModule(nome) {
+        // Update nav active state
+        document.querySelectorAll('.nav-item').forEach(n => {
+            n.classList.toggle('active', n.dataset.secao === nome);
+        });
+        const sl = document.getElementById('secao-label');
+        const labels = {
+            'links': 'Links', 'cursos': 'Cursos ZAO', 'lista-compras': 'Lista de Compras'
+        };
+        if (sl) sl.textContent = labels[nome] || nome;
+
+        const main = document.getElementById('main-content');
+        main.innerHTML = '<div class="loading"><div class="spin"></div>A carregar...</div>';
+
+        try {
+            // Cache para não fazer fetch repetido na mesma sessão
+            if (!moduleCache[nome]) {
+                const r = await fetch(`modules/${nome}.html`);
+                if (!r.ok) throw new Error(`Módulo "${nome}" não encontrado`);
+                moduleCache[nome] = await r.text();
+            }
+
+            // Injectar HTML (sem <script> — vamos executar separado)
+            const parser = new DOMParser();
+            const doc    = parser.parseFromString(moduleCache[nome], 'text/html');
+
+            // Injectar HTML do body do módulo
+            main.innerHTML = doc.body.innerHTML;
+
+            // Executar scripts do módulo em ordem
+            const scripts = doc.querySelectorAll('script');
+            for (const s of scripts) {
+                const el = document.createElement('script');
+                if (s.src) {
+                    el.src = s.src;
+                } else {
+                    el.textContent = s.textContent;
+                }
+                document.head.appendChild(el);
+            }
+        } catch(e) {
+            main.innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">
+                <div style="font-family:var(--font-title);font-size:13px">Erro ao carregar módulo</div>
+                <div style="font-size:12px;margin-top:8px;color:var(--text-faint)">${e.message}</div>
+            </div>`;
+        }
+    }
+
 </script>
 </body>
 </html>

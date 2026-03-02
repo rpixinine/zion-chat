@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diploma — Zion Lisboa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:      #009098;
+            --primary-dark: #007078;
+            --gold:         #c09040;
+            --gold-light:   #d4a84b;
+            --gold-pale:    #f5e6c0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ── Tela — botão de imprimir ── */
+        body {
+            background: #e8ecec;
+            font-family: 'Lato', sans-serif;
+            display: flex; flex-direction: column;
+            align-items: center; min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        .print-bar {
+            display: flex; gap: 12px; margin-bottom: 24px;
+            background: white; padding: 12px 20px; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .print-bar button {
+            padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer;
+            font-size: 13px; font-family: 'Cinzel', serif; letter-spacing: 1px;
+        }
+        .btn-print  { background: var(--primary); color: white; }
+        .btn-print:hover  { background: var(--primary-dark); }
+        .btn-fechar { background: #f0f0f0; color: #555; border: 1px solid #ddd !important; }
+
+        /* ── Diploma ── */
+        .diploma {
+            width: 297mm;
+            min-height: 210mm;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 18mm 20mm;
+        }
+
+        /* Bordas decorativas */
+        .diploma::before, .diploma::after {
+            content: '';
+            position: absolute;
+            border-style: solid;
+        }
+        .diploma::before {
+            inset: 6mm;
+            border-width: 0.5mm;
+            border-color: var(--gold);
+        }
+        .diploma::after {
+            inset: 8mm;
+            border-width: 0.2mm;
+            border-color: rgba(192,144,64,0.4);
+        }
+
+        /* Cantos ornamentais */
+        .corner {
+            position: absolute;
+            width: 18mm; height: 18mm;
+            border-color: var(--gold);
+            border-style: solid;
+        }
+        .corner.tl { top: 4mm; left: 4mm; border-width: 1.5mm 0 0 1.5mm; }
+        .corner.tr { top: 4mm; right: 4mm; border-width: 1.5mm 1.5mm 0 0; }
+        .corner.bl { bottom: 4mm; left: 4mm; border-width: 0 0 1.5mm 1.5mm; }
+        .corner.br { bottom: 4mm; right: 4mm; border-width: 0 1.5mm 1.5mm 0; }
+
+        /* Fundo sutil com padrão */
+        .bg-pattern {
+            position: absolute; inset: 0;
+            background-image: radial-gradient(circle, rgba(192,144,64,0.04) 1px, transparent 1px);
+            background-size: 8mm 8mm;
+            pointer-events: none;
+        }
+
+        /* Marca d'água */
+        .watermark {
+            position: absolute;
+            font-family: 'Cinzel', serif;
+            font-size: 80px; font-weight: 700;
+            color: rgba(0,144,152,0.03);
+            letter-spacing: 10px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            transform: rotate(-30deg);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* Conteúdo */
+        .diploma-content {
+            position: relative; z-index: 2;
+            display: flex; flex-direction: column;
+            align-items: center; text-align: center;
+            gap: 0;
+            width: 100%;
+        }
+
+        .d-logo-area {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 6mm;
+        }
+        .d-logo-text {
+            font-family: 'Cinzel', serif; font-size: 13px;
+            font-weight: 700; color: var(--primary-dark);
+            letter-spacing: 5px; text-transform: uppercase;
+        }
+        .d-logo-sep { width: 1px; height: 20px; background: var(--gold); }
+        .d-logo-sub { font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: 3px; color: #888; text-transform: uppercase; }
+
+        .d-title {
+            font-family: 'Cinzel', serif;
+            font-size: 11px; letter-spacing: 6px;
+            text-transform: uppercase; color: var(--gold);
+            margin-bottom: 3mm;
+        }
+
+        .d-sep {
+            display: flex; align-items: center; gap: 8px;
+            margin: 2mm 0;
+            width: 60%;
+        }
+        .d-sep-line { flex: 1; height: 0.5px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+        .d-sep-diamond { width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); flex-shrink: 0; }
+
+        .d-certifica {
+            font-family: 'Lato', sans-serif; font-size: 11px;
+            color: #555; letter-spacing: 2px; text-transform: uppercase;
+            margin: 3mm 0 2mm;
+        }
+
+        .d-nome {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px; font-weight: 700;
+            color: var(--primary-dark);
+            letter-spacing: 1px;
+            margin: 1mm 0 3mm;
+            line-height: 1.2;
+        }
+
+        .d-texto {
+            font-family: 'Lato', sans-serif; font-size: 11px;
+            color: #444; line-height: 1.7; max-width: 200mm;
+            margin: 0 0 4mm;
+        }
+
+        .d-curso {
+            font-family: 'Cinzel', serif; font-size: 17px; font-weight: 700;
+            color: var(--primary-dark);
+            border-bottom: 1.5px solid var(--gold);
+            padding-bottom: 2mm; margin: 0 0 3mm;
+        }
+
+        .d-info-row {
+            display: flex; gap: 12mm; margin: 3mm 0;
+            font-size: 10px; color: #666;
+        }
+        .d-info-item { text-align: center; }
+        .d-info-label { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 2px; }
+        .d-info-val   { font-size: 11px; color: var(--primary-dark); font-weight: 600; }
+
+        .d-assinaturas {
+            display: flex; gap: 20mm; margin-top: 8mm;
+            width: 100%; justify-content: center;
+        }
+        .d-assinatura {
+            text-align: center; min-width: 50mm;
+        }
+        .d-ass-linha { width: 50mm; height: 0.5px; background: #999; margin: 0 auto 3px; }
+        .d-ass-nome  { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; color: var(--primary-dark); }
+        .d-ass-cargo { font-size: 8px; color: #999; letter-spacing: 1px; }
+
+        .d-data { font-size: 10px; color: #888; margin-top: 4mm; letter-spacing: 1px; }
+
+        .d-codigo {
+            position: absolute; bottom: 12mm; right: 16mm;
+            font-size: 8px; color: #bbb; letter-spacing: 1px;
+            font-family: 'Cinzel', serif;
+        }
+
+        /* ── PRINT ── */
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .print-bar { display: none !important; }
+            .diploma {
+                box-shadow: none;
+                width: 297mm; min-height: 210mm;
+                page-break-after: avoid;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="print-bar">
+    <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+    <button class="btn-fechar" onclick="window.close()">Fechar</button>
+</div>
+
+<div class="diploma" id="diploma">
+
+    <!-- Fundo -->
+    <div class="bg-pattern"></div>
+    <div class="watermark" id="wm-text">ZION LISBOA</div>
+
+    <!-- Cantos -->
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <div class="diploma-content">
+
+        <!-- Logo / Cabeçalho -->
+        <div class="d-logo-area">
+            <div class="d-logo-text">Zion Lisboa</div>
+            <div class="d-logo-sep"></div>
+            <div class="d-logo-sub">Escola ZAO</div>
+        </div>
+
+        <div class="d-sep" style="width:40%">
+            <div class="d-sep-line"></div>
+            <div class="d-sep-diamond"></div>
+            <div class="d-sep-line"></div>
+        </div>
+
+        <div class="d-title">Diploma de Conclusão</div>
+
+        <div class="d-sep">
+            <div class="d-sep-line"></div>
+            <div class="d-sep-diamond"></div>
+            <div class="d-sep-line"></div>
+        </div>
+
+        <div class="d-certifica">Certificamos que</div>
+
+        <div class="d-nome" id="d-nome">— Nome do Aluno —</div>
+
+        <div class="d-texto" id="d-texto">
+            concluiu com aproveitamento o curso
+        </div>
+
+        <div class="d-curso" id="d-curso">— Curso —</div>
+
+        <div class="d-info-row">
+            <div class="d-info-item">
+                <div class="d-info-label">Carga Horária</div>
+                <div class="d-info-val" id="d-carga">—</div>
+            </div>
+            <div class="d-info-item">
+                <div class="d-info-label">Presença</div>
+                <div class="d-info-val" id="d-pct">—</div>
+            </div>
+            <div class="d-info-item">
+                <div class="d-info-label">Turma</div>
+                <div class="d-info-val" id="d-turma">—</div>
+            </div>
+        </div>
+
+        <div class="d-assinaturas">
+            <div class="d-assinatura">
+                <div class="d-ass-linha"></div>
+                <div class="d-ass-nome" id="d-pastor">—</div>
+                <div class="d-ass-cargo">Pastor Responsável</div>
+            </div>
+        </div>
+
+        <div class="d-data" id="d-data">Lisboa, — de — de —</div>
+
+    </div>
+
+    <div class="d-codigo" id="d-codigo"></div>
+
+</div>
+
+<script>
+    // Ler parâmetros da URL
+    const p = new URLSearchParams(window.location.search);
+    const nome   = p.get('nome')   || '—';
+    const curso  = p.get('curso')  || '—';
+    const turma  = p.get('turma')  || '—';
+    const pastor = p.get('pastor') || '—';
+    const carga  = p.get('carga')  || '—';
+    const pct    = p.get('pct')    || '—';
+    const dataStr = p.get('data');
+
+    // Preencher
+    document.getElementById('d-nome').textContent   = nome;
+    document.getElementById('d-curso').textContent  = curso;
+    document.getElementById('d-turma').textContent  = turma;
+    document.getElementById('d-pastor').textContent = pastor;
+    document.getElementById('d-carga').textContent  = carga;
+    document.getElementById('d-pct').textContent    = pct + '%';
+
+    // Data formatada
+    if (dataStr) {
+        const dt = new Date(dataStr + 'T00:00:00');
+        const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        document.getElementById('d-data').textContent =
+            `Lisboa, ${dt.getDate()} de ${MESES[dt.getMonth()]} de ${dt.getFullYear()}`;
+    } else {
+        const agora = new Date();
+        const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        document.getElementById('d-data').textContent =
+            `Lisboa, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}`;
+    }
+
+    // Código de referência
+    document.getElementById('d-codigo').textContent = 'REF: ZAO-' + Date.now().toString(36).toUpperCase().slice(-8);
+
+    // Título da página
+    document.title = `Diploma — ${nome} — ${curso}`;
+</script>
+</body>
+</html>

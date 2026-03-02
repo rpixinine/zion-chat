@@ -1,0 +1,604 @@
+<!-- modules/ministerios.html — Módulo de Ministérios e Escalas -->
+<style>
+.mod-page     { display:flex; height:100%; overflow:hidden; }
+.mod-sidebar  { width:220px; flex-shrink:0; background:var(--bg-card); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.mod-sidebar-hd { padding:12px 14px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.mod-sidebar-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+.mod-list     { flex:1; overflow-y:auto; padding:6px; }
+.mod-item     { padding:10px 12px; border-radius:8px; cursor:pointer; margin-bottom:2px; border:1px solid transparent; transition:all 0.15s; }
+.mod-item:hover  { background:var(--bg-panel); border-color:var(--border); }
+.mod-item.active { background:var(--primary-faint); border-color:var(--border-md); }
+.mod-item-nome { font-size:13px; font-weight:600; }
+.mod-item-sub  { font-size:11px; color:var(--text-faint); margin-top:2px; }
+.mod-content  { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+.mod-empty    { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-faint); text-align:center; gap:6px; }
+.mod-empty-title { font-family:var(--font-title); font-size:10px; letter-spacing:2px; }
+.mod-tabs     { display:flex; gap:2px; padding:10px 18px 0; border-bottom:1px solid var(--border); background:var(--bg-card); flex-shrink:0; flex-wrap:wrap; }
+.mod-tab      { padding:7px 14px; border-radius:8px 8px 0 0; font-size:12px; font-weight:600; cursor:pointer; border:1px solid transparent; color:var(--text-faint); background:transparent; font-family:var(--font-body); transition:all 0.12s; white-space:nowrap; }
+.mod-tab.active { background:var(--primary-faint); border-color:var(--border); border-bottom-color:var(--bg-card); color:var(--primary-dark); }
+.mod-tab-body { flex:1; overflow-y:auto; padding:18px; display:none; min-height:0; }
+.mod-tab-body.active { display:block; }
+.sec-hd  { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+.sec-lbl { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+.btn-add { padding:5px 12px; border-radius:7px; background:var(--primary); color:white; border:none; font-size:12px; cursor:pointer; font-family:var(--font-body); font-weight:600; white-space:nowrap; }
+.btn-add:hover { background:var(--primary-dark); }
+.btn-sm  { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:11px; cursor:pointer; color:var(--text-main); transition:all 0.15s; font-family:var(--font-body); white-space:nowrap; }
+.btn-sm:hover   { border-color:var(--primary); color:var(--primary-dark); background:var(--primary-faint); }
+.btn-sm.danger  { color:var(--red); }
+.btn-sm.danger:hover { border-color:var(--red); background:rgba(192,57,43,0.06); }
+.btn-sm.primary { background:var(--primary); color:white; border-color:var(--primary); }
+.btn-sm.primary:hover { background:var(--primary-dark); }
+.crud-group label { display:block; font-size:9px; font-family:var(--font-title); letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; }
+.crud-group input, .crud-group select { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:12px; font-family:var(--font-body); color:var(--text-main); outline:none; }
+.crud-group input:focus, .crud-group select:focus { border-color:var(--primary); }
+.form-msg { font-size:12px; padding:6px 10px; border-radius:8px; display:none; width:100%; margin-top:6px; }
+.form-msg.ok  { background:rgba(46,125,50,0.1); color:var(--green); display:block; }
+.form-msg.err { background:rgba(192,57,43,0.08); color:var(--red); display:block; }
+table.t { width:100%; border-collapse:collapse; font-size:13px; }
+table.t th { font-family:var(--font-title); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint); padding:8px 12px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
+table.t td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+table.t tr:last-child td { border-bottom:none; }
+table.t tr:hover td { background:var(--bg-panel); }
+.badge { padding:3px 9px; border-radius:20px; font-size:10px; font-family:var(--font-title); letter-spacing:0.5px; white-space:nowrap; display:inline-block; }
+.badge-lider    { background:rgba(0,144,152,0.12); color:var(--primary-dark); }
+.badge-membro   { background:rgba(0,0,0,0.05); color:var(--text-muted); }
+.badge-aprendiz { background:rgba(230,81,0,0.1); color:var(--orange); }
+.badge-servindo { background:rgba(0,144,152,0.1); color:var(--primary-dark); }
+.badge-extra    { background:rgba(21,101,192,0.1); color:#1565c0; }
+.badge-green    { background:rgba(46,125,50,0.1); color:var(--green); }
+.badge-gray     { background:rgba(0,0,0,0.06); color:var(--text-faint); }
+/* Disponibilidade grid */
+.disp-table { width:100%; border-collapse:collapse; font-size:12px; }
+.disp-table th { font-family:var(--font-title); font-size:9px; letter-spacing:1px; color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--border); text-align:center; white-space:nowrap; }
+.disp-table th:first-child { text-align:left; }
+.disp-table td { padding:8px 10px; border-bottom:1px solid var(--border); text-align:center; vertical-align:middle; }
+.disp-table td:first-child { text-align:left; font-weight:600; }
+.disp-table tr:last-child td { border-bottom:none; }
+.disp-table tr:hover td { background:var(--bg-panel); }
+.disp-toggle { width:36px; height:20px; border-radius:10px; border:none; cursor:pointer; background:var(--bg-panel); position:relative; transition:background 0.2s; flex-shrink:0; display:inline-block; }
+.disp-toggle.on { background:var(--primary); }
+.disp-toggle::after { content:''; position:absolute; width:14px; height:14px; border-radius:7px; background:white; top:3px; left:3px; transition:left 0.15s; }
+.disp-toggle.on::after { left:19px; }
+/* Calendário indisponibilidades */
+.mes-nav { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.mes-titulo { font-family:var(--font-title); font-size:13px; color:var(--primary-dark); font-weight:600; flex:1; text-align:center; }
+.cal-hds { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:4px; }
+.cal-hd  { font-family:var(--font-title); font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); text-align:center; padding:3px 0; }
+.cal-dias { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.cal-dia  { aspect-ratio:1; border-radius:7px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.12s; background:var(--bg-card); }
+.cal-dia:hover      { border-color:var(--primary); background:var(--primary-faint); }
+.cal-dia.vazio      { background:transparent; border-color:transparent; cursor:default; pointer-events:none; }
+.cal-dia.semana     { opacity:0.25; cursor:default; pointer-events:none; background:transparent; }
+.cal-dia.bloqueado  { background:rgba(192,57,43,0.1); border-color:rgba(192,57,43,0.35); color:var(--red); }
+.cal-dia.hoje       { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary-faint); }
+.mem-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+.mem-chip  { padding:5px 12px; border-radius:20px; font-size:12px; cursor:pointer; border:1px solid var(--border); background:var(--bg-input); transition:all 0.12s; white-space:nowrap; }
+.mem-chip:hover  { border-color:var(--primary); }
+.mem-chip.active { background:var(--primary); color:white; border-color:var(--primary); }
+/* Escala */
+.escala-nav { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.escala-titulo { font-family:var(--font-title); font-size:13px; color:var(--primary-dark); font-weight:600; flex:1; text-align:center; min-width:120px; }
+.culto-bloco { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:10px; overflow:hidden; }
+.culto-bloco-hd { padding:10px 14px; background:var(--primary-faint); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.culto-bloco-nome { font-family:var(--font-title); font-size:11px; letter-spacing:1px; color:var(--primary-dark); flex:1; }
+.culto-bloco-dia  { font-size:11px; color:var(--text-muted); }
+.escala-pessoa { display:flex; align-items:center; padding:9px 14px; border-bottom:1px solid var(--border); gap:10px; font-size:13px; }
+.escala-pessoa:last-child { border-bottom:none; }
+.escala-pessoa:hover { background:var(--bg-panel); }
+.escala-nome { flex:1; font-weight:600; }
+.escala-vazia { padding:12px 14px; font-size:12px; color:var(--text-faint); font-style:italic; }
+.escala-add { padding:8px 14px; display:flex; align-items:center; gap:6px; border-top:1px solid var(--border); font-size:12px; cursor:pointer; color:var(--text-faint); transition:all 0.12s; }
+.escala-add:hover { background:var(--bg-panel); color:var(--primary-dark); }
+/* Partilha */
+.share-txt { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; font-family:monospace; font-size:12px; line-height:1.8; white-space:pre-wrap; max-height:360px; overflow-y:auto; color:var(--text-main); }
+</style>
+
+<div class="mod-page">
+    <div class="mod-sidebar">
+        <div class="mod-sidebar-hd">
+            <div class="mod-sidebar-title">Ministérios</div>
+        </div>
+        <div class="mod-list" id="min-sidebar"></div>
+    </div>
+    <div class="mod-content" id="min-content">
+        <div class="mod-empty"><div class="mod-empty-title">Selecciona um Ministério</div></div>
+    </div>
+</div>
+
+<!-- MODAL MEMBRO -->
+<div id="min-modal-mem" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:center;justify-content:center">
+    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:400px;max-height:82vh;display:flex;flex-direction:column;box-shadow:var(--shadow-md)">
+        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:12px">Adicionar Membro</div>
+        <div class="crud-group" style="margin-bottom:8px"><label>Pesquisar</label><input id="min-m-search" placeholder="Nome..." oninput="min_filtrarMembros()"></div>
+        <div class="crud-group" style="margin-bottom:10px"><label>Papel</label>
+            <select id="min-m-papel"><option value="membro">Membro</option><option value="aprendiz">Aprendiz</option><option value="lider">Líder</option></select>
+        </div>
+        <div id="min-m-lista" style="flex:1;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;min-height:80px"></div>
+        <div class="form-msg" id="min-m-msg"></div>
+        <button class="btn-sm" style="width:100%;margin-top:8px" onclick="min_fecharModalMem()">Fechar</button>
+    </div>
+</div>
+
+<!-- MODAL ADD ESCALA MANUAL -->
+<div id="min-modal-ea" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:center;justify-content:center">
+    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:360px;box-shadow:var(--shadow-md)">
+        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:14px">Adicionar à Escala</div>
+        <div class="crud-group" style="margin-bottom:10px"><label>Membro</label><select id="min-ea-membro"></select></div>
+        <div class="crud-group" style="margin-bottom:10px"><label>Papel na Escala</label>
+            <select id="min-ea-papel"><option value="servindo">Servindo</option><option value="aprendiz">Aprendiz</option><option value="extra">Extra</option></select>
+        </div>
+        <div class="crud-group" style="margin-bottom:10px"><label>Notas</label><input id="min-ea-notas" placeholder="Opcional..."></div>
+        <div class="form-msg" id="min-ea-msg"></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn-sm" style="flex:1" onclick="document.getElementById('min-modal-ea').style.display='none'">Cancelar</button>
+            <button class="btn-sm primary" style="flex:1" onclick="min_salvarEscalaManual()">Adicionar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var min_mins      = [];
+var min_memAll    = [];
+var min_cultsAll  = [];
+var min_minAtivo  = null;
+var min_minMems   = [];
+var min_minCults  = [];
+var min_memNoMin  = new Set();
+var min_dispMap   = {};
+var min_indisps   = [];
+var min_escala    = [];
+var min_indMes    = '';
+var min_escMes    = '';
+var min_indMemSel = null;
+var min_eaCtx     = null;
+
+const PAPEL_LBL = { lider:'Líder', membro:'Membro', aprendiz:'Aprendiz' };
+const PAPEL_ESC = { servindo:'badge-servindo', aprendiz:'badge-aprendiz', extra:'badge-extra' };
+const MESES_PT  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function min_sb(p,o)  { return window.sb ? window.sb(p,o) : Promise.reject('no sb'); }
+function min_t(m,t)   { if(window.toast) window.toast(m,t||'ok'); }
+function smsg(id,msg,t) { const e=document.getElementById(id); if(!e) return; e.textContent=msg; e.className='form-msg '+t; }
+function fmtD(d)      { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'2-digit',month:'short'}); }
+function ym()         { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
+function addM(s,n)    { const [a,m]=s.split('-'); const d=new Date(parseInt(a),parseInt(m)-1+n,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function mesLbl(s)    { const [a,m]=s.split('-'); return MESES_PT[parseInt(m)]+' '+a; }
+function sabDomMes(a,m){ const r=[]; for(let d=1;d<=new Date(a,m,0).getDate();d++){ const dt=new Date(a,m-1,d),dw=dt.getDay(); if(dw===0||dw===6) r.push({d,dw,iso:`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}); } return r; }
+function isSabado(s)  { return s==='Sabado'||s==='Sábado'; }
+
+async function min_init() {
+    min_minAtivo=null; min_indMes=ym(); min_escMes=ym();
+    const [ms,mbs,cs]=await Promise.all([
+        min_sb('ministerios?select=*&ativo=eq.true&order=nome').catch(()=>[]),
+        min_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
+        min_sb('cultos?select=*&ativo=eq.true&order=dia_semana,hora_inicio').catch(()=>[]),
+    ]);
+    min_mins=ms||[]; min_memAll=mbs||[];
+    // só Sáb e Dom
+    min_cultsAll=(cs||[]).filter(c=>c.dia_semana==='Domingo'||isSabado(c.dia_semana));
+    min_renderSide();
+    const el=document.getElementById('min-content');
+    if(el) el.innerHTML=`<div class="mod-empty"><div class="mod-empty-title">Selecciona um Ministério</div></div>`;
+}
+
+function min_renderSide() {
+    const el=document.getElementById('min-sidebar'); if(!el) return;
+    if(!min_mins.length){el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum ministério activo</div>`;return;}
+    el.innerHTML=min_mins.map(m=>`<div class="mod-item ${min_minAtivo?.id===m.id?'active':''}" onclick="min_sel('${m.id}')">
+        <div class="mod-item-nome">${m.nome}</div>
+        <div class="mod-item-sub">${m.tipo||''}</div>
+    </div>`).join('');
+}
+
+async function min_sel(id) {
+    min_minAtivo=min_mins.find(m=>m.id===id); min_renderSide();
+    const [mems,cults]=await Promise.all([
+        min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]),
+        min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim)`).catch(()=>[]),
+    ]);
+    min_minMems=mems||[]; min_minCults=cults||[];
+    min_memNoMin=new Set(min_minMems.map(m=>m.membro_id));
+    document.getElementById('min-content').innerHTML=`
+    <div class="mod-tabs">
+        <button class="mod-tab active" id="mint-membros"       onclick="min_tab('membros')">Membros (${min_minMems.length})</button>
+        <button class="mod-tab"        id="mint-cultos"        onclick="min_tab('cultos')">Cultos</button>
+        <button class="mod-tab"        id="mint-disp"          onclick="min_tab('disp')">Disponibilidade</button>
+        <button class="mod-tab"        id="mint-indisp"        onclick="min_tab('indisp')">Indisponibilidades</button>
+        <button class="mod-tab"        id="mint-escala"        onclick="min_tab('escala')">Escala</button>
+        <button class="mod-tab"        id="mint-partilha"      onclick="min_tab('partilha')">Partilhar</button>
+    </div>
+    <div class="mod-tab-body active" id="mintb-membros"></div>
+    <div class="mod-tab-body"        id="mintb-cultos"></div>
+    <div class="mod-tab-body"        id="mintb-disp"></div>
+    <div class="mod-tab-body"        id="mintb-indisp"></div>
+    <div class="mod-tab-body"        id="mintb-escala"></div>
+    <div class="mod-tab-body"        id="mintb-partilha"></div>`;
+    min_renderMems();
+}
+
+function min_tab(t) {
+    ['membros','cultos','disp','indisp','escala','partilha'].forEach(x=>{
+        document.getElementById(`mint-${x}`)?.classList.toggle('active',x===t);
+        document.getElementById(`mintb-${x}`)?.classList.toggle('active',x===t);
+    });
+    if(t==='cultos')   min_renderCults();
+    if(t==='disp')     min_renderDisp();
+    if(t==='indisp')   min_renderIndisp();
+    if(t==='escala')   min_renderEscala();
+    if(t==='partilha') min_renderPartilha();
+}
+
+/* ── MEMBROS ── */
+function min_renderMems() {
+    const el=document.getElementById('mintb-membros'); if(!el) return;
+    el.innerHTML=`<div class="sec-hd">
+        <div style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark)">${min_minAtivo.nome}</div>
+        <button class="btn-add" onclick="min_abrirMem()">+ Adicionar</button>
+    </div>
+    ${min_minMems.length?`<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"><table class="t">
+        <thead><tr><th>Nome</th><th>Papel</th><th></th></tr></thead>
+        <tbody>${min_minMems.map(m=>`<tr>
+            <td style="font-weight:600">${m.membros?.nome||'—'}</td>
+            <td><select style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:11px" onchange="min_alterPapel('${m.id}',this.value)">
+                <option value="membro"   ${m.papel==='membro'  ?'selected':''}>Membro</option>
+                <option value="aprendiz" ${m.papel==='aprendiz'?'selected':''}>Aprendiz</option>
+                <option value="lider"    ${m.papel==='lider'   ?'selected':''}>Líder</option>
+            </select></td>
+            <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
+        </tr>`).join('')}</tbody></table></div>`
+        :`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum membro neste ministério</div></div>`}`;
+}
+
+function min_abrirMem() {
+    document.getElementById('min-m-search').value='';
+    document.getElementById('min-m-papel').value='membro';
+    document.getElementById('min-m-msg').className='form-msg';
+    min_filtrarMembros();
+    document.getElementById('min-modal-mem').style.display='flex';
+}
+function min_fecharModalMem() { document.getElementById('min-modal-mem').style.display='none'; }
+
+function min_filtrarMembros() {
+    const q=document.getElementById('min-m-search')?.value.toLowerCase()||'';
+    const el=document.getElementById('min-m-lista'); if(!el) return;
+    const f=min_memAll.filter(m=>!min_memNoMin.has(m.id)&&m.nome?.toLowerCase().includes(q)).slice(0,30);
+    el.innerHTML=f.length?f.map(m=>`<div style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);gap:10px">
+        <span style="flex:1;font-size:13px;font-weight:600">${m.nome}</span>
+        <button class="btn-sm primary" onclick="min_addMem('${m.id}','${m.nome.replace(/'/g,"\\'")}')">Adicionar</button>
+    </div>`).join(''):`<div style="padding:14px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum disponível</div>`;
+}
+
+async function min_addMem(mId,nome) {
+    const papel=document.getElementById('min-m-papel')?.value||'membro';
+    try {
+        await min_sb('ministerio_membros',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,papel,ativo:true})});
+        min_memNoMin.add(mId); min_filtrarMembros();
+        smsg('min-m-msg',`${nome} adicionado`,'ok'); min_t(`${nome} adicionado`);
+        min_minMems=await min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]);
+        min_renderMems();
+        document.getElementById('mint-membros').textContent=`Membros (${min_minMems.length})`;
+    }catch(e){smsg('min-m-msg',e.message,'err');}
+}
+async function min_alterPapel(id,p){ await min_sb(`ministerio_membros?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({papel:p})}).catch(console.error); min_t('Papel actualizado'); }
+async function min_remMem(id){
+    if(!confirm('Remover membro do ministério?')) return;
+    await min_sb(`ministerio_membros?id=eq.${id}`,{method:'DELETE'});
+    min_minMems=min_minMems.filter(m=>m.id!==id); min_memNoMin=new Set(min_minMems.map(m=>m.membro_id)); min_renderMems(); min_t('Removido');
+}
+
+/* ── CULTOS ── */
+function min_renderCults() {
+    const el=document.getElementById('mintb-cultos'); if(!el) return;
+    const atMap=new Map(min_minCults.map(mc=>[mc.culto_id,mc]));
+    el.innerHTML=`<div class="sec-hd"><div class="sec-lbl">Cultos que este ministério serve</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+    ${min_cultsAll.map(c=>{
+        const mc=atMap.get(c.id); const ok=!!mc;
+        return `<div style="display:flex;align-items:center;padding:12px 14px;background:${ok?'var(--primary-faint)':'var(--bg-card)'};border:1px solid ${ok?'var(--primary)':'var(--border)'};border-radius:var(--radius);gap:12px">
+            <div style="flex:1"><div style="font-weight:600;font-size:13px">${c.nome}</div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:2px">${c.dia_semana} · ${c.hora_inicio?.slice(0,5)}–${c.hora_fim?.slice(0,5)}</div></div>
+            ${ok?`<div style="display:flex;align-items:center;gap:8px">
+                <label style="font-size:11px;color:var(--text-faint)">Vagas:</label>
+                <input type="number" min="1" max="20" value="${mc.vagas||1}" style="width:52px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;text-align:center" onchange="min_salvarVagas('${mc.id}',this.value)">
+                <button class="btn-sm danger" onclick="min_remCult('${mc.id}')">Remover</button>
+            </div>`:`<button class="btn-sm primary" onclick="min_addCult('${c.id}')">Adicionar</button>`}
+        </div>`;
+    }).join('')}</div>`;
+}
+async function min_addCult(cId){
+    await min_sb('ministerio_cultos',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,culto_id:cId,vagas:1})});
+    min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim)`).catch(()=>[]);
+    min_renderCults(); min_t('Culto adicionado');
+}
+async function min_remCult(id){
+    await min_sb(`ministerio_cultos?id=eq.${id}`,{method:'DELETE'});
+    min_minCults=min_minCults.filter(x=>x.id!==id); min_renderCults(); min_t('Culto removido');
+}
+async function min_salvarVagas(id,v){
+    await min_sb(`ministerio_cultos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({vagas:parseInt(v)||1})}).catch(console.error);
+    const mc=min_minCults.find(x=>x.id===id); if(mc) mc.vagas=parseInt(v)||1;
+}
+
+/* ── DISPONIBILIDADE BASE ── */
+async function min_renderDisp() {
+    const el=document.getElementById('mintb-disp'); if(!el) return;
+    if(!min_minCults.length){el.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Configura primeiro os cultos</div></div>`;return;}
+    const ds=await min_sb(`ministerio_disponibilidade?ministerio_id=eq.${min_minAtivo.id}&select=*`).catch(()=>[]);
+    min_dispMap={}; ds.forEach(d=>{ min_dispMap[d.membro_id+'_'+d.culto_id]=d; });
+    const cults=min_minCults.map(mc=>mc.cultos).filter(Boolean);
+    el.innerHTML=`<div class="sec-hd"><div class="sec-lbl">Disponibilidade base por culto</div><div style="font-size:11px;color:var(--text-faint)">Liga = disponível</div></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto">
+    <table class="disp-table">
+        <thead><tr><th>Membro</th><th>Papel</th>${cults.map(c=>`<th>${c.nome}<br><span style="font-weight:400;font-size:8px">${c.dia_semana} ${c.hora_inicio?.slice(0,5)}</span></th>`).join('')}</tr></thead>
+        <tbody>${min_minMems.map(m=>`<tr>
+            <td>${m.membros?.nome||'—'}</td>
+            <td><span class="badge ${m.papel==='lider'?'badge-lider':m.papel==='aprendiz'?'badge-aprendiz':'badge-membro'}">${PAPEL_LBL[m.papel]||m.papel}</span></td>
+            ${cults.map(c=>{ const k=m.membro_id+'_'+c.id; const d=min_dispMap[k]; const on=d?d.disponivel:true;
+                return `<td><button class="disp-toggle ${on?'on':''}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
+            }).join('')}
+        </tr>`).join('')}
+        </tbody>
+    </table></div>`;
+}
+async function min_togDisp(mId,cId,dId,btn){
+    const n=!btn.classList.contains('on'); btn.classList.toggle('on',n);
+    const k=mId+'_'+cId;
+    if(dId){ await min_sb(`ministerio_disponibilidade?id=eq.${dId}`,{method:'PATCH',body:JSON.stringify({disponivel:n})}).catch(console.error); if(min_dispMap[k]) min_dispMap[k].disponivel=n; }
+    else { const r=await min_sb('ministerio_disponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,culto_id:cId,disponivel:n})}).catch(()=>null);
+        if(r?.[0]){min_dispMap[k]=r[0]; btn.setAttribute('onclick',`min_togDisp('${mId}','${cId}','${r[0].id}',this)`);} }
+}
+
+/* ── INDISPONIBILIDADES ── */
+async function min_renderIndisp() {
+    const el=document.getElementById('mintb-indisp'); if(!el) return;
+    const [a,m]=min_indMes.split('-').map(Number);
+    const fim=new Date(a,m,0).getDate();
+    const ini=`${min_indMes}-01`, fim2=`${min_indMes}-${fim}`;
+    min_indisps=await min_sb(`ministerio_indisponibilidade?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome),cultos(nome)`).catch(()=>[]);
+    if(!min_indMemSel && min_minMems.length) min_indMemSel=min_minMems[0].membro_id;
+    const dias=sabDomMes(a,m); const hoje=new Date().toISOString().split('T')[0];
+    const inSet=new Set(min_indisps.filter(i=>i.membro_id===min_indMemSel).map(i=>i.data));
+    // Calendário
+    const primeiroD=new Date(a,m-1,1).getDay();
+    let calHtml='<div class="cal-hds">'+['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="cal-hd">${d}</div>`).join('')+'</div>';
+    calHtml+='<div class="cal-dias">';
+    for(let i=0;i<primeiroD;i++) calHtml+=`<div class="cal-dia vazio"></div>`;
+    for(let d=1;d<=fim;d++){
+        const iso=`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dw=new Date(a,m-1,d).getDay(); const eSabDom=dw===0||dw===6;
+        let cls='cal-dia';
+        if(!eSabDom) cls+=' semana';
+        else if(inSet.has(iso)) cls+=' bloqueado';
+        else if(iso===hoje) cls+=' hoje';
+        calHtml+=`<div class="${cls}" onclick="${eSabDom?`min_togIndisp('${iso}')`:'void(0)'}">${d}</div>`;
+    }
+    calHtml+='</div>';
+    el.innerHTML=`
+    <div class="mes-nav">
+        <button class="btn-sm" onclick="min_navInd(-1)">←</button>
+        <div class="mes-titulo">${mesLbl(min_indMes)}</div>
+        <button class="btn-sm" onclick="min_navInd(1)">→</button>
+    </div>
+    <div class="sec-hd"><div class="sec-lbl">Seleccionar membro</div></div>
+    <div class="mem-chips">${min_minMems.map(m=>`<div class="mem-chip ${min_indMemSel===m.membro_id?'active':''}" onclick="min_selIndMem('${m.membro_id}')">${m.membros?.nome||'—'}</div>`).join('')}</div>
+    <div class="sec-hd"><div class="sec-lbl">Clica nos Sáb/Dom para marcar indisponibilidade</div></div>
+    ${calHtml}
+    <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin:14px 0 6px">LISTA DE INDISPONIBILIDADES</div>
+    <div id="min-indisp-lista"></div>`;
+    min_renderIndispLista();
+}
+function min_renderIndispLista(){
+    const el=document.getElementById('min-indisp-lista'); if(!el) return;
+    if(!min_indisps.length){el.innerHTML=`<div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;color:var(--text-faint);font-size:12px">Nenhuma indisponibilidade registada</div>`;return;}
+    const sorted=[...min_indisps].sort((a,b)=>a.data.localeCompare(b.data)||a.membros?.nome.localeCompare(b.membros?.nome));
+    el.innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">${sorted.map(i=>`
+    <div style="display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);gap:10px;font-size:13px">
+        <div style="font-weight:600;flex:1">${i.membros?.nome||'—'}</div>
+        <div style="font-family:var(--font-title);font-size:11px;color:var(--primary-dark)">${fmtD(i.data)}</div>
+        <button class="btn-sm danger" style="padding:3px 8px" onclick="min_remIndisp('${i.id}')">✕</button>
+    </div>`).join('')}</div>`;
+}
+function min_selIndMem(id){ min_indMemSel=id; min_renderIndisp(); }
+function min_navInd(n)    { min_indMes=addM(min_indMes,n); min_renderIndisp(); }
+async function min_togIndisp(iso){
+    if(!min_indMemSel) return;
+    const ex=min_indisps.find(i=>i.membro_id===min_indMemSel&&i.data===iso);
+    if(ex){ await min_sb(`ministerio_indisponibilidade?id=eq.${ex.id}`,{method:'DELETE'}); min_indisps=min_indisps.filter(i=>i.id!==ex.id); }
+    else { const r=await min_sb('ministerio_indisponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:min_indMemSel,data:iso})}).catch(()=>null);
+        if(r?.[0]){ const nm=min_minMems.find(m=>m.membro_id===min_indMemSel); min_indisps.push({...r[0],membros:{nome:nm?.membros?.nome||''},cultos:null}); } }
+    min_renderIndisp();
+}
+async function min_remIndisp(id){ await min_sb(`ministerio_indisponibilidade?id=eq.${id}`,{method:'DELETE'}); min_indisps=min_indisps.filter(i=>i.id!==id); min_renderIndisp(); }
+
+/* ── ESCALA ── */
+async function min_renderEscala(){
+    const el=document.getElementById('mintb-escala'); if(!el) return;
+    if(!min_minCults.length){el.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Configura primeiro os cultos</div></div>`;return;}
+    const [a,m]=min_escMes.split('-').map(Number);
+    const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
+    el.innerHTML=`<div class="escala-nav">
+        <button class="btn-sm" onclick="min_navEsc(-1)">←</button>
+        <div class="escala-titulo">${mesLbl(min_escMes)}</div>
+        <button class="btn-sm" onclick="min_navEsc(1)">→</button>
+        <button class="btn-sm" style="margin-left:auto" onclick="min_limparEsc()">Limpar</button>
+        <button class="btn-sm primary" onclick="min_gerarEsc()">Gerar Escala</button>
+    </div>
+    <div id="min-esc-corpo"></div>`;
+    min_renderEscCorpo();
+}
+function min_navEsc(n){ min_escMes=addM(min_escMes,n); min_renderEscala(); }
+
+function min_renderEscCorpo(){
+    const el=document.getElementById('min-esc-corpo'); if(!el) return;
+    const [a,m]=min_escMes.split('-').map(Number);
+    const dias=sabDomMes(a,m);
+    const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1,mc_id:mc.id})).filter(Boolean);
+    let html='';
+    dias.forEach(({d,dw,iso})=>{
+        cults.forEach(c=>{
+            const match=(isSabado(c.dia_semana)&&dw===6)||(c.dia_semana==='Domingo'&&dw===0);
+            if(!match) return;
+            const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
+            const faltam=Math.max(0,c.vagas-ps.filter(p=>p.papel_escala==='servindo').length);
+            html+=`<div class="culto-bloco">
+                <div class="culto-bloco-hd">
+                    <div class="culto-bloco-nome">${c.nome}</div>
+                    <div class="culto-bloco-dia">${DIAS_PT[dw]}, ${String(d).padStart(2,'0')} ${MESES_PT[m].slice(0,3)}</div>
+                    ${faltam>0?`<span class="badge badge-aprendiz">${faltam} vaga${faltam>1?'s':''}</span>`:`<span class="badge badge-green">Completo</span>`}
+                </div>
+                ${ps.map(p=>`<div class="escala-pessoa">
+                    <div class="escala-nome">${p.membros?.nome||'—'}</div>
+                    <span class="badge ${PAPEL_ESC[p.papel_escala]||'badge-membro'}">${p.papel_escala}</span>
+                    ${p.notas?`<span style="font-size:11px;color:var(--text-faint)">${p.notas}</span>`:''}
+                    <button class="btn-sm danger" style="margin-left:auto;padding:3px 8px" onclick="min_remEsc('${p.id}')">✕</button>
+                </div>`).join('')||`<div class="escala-vazia">Ninguém escalado ainda</div>`}
+                <div class="escala-add" onclick="min_abrirEA('${iso}','${c.id}')">+ Adicionar pessoa</div>
+            </div>`;
+        });
+    });
+    el.innerHTML=html||`<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto neste mês</div>`;
+}
+
+async function min_gerarEsc(){
+    if(!confirm(`Gerar escala para ${mesLbl(min_escMes)}? As entradas automáticas existentes serão substituídas.`)) return;
+    const [a,m]=min_escMes.split('-').map(Number);
+    const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    const [dsAll,indAll,escAnt]=await Promise.all([
+        min_sb(`ministerio_disponibilidade?ministerio_id=eq.${min_minAtivo.id}&select=*`).catch(()=>[]),
+        min_sb(`ministerio_indisponibilidade?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*`).catch(()=>[]),
+        min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${addM(min_escMes,-2)}-01&data=lt.${ini}&select=membro_id`).catch(()=>[]),
+    ]);
+    // Apagar auto-geradas do mês
+    await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&gerado_auto=eq.true`,{method:'DELETE'}).catch(()=>{});
+    // Contagem de serviços recentes para rotação justa
+    const srvRec={}; escAnt.forEach(e=>{ srvRec[e.membro_id]=(srvRec[e.membro_id]||0)+1; }); min_minMems.forEach(m=>{ if(!srvRec[m.membro_id]) srvRec[m.membro_id]=0; });
+    const dMap={}; dsAll.forEach(d=>{ dMap[d.membro_id+'_'+d.culto_id]=d.disponivel; });
+    const dias=sabDomMes(a,m);
+    const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1})).filter(Boolean);
+    const novas=[]; const jaEsc={};
+    dias.forEach(({d,dw,iso})=>{
+        cults.forEach(c=>{
+            const match=(isSabado(c.dia_semana)&&dw===6)||(c.dia_semana==='Domingo'&&dw===0); if(!match) return;
+            const indSet=new Set(indAll.filter(i=>i.data===iso&&(!i.culto_id||i.culto_id===c.id)).map(i=>i.membro_id));
+            const dispMems=min_minMems.filter(m=>{
+                if(indSet.has(m.membro_id)||jaEsc[m.membro_id+'_'+iso]) return false;
+                const v=dMap[m.membro_id+'_'+c.id]; return v===undefined?true:v;
+            });
+            const ativos=dispMems.filter(m=>m.papel!=='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
+            const aprs=dispMems.filter(m=>m.papel==='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
+            let escalados=0;
+            for(const mm of ativos){ if(escalados>=c.vagas) break;
+                novas.push({ministerio_id:min_minAtivo.id,membro_id:mm.membro_id,culto_id:c.id,data:iso,papel_escala:'servindo',gerado_auto:true});
+                jaEsc[mm.membro_id+'_'+iso]=true; srvRec[mm.membro_id]=(srvRec[mm.membro_id]||0)+1; escalados++;
+            }
+            // 1 aprendiz por culto, só se há pelo menos 1 activo
+            if(escalados>0&&aprs.length){ const apr=aprs.find(mm=>!jaEsc[mm.membro_id+'_'+iso]);
+                if(apr){ novas.push({ministerio_id:min_minAtivo.id,membro_id:apr.membro_id,culto_id:c.id,data:iso,papel_escala:'aprendiz',gerado_auto:true});
+                    jaEsc[apr.membro_id+'_'+iso]=true; srvRec[apr.membro_id]=(srvRec[apr.membro_id]||0)+1; }
+            }
+        });
+    });
+    for(let i=0;i<novas.length;i+=10) await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify(novas.slice(i,i+10))}).catch(console.error);
+    min_t(`Escala gerada — ${novas.length} entradas`); await min_renderEscala();
+}
+
+async function min_remEsc(id){ await min_sb(`ministerio_escala?id=eq.${id}`,{method:'DELETE'}); min_escala=min_escala.filter(e=>e.id!==id); min_renderEscCorpo(); }
+async function min_limparEsc(){
+    if(!confirm(`Limpar escala de ${mesLbl(min_escMes)}?`)) return;
+    const [a,m]=min_escMes.split('-').map(Number); const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}`,{method:'DELETE'}).catch(()=>{});
+    min_t('Escala limpa'); await min_renderEscala();
+}
+
+function min_abrirEA(iso,cId){
+    min_eaCtx={iso,cId};
+    const sel=document.getElementById('min-ea-membro');
+    sel.innerHTML=min_minMems.map(m=>`<option value="${m.membro_id}">${m.membros?.nome||'—'} (${PAPEL_LBL[m.papel]||m.papel})</option>`).join('');
+    document.getElementById('min-ea-notas').value=''; document.getElementById('min-ea-msg').className='form-msg';
+    document.getElementById('min-modal-ea').style.display='flex';
+}
+async function min_salvarEscalaManual(){
+    if(!min_eaCtx) return;
+    const mId=document.getElementById('min-ea-membro').value;
+    const papel=document.getElementById('min-ea-papel').value;
+    const notas=document.getElementById('min-ea-notas').value||null;
+    try {
+        await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,culto_id:min_eaCtx.cId,data:min_eaCtx.iso,papel_escala:papel,gerado_auto:false,notas})});
+        document.getElementById('min-modal-ea').style.display='none'; min_t('Adicionado à escala');
+        const [a,m]=min_escMes.split('-').map(Number); const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+        min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
+        min_renderEscCorpo();
+    }catch(e){smsg('min-ea-msg',e.message,'err');}
+}
+
+/* ── PARTILHAR ── */
+async function min_renderPartilha(){
+    const el=document.getElementById('mintb-partilha'); if(!el) return;
+    const [a,m]=min_escMes.split('-').map(Number); const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    const esc=await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome)&order=data,culto_id`).catch(()=>[]);
+    const cults=min_minCults.map(mc=>mc.cultos).filter(Boolean);
+    const dias=sabDomMes(a,m);
+    const txt=min_textoEsc(esc,cults,dias,a,m);
+    window._minTxt=txt; window._minHtml=min_htmlEsc(esc,cults,dias,a,m);
+    el.innerHTML=`<div class="sec-hd">
+        <div><div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${min_minAtivo.nome} — ${mesLbl(min_escMes)}</div></div>
+        <div style="display:flex;gap:6px">
+            <button class="btn-sm" onclick="min_copiar()">Copiar para WhatsApp</button>
+            <button class="btn-sm primary" onclick="min_imprimir()">Imprimir / PDF</button>
+        </div>
+    </div>
+    <div class="share-txt">${txt||'Nenhuma escala gerada para este mês.'}</div>`;
+}
+
+function min_textoEsc(esc,cults,dias,a,m){
+    if(!esc.length) return '';
+    let s=`ESCALA DE SERVIÇO\n${min_minAtivo.nome.toUpperCase()} — ${mesLbl(min_escMes).toUpperCase()}\n${'─'.repeat(36)}\n\n`;
+    dias.forEach(({d,dw,iso})=>{ cults.forEach(c=>{
+        const match=(isSabado(c.dia_semana)&&dw===6)||(c.dia_semana==='Domingo'&&dw===0); if(!match) return;
+        const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id); if(!ps.length) return;
+        s+=`${DIAS_PT[dw]} ${String(d).padStart(2,'0')} ${MESES_PT[m].slice(0,3).toUpperCase()} — ${c.nome} (${c.hora_inicio?.slice(0,5)})\n`;
+        ps.forEach(p=>{ s+=`  ${p.papel_escala==='aprendiz'?'[APR] ':''}${p.membros?.nome||'—'}${p.notas?' — '+p.notas:''}\n`; });
+        s+='\n';
+    }); });
+    return s.trim();
+}
+
+function min_htmlEsc(esc,cults,dias,a,m){
+    let rows='';
+    dias.forEach(({d,dw,iso})=>{ cults.forEach(c=>{
+        const match=(isSabado(c.dia_semana)&&dw===6)||(c.dia_semana==='Domingo'&&dw===0); if(!match) return;
+        const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id);
+        rows+=`<div style="margin-bottom:16px;page-break-inside:avoid">
+            <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#007078;border-bottom:1px solid #e0e0e0;padding-bottom:4px;margin-bottom:8px">
+                ${DIAS_PT[dw]}, ${String(d).padStart(2,'0')} ${MESES_PT[m].slice(0,3)} — ${c.nome} · ${c.hora_inicio?.slice(0,5)}–${c.hora_fim?.slice(0,5)}
+            </div>
+            ${ps.length?ps.map(p=>`<div style="padding:4px 0;font-size:13px;display:flex;align-items:center;gap:10px">
+                <span style="flex:1">${p.membros?.nome||'—'}</span>
+                ${p.papel_escala!=='servindo'?`<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(230,81,0,0.1);color:#e65100">${p.papel_escala}</span>`:''}
+                ${p.notas?`<span style="font-size:11px;color:#999">${p.notas}</span>`:''}
+            </div>`).join(''):'<div style="font-size:12px;color:#bbb;font-style:italic">Ninguém escalado</div>'}
+        </div>`;
+    }); });
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala ${min_minAtivo.nome}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Lato',sans-serif;padding:14mm;color:#111;font-size:13px}@media print{body{padding:10mm}}</style>
+    </head><body>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #009098;padding-bottom:10px;margin-bottom:20px">
+        <div style="font-family:'Cinzel',serif;font-size:20px;font-weight:700;color:#007078;letter-spacing:3px">ZION LISBOA</div>
+        <div style="text-align:right">
+            <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888">${min_minAtivo.nome}</div>
+            <div style="font-size:14px;font-weight:600;color:#333;margin-top:2px">Escala de Serviço — ${mesLbl(min_escMes)}</div>
+        </div>
+    </div>
+    ${rows||'<p style="color:#bbb">Nenhuma escala para este mês.</p>'}
+    <div style="margin-top:24px;font-size:10px;color:#ccc;text-align:center;border-top:1px solid #eee;padding-top:8px">Gerado em ${new Date().toLocaleDateString('pt-PT')} · Zion Lisboa</div>
+    <script>window.onload=()=>window.print()<\/script></body></html>`;
+}
+
+function min_copiar(){ if(!window._minTxt){min_t('Sem escala','err');return;} navigator.clipboard.writeText(window._minTxt).then(()=>min_t('Copiado!')).catch(()=>min_t('Erro ao copiar','err')); }
+function min_imprimir(){ if(!window._minHtml){min_t('Sem escala','err');return;} const w=window.open('','_blank'); w.document.write(window._minHtml); w.document.close(); }
+
+min_init();
+</script>

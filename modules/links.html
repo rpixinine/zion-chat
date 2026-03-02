@@ -1,0 +1,748 @@
+<!-- modules/links.html — Módulo completo de Links -->
+<style>
+    .mod-page   { display:flex; height:100%; overflow:hidden; }
+    .mod-sidebar {
+        width:240px; flex-shrink:0; background:var(--bg-card);
+        border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;
+    }
+    .mod-sidebar-hd {
+        padding:12px 14px 10px; border-bottom:1px solid var(--border);
+        display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+    }
+    .mod-sidebar-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+    .mod-list { flex:1; overflow-y:auto; padding:6px; }
+    .mod-item {
+        padding:10px 12px; border-radius:8px; cursor:pointer; margin-bottom:2px;
+        border:1px solid transparent; transition:all 0.15s;
+    }
+    .mod-item:hover  { background:var(--bg-panel); border-color:var(--border); }
+    .mod-item.active { background:var(--primary-faint); border-color:var(--border-md); }
+    .mod-item-nome { font-size:13px; font-weight:600; }
+    .mod-item-sub  { font-size:11px; color:var(--text-faint); margin-top:2px; }
+
+    .mod-content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    .mod-tabs {
+        display:flex; gap:2px; padding:10px 18px 0;
+        border-bottom:1px solid var(--border); background:var(--bg-card); flex-shrink:0;
+    }
+    .mod-tab {
+        padding:7px 16px; border-radius:8px 8px 0 0; font-size:12px; font-weight:600;
+        cursor:pointer; border:1px solid transparent; color:var(--text-faint);
+        background:transparent; font-family:var(--font-body); transition:all 0.12s;
+    }
+    .mod-tab.active { background:var(--primary-faint); border-color:var(--border); border-bottom-color:var(--bg-card); color:var(--primary-dark); }
+    .mod-tab-body { flex:1; overflow-y:auto; padding:18px; display:none; }
+    .mod-tab-body.active { display:block; }
+
+    .mod-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; color:var(--text-faint); text-align:center; gap:6px; margin:auto; }
+    .mod-empty-title { font-family:var(--font-title); font-size:10px; letter-spacing:2px; }
+
+    /* Stats */
+    .stats-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin-bottom:18px; }
+    .stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; text-align:center; }
+    .stat-num  { font-family:var(--font-title); font-size:24px; font-weight:700; color:var(--primary-dark); }
+    .stat-lbl  { font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+    /* Table */
+    .mod-table-wrap { overflow-x:auto; }
+    table.mod-table { width:100%; border-collapse:collapse; font-size:13px; }
+    table.mod-table th { font-family:var(--font-title); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint); padding:8px 12px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
+    table.mod-table td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    table.mod-table tr:last-child td { border-bottom:none; }
+    table.mod-table tr:hover td { background:var(--bg-panel); }
+
+    /* Badges */
+    .badge-lider  { background:rgba(0,144,152,0.1); color:var(--primary-dark); }
+    .badge-co     { background:rgba(0,112,120,0.08); color:var(--primary-dark); }
+    .badge-anf    { background:rgba(192,144,64,0.1); color:var(--gold); }
+    .badge-membro { background:rgba(0,0,0,0.05); color:var(--text-muted); }
+    .badge-green  { background:rgba(46,125,50,0.1); color:var(--green); }
+    .badge-gray   { background:rgba(0,0,0,0.06); color:var(--text-faint); }
+    .badge-orange { background:rgba(230,81,0,0.1); color:var(--orange); }
+
+    /* Reunião */
+    .reun-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; overflow:hidden; }
+    .reun-card.realizada { border-left:3px solid var(--green); }
+    .reun-card.pendente  { border-left:3px solid var(--text-faint); }
+    .reun-head { padding:11px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+    .reun-head:hover { background:var(--bg-panel); }
+    .reun-data  { font-family:var(--font-title); font-size:11px; color:var(--primary-dark); min-width:88px; }
+    .reun-titulo { flex:1; font-size:13px; font-weight:600; }
+    .reun-body  { padding:0 14px 14px; border-top:1px solid var(--border); display:none; }
+    .reun-body.open { display:block; }
+
+    .fg-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+    .fg-item { }
+    .fg-item.full { grid-column:1/-1; }
+    .fg-item label { display:block; font-size:9px; font-family:var(--font-title); letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; }
+    .fg-item input, .fg-item textarea, .fg-item select { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:12px; font-family:var(--font-body); color:var(--text-main); outline:none; }
+    .fg-item input:focus, .fg-item textarea:focus { border-color:var(--primary); }
+    .fg-item textarea { resize:vertical; min-height:52px; }
+
+    /* Presença toggle */
+    .pres-row { display:flex; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); gap:10px; }
+    .pres-row:last-child { border-bottom:none; }
+    .pres-nome  { flex:1; font-size:13px; font-weight:600; }
+    .pres-papel { font-size:10px; color:var(--text-faint); width:64px; }
+    .pres-toggle { width:42px; height:22px; border-radius:11px; border:none; cursor:pointer; background:var(--bg-panel); position:relative; transition:background 0.2s; flex-shrink:0; }
+    .pres-toggle.on { background:var(--green); }
+    .pres-toggle::after { content:''; position:absolute; width:16px; height:16px; border-radius:8px; background:white; top:3px; left:3px; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+    .pres-toggle.on::after { left:23px; }
+
+    .pbar { height:5px; border-radius:3px; background:var(--bg-panel); min-width:50px; overflow:hidden; }
+    .pbar-fill { height:100%; border-radius:3px; }
+    .pbar-ok  { background:var(--green); }
+    .pbar-med { background:var(--orange); }
+    .pbar-low { background:var(--red); }
+
+    /* CRUD form inline */
+    .crud-form { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:16px; display:none; }
+    .crud-form.open { display:block; }
+    .crud-form-title { font-family:var(--font-title); font-size:11px; letter-spacing:2px; color:var(--primary-dark); margin-bottom:14px; }
+    .crud-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .crud-section { grid-column:1/-1; font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); padding:6px 0 2px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+    .crud-full { grid-column:1/-1; }
+    .crud-group label { display:block; font-size:9px; font-family:var(--font-title); letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; }
+    .crud-group input, .crud-group select, .crud-group textarea { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:12px; font-family:var(--font-body); color:var(--text-main); outline:none; }
+    .crud-group input:focus, .crud-group select:focus { border-color:var(--primary); }
+    .crud-group textarea { resize:vertical; min-height:52px; }
+    .crud-actions { grid-column:1/-1; display:flex; gap:8px; margin-top:6px; }
+
+    .sec-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .sec-lbl { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+    .btn-add { padding:5px 12px; border-radius:7px; background:var(--primary); color:white; border:none; font-size:12px; cursor:pointer; font-family:var(--font-body); font-weight:600; }
+    .btn-add:hover { background:var(--primary-dark); }
+    .btn-sm { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:11px; cursor:pointer; color:var(--text-main); transition:all 0.15s; }
+    .btn-sm:hover { border-color:var(--primary); color:var(--primary-dark); background:var(--primary-faint); }
+    .btn-sm.danger { color:var(--red); }
+    .btn-sm.danger:hover { border-color:var(--red); background:rgba(192,57,43,0.06); }
+    .btn-sm.primary { background:var(--primary); color:white; border-color:var(--primary); }
+    .btn-sm.primary:hover { background:var(--primary-dark); }
+    .form-msg-inline { font-size:12px; padding:6px 10px; border-radius:8px; display:none; margin-top:6px; }
+    .form-msg-inline.ok  { background:rgba(46,125,50,0.1); color:var(--green); display:block; }
+    .form-msg-inline.err { background:rgba(192,57,43,0.08); color:var(--red); display:block; }
+</style>
+
+<!-- LAYOUT PRINCIPAL -->
+<div class="mod-page" id="links-page">
+
+    <!-- SIDEBAR — lista de links -->
+    <div class="mod-sidebar">
+        <div class="mod-sidebar-hd">
+            <div class="mod-sidebar-title">Links</div>
+            <button class="btn-add" onclick="lk_novoLink()">+ Novo</button>
+        </div>
+        <div class="mod-list" id="lk-sidebar"></div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="mod-content" id="lk-content">
+        <div class="mod-empty" style="margin:auto">
+            <div class="mod-empty-title">Selecciona um Link</div>
+            <div style="font-size:12px;margin-top:4px">ou cria um novo</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL GERAR CALENDÁRIO -->
+<div id="lk-modal-cal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center">
+    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:340px;box-shadow:var(--shadow-md)">
+        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:16px">Gerar Calendário</div>
+        <div class="crud-group" style="margin-bottom:12px"><label>Ano</label><input type="number" id="lk-cal-ano"></div>
+        <div class="crud-group" style="margin-bottom:12px">
+            <label>Dia da Semana (sobrepõe o do Link)</label>
+            <select id="lk-cal-dia">
+                <option value="">— Usar o dia do Link —</option>
+                <option>Segunda-feira</option><option>Terça-feira</option><option>Quarta-feira</option>
+                <option>Quinta-feira</option><option>Sexta-feira</option><option>Sábado</option><option>Domingo</option>
+            </select>
+        </div>
+        <div class="form-msg-inline" id="lk-cal-msg"></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn-sm" style="flex:1" onclick="lk_fecharCal()">Cancelar</button>
+            <button class="btn-sm primary" style="flex:1" onclick="lk_gerarCalendario()">Gerar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ADICIONAR MEMBRO -->
+<div id="lk-modal-membro" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center">
+    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:400px;box-shadow:var(--shadow-md)">
+        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:16px">Adicionar Membro</div>
+        <div class="crud-group" style="margin-bottom:10px"><label>Pesquisar</label><input id="lk-m-search" placeholder="Nome..." oninput="lk_filtrarMembros()"></div>
+        <div class="crud-group" style="margin-bottom:10px">
+            <label>Papel</label>
+            <select id="lk-m-papel">
+                <option value="membro">Membro</option>
+                <option value="anfitriao">Anfitrião</option>
+                <option value="co_lider">Co-Líder</option>
+                <option value="lider">Líder</option>
+            </select>
+        </div>
+        <div id="lk-m-lista" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px"></div>
+        <div class="form-msg-inline" id="lk-m-msg"></div>
+        <button class="btn-sm" style="width:100%;margin-top:8px" onclick="lk_fecharModalMembro()">Fechar</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+// ══════════════════════════════════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════════════════════════════════
+        let lk_links      = [];
+        let lk_membrosAll = [];
+        let lk_linkAtivo  = null;
+        let lk_linkMembros = [];
+        let lk_membroJaNoLink = new Set();
+        let lk_editId     = null;   // id do link em edição no form inline
+
+        const PAPEL_LABEL = { lider:'Líder', co_lider:'Co-Líder', anfitriao:'Anfitrião', membro:'Membro' };
+        const PAPEL_BADGE = { lider:'badge-lider', co_lider:'badge-co', anfitriao:'badge-anf', membro:'badge-membro' };
+
+        function lk_toast(msg, tipo='ok') { if (window.toast) window.toast(msg, tipo); }
+        function lk_sb(path, opts) { return window.sb ? window.sb(path, opts) : Promise.reject('no sb'); }
+        function fmtD(d) { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'2-digit',month:'short'}); }
+        function showMsg(id, msg, tipo) { const el=document.getElementById(id); if(!el) return; el.textContent=msg; el.className='form-msg-inline '+tipo; }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
+        async function lk_init() {
+            const [ls, ms] = await Promise.all([
+                lk_sb('links?select=*&ativo=eq.true&order=nome').catch(()=>[]),
+                lk_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
+            ]);
+            lk_links      = ls || [];
+            lk_membrosAll = ms || [];
+            lk_renderSidebar();
+        }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════════════════════════
+        function lk_renderSidebar() {
+            const el = document.getElementById('lk-sidebar');
+            if (!el) return;
+            if (!lk_links.length) {
+                el.innerHTML = `<div class="mod-empty" style="padding:30px 10px"><div class="mod-empty-title">Nenhum link</div></div>`;
+                return;
+            }
+            el.innerHTML = lk_links.map(l => `
+        <div class="mod-item ${lk_linkAtivo?.id===l.id?'active':''}" onclick="lk_selLink('${l.id}')">
+            <div class="mod-item-nome">${l.nome}</div>
+            <div class="mod-item-sub">${[l.tipo,l.dia,l.horario].filter(Boolean).join(' · ')}</div>
+        </div>`).join('');
+        }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SELECCIONAR LINK
+// ══════════════════════════════════════════════════════════════════════════════
+        async function lk_selLink(id) {
+            lk_linkAtivo = lk_links.find(l => l.id === id);
+            lk_editId = null;
+            lk_renderSidebar();
+            await lk_carregarLink();
+        }
+
+        async function lk_carregarLink() {
+            if (!lk_linkAtivo) return;
+            const [lms, reunioes] = await Promise.all([
+                lk_sb(`link_membros?link_id=eq.${lk_linkAtivo.id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]),
+                lk_sb(`link_reunioes?link_id=eq.${lk_linkAtivo.id}&select=*&order=data_reuniao.desc&limit=3`).catch(()=>[]),
+            ]);
+            lk_linkMembros = lms || [];
+            lk_membroJaNoLink = new Set(lk_linkMembros.map(m => m.membro_id));
+
+            const l = lk_linkAtivo;
+            const totalR = await lk_sb(`link_reunioes?link_id=eq.${l.id}&select=id&realizada=eq.true`).catch(()=>[]);
+
+            document.getElementById('lk-content').innerHTML = `
+    <div class="mod-tabs">
+        <button class="mod-tab active" id="lkt-detalhes"  onclick="lk_setTab('detalhes')">Detalhes</button>
+        <button class="mod-tab"        id="lkt-membros"   onclick="lk_setTab('membros')">Membros (${lk_linkMembros.length})</button>
+        <button class="mod-tab"        id="lkt-reunioes"  onclick="lk_setTab('reunioes')">Reuniões</button>
+        <button class="mod-tab"        id="lkt-stats"     onclick="lk_setTab('stats')">Estatísticas</button>
+    </div>
+
+    <!-- DETALHES -->
+    <div class="mod-tab-body active" id="lktb-detalhes">
+        <div class="sec-hd">
+            <div style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark)">${l.nome}</div>
+            <div style="display:flex;gap:8px">
+                <button class="btn-sm" onclick="lk_editarLink('${l.id}')">Editar</button>
+                <button class="btn-sm danger" onclick="lk_desativarLink('${l.id}')">Desativar</button>
+            </div>
+        </div>
+        <!-- Form edição inline -->
+        <div class="crud-form" id="lk-form-link"></div>
+        <!-- Info cards -->
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-num">${lk_linkMembros.length}</div><div class="stat-lbl">Membros</div></div>
+            <div class="stat-card"><div class="stat-num" style="color:var(--green)">${totalR.length}</div><div class="stat-lbl">Reuniões</div></div>
+            <div class="stat-card"><div class="stat-num" style="color:var(--primary-dark)">${lk_linkMembros.filter(m=>m.papel==='lider').length}</div><div class="stat-lbl">Líderes</div></div>
+        </div>
+        <div style="font-size:13px;display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+            <div><strong>Tipo:</strong> ${l.tipo||'—'}</div>
+            <div><strong>Dia:</strong> ${l.dia||'—'} ${l.horario||''}</div>
+            <div><strong>Zona:</strong> ${l.zona||'—'}</div>
+            <div><strong>Faixa Etária:</strong> ${l.faixa_etaria||'—'}</div>
+            <div style="grid-column:1/-1"><strong>Morada:</strong> ${[l.morada,l.zona,l.codigo_postal].filter(Boolean).join(', ')||'—'}</div>
+            <div style="grid-column:1/-1"><strong>WhatsApp:</strong> ${l.contato||'—'}</div>
+        </div>
+    </div>
+
+    <!-- MEMBROS -->
+    <div class="mod-tab-body" id="lktb-membros">
+        <div class="sec-hd">
+            <div class="sec-lbl">Membros do Link</div>
+            <button class="btn-add" onclick="lk_abrirModalMembro()">+ Adicionar</button>
+        </div>
+        ${lk_linkMembros.length ? `
+        <div class="mod-table-wrap">
+        <table class="mod-table">
+            <thead><tr><th>Nome</th><th>Papel</th><th>Presença</th><th></th></tr></thead>
+            <tbody>
+            ${lk_linkMembros.map(m => `<tr>
+                <td style="font-weight:600">${m.membros?.nome||'—'}</td>
+                <td>
+                    <select style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:11px" onchange="lk_alterarPapel('${m.id}',this.value)">
+                        <option value="membro"    ${m.papel==='membro'   ?'selected':''}>Membro</option>
+                        <option value="anfitriao" ${m.papel==='anfitriao'?'selected':''}>Anfitrião</option>
+                        <option value="co_lider"  ${m.papel==='co_lider' ?'selected':''}>Co-Líder</option>
+                        <option value="lider"     ${m.papel==='lider'    ?'selected':''}>Líder</option>
+                    </select>
+                </td>
+                <td id="lkpres-${m.id}"><span style="font-size:11px;color:var(--text-faint)">—</span></td>
+                <td><button class="btn-sm danger" onclick="lk_removerMembro('${m.id}')">Remover</button></td>
+            </tr>`).join('')}
+            </tbody>
+        </table></div>` : `<div class="mod-empty"><div class="mod-empty-title">Nenhum membro neste Link</div></div>`}
+    </div>
+
+    <!-- REUNIÕES -->
+    <div class="mod-tab-body" id="lktb-reunioes">
+        <div class="sec-hd">
+            <div class="sec-lbl">Reuniões</div>
+            <div style="display:flex;gap:6px">
+                <button class="btn-sm" onclick="lk_abrirCal()">Gerar Calendário</button>
+                <button class="btn-add" onclick="lk_novaReuniaoForm()">+ Nova</button>
+            </div>
+        </div>
+        <div class="crud-form" id="lk-form-reuniao"></div>
+        <div id="lk-lista-reunioes"><div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">A carregar...</div></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="mod-tab-body" id="lktb-stats">
+        <div id="lk-stats-content"><div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">A carregar...</div></div>
+    </div>`;
+
+            lk_carregarPresencasResumo();
+            lk_carregarReunioes();
+        }
+
+        function lk_setTab(tab) {
+            ['detalhes','membros','reunioes','stats'].forEach(t => {
+                document.getElementById(`lkt-${t}`)?.classList.toggle('active', t===tab);
+                document.getElementById(`lktb-${t}`)?.classList.toggle('active', t===tab);
+            });
+            if (tab === 'stats') lk_carregarStats();
+        }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CRUD LINKS
+// ══════════════════════════════════════════════════════════════════════════════
+        window.lk_novoLink = function() {
+            lk_linkAtivo = null;
+            lk_editId = null;
+            lk_renderSidebar();
+            document.getElementById('lk-content').innerHTML = `
+    <div style="padding:20px">
+        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:2px;color:var(--primary-dark);margin-bottom:16px">NOVO LINK</div>
+        <div class="crud-form open" id="lk-form-link" style="display:block"></div>
+    </div>`;
+            lk_renderFormLink(null);
+        };
+
+        function lk_editarLink(id) {
+            lk_editId = id;
+            const form = document.getElementById('lk-form-link');
+            if (!form) return;
+            lk_renderFormLink(lk_linkAtivo);
+            form.classList.add('open');
+        }
+
+        function lk_renderFormLink(l) {
+            const form = document.getElementById('lk-form-link');
+            if (!form) return;
+            form.innerHTML = `
+    <div class="crud-form-title">${l ? 'Editar Link' : 'Novo Link'}</div>
+    <div class="crud-grid">
+        <div class="crud-section">Identificação</div>
+        <div class="crud-group crud-full"><label>Nome *</label><input id="lkf-nome" value="${l?.nome||''}" placeholder="Ex: LINK Montijo"></div>
+        <div class="crud-group">
+            <label>Tipo</label>
+            <select id="lkf-tipo">
+                ${['Familias','FLOW','VOX','Diamantes','EKLECTOS'].map(t=>`<option value="${t}" ${l?.tipo===t?'selected':''}>${t==='Familias'?'Famílias':t}</option>`).join('')}
+            </select>
+        </div>
+        <div class="crud-group"><label>Faixa Etária</label><input id="lkf-faixa" value="${l?.faixa_etaria||''}" placeholder="Ex: 18-35 anos"></div>
+        <div class="crud-group"><label>Capacidade</label><input type="number" id="lkf-cap" value="${l?.capacidade||''}" placeholder="20"></div>
+        <div class="crud-section">Horário</div>
+        <div class="crud-group">
+            <label>Dia da Semana</label>
+            <select id="lkf-dia">
+                <option value="">— Nenhum —</option>
+                ${['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'].map(d=>`<option ${l?.dia===d?'selected':''}>${d}</option>`).join('')}
+            </select>
+        </div>
+        <div class="crud-group"><label>Horário</label><input id="lkf-horario" value="${l?.horario||''}" placeholder="Ex: 20h00"></div>
+        <div class="crud-section">Localização</div>
+        <div class="crud-group"><label>Zona</label><input id="lkf-zona" value="${l?.zona||''}" placeholder="Ex: Montijo"></div>
+        <div class="crud-group"><label>Distrito</label><input id="lkf-dist" value="${l?.distrito||''}" placeholder="Ex: Setúbal"></div>
+        <div class="crud-group crud-full"><label>Morada</label><input id="lkf-morada" value="${l?.morada||''}" placeholder="Rua..."></div>
+        <div class="crud-group"><label>Código Postal</label><input id="lkf-cp" value="${l?.codigo_postal||''}" placeholder="Ex: 2870-001"></div>
+        <div class="crud-group crud-full"><label>WhatsApp</label><input id="lkf-contato" value="${l?.contato||''}" placeholder="+351 9XX XXX XXX"></div>
+        <div class="crud-actions">
+            <button class="btn-sm" onclick="lk_cancelarForm()">Cancelar</button>
+            <button class="btn-sm primary" onclick="lk_salvarLink('${l?.id||''}')">Guardar</button>
+            <div class="form-msg-inline" id="lkf-msg" style="margin:0;flex:1"></div>
+        </div>
+    </div>`;
+        }
+
+        async function lk_salvarLink(id) {
+            const nome = document.getElementById('lkf-nome')?.value.trim();
+            if (!nome) { showMsg('lkf-msg','Nome obrigatório','err'); return; }
+            const body = {
+                nome, tipo: document.getElementById('lkf-tipo')?.value||null,
+                faixa_etaria: document.getElementById('lkf-faixa')?.value||null,
+                capacidade: parseInt(document.getElementById('lkf-cap')?.value)||null,
+                dia: document.getElementById('lkf-dia')?.value||null,
+                horario: document.getElementById('lkf-horario')?.value||null,
+                zona: document.getElementById('lkf-zona')?.value||null,
+                distrito: document.getElementById('lkf-dist')?.value||null,
+                morada: document.getElementById('lkf-morada')?.value||null,
+                codigo_postal: document.getElementById('lkf-cp')?.value||null,
+                contato: document.getElementById('lkf-contato')?.value||null,
+                ativo: true,
+            };
+            try {
+                if (id) {
+                    await lk_sb(`links?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(body)});
+                } else {
+                    await lk_sb('links', {method:'POST', body:JSON.stringify(body)});
+                }
+                showMsg('lkf-msg','Guardado!','ok');
+                lk_links = await lk_sb('links?select=*&ativo=eq.true&order=nome').catch(()=>[]);
+                lk_renderSidebar();
+                if (id) {
+                    lk_linkAtivo = lk_links.find(l=>l.id===id);
+                    setTimeout(async()=>{ await lk_carregarLink(); }, 500);
+                } else {
+                    const novo = lk_links[lk_links.length-1];
+                    if (novo) { lk_linkAtivo = novo; await lk_carregarLink(); }
+                }
+            } catch(e) { showMsg('lkf-msg', e.message, 'err'); }
+        }
+
+        function lk_cancelarForm() {
+            const form = document.getElementById('lk-form-link');
+            if (form) { form.classList.remove('open'); form.innerHTML=''; }
+            if (!lk_linkAtivo && lk_links.length) lk_selLink(lk_links[0].id);
+        }
+
+        async function lk_desativarLink(id) {
+            if (!confirm('Desativar este Link?')) return;
+            await lk_sb(`links?id=eq.${id}`, {method:'PATCH', body:JSON.stringify({ativo:false})});
+            lk_links = await lk_sb('links?select=*&ativo=eq.true&order=nome').catch(()=>[]);
+            lk_linkAtivo = null;
+            lk_renderSidebar();
+            document.getElementById('lk-content').innerHTML = `<div class="mod-empty" style="margin:auto"><div class="mod-empty-title">Selecciona um Link</div></div>`;
+            lk_toast('Link desativado');
+        }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MEMBROS DO LINK
+// ══════════════════════════════════════════════════════════════════════════════
+        function lk_abrirModalMembro() {
+            document.getElementById('lk-m-search').value = '';
+            document.getElementById('lk-m-papel').value = 'membro';
+            document.getElementById('lk-m-msg').className = 'form-msg-inline';
+            lk_filtrarMembros();
+            const modal = document.getElementById('lk-modal-membro');
+            if (modal) { modal.style.display='flex'; }
+        }
+        window.lk_fecharModalMembro = function() { document.getElementById('lk-modal-membro').style.display='none'; };
+
+        window.lk_filtrarMembros = function() {
+            const q = document.getElementById('lk-m-search')?.value.toLowerCase()||'';
+            const lista = document.getElementById('lk-m-lista');
+            if (!lista) return;
+            const f = lk_membrosAll.filter(m => !lk_membroJaNoLink.has(m.id) && m.nome?.toLowerCase().includes(q)).slice(0,25);
+            lista.innerHTML = f.length
+                ? f.map(m=>`<div style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);gap:10px">
+            <span style="flex:1;font-size:13px;font-weight:600">${m.nome}</span>
+            <button class="btn-sm primary" onclick="lk_adicionarMembro('${m.id}','${m.nome.replace(/'/g,"\\'")}')">Adicionar</button>
+          </div>`).join('')
+                : `<div style="padding:16px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum membro disponível</div>`;
+        };
+
+        window.lk_adicionarMembro = async function(membroId, nome) {
+            const papel = document.getElementById('lk-m-papel')?.value||'membro';
+            try {
+                await lk_sb('link_membros', {method:'POST', body:JSON.stringify({link_id:lk_linkAtivo.id, membro_id:membroId, papel})});
+                lk_membroJaNoLink.add(membroId);
+                lk_filtrarMembros();
+                showMsg('lk-m-msg', `${nome} adicionado como ${PAPEL_LABEL[papel]}`, 'ok');
+                lk_toast(`${nome} adicionado`);
+                lk_linkMembros = await lk_sb(`link_membros?link_id=eq.${lk_linkAtivo.id}&select=*,membros(id,nome)&ativo=eq.true`).catch(()=>[]);
+            } catch(e) { showMsg('lk-m-msg', e.message, 'err'); }
+        };
+
+        window.lk_alterarPapel = async function(lmId, papel) {
+            await lk_sb(`link_membros?id=eq.${lmId}`, {method:'PATCH', body:JSON.stringify({papel})}).catch(console.error);
+            lk_toast('Papel actualizado');
+        };
+
+        window.lk_removerMembro = async function(lmId) {
+            if (!confirm('Remover este membro do Link?')) return;
+            await lk_sb(`link_membros?id=eq.${lmId}`, {method:'DELETE'});
+            lk_toast('Membro removido');
+            await lk_carregarLink();
+        };
+
+        async function lk_carregarPresencasResumo() {
+            if (!lk_linkMembros.length) return;
+            const reunioes = await lk_sb(`link_reunioes?link_id=eq.${lk_linkAtivo.id}&realizada=eq.true&select=id&order=data_reuniao.desc&limit=10`).catch(()=>[]);
+            if (!reunioes.length) return;
+            const reunIds = reunioes.map(r=>r.id);
+            const presencas = await lk_sb(`link_presencas?reuniao_id=in.(${reunIds.join(',')})&select=membro_id,presente`).catch(()=>[]);
+            const pMap = {};
+            presencas.forEach(p=>{ if (!pMap[p.membro_id]) pMap[p.membro_id]=0; if(p.presente) pMap[p.membro_id]++; });
+            lk_linkMembros.forEach(m => {
+                const el = document.getElementById(`lkpres-${m.id}`);
+                if (!el) return;
+                const p = pMap[m.membro_id]||0;
+                const pct = Math.round(p/reunioes.length*100);
+                const cls = pct>=75?'pbar-ok':pct>=50?'pbar-med':'pbar-low';
+                el.innerHTML = `<div style="display:flex;align-items:center;gap:6px"><div class="pbar"><div class="pbar-fill ${cls}" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--text-faint)">${pct}%</span></div>`;
+            });
+        }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REUNIÕES
+// ══════════════════════════════════════════════════════════════════════════════
+        async function lk_carregarReunioes() {
+            const el = document.getElementById('lk-lista-reunioes');
+            if (!el) return;
+            const reunioes = await lk_sb(`link_reunioes?link_id=eq.${lk_linkAtivo.id}&select=*&order=data_reuniao.desc`).catch(()=>[]);
+            if (!reunioes.length) {
+                el.innerHTML = `<div class="mod-empty"><div class="mod-empty-title">Nenhuma reunião. Usa "Gerar Calendário" ou "+ Nova".</div></div>`;
+                return;
+            }
+            el.innerHTML = reunioes.map(r => `
+    <div class="reun-card ${r.realizada?'realizada':'pendente'}" id="lkrc-${r.id}">
+        <div class="reun-head" onclick="lk_toggleReuniao('${r.id}')">
+            <div class="reun-data">${fmtD(r.data_reuniao)}</div>
+            <div class="reun-titulo">${r.titulo||'Reunião regular'}</div>
+            ${r.tipo!=='regular'?`<span class="badge badge-orange" style="padding:3px 8px;border-radius:20px;font-size:10px">${r.tipo}</span>`:''}
+            <span class="badge ${r.realizada?'badge-green':'badge-gray'}" style="padding:3px 8px;border-radius:20px;font-size:10px">${r.realizada?'Realizada':'Pendente'}</span>
+        </div>
+        <div class="reun-body" id="lkrb-${r.id}"></div>
+    </div>`).join('');
+        }
+
+        window.lk_novaReuniaoForm = function() {
+            const form = document.getElementById('lk-form-reuniao');
+            if (!form) return;
+            form.innerHTML = `
+    <div class="crud-form-title">Nova Reunião</div>
+    <div class="crud-grid">
+        <div class="crud-group"><label>Data *</label><input type="date" id="lkrf-data"></div>
+        <div class="crud-group"><label>Título</label><input id="lkrf-titulo" placeholder="Ex: Reunião especial"></div>
+        <div class="crud-group">
+            <label>Tipo</label>
+            <select id="lkrf-tipo"><option value="regular">Regular</option><option value="especial">Especial</option><option value="extra">Extra</option></select>
+        </div>
+        <div class="crud-actions">
+            <button class="btn-sm" onclick="lk_fecharFormReuniao()">Cancelar</button>
+            <button class="btn-sm primary" onclick="lk_salvarNovaReuniao()">Guardar</button>
+            <div class="form-msg-inline" id="lkrf-msg" style="margin:0;flex:1"></div>
+        </div>
+    </div>`;
+            form.classList.add('open');
+        };
+
+        function lk_fecharFormReuniao() { const f=document.getElementById('lk-form-reuniao'); if(f){f.classList.remove('open');f.innerHTML='';} }
+
+        async function lk_salvarNovaReuniao() {
+            const data = document.getElementById('lkrf-data')?.value;
+            if (!data) { showMsg('lkrf-msg','Data obrigatória','err'); return; }
+            await lk_sb('link_reunioes', {method:'POST', body:JSON.stringify({link_id:lk_linkAtivo.id, data_reuniao:data, titulo:document.getElementById('lkrf-titulo')?.value||null, tipo:document.getElementById('lkrf-tipo')?.value||'regular'})});
+            lk_fecharFormReuniao();
+            lk_toast('Reunião criada');
+            await lk_carregarReunioes();
+        }
+
+        window.lk_toggleReuniao = async function(rId) {
+            const body = document.getElementById(`lkrb-${rId}`);
+            const isOpen = body.classList.toggle('open');
+            if (!isOpen || body.dataset.loaded) return;
+            body.dataset.loaded='1';
+            await lk_carregarBodyReuniao(rId);
+        };
+
+        async function lk_carregarBodyReuniao(rId) {
+            const body = document.getElementById(`lkrb-${rId}`);
+            const r = await lk_sb(`link_reunioes?id=eq.${rId}&select=*`).then(res=>res[0]).catch(()=>null);
+            if (!r) return;
+            body.innerHTML = `
+    <div class="fg-grid">
+        <div class="fg-item"><label>Título</label><input id="lkrt-t-${r.id}" value="${r.titulo||''}" placeholder="Tema..." onblur="lk_saveField('${r.id}','titulo',this.value)"></div>
+        <div class="fg-item"><label>Data</label><input type="date" id="lkrt-d-${r.id}" value="${r.data_reuniao||''}" onblur="lk_saveField('${r.id}','data_reuniao',this.value)"></div>
+        <div class="fg-item full"><label>Resumo</label><textarea id="lkrt-r-${r.id}" onblur="lk_saveField('${r.id}','resumo',this.value)">${r.resumo||''}</textarea></div>
+        <div class="fg-item full"><label>Avisos</label><textarea id="lkrt-a-${r.id}" onblur="lk_saveField('${r.id}','avisos',this.value)">${r.avisos||''}</textarea></div>
+        <div class="fg-item"><label>Conversões</label><input type="number" id="lkrt-c-${r.id}" value="${r.conversoes||0}" onblur="lk_saveField('${r.id}','conversoes',parseInt(this.value)||0)"></div>
+        <div class="fg-item" style="display:flex;align-items:center;gap:8px;padding-top:18px">
+            <input type="checkbox" id="lkrt-rl-${r.id}" ${r.realizada?'checked':''} onchange="lk_saveField('${r.id}','realizada',this.checked);lk_updateReuniaoCard('${r.id}',this.checked)" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">
+            <label for="lkrt-rl-${r.id}" style="font-size:13px;cursor:pointer">Realizada</label>
+        </div>
+        <div class="fg-item full"><label>Notas</label><textarea id="lkrt-n-${r.id}" onblur="lk_saveField('${r.id}','notas',this.value)">${r.notas||''}</textarea></div>
+    </div>
+    <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">LISTA DE PRESENÇA</div>
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden" id="lkplist-${r.id}"><div style="padding:14px;text-align:center;color:var(--text-faint);font-size:12px">A carregar...</div></div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn-sm" onclick="lk_marcarTodos('${r.id}',true)">Todos presentes</button>
+        <button class="btn-sm" onclick="lk_marcarTodos('${r.id}',false)">Limpar</button>
+        <button class="btn-sm danger" style="margin-left:auto" onclick="lk_eliminarReuniao('${r.id}')">Eliminar</button>
+    </div>`;
+            lk_carregarPresencaReuniao(r.id);
+        }
+
+        window.lk_saveField = async function(rId, campo, valor) {
+            await lk_sb(`link_reunioes?id=eq.${rId}`, {method:'PATCH', body:JSON.stringify({[campo]:valor})}).catch(console.error);
+        };
+
+        window.lk_updateReuniaoCard = function(rId, realizada) {
+            const card = document.getElementById(`lkrc-${rId}`);
+            if (card) card.className = `reun-card ${realizada?'realizada':'pendente'}`;
+            lk_toast(realizada?'Marcada como realizada':'Marcada como pendente');
+        };
+
+        async function lk_carregarPresencaReuniao(rId) {
+            const el = document.getElementById(`lkplist-${rId}`);
+            if (!el) return;
+            const presencas = await lk_sb(`link_presencas?reuniao_id=eq.${rId}&select=*`).catch(()=>[]);
+            const pMap = {};
+            presencas.forEach(p => pMap[p.link_membro_id]=p);
+            if (!lk_linkMembros.length) { el.innerHTML=`<div style="padding:14px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum membro no Link</div>`; return; }
+            el.innerHTML = lk_linkMembros.map(m => {
+                const p = pMap[m.id];
+                const presente = p?.presente||false;
+                return `<div class="pres-row">
+            <span class="pres-nome">${m.membros?.nome||'—'}</span>
+            <span class="pres-papel">${PAPEL_LABEL[m.papel]||m.papel}</span>
+            <button class="pres-toggle ${presente?'on':''}" id="lktog-${rId}-${m.id}"
+                onclick="lk_togglePresenca('${rId}','${m.id}','${m.membro_id}','${p?.id||''}',this)"></button>
+            <span style="font-size:11px;color:var(--text-faint);min-width:50px">${presente?'Presente':'Ausente'}</span>
+        </div>`;
+            }).join('');
+        }
+
+        window.lk_togglePresenca = async function(rId, lmId, mId, pId, btn) {
+            const novo = !btn.classList.contains('on');
+            btn.classList.toggle('on', novo);
+            btn.nextElementSibling.textContent = novo?'Presente':'Ausente';
+            if (pId) {
+                await lk_sb(`link_presencas?id=eq.${pId}`, {method:'PATCH', body:JSON.stringify({presente:novo})}).catch(console.error);
+            } else {
+                const nova = await lk_sb('link_presencas', {method:'POST', body:JSON.stringify({reuniao_id:rId,link_membro_id:lmId,membro_id:mId,presente:novo})}).catch(()=>null);
+                if (nova?.[0]) btn.setAttribute('onclick', `lk_togglePresenca('${rId}','${lmId}','${mId}','${nova[0].id}',this)`);
+            }
+        };
+
+        window.lk_marcarTodos = async function(rId, presente) {
+            const presencas = await lk_sb(`link_presencas?reuniao_id=eq.${rId}&select=*`).catch(()=>[]);
+            const pMap = {}; presencas.forEach(p=>pMap[p.link_membro_id]=p);
+            for (const m of lk_linkMembros) {
+                if (pMap[m.id]) await lk_sb(`link_presencas?id=eq.${pMap[m.id].id}`, {method:'PATCH', body:JSON.stringify({presente})}).catch(()=>{});
+                else await lk_sb('link_presencas', {method:'POST', body:JSON.stringify({reuniao_id:rId,link_membro_id:m.id,membro_id:m.membro_id,presente})}).catch(()=>{});
+            }
+            await lk_carregarPresencaReuniao(rId);
+            lk_toast(presente?'Todos presentes':'Presenças limpas');
+        };
+
+        window.lk_eliminarReuniao = async function(rId) {
+            if (!confirm('Eliminar reunião e presenças?')) return;
+            await lk_sb(`link_reunioes?id=eq.${rId}`, {method:'DELETE'});
+            lk_toast('Reunião eliminada');
+            await lk_carregarReunioes();
+        };
+
+// ── GERAR CALENDÁRIO ──────────────────────────────────────────────────────────
+        window.lk_abrirCal = function() {
+            document.getElementById('lk-cal-ano').value = new Date().getFullYear();
+            document.getElementById('lk-cal-dia').value = '';
+            document.getElementById('lk-cal-msg').className = 'form-msg-inline';
+            document.getElementById('lk-modal-cal').style.display = 'flex';
+        };
+        window.lk_fecharCal = function() { document.getElementById('lk-modal-cal').style.display='none'; };
+
+        window.lk_gerarCalendario = async function() {
+            const ano = parseInt(document.getElementById('lk-cal-ano').value)||new Date().getFullYear();
+            const diaOverride = document.getElementById('lk-cal-dia').value;
+            const diaLink = diaOverride || lk_linkAtivo?.dia;
+            if (!diaLink) { showMsg('lk-cal-msg','O Link não tem dia definido. Selecciona um acima.','err'); return; }
+            const DM = {'Segunda-feira':1,'Terça-feira':2,'Quarta-feira':3,'Quinta-feira':4,'Sexta-feira':5,'Sábado':6,'Domingo':0};
+            const diaN = DM[diaLink];
+            if (diaN===undefined) { showMsg('lk-cal-msg',`Dia "${diaLink}" não reconhecido`,'err'); return; }
+            const datas=[];
+            let cur = new Date(ano,0,1);
+            while(cur.getDay()!==diaN) cur.setDate(cur.getDate()+1);
+            const fim = new Date(ano,11,31);
+            while(cur<=fim) { datas.push(cur.toISOString().split('T')[0]); cur.setDate(cur.getDate()+7); }
+            const exist = await lk_sb(`link_reunioes?link_id=eq.${lk_linkAtivo.id}&select=data_reuniao`).catch(()=>[]);
+            const existSet = new Set(exist.map(r=>r.data_reuniao));
+            const novas = datas.filter(d=>!existSet.has(d));
+            if (!novas.length) { showMsg('lk-cal-msg','Todas as reuniões do ano já existem','ok'); return; }
+            for (const d of novas) await lk_sb('link_reunioes',{method:'POST',body:JSON.stringify({link_id:lk_linkAtivo.id,data_reuniao:d,tipo:'regular'})}).catch(()=>{});
+            showMsg('lk-cal-msg',`${novas.length} reuniões criadas`,'ok');
+            lk_toast(`${novas.length} reuniões geradas`);
+            setTimeout(async()=>{ lk_fecharCal(); await lk_carregarReunioes(); }, 700);
+        };
+
+// ── ESTATÍSTICAS ──────────────────────────────────────────────────────────────
+        async function lk_carregarStats() {
+            const el = document.getElementById('lk-stats-content');
+            if (!el||!lk_linkAtivo) return;
+            const reunioes = await lk_sb(`link_reunioes?link_id=eq.${lk_linkAtivo.id}&realizada=eq.true&select=id&order=data_reuniao.desc&limit=10`).catch(()=>[]);
+            if (!reunioes.length) { el.innerHTML=`<div class="mod-empty"><div class="mod-empty-title">Sem reuniões realizadas ainda</div></div>`; return; }
+            const reunIds = reunioes.map(r=>r.id);
+            const presencas = await lk_sb(`link_presencas?reuniao_id=in.(${reunIds.join(',')})&select=membro_id,presente`).catch(()=>[]);
+            const pMap={};
+            presencas.forEach(p=>{if(!pMap[p.membro_id])pMap[p.membro_id]=0;if(p.presente)pMap[p.membro_id]++;});
+            const rows = [...lk_linkMembros].sort((a,b)=>(pMap[b.membro_id]||0)-(pMap[a.membro_id]||0));
+            el.innerHTML = `
+    <p style="font-size:12px;color:var(--text-faint);margin-bottom:14px">Últimas ${reunioes.length} reuniões realizadas.</p>
+    <div class="mod-table-wrap"><table class="mod-table">
+        <thead><tr><th>Membro</th><th>Papel</th><th>Presenças</th><th>%</th></tr></thead>
+        <tbody>${rows.map(m=>{
+                const p=pMap[m.membro_id]||0, pct=Math.round(p/reunioes.length*100);
+                const cls=pct>=75?'pbar-ok':pct>=50?'pbar-med':'pbar-low';
+                return `<tr>
+                <td style="font-weight:600">${m.membros?.nome||'—'}</td>
+                <td><span class="badge ${PAPEL_BADGE[m.papel]||'badge-membro'}" style="padding:3px 8px;border-radius:20px;font-size:10px">${PAPEL_LABEL[m.papel]||m.papel}</span></td>
+                <td>${p}/${reunioes.length}</td>
+                <td><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="min-width:70px"><div class="pbar-fill ${cls}" style="width:${pct}%"></div></div><span style="font-size:12px">${pct}%</span></div></td>
+            </tr>`;
+            }).join('')}</tbody>
+    </table></div>`;
+        }
+
+// ══════════════════════════════════════════════════════════════════════════════
+        lk_init();
+    })();
+</script>

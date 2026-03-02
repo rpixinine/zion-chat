@@ -1,0 +1,261 @@
+<!-- modules/lista-compras.html — Módulo completo de Lista de Compras -->
+<style>
+    .lc-page { display:grid; grid-template-columns:1fr 340px; height:100%; overflow:hidden; }
+
+    .lc-catalog { display:flex; flex-direction:column; overflow:hidden; border-right:1px solid var(--border); }
+    .lc-toolbar { padding:10px 14px; background:var(--bg-card); border-bottom:1px solid var(--border); display:flex; gap:8px; align-items:center; flex-wrap:wrap; flex-shrink:0; }
+    .lc-toolbar input, .lc-toolbar select { padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:12px; color:var(--text-main); outline:none; font-family:var(--font-body); }
+    .lc-toolbar input { flex:1; min-width:120px; }
+    .lc-toolbar input:focus { border-color:var(--primary); }
+    .lc-grid { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; padding:12px; align-content:start; }
+
+    .lc-prod { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:11px; cursor:pointer; transition:all 0.15s; position:relative; }
+    .lc-prod:hover { border-color:var(--primary); box-shadow:var(--shadow); transform:translateY(-1px); }
+    .lc-prod.in-list { border-color:var(--primary); background:var(--primary-faint); }
+    .lc-prod-nome  { font-size:12px; font-weight:600; margin-bottom:3px; line-height:1.3; }
+    .lc-prod-cat   { font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+    .lc-prod-stock { font-size:11px; }
+    .lc-prod-stock.zero  { color:var(--red); font-weight:700; }
+    .lc-prod-stock.baixo { color:var(--orange); font-weight:700; }
+    .lc-prod-stock.ok    { color:var(--green); }
+    .lc-prod-origem { font-size:9px; font-family:var(--font-title); letter-spacing:1px; color:var(--text-faint); text-transform:uppercase; margin-top:4px; }
+    .stock-dot { position:absolute; top:8px; right:8px; width:7px; height:7px; border-radius:50%; }
+    .stock-dot.zero  { background:var(--red); }
+    .stock-dot.baixo { background:var(--orange); }
+    .stock-dot.ok    { background:var(--green); }
+    .lc-check-icon { position:absolute; top:7px; left:8px; width:16px; height:16px; border-radius:50%; background:var(--primary); color:white; display:none; align-items:center; justify-content:center; font-size:10px; font-weight:700; }
+    .lc-prod.in-list .lc-check-icon { display:flex; }
+
+    .lc-lista { display:flex; flex-direction:column; overflow:hidden; background:var(--bg-card); }
+    .lc-lista-hd { padding:12px 14px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .lc-lista-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+    .lc-count { font-family:var(--font-title); font-size:22px; font-weight:700; color:var(--primary-dark); }
+    .lc-lista-tb { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; gap:6px; flex-shrink:0; }
+    .lc-items { flex:1; overflow-y:auto; padding:6px; }
+
+    .lc-item { display:flex; align-items:center; padding:9px 10px; border-radius:8px; gap:7px; margin-bottom:3px; border:1px solid var(--border); background:var(--bg-input); }
+    .lc-item:hover { border-color:var(--primary); }
+    .lc-item-check input { width:15px; height:15px; accent-color:var(--primary); cursor:pointer; }
+    .lc-item-nome { flex:1; font-size:12px; font-weight:600; }
+    .lc-item-nome.done { text-decoration:line-through; color:var(--text-faint); }
+    .lc-item-qty input { width:48px; padding:3px 6px; border-radius:6px; border:1px solid var(--border); font-size:12px; text-align:center; background:var(--bg-card); }
+    .lc-item-unid { font-size:10px; color:var(--text-faint); min-width:20px; }
+    .lc-item-rm { background:none; border:none; color:var(--text-faint); font-size:15px; cursor:pointer; padding:0; }
+    .lc-item-rm:hover { color:var(--red); }
+    .lc-sec-sep { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); padding:8px 4px 3px; margin-top:2px; }
+
+    .lc-footer { padding:10px 14px; border-top:1px solid var(--border); display:flex; gap:6px; flex-shrink:0; }
+
+    .ftab { padding:4px 10px; border-radius:7px; font-size:11px; cursor:pointer; border:1px solid transparent; background:transparent; color:var(--text-faint); transition:all 0.12s; }
+    .ftab.active { background:var(--primary-faint); border-color:var(--border); color:var(--primary-dark); }
+
+    .btn-sm { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); font-size:11px; cursor:pointer; color:var(--text-main); transition:all 0.15s; font-family:var(--font-body); }
+    .btn-sm:hover { border-color:var(--primary); color:var(--primary-dark); background:var(--primary-faint); }
+    .btn-sm.primary { background:var(--primary); color:white; border-color:var(--primary); }
+    .btn-sm.primary:hover { background:var(--primary-dark); }
+    .btn-sm.orange { background:rgba(230,81,0,0.08); color:var(--orange); border-color:rgba(230,81,0,0.3); }
+    .btn-sm.orange:hover { background:rgba(230,81,0,0.14); }
+    .btn-sm.red { color:var(--red); border-color:rgba(192,57,43,0.2); }
+    .btn-sm.red:hover { background:rgba(192,57,43,0.06); border-color:var(--red); }
+</style>
+
+<div class="lc-page">
+    <!-- CATÁLOGO -->
+    <div class="lc-catalog">
+        <div class="lc-toolbar">
+            <input id="lc-search" placeholder="Pesquisar produto..." oninput="lc_render()">
+            <select id="lc-filtro-origem" onchange="lc_render()">
+                <option value="">Loja + Keola</option>
+                <option value="loja">Só Loja</option>
+                <option value="keola">Só Keola</option>
+            </select>
+            <select id="lc-filtro-stock" onchange="lc_render()">
+                <option value="">Todos os produtos</option>
+                <option value="critico">Esgotados + Baixo stock</option>
+                <option value="esgotado">Só Esgotados</option>
+                <option value="baixo">Só Baixo stock</option>
+            </select>
+            <div style="display:flex;gap:2px">
+                <button class="ftab active" id="lc-ft-todos"      onclick="lc_setFiltro('todos')">Todos</button>
+                <button class="ftab"        id="lc-ft-selecionados" onclick="lc_setFiltro('selecionados')">Na lista</button>
+            </div>
+        </div>
+        <div class="lc-grid" id="lc-grid">
+            <div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-faint)">A carregar produtos...</div>
+        </div>
+    </div>
+
+    <!-- LISTA -->
+    <div class="lc-lista">
+        <div class="lc-lista-hd">
+            <div class="lc-lista-title">Lista de Compras</div>
+            <div class="lc-count" id="lc-count">0</div>
+        </div>
+        <div class="lc-lista-tb">
+            <button class="btn-sm orange" onclick="lc_autoCriticos()">+ Críticos auto</button>
+            <button class="btn-sm red"    onclick="lc_limpar()">Limpar</button>
+        </div>
+        <div class="lc-items" id="lc-items">
+            <div style="padding:30px;text-align:center;color:var(--text-faint)">
+                <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px">Lista vazia</div>
+                <div style="font-size:11px;margin-top:5px">Clica nos produtos ou usa "+ Críticos auto"</div>
+            </div>
+        </div>
+        <div class="lc-footer">
+            <button class="btn-sm primary" style="flex:1" onclick="lc_imprimir()">Imprimir</button>
+            <button class="btn-sm" onclick="lc_copiar()">Copiar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        let lc_prods = [];
+        let lc_lista = [];
+        let lc_filtro = 'todos';
+
+        function lc_sb(p) { return window.sb ? window.sb(p) : Promise.reject('no sb'); }
+        function lc_toast(m,t='ok') { if(window.toast) window.toast(m,t); }
+
+        function lc_stockStatus(p) {
+            if(!p.controlar_estoque) return 'ok';
+            if(p.stock_real<=0) return 'zero';
+            if(p.stock_real<=p.stock_min) return 'baixo';
+            return 'ok';
+        }
+
+        async function lc_init() {
+            const [loja, keola] = await Promise.all([
+                lc_sb('loja_produtos?select=id,nome,categoria,unidade,stock,stock_minimo,controlar_estoque&ativo=eq.true&order=categoria,nome').catch(()=>[]),
+                lc_sb('keola_menu?select=id,nome,categoria,unidade,stock,stock_kits,stock_minimo,controlar_estoque,tipo_item&disponivel=eq.true&order=categoria,nome').catch(()=>[]),
+            ]);
+            lc_prods = [
+                ...(loja||[]).map(p=>({...p, origem:'loja',  stock_real:p.stock??0,         stock_min:p.stock_minimo??0})),
+                ...(keola||[]).filter(p=>p.tipo_item!=='componente').map(p=>({...p, origem:'keola', stock_real:p.tipo_item==='kit'?(p.stock_kits??0):(p.stock??0), stock_min:p.stock_minimo??0})),
+            ];
+            // Restaurar lista salva
+            try { const s=localStorage.getItem('zion_lista_compras'); if(s) lc_lista=JSON.parse(s); } catch {}
+            lc_render();
+            lc_renderLista();
+        }
+
+        function lc_setFiltro(v) {
+            lc_filtro=v;
+            document.getElementById('lc-ft-todos')?.classList.toggle('active',v==='todos');
+            document.getElementById('lc-ft-selecionados')?.classList.toggle('active',v==='selecionados');
+            lc_render();
+        }
+
+        function lc_render() {
+            const q      = document.getElementById('lc-search')?.value.toLowerCase()||'';
+            const origem = document.getElementById('lc-filtro-origem')?.value||'';
+            const sf     = document.getElementById('lc-filtro-stock')?.value||'';
+            const ids    = new Set(lc_lista.map(i=>i.id));
+            const grid   = document.getElementById('lc-grid'); if(!grid) return;
+
+            const prods = lc_prods.filter(p => {
+                if(q && !p.nome?.toLowerCase().includes(q) && !p.categoria?.toLowerCase().includes(q)) return false;
+                if(origem && p.origem!==origem) return false;
+                const st=lc_stockStatus(p);
+                if(sf==='esgotado' && st!=='zero') return false;
+                if(sf==='baixo'    && st!=='baixo') return false;
+                if(sf==='critico'  && st==='ok') return false;
+                if(lc_filtro==='selecionados' && !ids.has(p.id)) return false;
+                return true;
+            });
+
+            if(!prods.length) { grid.innerHTML=`<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum produto</div></div>`; return; }
+            grid.innerHTML = prods.map(p=>{
+                const st=lc_stockStatus(p), inList=ids.has(p.id);
+                const stockTxt = !p.controlar_estoque?'Sem controlo' : p.stock_real<=0?'Esgotado' : `Stock: ${p.stock_real}${p.stock_min?` (mín:${p.stock_min})`:''}`;
+                return `<div class="lc-prod ${inList?'in-list':''}" onclick="lc_toggle('${p.id}')">
+            <div class="stock-dot ${st}"></div>
+            <div class="lc-check-icon">✓</div>
+            <div class="lc-prod-nome">${p.nome}</div>
+            <div class="lc-prod-cat">${p.categoria||'—'}</div>
+            <div class="lc-prod-stock ${st}">${stockTxt}</div>
+            <div class="lc-prod-origem">${p.origem}</div>
+        </div>`;
+            }).join('');
+        }
+
+        window.lc_toggle = function(id) {
+            const idx=lc_lista.findIndex(i=>i.id===id);
+            if(idx>=0) { lc_lista.splice(idx,1); }
+            else {
+                const p=lc_prods.find(x=>x.id===id); if(!p) return;
+                const qty = p.stock_real<=0&&p.stock_min>0 ? p.stock_min : 1;
+                lc_lista.push({id:p.id,nome:p.nome,qty,unidade:p.unidade||'',origem:p.origem,stock:p.stock_real,stock_min:p.stock_min,done:false});
+            }
+            lc_salvar(); lc_render(); lc_renderLista();
+        };
+
+        window.lc_autoCriticos = function() {
+            const ids=new Set(lc_lista.map(i=>i.id));
+            const criticos=lc_prods.filter(p=>lc_stockStatus(p)!=='ok'&&!ids.has(p.id));
+            if(!criticos.length){lc_toast('Nenhum produto crítico fora da lista');return;}
+            criticos.forEach(p=>{const qty=p.stock_real<=0&&p.stock_min>0?p.stock_min:1;lc_lista.push({id:p.id,nome:p.nome,qty,unidade:p.unidade||'',origem:p.origem,stock:p.stock_real,stock_min:p.stock_min,done:false});});
+            lc_salvar(); lc_render(); lc_renderLista(); lc_toast(`${criticos.length} produtos adicionados`);
+        };
+
+        window.lc_limpar = function() { if(!lc_lista.length||!confirm('Limpar lista?')) return; lc_lista=[]; lc_salvar(); lc_render(); lc_renderLista(); };
+
+        function lc_renderLista() {
+            const el=document.getElementById('lc-items'), cnt=document.getElementById('lc-count');
+            if(cnt) cnt.textContent=lc_lista.length;
+            if(!lc_lista.length) { el.innerHTML=`<div style="padding:30px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px">Lista vazia</div><div style="font-size:11px;margin-top:5px">Clica nos produtos ou usa "+ Críticos auto"</div></div>`; return; }
+            const grupos = {loja:lc_lista.filter(i=>i.origem==='loja'), keola:lc_lista.filter(i=>i.origem==='keola')};
+            let html='';
+            ['loja','keola'].forEach(orig=>{
+                const items=grupos[orig]; if(!items.length) return;
+                html+=`<div class="lc-sec-sep">${orig==='loja'?'📦 Book Store':'🍽 Keola'} (${items.length})</div>`;
+                items.forEach(item=>{
+                    const gi=lc_lista.indexOf(item);
+                    html+=`<div class="lc-item">
+                <div class="lc-item-check"><input type="checkbox" ${item.done?'checked':''} onchange="lc_done(${gi},this.checked)"></div>
+                <div class="lc-item-nome ${item.done?'done':''}">${item.nome}</div>
+                <div class="lc-item-qty"><input type="number" min="0" value="${item.qty}" onchange="lc_qty(${gi},this.value)"></div>
+                <span class="lc-item-unid">${item.unidade||'un'}</span>
+                <button class="lc-item-rm" onclick="lc_rm(${gi})">✕</button>
+            </div>`;
+                });
+            });
+            el.innerHTML=html;
+        }
+
+        window.lc_qty  = function(i,v){ lc_lista[i].qty=parseFloat(v)||1; lc_salvar(); };
+        window.lc_done = function(i,v){ lc_lista[i].done=v; lc_salvar(); lc_renderLista(); lc_render(); };
+        window.lc_rm   = function(i)  { lc_lista.splice(i,1); lc_salvar(); lc_render(); lc_renderLista(); };
+
+        function lc_salvar() { try{ localStorage.setItem('zion_lista_compras',JSON.stringify(lc_lista)); }catch{} }
+
+        window.lc_imprimir = function() {
+            if(!lc_lista.length){lc_toast('Lista vazia','err');return;}
+            const data=new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+            const grupos={loja:lc_lista.filter(i=>i.origem==='loja'),keola:lc_lista.filter(i=>i.origem==='keola')};
+            let rows='';
+            ['loja','keola'].forEach(orig=>{
+                const items=grupos[orig];if(!items.length)return;
+                rows+=`<div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;margin:14px 0 6px">${orig==='loja'?'Book Store':'Keola'}</div>`;
+                items.forEach(i=>{ rows+=`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #eee"><div style="width:14px;height:14px;border:1px solid #aaa;border-radius:3px;flex-shrink:0"></div><div style="flex:1;font-size:13px">${i.nome}</div><div style="font-size:13px;font-weight:600;min-width:55px;text-align:right">${i.qty} ${i.unidade||'un'}</div>${i.stock!==undefined?`<div style="font-size:10px;color:#999;min-width:65px;text-align:right">Stock: ${i.stock}</div>`:''}</div>`; });
+            });
+            const w=window.open('','_blank');
+            w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lista de Compras</title><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Lato',sans-serif;padding:16mm;color:#111}@media print{body{padding:14mm}}</style></head><body><div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #009098;padding-bottom:10px;margin-bottom:14px"><div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;color:#007078;letter-spacing:3px">ZION LISBOA</div><div style="text-align:right"><div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888">Lista de Compras</div><div style="font-size:12px;color:#555;margin-top:2px">${data}</div></div></div>${rows}<div style="margin-top:16px;font-size:10px;color:#bbb;text-align:center">Total: ${lc_lista.length} itens</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+            w.document.close();
+        };
+
+        window.lc_copiar = function() {
+            if(!lc_lista.length){lc_toast('Lista vazia','err');return;}
+            const data=new Date().toLocaleDateString('pt-PT');
+            let txt=`LISTA DE COMPRAS — ${data}\n`;
+            ['loja','keola'].forEach(orig=>{
+                const items=lc_lista.filter(i=>i.origem===orig);if(!items.length)return;
+                txt+=`\n${orig==='loja'?'📦 BOOK STORE':'🍽 KEOLA'}\n`;
+                items.forEach(i=>{txt+=`  □ ${i.nome} — ${i.qty} ${i.unidade||'un'}\n`;});
+            });
+            navigator.clipboard.writeText(txt).then(()=>lc_toast('Lista copiada!')).catch(()=>lc_toast('Erro ao copiar','err'));
+        };
+
+        lc_init();
+    })();
+</script>

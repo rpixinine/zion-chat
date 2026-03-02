@@ -125,12 +125,12 @@ function lc_stockStatus(p) {
 
 async function lc_init() {
     const [loja, keola] = await Promise.all([
-        lc_sb('loja_produtos?select=id,nome,categoria,unidade,stock,stock_minimo,controlar_estoque&ativo=eq.true&order=categoria,nome').catch(()=>[]),
+        lc_sb('loja_produtos?select=id,nome,categoria,unidade,stock,stock_minimo,controlar_estoque&order=categoria,nome').catch(()=>[]),
         lc_sb('keola_menu?select=id,nome,categoria,unidade,stock,stock_kits,stock_minimo,controlar_estoque,tipo_item&disponivel=eq.true&order=categoria,nome').catch(()=>[]),
     ]);
     lc_prods = [
         ...(loja||[]).map(p=>({...p, origem:'loja',  stock_real:p.stock??0,         stock_min:p.stock_minimo??0})),
-        ...(keola||[]).filter(p=>p.tipo_item!=='componente').map(p=>({...p, origem:'keola', stock_real:p.tipo_item==='kit'?(p.stock_kits??0):(p.stock??0), stock_min:p.stock_minimo??0})),
+        ...(keola||[]).filter(p=>p.tipo_item!=='kit').map(p=>({...p, origem:'keola', stock_real:p.stock??0, stock_min:p.stock_minimo??0})),
     ];
     // Restaurar lista salva
     try { const s=localStorage.getItem('zion_lista_compras'); if(s) lc_lista=JSON.parse(s); } catch {}

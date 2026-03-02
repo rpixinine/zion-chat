@@ -155,7 +155,7 @@ var lk_membroJaNoLink = new Set();
 var lk_editId         = null;
 var lk_reunioesCache  = [];
 var lk_reunFiltroStatus = 'todos';
-var lk_reunFiltroData   = '';
+var lk_reunFiltroData   = '';  // formato YYYY-MM
 
 const PAPEL_LABEL = { lider:'Líder', co_lider:'Co-Líder', anfitriao:'Anfitrião', membro:'Membro' };
 const PAPEL_BADGE = { lider:'badge-lider', co_lider:'badge-co', anfitriao:'badge-anf', membro:'badge-membro' };
@@ -166,7 +166,8 @@ function fmtD(d) { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleD
 function lk_showMsg(id,msg,tipo) { const el=document.getElementById(id); if(!el) return; el.textContent=msg; el.className='form-msg-inline '+tipo; }
 
 async function lk_init() {
-    lk_linkAtivo=null; lk_editId=null; lk_reunFiltroStatus='todos'; lk_reunFiltroData='';
+    lk_linkAtivo=null; lk_editId=null; lk_reunFiltroStatus='todos';
+    lk_reunFiltroData=new Date().toISOString().slice(0,7);  // mês actual YYYY-MM
     const [ls,ms] = await Promise.all([
         lk_sb('links?select=*&ativo=eq.true&order=nome').catch(()=>[]),
         lk_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
@@ -188,7 +189,7 @@ function lk_renderSidebar() {
 
 async function lk_selLink(id) {
     lk_linkAtivo=lk_links.find(l=>l.id===id); lk_editId=null;
-    lk_reunFiltroStatus='todos'; lk_reunFiltroData='';
+    lk_reunFiltroStatus='todos'; lk_reunFiltroData=new Date().toISOString().slice(0,7);
     lk_renderSidebar(); await lk_carregarLink();
 }
 
@@ -243,7 +244,9 @@ async function lk_carregarLink() {
             </div>
         </div>
         <div class="reun-filters">
-            <input type="date" id="lk-rf-data" onchange="lk_aplicarFiltroReun()" style="flex:1;min-width:130px">
+            <select id="lk-rf-data" onchange="lk_aplicarFiltroReun()" style="flex:1">
+                <option value="">Todos os meses</option>
+            </select>
             <select id="lk-rf-status" onchange="lk_aplicarFiltroReun()">
                 <option value="todos">Todas</option>
                 <option value="realizada">Realizadas</option>
@@ -434,9 +437,23 @@ async function lk_carregarPresencasResumo() {
 // ── REUNIÕES ──────────────────────────────────────────────────────────────────
 async function lk_carregarReunioes() {
     const el=document.getElementById('lk-lista-reunioes'); if(!el) return;
-    // Ordem ASC — Janeiro para Dezembro
     lk_reunioesCache=await lk_sb(`link_reunioes?link_id=eq.${lk_linkAtivo.id}&select=*&order=data_reuniao.asc`).catch(()=>[]);
+    lk_popularSelectMeses();
     lk_renderReunioes();
+}
+
+function lk_popularSelectMeses() {
+    const sel=document.getElementById('lk-rf-data'); if(!sel) return;
+    // Meses únicos das reuniões
+    const meses=[...new Set(lk_reunioesCache.map(r=>r.data_reuniao?.slice(0,7)).filter(Boolean))].sort();
+    const MESES_PT=['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    sel.innerHTML=`<option value="">Todos os meses</option>`
+        +meses.map(m=>{
+            const [ano,mes]=m.split('-');
+            const label=`${MESES_PT[parseInt(mes)]} ${ano}`;
+            const selected=m===lk_reunFiltroData?'selected':'';
+            return `<option value="${m}" ${selected}>${label}</option>`;
+        }).join('');
 }
 
 function lk_renderReunioes() {
@@ -444,7 +461,7 @@ function lk_renderReunioes() {
     let lista=[...lk_reunioesCache];
     if(lk_reunFiltroStatus==='realizada') lista=lista.filter(r=>r.realizada);
     if(lk_reunFiltroStatus==='pendente')  lista=lista.filter(r=>!r.realizada);
-    if(lk_reunFiltroData) lista=lista.filter(r=>r.data_reuniao===lk_reunFiltroData);
+    if(lk_reunFiltroData) lista=lista.filter(r=>r.data_reuniao?.slice(0,7)===lk_reunFiltroData);
     if(!lista.length){el.innerHTML=`<div class="mod-empty" style="height:auto;padding:40px"><div class="mod-empty-title">Nenhuma reunião encontrada</div></div>`;return;}
     el.innerHTML=lista.map(r=>`
     <div class="reun-card ${r.realizada?'realizada':'pendente'}" id="lkrc-${r.id}">

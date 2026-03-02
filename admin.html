@@ -4448,6 +4448,7 @@
     // MODULE LOADER — carrega módulos externos em modules/nome.html
     // ══════════════════════════════════════════════════════════════════════
     let moduleCache = {};
+    let moduleScriptLoaded = {};  // track which modules had their script executed
 
     async function loadModule(nome) {
         // Nav active state
@@ -4460,8 +4461,6 @@
 
         const main = document.getElementById('main-content');
         main.innerHTML = '<div class="loading"><div class="spin"></div>A carregar...</div>';
-
-        // Garantir que main-content tem altura total para os módulos
         main.style.height = 'calc(100vh - 110px)';
         main.style.overflow = 'hidden';
         main.style.padding = '0';
@@ -4469,19 +4468,17 @@
         main.style.flexDirection = 'column';
 
         try {
+            // Buscar ficheiro do módulo (com cache)
             if (!moduleCache[nome]) {
                 const r = await fetch(`modules/${nome}.html`);
                 if (!r.ok) throw new Error(`Módulo "${nome}" não encontrado (modules/${nome}.html)`);
                 moduleCache[nome] = await r.text();
             }
-
             const raw = moduleCache[nome];
 
-            // 1. Remover <style> antigo deste módulo se já foi injectado
+            // 1. CSS — reinjectar sempre (pode ter sido removido ao trocar de módulo)
             const oldStyle = document.getElementById(`mod-style-${nome}`);
             if (oldStyle) oldStyle.remove();
-
-            // 2. Extrair e injectar <style> no <head>
             const styleMatch = raw.match(/<style>([\s\S]*?)<\/style>/i);
             if (styleMatch) {
                 const styleEl = document.createElement('style');
@@ -4490,25 +4487,34 @@
                 document.head.appendChild(styleEl);
             }
 
-            // 3. Extrair HTML (tudo menos <style> e <script>)
-            let html = raw
+            // 2. HTML — injectar sem style e sem script
+            const html = raw
                 .replace(/<style>[\s\S]*?<\/style>/gi, '')
-                .replace(/<!--[^>]*-->/g, '')
                 .replace(/<script[\s\S]*?<\/script>/gi, '')
+                .replace(/<!--[\s\S]*?-->/g, '')
                 .trim();
-
             main.innerHTML = html;
 
-            // 4. Extrair e executar <script>
-            const scriptMatches = [...raw.matchAll(/<script>([\s\S]*?)<\/script>/gi)];
-            for (const m of scriptMatches) {
-                const el = document.createElement('script');
-                el.textContent = m[1];
-                // Append to body so it runs in correct context
-                document.body.appendChild(el);
+            // 3. Script — só executa UMA vez por módulo por sessão
+            //    Nas visitas seguintes, apenas chama o init para re-popular o HTML
+            if (!moduleScriptLoaded[nome]) {
+                moduleScriptLoaded[nome] = true;
+                const scriptMatch = raw.match(/<script>([\s\S]*?)<\/script>/i);
+                if (scriptMatch) {
+                    const el = document.createElement('script');
+                    el.textContent = scriptMatch[1];
+                    document.body.appendChild(el);
+                }
+            } else {
+                // Módulo já carregado — apenas re-inicializa
+                const reInitMap = {
+                    'links':         () => { lk_linkAtivo = null; lk_editId = null; lk_renderSidebar(); },
+                    'cursos':        () => { cz_cursoAtivo = null; cz_turmaAtiva = null; cz_renderSidebar(); },
+                    'lista-compras': () => { lc_render(); lc_renderLista(); },
+                };
+                const reInit = reInitMap[nome];
+                if (reInit) reInit();
             }
-
-            // 5. Módulo injectado com sucesso
 
         } catch(e) {
             main.innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">

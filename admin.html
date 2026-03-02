@@ -364,7 +364,7 @@
     async function setSecao(secao) {
         // Reset main-content styles that loadModule may have set
         const mc = document.getElementById('main-content');
-        if (mc) { mc.style.height=''; mc.style.overflow=''; mc.style.padding=''; }
+        if (mc) { mc.style.height=''; mc.style.overflow=''; mc.style.padding=''; mc.style.display=''; mc.style.flexDirection=''; }
         secaoAtiva = secao; filtroInativo = false; subTabAtiva = 0;
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         const nomes = {
@@ -4462,9 +4462,11 @@
         main.innerHTML = '<div class="loading"><div class="spin"></div>A carregar...</div>';
 
         // Garantir que main-content tem altura total para os módulos
-        main.style.height = '100%';
+        main.style.height = 'calc(100vh - 110px)';
         main.style.overflow = 'hidden';
         main.style.padding = '0';
+        main.style.display = 'flex';
+        main.style.flexDirection = 'column';
 
         try {
             if (!moduleCache[nome]) {
@@ -4502,8 +4504,11 @@
             for (const m of scriptMatches) {
                 const el = document.createElement('script');
                 el.textContent = m[1];
-                document.head.appendChild(el);
+                // Append to body so it runs in correct context
+                document.body.appendChild(el);
             }
+
+            // 5. Módulo injectado com sucesso
 
         } catch(e) {
             main.innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">

@@ -166,7 +166,7 @@
         <div class="nav-item active"  onclick="setSecao('membros')" data-secao="membros">Membros</div>
         <div class="nav-item"         onclick="setSecao('pastores')" data-secao="pastores">Pastores</div>
         <div class="nav-item"         onclick="loadModule('links')" data-secao="links">Links</div>
-        <div class="nav-item"         onclick="setSecao('cultos')" data-secao="cultos">Cultos</div>
+        <div class="nav-item"         onclick="loadModule('cultos')" data-secao="cultos">Cultos</div>
         <div class="nav-item"         onclick="loadModule('ministerios')" data-secao="ministerios">Ministérios</div>
         <div class="nav-item"         onclick="setSecao('salas')" data-secao="salas">Salas</div>
         <div class="nav-item"         onclick="loadModule('cursos')" data-secao="cursos">Cursos ZAO</div>
@@ -177,8 +177,8 @@
         <div class="nav-item"         onclick="setSecao('fornecedores')" data-secao="fornecedores">Fornecedores</div>
         <div class="nav-item"         onclick="setSecao('financeiro')" data-secao="financeiro">Financeiro</div>
         <div class="nav-item"         onclick="loadModule('lista-compras')" data-secao="lista-compras">Lista de Compras</div>
-        <div class="nav-item"         onclick="setSecao('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">Utilizadores</div>
-        <div class="nav-item"         onclick="setSecao('configuracoes')" data-secao="configuracoes">⚙ Config</div>
+        <div class="nav-item"         onclick="loadModule('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">Utilizadores</div>
+        <div class="nav-item"         onclick="setSecao('configuracoes')" data-secao="configuracoes">Configurações</div>
     </div>
 
     <div class="content" id="main-content">
@@ -244,6 +244,7 @@
         { secao: 'financeiro',   label: 'Financeiro',       acoes: ['ver','criar','editar','eliminar'] },
         { secao: 'lista_compras',label: 'Lista de Compras', acoes: ['ver','criar','editar','eliminar'] },
         { secao: 'configuracoes',label: 'Configurações',    acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'utilizadores', label: 'Utilizadores',     acoes: ['ver','criar','editar','eliminar'] },
     ];
 
     function gerarColunasSQL() {
@@ -442,15 +443,6 @@
             await carregarConfiguracoes(); return;
         }
         if (secaoAtiva === 'utilizadores') {
-            if (!userPerms.e_admin) {
-                document.getElementById('main-content').innerHTML = `
-                <div class="acesso-negado">
-                    <div class="acesso-negado-icon">✕</div>
-                    <div class="acesso-negado-title">Acesso Restrito</div>
-                    <div class="acesso-negado-txt">Apenas administradores totais podem gerir utilizadores.</div>
-                </div>`;
-                return;
-            }
             await carregarUtilizadores(); return;
         }
         if (secaoAtiva === 'fornecedores') {
@@ -4641,7 +4633,9 @@
                     'links':         () => { lk_linkAtivo = null; lk_editId = null; lk_renderSidebar(); },
                     'cursos':        () => { cz_cursoAtivo = null; cz_turmaAtiva = null; cz_renderSidebar(); },
                     'lista-compras': () => { lc_render(); lc_renderLista(); },
-                    'ministerios': () => { min_minAtivo = null; min_renderSide(); const el=document.getElementById('min-content'); if(el) el.innerHTML='<div class="mod-empty"><div class="mod-empty-title">Selecciona um Ministério</div></div>'; },
+                    'ministerios': () => { min_minAtivo = null; min_renderSide(); const el=document.getElementById('min-content'); if(el) el.innerHTML='<div class="mod-empty"><div class="mod-empty-title">Selecione um Ministério</div></div>'; },
+                    'utilizadores': () => { ut_init(); },
+                    'cultos':       () => { cu_init(); },
                 };
                 const reInit = reInitMap[nome];
                 if (reInit) reInit();

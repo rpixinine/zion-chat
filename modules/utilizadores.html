@@ -1,0 +1,947 @@
+<style>
+    /* ══════════════════════════════════════════════════════
+       UTILIZADORES MODULE
+       Layout: sidebar esquerda (lista) + painel direito (form)
+       Igual ao padrao ministerios/links/cursos
+       ══════════════════════════════════════════════════════ */
+
+    .ut-wrap {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        font-family: var(--font-body);
+    }
+
+    /* ── SIDEBAR ──────────────────────────────────────── */
+    .ut-side {
+        width: 270px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        overflow: hidden;
+    }
+    .ut-side-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .ut-search {
+        flex: 1;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+    }
+    .ut-search:focus { border-color: var(--primary); }
+
+    .ut-btn-novo {
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .ut-btn-novo:hover { background: var(--primary-dark); }
+
+    /* Legenda de cores */
+    .ut-legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 6px 12px;
+        background: var(--bg-input);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .ut-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 9px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        color: var(--text-faint);
+        text-transform: uppercase;
+    }
+    .ut-legend-pip {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .ut-list { flex: 1; overflow-y: auto; }
+
+    /* Cada item da sidebar — cor fundo por tipo */
+    .ut-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        border-bottom: 1px solid var(--border);
+        transition: filter 0.1s;
+    }
+    .ut-item:hover   { filter: brightness(0.94); }
+    .ut-item.active  { filter: brightness(0.90); }
+
+    /* Fundos por tipo */
+    .ut-item-admin    { background: rgba(198,40,40,0.07); }
+    .ut-item-membro   { background: rgba(0,144,152,0.06); }
+    .ut-item-visitante{ background: rgba(100,70,200,0.06); }
+    .ut-item-outro    { background: rgba(80,80,80,0.05); }
+    .ut-item-inativo  { background: var(--bg-input); opacity: 0.65; }
+
+    /* Borda esquerda por tipo */
+    .ut-item-admin.active    { border-left-color: #c62828; }
+    .ut-item-membro.active   { border-left-color: var(--primary); }
+    .ut-item-visitante.active{ border-left-color: #7056c8; }
+    .ut-item-outro.active    { border-left-color: #888; }
+
+    .ut-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-title);
+        font-size: 14px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .ut-item-nome {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+    }
+    .ut-item-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .ut-item-sub {
+        font-size: 10px;
+        color: var(--text-faint);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .ut-pill {
+        font-size: 8px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* ── PAINEL DIREITO ──────────────────────────────── */
+    .ut-panel {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--bg);
+    }
+    .ut-panel-empty {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: var(--text-faint);
+    }
+    .ut-panel-empty-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ut-panel-empty-txt {
+        font-family: var(--font-title);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    /* Profile card no topo do painel */
+    .ut-profile {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 20px 12px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0;
+    }
+    .ut-profile-av {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-title);
+        font-size: 18px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .ut-profile-nome {
+        font-family: var(--font-title);
+        font-size: 14px;
+        letter-spacing: 1px;
+        color: var(--text-main);
+    }
+    .ut-profile-email { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+    .ut-profile-badges { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+
+    /* Formulario */
+    .ut-form { padding: 16px 20px 32px; }
+
+    .ut-section-title {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        padding: 16px 0 8px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .ut-field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 16px;
+        margin-bottom: 4px;
+    }
+    .ut-field { display: flex; flex-direction: column; gap: 4px; }
+    .ut-field.full { grid-column: 1 / -1; }
+    .ut-label {
+        font-size: 9px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+    }
+    .ut-input, .ut-select {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    .ut-input:focus, .ut-select:focus { border-color: var(--primary); }
+    .ut-input[readonly] { opacity: 0.6; cursor: default; }
+    .ut-toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-main);
+        cursor: pointer;
+        padding: 6px 0;
+    }
+    .ut-toggle-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary);
+        cursor: pointer;
+    }
+
+    .ut-msg {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        margin-bottom: 10px;
+        display: none;
+    }
+    .ut-msg.error   { display: block; background: rgba(198,40,40,0.08); color: #c62828; border: 1px solid rgba(198,40,40,0.25); }
+    .ut-msg.success { display: block; background: rgba(46,125,50,0.08); color: #2e7d32; border: 1px solid rgba(46,125,50,0.25); }
+
+    .ut-admin-aviso {
+        background: rgba(198,40,40,0.06);
+        border: 1px solid rgba(198,40,40,0.22);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 12px;
+        color: #c62828;
+        line-height: 1.6;
+        margin-bottom: 12px;
+    }
+
+    /* Botoes de accao */
+    .ut-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        margin-top: 20px;
+    }
+    .ut-btn-cancel {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: var(--text-muted);
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+    }
+    .ut-btn-save {
+        padding: 8px 20px;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+    }
+    .ut-btn-save:hover { background: var(--primary-dark); }
+    .ut-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ut-btn-perigo {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid rgba(198,40,40,0.35);
+        background: rgba(198,40,40,0.06);
+        color: #c62828;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        margin-right: auto;
+    }
+
+    /* ── TABELA DE PERMISSOES ─────────────────────────── */
+    .ut-perms-box {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .ut-perms-head {
+        display: grid;
+        grid-template-columns: 1fr repeat(4, 68px);
+        background: var(--bg-input);
+        padding: 8px 12px;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        border-bottom: 2px solid var(--border);
+    }
+    .ut-perms-head span { text-align: center; }
+    .ut-perms-head span:first-child { text-align: left; }
+
+    .ut-perm-row {
+        display: grid;
+        grid-template-columns: 1fr repeat(4, 68px);
+        padding: 8px 12px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        transition: filter 0.1s;
+    }
+    .ut-perm-row:last-child { border-bottom: none; }
+    .ut-perm-row:hover { filter: brightness(0.93); }
+
+    /* Cores alternadas — 8 tons diferentes */
+    .ut-perm-row:nth-child(1)  { background: rgba(0,144,152,0.05); }
+    .ut-perm-row:nth-child(2)  { background: rgba(0,100,200,0.05); }
+    .ut-perm-row:nth-child(3)  { background: rgba(46,125,50,0.05); }
+    .ut-perm-row:nth-child(4)  { background: rgba(130,60,200,0.05); }
+    .ut-perm-row:nth-child(5)  { background: rgba(200,100,0,0.05); }
+    .ut-perm-row:nth-child(6)  { background: rgba(0,140,100,0.05); }
+    .ut-perm-row:nth-child(7)  { background: rgba(160,40,40,0.04); }
+    .ut-perm-row:nth-child(8)  { background: rgba(0,80,160,0.05); }
+    .ut-perm-row:nth-child(9)  { background: rgba(100,140,0,0.05); }
+    .ut-perm-row:nth-child(10) { background: rgba(0,144,152,0.08); }
+    .ut-perm-row:nth-child(11) { background: rgba(0,100,200,0.08); }
+    .ut-perm-row:nth-child(12) { background: rgba(46,125,50,0.08); }
+    .ut-perm-row:nth-child(13) { background: rgba(130,60,200,0.08); }
+    .ut-perm-row:nth-child(14) { background: rgba(200,100,0,0.08); }
+    .ut-perm-row:nth-child(15) { background: rgba(0,140,100,0.08); }
+
+    .ut-perm-nome {
+        font-size: 12px;
+        color: var(--text-main);
+        font-weight: 500;
+    }
+    .ut-perm-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ut-perm-cell input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary);
+        cursor: pointer;
+    }
+    .ut-perm-na {
+        font-size: 13px;
+        color: var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ut-perms-btns { display: flex; gap: 6px; }
+    .ut-btn-tudo {
+        font-size: 9px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        cursor: pointer;
+    }
+    .ut-btn-tudo.sel { border: 1px solid var(--primary); background: var(--primary-faint); color: var(--primary-dark); }
+    .ut-btn-tudo.clr { border: 1px solid var(--border); background: var(--bg-input); color: var(--text-faint); }
+
+    /* Disabled overlay para bloco perms quando admin total */
+    .ut-perms-disabled {
+        opacity: 0.35;
+        pointer-events: none;
+    }
+</style>
+
+<div class="ut-wrap">
+
+    <!-- SIDEBAR -->
+    <div class="ut-side">
+        <div class="ut-side-head">
+            <input class="ut-search" id="ut-search" placeholder="Pesquisar utilizador..."
+                   oninput="ut_filtrar()">
+            <button class="ut-btn-novo" onclick="ut_novo()">+ Novo</button>
+        </div>
+        <div class="ut-legend">
+            <div class="ut-legend-item">
+                <div class="ut-legend-pip" style="background:#c62828"></div>Admin
+            </div>
+            <div class="ut-legend-item">
+                <div class="ut-legend-pip" style="background:var(--primary)"></div>Membro
+            </div>
+            <div class="ut-legend-item">
+                <div class="ut-legend-pip" style="background:#7056c8"></div>Visitante
+            </div>
+            <div class="ut-legend-item">
+                <div class="ut-legend-pip" style="background:#888"></div>Outro
+            </div>
+        </div>
+        <div class="ut-list" id="ut-list">
+            <div style="padding:20px;text-align:center;font-size:12px;color:var(--text-faint)">
+                A carregar...
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL DIREITO -->
+    <div class="ut-panel" id="ut-panel">
+        <div class="ut-panel-empty">
+            <div class="ut-panel-empty-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+            <div class="ut-panel-empty-txt">Seleciona um utilizador</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        'use strict';
+
+// ── Estado ──────────────────────────────────────────────────────────────────
+        var ut_dados   = [];
+        var ut_id      = null;  // id do utilizador activo
+
+// Paleta de cores avatar / pills por tipo
+        var UT_COR = {
+            admin:     { bg: 'rgba(198,40,40,0.13)',   fg: '#c62828' },
+            membro:    { bg: 'rgba(0,144,152,0.13)',   fg: 'var(--primary-dark)' },
+            visitante: { bg: 'rgba(112,86,200,0.13)',  fg: '#7056c8' },
+            outro:     { bg: 'rgba(100,100,100,0.12)', fg: '#666' },
+        };
+        function ut_cor(tipo) { return UT_COR[tipo] || UT_COR.outro; }
+
+// ── Arrancar ─────────────────────────────────────────────────────────────────
+        async function ut_init() {
+            try {
+                ut_dados = await sb('usuarios?select=*&order=nome') || [];
+            } catch (e) {
+                ut_dados = [];
+                console.error('Erro ao carregar utilizadores:', e);
+            }
+            ut_renderList();
+        }
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+        function ut_renderList() {
+            var el = document.getElementById('ut-list');
+            if (!el) return;
+            var q = (document.getElementById('ut-search')?.value || '').toLowerCase();
+            var lista = ut_dados
+                .filter(function(u) {
+                    if (u.ativo === false) return false;
+                    if (!q) return true;
+                    return (u.nome || '').toLowerCase().includes(q) ||
+                        (u.email || '').toLowerCase().includes(q);
+                });
+
+            if (!lista.length) {
+                el.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-faint)">Nenhum utilizador encontrado</div>';
+                return;
+            }
+
+            var TIPO_LABEL = { admin:'Admin', membro:'Membro', visitante:'Visitante', outro:'Outro' };
+            var TIPO_CLASSE = { admin:'ut-item-admin', membro:'ut-item-membro', visitante:'ut-item-visitante', outro:'ut-item-outro' };
+
+            el.innerHTML = lista.map(function(u) {
+                var tipo   = u.tipo || 'outro';
+                var cor    = ut_cor(tipo);
+                var ini    = (u.nome || u.email || 'U')[0].toUpperCase();
+                var label  = u.e_admin ? 'ADMIN' : (TIPO_LABEL[tipo] || tipo).toUpperCase();
+                var classe = TIPO_CLASSE[tipo] || 'ut-item-outro';
+                var ativo  = ut_id === u.id ? ' active' : '';
+
+                var numSec = 0;
+                if (typeof REGISTRO_MODULOS !== 'undefined') {
+                    numSec = REGISTRO_MODULOS.filter(function(m) {
+                        return u.e_admin || u['ver_' + m.secao];
+                    }).length;
+                }
+
+                return '<div class="ut-item ' + classe + ativo + '" onclick="ut_selecionar(\'' + u.id + '\')">' +
+                    '<div class="ut-avatar" style="background:' + cor.bg + ';color:' + cor.fg + '">' + ini + '</div>' +
+                    '<div class="ut-item-info">' +
+                    '<div class="ut-item-nome">' + (u.nome || u.email || '—') + '</div>' +
+                    '<div class="ut-item-sub">' + (u.e_admin ? 'Acesso total' : numSec + ' seccoes') + '</div>' +
+                    '</div>' +
+                    '<span class="ut-pill" style="background:' + cor.bg + ';color:' + cor.fg + ';border:1px solid ' + cor.fg + '33">' + label + '</span>' +
+                    '</div>';
+            }).join('');
+        }
+
+        window.ut_filtrar = function() { ut_renderList(); };
+
+// ── Seleccionar ───────────────────────────────────────────────────────────────
+        window.ut_selecionar = function(id) {
+            ut_id = id;
+            ut_renderList();
+            var u = ut_dados.find(function(x) { return x.id === id; });
+            if (u) ut_renderForm(u);
+        };
+
+// ── Novo ──────────────────────────────────────────────────────────────────────
+        window.ut_novo = function() {
+            ut_id = null;
+            ut_renderList();
+            ut_renderFormNovo();
+        };
+
+// ── Form — utilizador existente ───────────────────────────────────────────────
+        function ut_renderForm(u) {
+            var panel = document.getElementById('ut-panel');
+            if (!panel) return;
+
+            var tipo = u.tipo || 'outro';
+            var cor  = ut_cor(tipo);
+            var ini  = (u.nome || u.email || 'U')[0].toUpperCase();
+            var TIPO_LABEL = { admin:'Admin', membro:'Membro', visitante:'Visitante', outro:'Outro' };
+
+            var numSec = 0;
+            if (typeof REGISTRO_MODULOS !== 'undefined') {
+                numSec = REGISTRO_MODULOS.filter(function(m) {
+                    return u.e_admin || u['ver_' + m.secao];
+                }).length;
+            }
+
+            panel.innerHTML =
+                // Profile card
+                '<div class="ut-profile">' +
+                '<div class="ut-profile-av" style="background:' + cor.bg + ';color:' + cor.fg + '">' + ini + '</div>' +
+                '<div>' +
+                '<div class="ut-profile-nome">' + (u.nome || '—') + '</div>' +
+                '<div class="ut-profile-email">' + (u.email || '') + '</div>' +
+                '<div class="ut-profile-badges">' +
+                '<span class="ut-pill" style="background:' + cor.bg + ';color:' + cor.fg + ';border:1px solid ' + cor.fg + '33">' +
+                (u.e_admin ? 'Admin Total' : (TIPO_LABEL[tipo] || tipo)) +
+                '</span>' +
+                (!u.e_admin ? '<span class="ut-pill" style="background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)">' + numSec + ' seccoes</span>' : '') +
+                (u.ativo === false ? '<span class="ut-pill" style="background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)">Inativo</span>' : '') +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="ut-form">' +
+                '<div class="ut-msg" id="ut-msg"></div>' +
+
+                // Dados
+                '<div class="ut-section-title">Dados do Utilizador</div>' +
+                '<div class="ut-field-grid">' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Nome</label>' +
+                '<input class="ut-input" id="uf-nome" type="text" value="' + (u.nome || '') + '" placeholder="Nome completo">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Email</label>' +
+                '<input class="ut-input" id="uf-email" type="email" value="' + (u.email || '') + '" readonly>' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Tipo</label>' +
+                '<select class="ut-select" id="uf-tipo">' +
+                '<option value="membro"    ' + (u.tipo === 'membro'    ? 'selected' : '') + '>Membro</option>' +
+                '<option value="visitante" ' + (u.tipo === 'visitante' ? 'selected' : '') + '>Visitante</option>' +
+                '<option value="admin"     ' + (u.tipo === 'admin'     ? 'selected' : '') + '>Admin</option>' +
+                '<option value="outro"     ' + (u.tipo === 'outro'     ? 'selected' : '') + '>Outro</option>' +
+                '</select>' +
+                '</div>' +
+                '<div class="ut-field" style="justify-content:flex-end;padding-top:20px">' +
+                '<label class="ut-toggle-row">' +
+                '<input type="checkbox" id="uf-admin" ' + (u.e_admin ? 'checked' : '') +
+                ' onchange="ut_onAdminChange(this.checked)">' +
+                'Admin Total (acesso a tudo)' +
+                '</label>' +
+                '</div>' +
+                '</div>' +
+
+                // Aviso admin
+                '<div class="ut-admin-aviso" id="ut-aviso-admin" style="' + (u.e_admin ? '' : 'display:none') + '">' +
+                'Utilizador com acesso total. As permissoes por seccao sao ignoradas enquanto "Admin Total" estiver activo.' +
+                '</div>' +
+
+                // Permissoes
+                ut_buildPerms(u) +
+
+                // Accoes
+                '<div class="ut-actions">' +
+                '<button class="ut-btn-perigo" onclick="ut_toggleAtivo(\'' + u.id + '\',' + (u.ativo !== false) + ')">' +
+                (u.ativo !== false ? 'Inativar' : 'Ativar') +
+                '</button>' +
+                '<button class="ut-btn-cancel" onclick="ut_fechar()">Cancelar</button>' +
+                '<button class="ut-btn-save" id="ut-btn-save" onclick="ut_guardar(\'' + u.id + '\')">Guardar Alteracoes</button>' +
+                '</div>' +
+                '</div>';
+        }
+
+// ── Form — utilizador novo ────────────────────────────────────────────────────
+        function ut_renderFormNovo() {
+            var panel = document.getElementById('ut-panel');
+            if (!panel) return;
+
+            panel.innerHTML =
+                '<div class="ut-profile" style="border-bottom:2px solid var(--primary)">' +
+                '<div class="ut-profile-av" style="background:var(--primary-faint);color:var(--primary-dark)">+</div>' +
+                '<div>' +
+                '<div class="ut-profile-nome">Novo Utilizador</div>' +
+                '<div class="ut-profile-email">Preenche os campos e guarda</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="ut-form">' +
+                '<div class="ut-msg" id="ut-msg"></div>' +
+
+                '<div class="ut-section-title">Dados do Utilizador</div>' +
+                '<div class="ut-field-grid">' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Nome</label>' +
+                '<input class="ut-input" id="uf-nome" type="text" placeholder="Nome completo">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Email *</label>' +
+                '<input class="ut-input" id="uf-email" type="email" placeholder="email@exemplo.com">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Password inicial *</label>' +
+                '<input class="ut-input" id="uf-password" type="password" placeholder="Minimo 6 caracteres">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Tipo</label>' +
+                '<select class="ut-select" id="uf-tipo">' +
+                '<option value="membro">Membro</option>' +
+                '<option value="visitante">Visitante</option>' +
+                '<option value="admin">Admin</option>' +
+                '<option value="outro">Outro</option>' +
+                '</select>' +
+                '</div>' +
+                '<div class="ut-field full">' +
+                '<label class="ut-toggle-row">' +
+                '<input type="checkbox" id="uf-admin" onchange="ut_onAdminChange(this.checked)">' +
+                'Admin Total (acesso a tudo)' +
+                '</label>' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="ut-admin-aviso" id="ut-aviso-admin" style="display:none">' +
+                'Este utilizador tera acesso total ao sistema.' +
+                '</div>' +
+
+                ut_buildPerms(null) +
+
+                '<div class="ut-actions">' +
+                '<button class="ut-btn-cancel" onclick="ut_fechar()">Cancelar</button>' +
+                '<button class="ut-btn-save" id="ut-btn-save" onclick="ut_guardar(\'\')">Criar Utilizador</button>' +
+                '</div>' +
+                '</div>';
+        }
+
+// ── Tabela de permissoes ──────────────────────────────────────────────────────
+        function ut_buildPerms(u) {
+            var semRegistro = typeof REGISTRO_MODULOS === 'undefined';
+            if (semRegistro) {
+                return '<div style="color:var(--text-faint);font-size:12px;padding:12px 0">REGISTRO_MODULOS nao encontrado — actualiza o admin.html.</div>';
+            }
+
+            var chk = function(key) { return (u && u[key]) ? 'checked' : ''; };
+            var ACOES = ['ver', 'criar', 'editar', 'eliminar'];
+            var isAdmin = u ? u.e_admin : false;
+
+            var linhas = REGISTRO_MODULOS.map(function(mod) {
+                var cols = ACOES.map(function(acao) {
+                    if (!mod.acoes.includes(acao)) {
+                        return '<div class="ut-perm-na">&#8212;</div>';
+                    }
+                    var id = 'pv-' + acao + '-' + mod.secao;
+                    return '<div class="ut-perm-cell">' +
+                        '<input type="checkbox" id="' + id + '" ' + chk(acao + '_' + mod.secao) +
+                        ' onchange="ut_syncPerm(\'' + mod.secao + '\',\'' + acao + '\',this.checked)">' +
+                        '</div>';
+                }).join('');
+                return '<div class="ut-perm-row">' +
+                    '<div class="ut-perm-nome">' + mod.label + '</div>' +
+                    cols +
+                    '</div>';
+            }).join('');
+
+            var disStyle = isAdmin ? 'ut-perms-disabled' : '';
+
+            return '<div class="ut-section-title">' +
+                'Permissoes por Seccao' +
+                '<div class="ut-perms-btns">' +
+                '<button class="ut-btn-tudo sel" onclick="ut_setTodas(true)">Selecionar Tudo</button>' +
+                '<button class="ut-btn-tudo clr" onclick="ut_setTodas(false)">Limpar Tudo</button>' +
+                '</div>' +
+                '</div>' +
+                '<div style="font-size:11px;color:var(--text-faint);margin-bottom:10px;line-height:1.8">' +
+                '<strong>Ver</strong> = acesso a aba &nbsp;·&nbsp; ' +
+                '<strong>Criar</strong> = pode adicionar &nbsp;·&nbsp; ' +
+                '<strong>Editar</strong> = pode modificar &nbsp;·&nbsp; ' +
+                '<strong>Eliminar</strong> = pode desativar' +
+                '</div>' +
+                '<div class="ut-perms-box ' + disStyle + '" id="ut-bloco-perms">' +
+                '<div class="ut-perms-head">' +
+                '<span>Seccao</span>' +
+                '<span>Ver</span><span>Criar</span><span>Editar</span><span>Eliminar</span>' +
+                '</div>' +
+                linhas +
+                '</div>';
+        }
+
+// ── Callbacks interactividade ─────────────────────────────────────────────────
+        window.ut_onAdminChange = function(checked) {
+            var aviso = document.getElementById('ut-aviso-admin');
+            var bloco = document.getElementById('ut-bloco-perms');
+            if (aviso) aviso.style.display = checked ? 'block' : 'none';
+            if (bloco) {
+                bloco.classList.toggle('ut-perms-disabled', checked);
+            }
+        };
+
+        window.ut_syncPerm = function(secao, acao, checked) {
+            // Se marca criar/editar/eliminar -> garante ver marcado
+            if (checked && acao !== 'ver') {
+                var el = document.getElementById('pv-ver-' + secao);
+                if (el) el.checked = true;
+            }
+            // Se desmarca ver -> desmarca tudo
+            if (!checked && acao === 'ver') {
+                ['criar', 'editar', 'eliminar'].forEach(function(a) {
+                    var el = document.getElementById('pv-' + a + '-' + secao);
+                    if (el) el.checked = false;
+                });
+            }
+        };
+
+        window.ut_setTodas = function(val) {
+            if (typeof REGISTRO_MODULOS === 'undefined') return;
+            REGISTRO_MODULOS.forEach(function(mod) {
+                mod.acoes.forEach(function(acao) {
+                    var el = document.getElementById('pv-' + acao + '-' + mod.secao);
+                    if (el) el.checked = val;
+                });
+            });
+        };
+
+// ── Guardar ───────────────────────────────────────────────────────────────────
+        window.ut_guardar = async function(id) {
+            var get = function(k) {
+                var el = document.getElementById('uf-' + k);
+                return el ? (el.value || '').trim() || null : null;
+            };
+            var chkEl = function(k) {
+                var el = document.getElementById('uf-' + k);
+                return el ? el.checked : false;
+            };
+
+            var email = get('email');
+            if (!email) { ut_showMsg('Email obrigatorio.', 'error'); return; }
+
+            var isAdmin = chkEl('admin');
+
+            // Recolher permissoes de REGISTRO_MODULOS
+            var perms = {};
+            if (typeof REGISTRO_MODULOS !== 'undefined') {
+                REGISTRO_MODULOS.forEach(function(mod) {
+                    mod.acoes.forEach(function(acao) {
+                        var el = document.getElementById('pv-' + acao + '-' + mod.secao);
+                        perms[acao + '_' + mod.secao] = el ? el.checked : false;
+                    });
+                });
+                if (isAdmin) {
+                    REGISTRO_MODULOS.forEach(function(mod) {
+                        mod.acoes.forEach(function(acao) {
+                            perms[acao + '_' + mod.secao] = true;
+                        });
+                    });
+                }
+            }
+
+            var body = Object.assign({
+                nome:       get('nome'),
+                tipo:       get('tipo'),
+                e_admin:    isAdmin,
+                ativo:      true,
+                updated_at: new Date().toISOString(),
+            }, perms);
+
+            var btn = document.getElementById('ut-btn-save');
+            if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+            try {
+                if (!id) {
+                    // Verificar duplicado
+                    var exists = await sb('usuarios?email=eq.' + encodeURIComponent(email) + '&select=id').catch(function() { return []; });
+                    if (exists && exists.length) {
+                        ut_showMsg('Ja existe utilizador com este email.', 'error');
+                        if (btn) { btn.disabled = false; btn.textContent = 'Criar Utilizador'; }
+                        return;
+                    }
+                    var pw = get('password');
+                    if (!pw || pw.length < 6) {
+                        ut_showMsg('Password minima de 6 caracteres.', 'error');
+                        if (btn) { btn.disabled = false; btn.textContent = 'Criar Utilizador'; }
+                        return;
+                    }
+                    body.email         = email;
+                    body.password_hash = btoa(pw);
+                    await sb('usuarios', { method: 'POST', body: JSON.stringify(body) });
+                } else {
+                    await sb('usuarios?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) });
+                }
+
+                ut_showMsg('Guardado com sucesso!', 'success');
+                ut_dados = await sb('usuarios?select=*&order=nome') || [];
+                ut_renderList();
+
+                // Re-seleccionar para refrescar painel
+                if (id) {
+                    var updated = ut_dados.find(function(x) { return x.id === id; });
+                    if (updated) setTimeout(function() { ut_renderForm(updated); }, 700);
+                } else {
+                    var criado = ut_dados.find(function(x) { return x.email === email; });
+                    if (criado) {
+                        ut_id = criado.id;
+                        ut_renderList();
+                        setTimeout(function() { ut_renderForm(criado); }, 700);
+                    }
+                }
+
+            } catch (e) {
+                ut_showMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
+                if (btn) { btn.disabled = false; btn.textContent = id ? 'Guardar Alteracoes' : 'Criar Utilizador'; }
+            }
+        };
+
+// ── Toggle ativo ──────────────────────────────────────────────────────────────
+        window.ut_toggleAtivo = async function(id, ativoAtual) {
+            if (!confirm(ativoAtual ? 'Inativar este utilizador?' : 'Ativar este utilizador?')) return;
+            try {
+                await sb('usuarios?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativoAtual }) });
+                ut_dados = await sb('usuarios?select=*&order=nome') || [];
+                ut_renderList();
+                var u = ut_dados.find(function(x) { return x.id === id; });
+                if (u) ut_renderForm(u);
+            } catch (e) {
+                alert('Erro: ' + (e?.message || JSON.stringify(e)));
+            }
+        };
+
+// ── Fechar painel ─────────────────────────────────────────────────────────────
+        window.ut_fechar = function() {
+            ut_id = null;
+            ut_renderList();
+            var panel = document.getElementById('ut-panel');
+            if (panel) panel.innerHTML =
+                '<div class="ut-panel-empty">' +
+                '<div class="ut-panel-empty-icon">' +
+                '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
+                '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>' +
+                '<circle cx="12" cy="7" r="4"/>' +
+                '</svg>' +
+                '</div>' +
+                '<div class="ut-panel-empty-txt">Seleciona um utilizador</div>' +
+                '</div>';
+        };
+
+// ── Mensagem feedback ─────────────────────────────────────────────────────────
+        function ut_showMsg(txt, tipo) {
+            var el = document.getElementById('ut-msg');
+            if (!el) return;
+            el.textContent = txt;
+            el.className = 'ut-msg ' + tipo;
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (tipo === 'success') setTimeout(function() { el.className = 'ut-msg'; }, 3000);
+        }
+
+// ── Arrancar ──────────────────────────────────────────────────────────────────
+        ut_init();
+
+    })();
+</script>

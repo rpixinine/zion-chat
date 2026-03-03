@@ -163,7 +163,7 @@
 
     <div class="nav-bar" id="nav-bar">
         <div class="nav-item"         onclick="setSecao('dashboard')" data-secao="dashboard">Dashboard</div>
-        <div class="nav-item active"  onclick="setSecao('membros')" data-secao="membros">Membros</div>
+        <div class="nav-item active"  onclick="loadModule('membros')" data-secao="membros">Membros</div>
         <div class="nav-item"         onclick="setSecao('pastores')" data-secao="pastores">Pastores</div>
         <div class="nav-item"         onclick="loadModule('links')" data-secao="links">Links</div>
         <div class="nav-item"         onclick="loadModule('cultos')" data-secao="cultos">Cultos</div>
@@ -454,10 +454,11 @@
         const cfg = SECOES[secaoAtiva];
         registos = await sb(`${cfg.tabela}?select=*&order=${cfg.orderBy||'nome'}`) || [];
         if (secaoAtiva === 'keola') await carregarComponentesCache();
+
         if (secaoAtiva === 'membros') {
-            if (!links_cache.length)
-                links_cache = await sb('links?select=id,nome&ativo=eq.true&order=nome') || [];
-            await carregarVisitantes();
+            // if (!links_cache.length)
+            //     links_cache = await sb('links?select=id,nome&ativo=eq.true&order=nome') || [];
+            // await carregarVisitantes();
         }
         renderSecao();
     }
@@ -4636,6 +4637,7 @@
                     'ministerios': () => { min_minAtivo = null; min_renderSide(); const el=document.getElementById('min-content'); if(el) el.innerHTML='<div class="mod-empty"><div class="mod-empty-title">Selecione um Ministério</div></div>'; },
                     'utilizadores': () => { ut_init(); },
                     'cultos':       () => { cu_init(); },
+                    'membros':       () => { mb_init(); },
                 };
                 const reInit = reInitMap[nome];
                 if (reInit) reInit();

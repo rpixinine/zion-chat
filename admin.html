@@ -227,6 +227,35 @@
     let ministeriosCache = [];
     let cursosCache = [];
 
+    // ── REGISTRO_MODULOS — fonte única de verdade para permissões ─────────────
+    const REGISTRO_MODULOS = [
+        { secao: 'dashboard',    label: 'Dashboard',        acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'membros',      label: 'Membros',          acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'pastores',     label: 'Pastores',         acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'links',        label: 'Links',            acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'cultos',       label: 'Cultos',           acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'ministerios',  label: 'Ministérios',      acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'salas',        label: 'Salas',            acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'cursos',       label: 'Cursos ZAO',       acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'keola',        label: 'Keola',            acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'loja',         label: 'Loja',             acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'eventos',      label: 'Eventos',          acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'fornecedores', label: 'Fornecedores',     acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'financeiro',   label: 'Financeiro',       acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'lista_compras',label: 'Lista de Compras', acoes: ['ver','criar','editar','eliminar'] },
+        { secao: 'configuracoes',label: 'Configurações',    acoes: ['ver','criar','editar','eliminar'] },
+    ];
+
+    function gerarColunasSQL() {
+        const adds = [];
+        REGISTRO_MODULOS.forEach(mod => {
+            mod.acoes.forEach(acao => {
+                adds.push(`  ADD COLUMN IF NOT EXISTS ${acao}_${mod.secao} BOOLEAN DEFAULT FALSE`);
+            });
+        });
+        console.log('ALTER TABLE usuarios\n' + adds.join(',\n') + ';');
+    }
+
     // ── PERMISSÕES DO UTILIZADOR ──────────────────────────────────────────────
     let userPerms = {};  // preenchido no init com as flags da tabela usuarios
 
@@ -287,18 +316,29 @@
         document.getElementById('data-hoje').textContent =
             hoje.charAt(0).toUpperCase() + hoje.slice(1);
 
-        // Carregar permissões — verificar tabela usuarios E membros em paralelo
-        const SECOES_LISTA = ['dashboard','membros','pastores','links','cultos','ministerios',
-            'salas','cursos','keola','loja','eventos','fornecedores','financeiro','utilizadores','configuracoes'];
+        // // Carregar permissões — verificar tabela usuarios E membros em paralelo
+        // const SECOES_LISTA = ['dashboard','membros','pastores','links','cultos','ministerios',
+        //     'salas','cursos','keola','loja','eventos','fornecedores','financeiro','utilizadores','configuracoes'];
+        //
+        // const darAcessoTotal = () => {
+        //     userPerms = { e_admin: true };
+        //     SECOES_LISTA.forEach(s => {
+        //         userPerms[`ver_${s}`]      = true;
+        //         userPerms[`criar_${s}`]    = true;
+        //         userPerms[`editar_${s}`]   = true;
+        //         userPerms[`eliminar_${s}`] = true;
+        //     });
+        // };
 
+        // Carregar permissões
         const darAcessoTotal = () => {
             userPerms = { e_admin: true };
-            SECOES_LISTA.forEach(s => {
-                userPerms[`ver_${s}`]      = true;
-                userPerms[`criar_${s}`]    = true;
-                userPerms[`editar_${s}`]   = true;
-                userPerms[`eliminar_${s}`] = true;
+            REGISTRO_MODULOS.forEach(mod => {
+                mod.acoes.forEach(acao => {
+                    userPerms[`${acao}_${mod.secao}`] = true;
+                });
             });
+            userPerms.ver_utilizadores = true;
         };
 
         // 1. Verificar membros (sistema original — mais fiável)
@@ -3773,21 +3813,51 @@
     // PERMISSÕES — NAV HIDE + GUARD
     // ══════════════════════════════════════════════════════════════════════════
 
+    // function aplicarPermissoesNav() {
+    //     document.querySelectorAll('.nav-item[data-secao]').forEach(el => {
+    //         const secao = el.dataset.secao;
+    //         // Utilizadores — só admin total
+    //         if (secao === 'utilizadores') {
+    //             el.style.display = userPerms.e_admin ? '' : 'none';
+    //             return;
+    //         }
+    //         if (secao && !perm(secao, 'ver')) {
+    //             el.style.display = 'none';
+    //         } else {
+    //             el.style.display = '';
+    //         }
+    //     });
+    // }
+
     function aplicarPermissoesNav() {
+        const navParaSecao = {
+            'lista-compras': 'lista_compras',
+            'tipos_evento':  'eventos',
+        };
+        const secoesRegistadas = new Set(REGISTRO_MODULOS.map(m => m.secao));
+
+        // Auto-validação
         document.querySelectorAll('.nav-item[data-secao]').forEach(el => {
-            const secao = el.dataset.secao;
-            // Utilizadores — só admin total
-            if (secao === 'utilizadores') {
+            const navSecao = el.dataset.secao;
+            const secao    = navParaSecao[navSecao] || navSecao;
+            if (!secoesRegistadas.has(secao) && navSecao !== 'utilizadores') {
+                console.error(`Módulo sem permissão registada: "${navSecao}" → adicionar ao REGISTRO_MODULOS`);
+            }
+        });
+
+        // Aplicar visibilidade
+        document.querySelectorAll('.nav-item[data-secao]').forEach(el => {
+            const navSecao = el.dataset.secao;
+            const secao    = navParaSecao[navSecao] || navSecao;
+            if (navSecao === 'utilizadores') {
                 el.style.display = userPerms.e_admin ? '' : 'none';
                 return;
             }
-            if (secao && !perm(secao, 'ver')) {
-                el.style.display = 'none';
-            } else {
-                el.style.display = '';
-            }
+            el.style.display = perm(secao, 'ver') ? '' : 'none';
         });
     }
+
+
 
     // Aplica guard nos botões de acção da secção activa
     function aplicarPermissoesSecao(secao) {
@@ -3820,22 +3890,25 @@
     // ══════════════════════════════════════════════════════════════════════════
     let utilizadoresData = [];
 
-    const TODAS_SECOES = [
-        { key: 'dashboard',    label: 'Dashboard' },
-        { key: 'membros',      label: 'Membros' },
-        { key: 'pastores',     label: 'Pastores' },
-        { key: 'links',        label: 'Links' },
-        { key: 'cultos',       label: 'Cultos' },
-        { key: 'ministerios',  label: 'Ministérios' },
-        { key: 'salas',        label: 'Salas' },
-        { key: 'cursos',       label: 'Cursos ZAO' },
-        { key: 'keola',        label: 'Keola' },
-        { key: 'loja',         label: 'Loja' },
-        { key: 'eventos',      label: 'Eventos' },
-        { key: 'fornecedores', label: 'Fornecedores' },
-        { key: 'financeiro',   label: 'Financeiro' },
-        { key: 'configuracoes',label: 'Configurações' },
-    ];
+    // const TODAS_SECOES = [
+    //     { key: 'dashboard',    label: 'Dashboard' },
+    //     { key: 'membros',      label: 'Membros' },
+    //     { key: 'pastores',     label: 'Pastores' },
+    //     { key: 'links',        label: 'Links' },
+    //     { key: 'cultos',       label: 'Cultos' },
+    //     { key: 'ministerios',  label: 'Ministérios' },
+    //     { key: 'salas',        label: 'Salas' },
+    //     { key: 'cursos',       label: 'Cursos ZAO' },
+    //     { key: 'keola',        label: 'Keola' },
+    //     { key: 'loja',         label: 'Loja' },
+    //     { key: 'eventos',      label: 'Eventos' },
+    //     { key: 'fornecedores', label: 'Fornecedores' },
+    //     { key: 'financeiro',   label: 'Financeiro' },
+    //     { key: 'configuracoes',label: 'Configurações' },
+    // ];
+
+    // TODAS_SECOES deriva de REGISTRO_MODULOS automaticamente
+    const TODAS_SECOES = REGISTRO_MODULOS.map(m => ({ key: m.secao, label: m.label }));
 
     async function carregarUtilizadores() {
         utilizadoresData = await sb('usuarios?select=*&order=nome') || [];
@@ -3922,14 +3995,30 @@
             <div>Secção</div><div style="text-align:center">Ver</div><div style="text-align:center">Criar</div><div style="text-align:center">Editar</div><div style="text-align:center">Eliminar</div>
         </div>`;
 
-        const linhasPerms = TODAS_SECOES.map(s => `
+        // const linhasPerms = TODAS_SECOES.map(s => `
+        // <div style="display:grid;grid-template-columns:1fr repeat(4,56px);gap:4px;align-items:center;padding:5px 8px;border-radius:6px;background:var(--bg-card);margin-bottom:3px">
+        //     <div style="font-size:12px">${s.label}</div>
+        //     <div style="text-align:center"><input type="checkbox" id="pv_ver_${s.key}"      ${chk('ver_'+s.key)}      onchange="sincronizarPerms('${s.key}','ver',this.checked)"></div>
+        //     <div style="text-align:center"><input type="checkbox" id="pv_criar_${s.key}"    ${chk('criar_'+s.key)}    onchange="sincronizarPerms('${s.key}','criar',this.checked)"></div>
+        //     <div style="text-align:center"><input type="checkbox" id="pv_editar_${s.key}"   ${chk('editar_'+s.key)}   onchange="sincronizarPerms('${s.key}','editar',this.checked)"></div>
+        //     <div style="text-align:center"><input type="checkbox" id="pv_eliminar_${s.key}" ${chk('eliminar_'+s.key)} onchange="sincronizarPerms('${s.key}','eliminar',this.checked)"></div>
+        // </div>`).join('');
+
+        const ACOES_COLS = ['ver','criar','editar','eliminar'];
+        const linhasPerms = REGISTRO_MODULOS.map(mod => {
+            const cols = ACOES_COLS.map(acao => {
+                if (!mod.acoes.includes(acao))
+                    return `<div style="text-align:center;color:var(--border)">—</div>`;
+                return `<div style="text-align:center"><input type="checkbox" id="pv_${acao}_${mod.secao}"
+                    ${chk(acao+'_'+mod.secao)}
+                    onchange="sincronizarPerms('${mod.secao}','${acao}',this.checked)"></div>`;
+            }).join('');
+            return `
         <div style="display:grid;grid-template-columns:1fr repeat(4,56px);gap:4px;align-items:center;padding:5px 8px;border-radius:6px;background:var(--bg-card);margin-bottom:3px">
-            <div style="font-size:12px">${s.label}</div>
-            <div style="text-align:center"><input type="checkbox" id="pv_ver_${s.key}"      ${chk('ver_'+s.key)}      onchange="sincronizarPerms('${s.key}','ver',this.checked)"></div>
-            <div style="text-align:center"><input type="checkbox" id="pv_criar_${s.key}"    ${chk('criar_'+s.key)}    onchange="sincronizarPerms('${s.key}','criar',this.checked)"></div>
-            <div style="text-align:center"><input type="checkbox" id="pv_editar_${s.key}"   ${chk('editar_'+s.key)}   onchange="sincronizarPerms('${s.key}','editar',this.checked)"></div>
-            <div style="text-align:center"><input type="checkbox" id="pv_eliminar_${s.key}" ${chk('eliminar_'+s.key)} onchange="sincronizarPerms('${s.key}','eliminar',this.checked)"></div>
-        </div>`).join('');
+            <div style="font-size:12px">${mod.label}</div>
+            ${cols}
+        </div>`;
+        }).join('');
 
         return `<div class="form-grid">
         <div class="msg-form" id="form-msg"></div>
@@ -3997,10 +4086,19 @@
         }
     }
 
+    // function definirTodasPerms(valor) {
+    //     TODAS_SECOES.forEach(s => {
+    //         ['ver','criar','editar','eliminar'].forEach(a => {
+    //             const el = document.getElementById(`pv_${a}_${s.key}`);
+    //             if (el) el.checked = valor;
+    //         });
+    //     });
+    // }
+
     function definirTodasPerms(valor) {
-        TODAS_SECOES.forEach(s => {
-            ['ver','criar','editar','eliminar'].forEach(a => {
-                const el = document.getElementById(`pv_${a}_${s.key}`);
+        REGISTRO_MODULOS.forEach(mod => {
+            mod.acoes.forEach(acao => {
+                const el = document.getElementById(`pv_${acao}_${mod.secao}`);
                 if (el) el.checked = valor;
             });
         });
@@ -4013,26 +4111,37 @@
         const email = get('email');
         if (!email) { showFormMsg('Email obrigatório.','error'); return; }
 
-        // Colunas de permissão que existem na tabela usuarios
-        // (excluir 'utilizadores' e 'dashboard' que não têm colunas CRUD na BD)
-        const SECOES_BD = ['membros','pastores','links','cultos','ministerios',
-            'salas','cursos','keola','loja','eventos','fornecedores','financeiro','configuracoes'];
-        const ACCOES_BD = ['ver','criar','editar','eliminar'];
-        // ver_dashboard existe mas não tem criar/editar/eliminar
-        const perms = { ver_dashboard: document.getElementById('pv_ver_dashboard')?.checked || false };
+        // const SECOES_BD = ['membros','pastores','links','cultos','ministerios',
+        //     'salas','cursos','keola','loja','eventos','fornecedores','financeiro','configuracoes'];
+        // const ACCOES_BD = ['ver','criar','editar','eliminar'];
+        // const perms = { ver_dashboard: document.getElementById('pv_ver_dashboard')?.checked || false };
+        //
+        // SECOES_BD.forEach(s => {
+        //     ACCOES_BD.forEach(a => {
+        //         const el = document.getElementById(`pv_${a}_${s}`);
+        //         perms[`${a}_${s}`] = el ? el.checked : false;
+        //     });
+        // });
+        //
+        // const isAdmin = chk('admin');
+        // if (isAdmin) {
+        //     perms.ver_dashboard = true;
+        //     SECOES_BD.forEach(s => {
+        //         ACCOES_BD.forEach(a => { perms[`${a}_${s}`] = true; });
+        //     });
+        // }
 
-        SECOES_BD.forEach(s => {
-            ACCOES_BD.forEach(a => {
-                const el = document.getElementById(`pv_${a}_${s}`);
-                perms[`${a}_${s}`] = el ? el.checked : false;
+        const perms = {};
+        REGISTRO_MODULOS.forEach(mod => {
+            mod.acoes.forEach(acao => {
+                const el = document.getElementById(`pv_${acao}_${mod.secao}`);
+                perms[`${acao}_${mod.secao}`] = el ? el.checked : false;
             });
         });
-
         const isAdmin = chk('admin');
         if (isAdmin) {
-            perms.ver_dashboard = true;
-            SECOES_BD.forEach(s => {
-                ACCOES_BD.forEach(a => { perms[`${a}_${s}`] = true; });
+            REGISTRO_MODULOS.forEach(mod => {
+                mod.acoes.forEach(acao => { perms[`${acao}_${mod.secao}`] = true; });
             });
         }
 
@@ -4450,7 +4559,28 @@
     let moduleCache = {};
     let moduleScriptLoaded = {};  // track which modules had their script executed
 
+    // async function loadModule(nome) {
+    //     // Nav active state
+    //     document.querySelectorAll('.nav-item').forEach(n => {
+
     async function loadModule(nome) {
+        // Guard de permissão
+        const _navParaSecao = { 'lista-compras': 'lista_compras' };
+        const _secaoNome    = _navParaSecao[nome] || nome;
+        if (!userPerms.e_admin && !perm(_secaoNome, 'ver')) {
+            const _main = document.getElementById('main-content');
+            if (_main) {
+                _main.style.height=''; _main.style.overflow=''; _main.style.padding='';
+                _main.style.display=''; _main.style.flexDirection='';
+                _main.innerHTML = `
+                    <div class="acesso-negado">
+                        <div class="acesso-negado-icon">✕</div>
+                        <div class="acesso-negado-title">Acesso Restrito</div>
+                        <div class="acesso-negado-txt">Não tens permissão para aceder a este módulo.</div>
+                    </div>`;
+            }
+            return;
+        }
         // Nav active state
         document.querySelectorAll('.nav-item').forEach(n => {
             n.classList.toggle('active', n.dataset.secao === nome);

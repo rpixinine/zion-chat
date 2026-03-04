@@ -229,6 +229,7 @@ function evRenderDetalhe(){
     if(conc||canc) btns+=`<button class="ev-btn" onclick="evVerPresencas('${e.id}')">Ver Resumo</button>`;
     if(conc)     btns+=`<button class="ev-btn danger" onclick="evGerarPDF('${e.id}')">PDF</button>`;
     if(!conc&&!canc) btns+=`<button class="ev-btn danger" onclick="evCancelar('${e.id}')">Cancelar</button>`;
+    btns+=`<button class="ev-btn danger" onclick="evExcluir('${e.id}')" style="margin-left:auto;opacity:.7" title="Excluir permanentemente">Excluir</button>`;
 
     let html=`<div style="animation:fadeIn .2s ease">
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px">
@@ -271,6 +272,17 @@ async function evCancelar(id){
     if(!confirm('Cancelar este evento?'))return;
     await _sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'cancelado'})});
     await evRecarregar();evSelEvento(id);
+}
+async function evExcluir(id){
+    const ev=evEventos.find(e=>e.id===id);if(!ev)return;
+    if(!confirm(`Excluir permanentemente "${ev.titulo}"?\n\nEsta acao nao pode ser desfeita. As presenças associadas tambem serao removidas.`))return;
+    // Remove presenças primeiro (FK constraint)
+    await _sb(`evento_presencas?evento_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
+    await _sb(`eventos?id=eq.${id}`,{method:'DELETE'});
+    evAtivo=null;evView='info';
+    evEventos=evEventos.filter(e=>e.id!==id);
+    evRenderSide();
+    evPanelEmpty('Evento excluido.');
 }
 async function evRecarregar(){evEventos=await _sb('eventos?select=*&order=data_inicio')||[];if(evAtivo)evAtivo=evEventos.find(e=>e.id===evAtivo.id)||null;evRenderSide();}
 
@@ -780,7 +792,7 @@ function evRemoverTipo(idx){const lista=getTipos();if(!confirm(`Remover "${lista
 function evMoverTipo(idx,dir){const lista=getTipos(),n=idx+dir;if(n<0||n>=lista.length)return;[lista[idx],lista[n]]=[lista[n],lista[idx]];saveTipos(lista);evRenderSideTipos();evSelTipo(n);evTipoIdx=n;}
 
 // ── EXPOR ──────────────────────────────────────────────────────────────
-Object.assign(window,{evSetTab,evFiltrar,evToggleSt,evSelEvento,evAbrirForm,evSalvar,evIniciar,evConcluir,evCancelar,evMostrarQR,evCopiarURL,evDownloadQR,evVerPresencas,evRenderPresencas,evMarcarPres,evAddParticipante,evFinalizarEntradas,evAbrirMotivo,evGuardarMotivo,evGerarPDF,_pdfTipoLabel,evRenderSideTipos,evSelTipo,evAbrirFormTipo,evSalvarTipo,evRemoverTipo,evMoverTipo});
+Object.assign(window,{evSetTab,evFiltrar,evToggleSt,evSelEvento,evAbrirForm,evSalvar,evIniciar,evConcluir,evCancelar,evExcluir,evMostrarQR,evCopiarURL,evDownloadQR,evVerPresencas,evRenderPresencas,evMarcarPres,evAddParticipante,evFinalizarEntradas,evAbrirMotivo,evGuardarMotivo,evGerarPDF,_pdfTipoLabel,evRenderSideTipos,evSelTipo,evAbrirFormTipo,evSalvarTipo,evRemoverTipo,evMoverTipo});
 
 evInit();
 })();

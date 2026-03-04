@@ -164,7 +164,7 @@
     <div class="nav-bar" id="nav-bar">
         <div class="nav-item"         onclick="setSecao('dashboard')" data-secao="dashboard">Dashboard</div>
         <div class="nav-item active"  onclick="loadModule('membros')" data-secao="membros">Membros</div>
-        <div class="nav-item"         onclick="setSecao('pastores')" data-secao="pastores">Pastores</div>
+        <div class="nav-item"         onclick="loadModule('pastores')" data-secao="pastores">Pastores</div>
         <div class="nav-item"         onclick="loadModule('links')" data-secao="links">Links</div>
         <div class="nav-item"         onclick="loadModule('cultos')" data-secao="cultos">Cultos</div>
         <div class="nav-item"         onclick="loadModule('ministerios')" data-secao="ministerios">Ministérios</div>
@@ -173,11 +173,11 @@
         <div class="nav-item"         onclick="setSecao('keola')" data-secao="keola">Keola</div>
         <div class="nav-item"         onclick="setSecao('loja')" data-secao="loja">Loja</div>
         <div class="nav-item"         onclick="loadModule('eventos')" data-secao="eventos">Eventos</div>
-        <div class="nav-item"         onclick="setSecao('fornecedores')" data-secao="fornecedores">Fornecedores</div>
+        <div class="nav-item"         onclick="loadModule('fornecedores')" data-secao="fornecedores">Fornecedores</div>
         <div class="nav-item"         onclick="setSecao('financeiro')" data-secao="financeiro">Financeiro</div>
         <div class="nav-item"         onclick="loadModule('lista-compras')" data-secao="lista-compras">Lista de Compras</div>
         <div class="nav-item"         onclick="loadModule('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">Utilizadores</div>
-        <div class="nav-item"         onclick="setSecao('configuracoes')" data-secao="configuracoes">Configurações</div>
+        <div class="nav-item"         onclick="loadModule('configuracoes')" data-secao="configuracoes">Configurações</div>
     </div>
 
     <div class="content" id="main-content">
@@ -257,9 +257,8 @@
     }
 
     // ── PERMISSÕES DO UTILIZADOR ──────────────────────────────────────────────
-    let userPerms = {};  // preenchido no init com as flags da tabela usuarios
+    let userPerms = {};  
 
-    // Verifica se o utilizador tem permissão para uma acção numa secção
     // acção: 'ver' | 'criar' | 'editar' | 'eliminar'
     function perm(secao, accao = 'ver') {
         if (userPerms.e_admin) return true;            // admin vê tudo
@@ -315,20 +314,6 @@
             { weekday:'long', day:'numeric', month:'long' });
         document.getElementById('data-hoje').textContent =
             hoje.charAt(0).toUpperCase() + hoje.slice(1);
-
-        // // Carregar permissões — verificar tabela usuarios E membros em paralelo
-        // const SECOES_LISTA = ['dashboard','membros','pastores','links','cultos','ministerios',
-        //     'salas','cursos','keola','loja','eventos','fornecedores','financeiro','utilizadores','configuracoes'];
-        //
-        // const darAcessoTotal = () => {
-        //     userPerms = { e_admin: true };
-        //     SECOES_LISTA.forEach(s => {
-        //         userPerms[`ver_${s}`]      = true;
-        //         userPerms[`criar_${s}`]    = true;
-        //         userPerms[`editar_${s}`]   = true;
-        //         userPerms[`eliminar_${s}`] = true;
-        //     });
-        // };
 
         // Carregar permissões
         const darAcessoTotal = () => {
@@ -455,25 +440,15 @@
         if (secaoAtiva === 'keola') await carregarComponentesCache();
 
         if (secaoAtiva === 'membros') {
-            // if (!links_cache.length)
-            //     links_cache = await sb('links?select=id,nome&ativo=eq.true&order=nome') || [];
-            // await carregarVisitantes();
         }
         renderSecao();
     }
 
     // ── CONFIG DAS SECÇÕES ────────────────────────────────────────────────────
     const SECOES = {
-        membros:     { tabela:'membros',       orderBy:'nome',          campos:camposMembros,    subTabs:['Dashboard','Membros','Visitantes'] },
-        pastores:    { tabela:'pastores',      orderBy:'nome',          campos:camposPastores },
-        links:       { tabela:'links',         orderBy:'nome',          campos:camposLinks },
-        cultos:      { tabela:'cultos',        orderBy:'nome',          campos:camposCultos },
-        ministerios: { tabela:'ministerios',   orderBy:'nome',          campos:camposMinisterios, subTabs:['Ministério','Líderes'] },
         salas:       { tabela:'salas',         orderBy:'nome',          campos:camposSalas },
-        cursos:      { tabela:'zao_cursos',    orderBy:'nome',          campos:camposCursos,      subTabs:['Curso','Instrutores'] },
         keola:       { tabela:'keola_menu',    orderBy:'categoria,nome',campos:camposKeola,       ativoKey:'disponivel' },
         loja:        { tabela:'loja_produtos', orderBy:'categoria,nome',campos:camposLoja },
-        eventos:     { tabela:'eventos',       orderBy:'data_inicio',   campos:camposEventos,     customRender:true },
     };
 
     // ── RENDER SECÇÃO ─────────────────────────────────────────────────────────
@@ -1679,112 +1654,6 @@
     // ══════════════════════════════════════════════════════════════════════════
     // CAMPOS DAS SECÇÕES
     // ══════════════════════════════════════════════════════════════════════════
-    function camposMembros() { return [
-        {type:'section',label:'Identificação'},
-        {key:'nome',            label:'Nome',              ph:'Nome completo',     full:true},
-        {key:'email',           label:'Email',             type:'email',           ph:'email@exemplo.com'},
-        {key:'telefone',        label:'Telefone',          ph:'+351 9XX XXX XXX'},
-        {key:'genero',          label:'Género',            type:'select', options:[{v:'masculino',l:'Masculino'},{v:'feminino',l:'Feminino'},{v:'outro',l:'Outro'}]},
-        {key:'data_nascimento', label:'Data Nascimento',   type:'date'},
-        {key:'estado_civil',    label:'Estado Civil',      type:'select', options:[{v:'solteiro',l:'Solteiro'},{v:'casado',l:'Casado'},{v:'divorciado',l:'Divorciado'},{v:'viuvo',l:'Viúvo'}]},
-        {key:'nif',             label:'NIF',               ph:'000 000 000'},
-        {key:'foto_url',        label:'Foto',              type:'image', bucket:'imagens', full:true},
-        {type:'section',label:'Morada'},
-        {key:'rua',             label:'Rua',               ph:'Nome da rua',       full:true},
-        {key:'numero',          label:'Número',            ph:'Nr'},
-        {key:'complemento',     label:'Complemento',       ph:'Andar, porta...'},
-        {key:'cidade',          label:'Cidade',            ph:'Lisboa'},
-        {key:'codigo_postal',   label:'Código Postal',     ph:'0000-000'},
-        {key:'pais',            label:'País',              ph:'Portugal',          default:'Portugal'},
-        {key:'zona',            label:'Zona (Link)',        ph:'Ex: Montijo'},
-        {type:'section',label:'Igreja'},
-        {key:'tipo',            label:'Tipo',              type:'select', options:[{v:'membro',l:'Membro'},{v:'admin',l:'Administrador'}]},
-        {key:'data_entrada',    label:'Membro Desde',      type:'date'},
-        {key:'onde_conheceu',   label:'Onde Conheceu',     ph:'Como soube da Zion?', full:true},
-        {key:'foi_batizado',    label:'Foi Batizado',      type:'checkbox'},
-        {key:'data_batismo',    label:'Data Batismo',      type:'date'},
-        {key:'tem_filhos',      label:'Tem Filhos',        type:'checkbox'},
-        {key:'numero_filhos',   label:'Nr Filhos',         type:'number', ph:'0'},
-        {type:'section',label:'Cônjuge'},
-        {key:'conjuge_id',      label:'Cônjuge',           type:'select-membro', ph:'Pesquisar membro...'},
-        {type:'section',label:'Funções'},
-        {key:'e_lider',         label:'Líder',             type:'checkbox'},
-        {key:'e_presbitero',    label:'Presbítero',        type:'checkbox'},
-        {key:'e_voluntario',    label:'Voluntário',        type:'checkbox'},
-        {key:'e_admin',         label:'Administrador',     type:'checkbox'},
-        {key:'professor',       label:'Professor',         type:'checkbox'},
-        {key:'e_lider_link',    label:'Líder de Link',     type:'checkbox'},
-        {key:'e_lider_area',    label:'Líder de Área',     type:'checkbox'},
-        {key:'e_lider_pilar',   label:'Líder de Pilar',    type:'checkbox'},
-        {type:'section',label:'Cursos Concluídos'},
-        {key:'_cursos',         label:'Cursos',            type:'custom-cursos'},
-        {type:'section',label:'História'},
-        {key:'historia',        label:'História',          type:'textarea', ph:'História do membro...', full:true},
-        {key:'ativo',           label:'Ativo',             type:'checkbox', default:true},
-    ];}
-    function camposPastores() { return [
-        {key:'nome',      label:'Nome',      ph:'Nome completo',     full:true},
-        {key:'cargo',     label:'Cargo',     ph:'Ex: Pastor Principal'},
-        {key:'email',     label:'Email',     type:'email',           ph:'email@exemplo.com'},
-        {key:'telefone',  label:'Telefone',  ph:'+351 9XX XXX XXX'},
-        {key:'instagram', label:'Instagram', ph:'@handle'},
-        {key:'foto_url',  label:'Foto',      type:'image', bucket:'imagens', full:true},
-        {key:'bio',       label:'Biografia', type:'textarea',        ph:'Breve biografia...', full:true},
-        {key:'ativo',     label:'Ativo',     type:'checkbox',        default:true},
-    ];}
-    function camposLinks() { return [
-        {type:'section',       label:'Identificação'},
-        {key:'nome',           label:'Nome',              ph:'Ex: LINK Montijo',  full:true},
-        {key:'tipo',           label:'Tipo',              type:'select', options:[
-                {v:'Familias',l:'Famílias'},{v:'FLOW',l:'FLOW'},{v:'VOX',l:'VOX'},
-                {v:'Diamantes',l:'Diamantes'},{v:'EKLECTOS',l:'EKLECTOS'}
-            ]},
-        {key:'faixa_etaria',   label:'Faixa Etária',      ph:'Ex: 18-35 anos'},
-        {key:'capacidade',     label:'Capacidade',        type:'number', ph:'20'},
-        {type:'section',       label:'Liderança'},
-        {key:'responsavel',    label:'Responsável',       ph:'Nome do líder',     full:true},
-        {key:'co_responsavel', label:'Co-Responsável',    ph:'Nome do co-líder',  full:true},
-        {key:'anfitrioes',     label:'Anfitriões',        ph:'Nomes...',          full:true},
-        {type:'section',       label:'Horário'},
-        {key:'dia',            label:'Dia',               type:'select', options:[
-                {v:'Segunda-feira',l:'Segunda-feira'},{v:'Terça-feira',l:'Terça-feira'},
-                {v:'Quarta-feira',l:'Quarta-feira'},{v:'Quinta-feira',l:'Quinta-feira'},
-                {v:'Sexta-feira',l:'Sexta-feira'},{v:'Sábado',l:'Sábado'},{v:'Domingo',l:'Domingo'}
-            ]},
-        {key:'horario',        label:'Horário',           ph:'Ex: 20h00'},
-        {key:'online',         label:'É Online',          type:'checkbox'},
-        {type:'section',       label:'Localização'},
-        {key:'zona',           label:'Zona',              ph:'Ex: Montijo'},
-        {key:'distrito',       label:'Distrito',          ph:'Ex: Setúbal'},
-        {key:'morada',         label:'Morada',            ph:'Rua...', full:true},
-        {key:'codigo_postal',  label:'Cód. Postal',       ph:'Ex: 2870-001'},
-        {type:'section',       label:'Contacto'},
-        {key:'contato',        label:'Contacto (WhatsApp)',ph:'+351 9XX XXX XXX', full:true},
-        {key:'ativo',          label:'Ativo',             type:'checkbox', default:true},
-    ];}
-    function camposCultos() { return [
-        {key:'nome',            label:'Nome',           ph:'Ex: Culto de Domingo', full:true},
-        {key:'dia_semana',      label:'Dia',            type:'select', options:[
-                {v:'Domingo',l:'Domingo'},{v:'Segunda-feira',l:'Segunda-feira'},
-                {v:'Terça-feira',l:'Terça-feira'},{v:'Quarta-feira',l:'Quarta-feira'},
-                {v:'Quinta-feira',l:'Quinta-feira'},{v:'Sexta-feira',l:'Sexta-feira'},{v:'Sábado',l:'Sábado'}
-            ]},
-        {key:'hora_inicio',     label:'Hora Início',    type:'time'},
-        {key:'hora_fim',        label:'Hora Fim',        type:'time'},
-        {key:'recorrente',      label:'Recorrente',     type:'checkbox', default:true},
-        {key:'data_especifica', label:'Data Específica', type:'date', full:true},
-        {key:'descricao',       label:'Descrição',      type:'textarea', ph:'...', full:true},
-        {key:'ativo',           label:'Ativo',           type:'checkbox', default:true},
-    ];}
-    function camposMinisterios() { return [
-        {key:'nome',         label:'Nome',         ph:'Ex: Ministério de Louvor', full:true},
-        {key:'tipo',         label:'Tipo',         type:'select', options:[{v:'ministerio',l:'Ministério'},{v:'area',l:'Área de Equipa'}]},
-        {key:'slug',         label:'Slug',         ph:'Ex: louvor'},
-        {key:'faixa_etaria', label:'Faixa Etária', ph:'Ex: Todas as idades'},
-        {key:'instagram',    label:'Instagram',    ph:'@handle'},
-        {key:'descricao',    label:'Descrição',    type:'textarea', ph:'...', full:true},
-        {key:'ativo',        label:'Ativo',        type:'checkbox', default:true},
-    ];}
     function camposSalas() { return [
         {key:'nome',               label:'Nome',          ph:'Ex: Sala Principal', full:true},
         {key:'espaco',             label:'Espaço',        ph:'Ex: Piso 1'},
@@ -1802,14 +1671,6 @@
         {key:'tem_mesas',          label:'Mesas',         type:'checkbox'},
         {key:'tem_cadeiras',       label:'Cadeiras',      type:'checkbox'},
         {key:'ativo',              label:'Ativo',         type:'checkbox', default:true},
-    ];}
-    function camposCursos() { return [
-        {key:'nome',          label:'Nome',           ph:'Ex: Curso de Louvor', full:true},
-        {key:'carga_horaria', label:'Carga Horária',  ph:'Ex: 40 horas'},
-        {key:'valor',         label:'Valor (€)',       type:'number', ph:'0.00'},
-        {key:'gratuito',      label:'Gratuito',        type:'checkbox'},
-        {key:'descricao',     label:'Descrição',       type:'textarea', ph:'...', full:true},
-        {key:'ativo',         label:'Ativo',           type:'checkbox', default:true},
     ];}
     function camposKeola() { return [
         {key:'nome',          label:'Nome',            ph:'Ex: Café Especial', full:true},
@@ -2904,7 +2765,7 @@
     let comprasData   = [];
     let contasPagarData = [];
     let contasReceberData = [];
-    let produtosCache = []; // loja + keola combinados
+    let produtosCache = []; 
 
     // Filtros
     let finFiltros = {
@@ -3805,22 +3666,6 @@
     // PERMISSÕES — NAV HIDE + GUARD
     // ══════════════════════════════════════════════════════════════════════════
 
-    // function aplicarPermissoesNav() {
-    //     document.querySelectorAll('.nav-item[data-secao]').forEach(el => {
-    //         const secao = el.dataset.secao;
-    //         // Utilizadores — só admin total
-    //         if (secao === 'utilizadores') {
-    //             el.style.display = userPerms.e_admin ? '' : 'none';
-    //             return;
-    //         }
-    //         if (secao && !perm(secao, 'ver')) {
-    //             el.style.display = 'none';
-    //         } else {
-    //             el.style.display = '';
-    //         }
-    //     });
-    // }
-
     function aplicarPermissoesNav() {
         const navParaSecao = {
             'lista-compras': 'lista_compras',
@@ -3881,23 +3726,6 @@
     // GESTÃO DE UTILIZADORES
     // ══════════════════════════════════════════════════════════════════════════
     let utilizadoresData = [];
-
-    // const TODAS_SECOES = [
-    //     { key: 'dashboard',    label: 'Dashboard' },
-    //     { key: 'membros',      label: 'Membros' },
-    //     { key: 'pastores',     label: 'Pastores' },
-    //     { key: 'links',        label: 'Links' },
-    //     { key: 'cultos',       label: 'Cultos' },
-    //     { key: 'ministerios',  label: 'Ministérios' },
-    //     { key: 'salas',        label: 'Salas' },
-    //     { key: 'cursos',       label: 'Cursos ZAO' },
-    //     { key: 'keola',        label: 'Keola' },
-    //     { key: 'loja',         label: 'Loja' },
-    //     { key: 'eventos',      label: 'Eventos' },
-    //     { key: 'fornecedores', label: 'Fornecedores' },
-    //     { key: 'financeiro',   label: 'Financeiro' },
-    //     { key: 'configuracoes',label: 'Configurações' },
-    // ];
 
     // TODAS_SECOES deriva de REGISTRO_MODULOS automaticamente
     const TODAS_SECOES = REGISTRO_MODULOS.map(m => ({ key: m.secao, label: m.label }));
@@ -3987,15 +3815,6 @@
             <div>Secção</div><div style="text-align:center">Ver</div><div style="text-align:center">Criar</div><div style="text-align:center">Editar</div><div style="text-align:center">Eliminar</div>
         </div>`;
 
-        // const linhasPerms = TODAS_SECOES.map(s => `
-        // <div style="display:grid;grid-template-columns:1fr repeat(4,56px);gap:4px;align-items:center;padding:5px 8px;border-radius:6px;background:var(--bg-card);margin-bottom:3px">
-        //     <div style="font-size:12px">${s.label}</div>
-        //     <div style="text-align:center"><input type="checkbox" id="pv_ver_${s.key}"      ${chk('ver_'+s.key)}      onchange="sincronizarPerms('${s.key}','ver',this.checked)"></div>
-        //     <div style="text-align:center"><input type="checkbox" id="pv_criar_${s.key}"    ${chk('criar_'+s.key)}    onchange="sincronizarPerms('${s.key}','criar',this.checked)"></div>
-        //     <div style="text-align:center"><input type="checkbox" id="pv_editar_${s.key}"   ${chk('editar_'+s.key)}   onchange="sincronizarPerms('${s.key}','editar',this.checked)"></div>
-        //     <div style="text-align:center"><input type="checkbox" id="pv_eliminar_${s.key}" ${chk('eliminar_'+s.key)} onchange="sincronizarPerms('${s.key}','eliminar',this.checked)"></div>
-        // </div>`).join('');
-
         const ACOES_COLS = ['ver','criar','editar','eliminar'];
         const linhasPerms = REGISTRO_MODULOS.map(mod => {
             const cols = ACOES_COLS.map(acao => {
@@ -4078,15 +3897,6 @@
         }
     }
 
-    // function definirTodasPerms(valor) {
-    //     TODAS_SECOES.forEach(s => {
-    //         ['ver','criar','editar','eliminar'].forEach(a => {
-    //             const el = document.getElementById(`pv_${a}_${s.key}`);
-    //             if (el) el.checked = valor;
-    //         });
-    //     });
-    // }
-
     function definirTodasPerms(valor) {
         REGISTRO_MODULOS.forEach(mod => {
             mod.acoes.forEach(acao => {
@@ -4102,26 +3912,6 @@
 
         const email = get('email');
         if (!email) { showFormMsg('Email obrigatório.','error'); return; }
-
-        // const SECOES_BD = ['membros','pastores','links','cultos','ministerios',
-        //     'salas','cursos','keola','loja','eventos','fornecedores','financeiro','configuracoes'];
-        // const ACCOES_BD = ['ver','criar','editar','eliminar'];
-        // const perms = { ver_dashboard: document.getElementById('pv_ver_dashboard')?.checked || false };
-        //
-        // SECOES_BD.forEach(s => {
-        //     ACCOES_BD.forEach(a => {
-        //         const el = document.getElementById(`pv_${a}_${s}`);
-        //         perms[`${a}_${s}`] = el ? el.checked : false;
-        //     });
-        // });
-        //
-        // const isAdmin = chk('admin');
-        // if (isAdmin) {
-        //     perms.ver_dashboard = true;
-        //     SECOES_BD.forEach(s => {
-        //         ACCOES_BD.forEach(a => { perms[`${a}_${s}`] = true; });
-        //     });
-        // }
 
         const perms = {};
         REGISTRO_MODULOS.forEach(mod => {
@@ -4551,10 +4341,6 @@
     let moduleCache = {};
     let moduleScriptLoaded = {};  // track which modules had their script executed
 
-    // async function loadModule(nome) {
-    //     // Nav active state
-    //     document.querySelectorAll('.nav-item').forEach(n => {
-
     async function loadModule(nome) {
         // Guard de permissão
         const _navParaSecao = { 'lista-compras': 'lista_compras' };
@@ -4638,6 +4424,9 @@
                     'cultos':       () => { cu_init(); },
                     'membros':       () => { mb_init(); },
                     'eventos': () => { evAtivo = null; evPresSearchQ = ''; evSetTab(0); },
+                    pastores:      function() { if (window.pa_init)  window.pa_init(); },
+                    fornecedores:  function() { if (window.fn_init)  window.fn_init(); },
+                    configuracoes: function() { if (window.cfg_init) window.cfg_init(); },
                 };
                 const reInit = reInitMap[nome];
                 if (reInit) reInit();

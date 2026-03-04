@@ -1,976 +1,570 @@
 <style>
-    /* ── EVENTOS MODULE ─────────────────────────────────────────────── */
-    .ev-tabs {
-        display: flex; gap: 0; border-bottom: 1px solid var(--border);
-        padding: 0 16px; background: var(--bg-card); flex-shrink: 0;
-        position: sticky; top: 0; z-index: 9;
-    }
-    .ev-tab {
-        padding: 10px 18px; font-family: var(--font-title); font-size: 9px;
-        letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint);
-        border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent;
-        transition: all 0.15s; margin-bottom: -1px;
-    }
-    .ev-tab.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
-    .ev-tab:hover:not(.active) { color: var(--text-muted); }
+/* ══ EVENTOS MODULE ══════════════════════════════════════════════════════ */
+.ev-wrap { display:flex; height:100%; overflow:hidden; background:var(--bg); }
 
-    .ev-toolbar {
-        display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
-        padding: 8px 16px; background: var(--bg-card);
-        border-bottom: 1px solid var(--border); flex-shrink: 0;
-        position: sticky; top: 37px; z-index: 8;
-    }
-    .ev-search {
-        flex: 1; min-width: 140px; padding: 7px 12px; border-radius: 20px;
-        border: 1px solid var(--border); background: var(--bg-input);
-        font-family: var(--font-body); font-size: 12px; color: var(--text-main);
-        outline: none;
-    }
-    .ev-search:focus { border-color: var(--primary); }
-    .ev-select {
-        padding: 7px 12px; border-radius: 20px; border: 1px solid var(--border);
-        background: var(--bg-input); font-family: var(--font-title); font-size: 9px;
-        letter-spacing: 1px; color: var(--text-muted); cursor: pointer; outline: none;
-    }
-    .ev-btn-new {
-        padding: 7px 16px; border-radius: 20px; border: none;
-        background: var(--primary); color: #fff; font-family: var(--font-title);
-        font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-        cursor: pointer; transition: background 0.15s; white-space: nowrap;
-    }
-    .ev-btn-new:hover { background: var(--primary-dark); }
+/* ── SIDEBAR ─────────────────────────────────────────────────────────── */
+.ev-side { width:260px; flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--border); background:var(--bg-card); overflow:hidden; }
+.ev-side-head { padding:10px 10px 0; flex-shrink:0; border-bottom:1px solid var(--border); }
 
-    /* Cards de eventos */
-    .ev-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
-    .ev-card {
-        background: var(--bg-card); border: 1px solid var(--border);
-        border-radius: 12px; padding: 14px 16px; transition: border-color 0.15s;
-    }
-    .ev-card:hover { border-color: var(--primary); }
-    .ev-card-head { display: flex; align-items: flex-start; gap: 12px; }
-    .ev-card-avatar {
-        width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-        background: var(--primary-faint); color: var(--primary-dark);
-        display: flex; align-items: center; justify-content: center;
-        font-family: var(--font-title); font-size: 16px; font-weight: 700;
-    }
-    .ev-card-info { flex: 1; min-width: 0; }
-    .ev-card-titulo { font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 3px; }
-    .ev-card-sub { font-size: 11px; color: var(--text-faint); margin-bottom: 6px; }
-    .ev-card-badges { display: flex; gap: 4px; flex-wrap: wrap; }
-    .ev-card-actions {
-        display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;
-        margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
-    }
-    .ev-btn {
-        padding: 5px 12px; border-radius: 8px; font-size: 11px; cursor: pointer;
-        border: 1px solid var(--border); background: var(--bg-input);
-        color: var(--text-muted); transition: all 0.12s; font-family: var(--font-title);
-        letter-spacing: 0.5px;
-    }
-    .ev-btn:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-faint); }
-    .ev-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .ev-btn.primary:hover { background: var(--primary-dark); }
-    .ev-btn.danger { color: var(--red); border-color: rgba(198,40,40,0.3); }
-    .ev-btn.danger:hover { background: rgba(198,40,40,0.08); }
-    .ev-btn.success { color: var(--green); border-color: rgba(46,125,50,0.3); }
-    .ev-btn.success:hover { background: rgba(46,125,50,0.08); }
-    .ev-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.ev-tabs { display:flex; gap:2px; margin-bottom:8px; }
+.ev-tab { flex:1; padding:6px 4px; font-family:var(--font-title); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint); border:1px solid transparent; border-radius:8px; background:none; cursor:pointer; transition:all .15s; text-align:center; }
+.ev-tab.active { background:var(--primary-faint); border-color:var(--primary); color:var(--primary-dark); }
+.ev-tab:hover:not(.active) { color:var(--text-muted); background:var(--bg-input); }
 
-    /* QR badge especial */
-    .ev-btn.qr {
-        color: var(--primary-dark); border-color: var(--primary);
-        background: var(--primary-faint); font-size: 11px;
-    }
+.ev-search { width:100%; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:12px; font-family:var(--font-body); color:var(--text-main); outline:none; box-sizing:border-box; margin-bottom:6px; }
+.ev-search:focus { border-color:var(--primary); }
 
-    /* Presencas view */
-    .pres-header {
-        padding: 12px 16px 8px; background: var(--bg-card);
-        border-bottom: 1px solid var(--border); flex-shrink: 0;
-    }
-    .pres-title { font-family: var(--font-title); font-size: 14px; color: var(--primary-dark); margin-bottom: 6px; }
-    .pres-stats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-    .pres-add-panel {
-        background: var(--bg-input); border: 1px solid var(--border);
-        border-radius: 10px; padding: 10px 12px; margin: 8px 16px 4px;
-    }
-    .pres-add-title {
-        font-family: var(--font-title); font-size: 8px; letter-spacing: 2px;
-        text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px;
-    }
-    .pres-add-row { display: flex; gap: 6px; align-items: center; }
-    .pres-grupo-label {
-        padding: 10px 16px 4px; font-family: var(--font-title); font-size: 9px;
-        letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint);
-    }
-    .pres-list { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 4px; }
-    .pres-row {
-        background: var(--bg-card); border: 1px solid var(--border);
-        border-radius: 10px; padding: 10px 12px;
-        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    }
-    .pres-foto {
-        width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 13px; font-weight: bold; background: var(--primary-faint);
-        color: var(--primary-dark); overflow: hidden;
-    }
-    .pres-foto img { width: 100%; height: 100%; object-fit: cover; }
-    .pres-info { flex: 1; min-width: 0; }
-    .pres-nome { font-size: 13px; font-weight: 600; color: var(--text-main); }
-    .pres-areas { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 3px; }
-    .pres-motivo { font-size: 11px; color: var(--orange, #e65100); margin-top: 2px; }
-    .pres-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+.ev-filtros { display:flex; flex-direction:column; gap:4px; padding-bottom:8px; }
+.ev-filtro-titulo { font-family:var(--font-title); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); padding:2px 0; }
+.ev-filtro-grupo { display:flex; flex-wrap:wrap; gap:3px; }
+.ev-filtro-chip { padding:3px 8px; border-radius:20px; border:1px solid var(--border); background:var(--bg-input); font-size:10px; color:var(--text-faint); cursor:pointer; transition:all .12s; white-space:nowrap; }
+.ev-filtro-chip:hover { border-color:var(--primary); color:var(--primary-dark); }
+.ev-filtro-chip.active { background:var(--primary-faint); border-color:var(--primary); color:var(--primary-dark); font-weight:700; }
+.ev-filtro-select { width:100%; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:5px 8px; font-size:11px; font-family:var(--font-body); color:var(--text-main); outline:none; box-sizing:border-box; cursor:pointer; }
+.ev-count { font-size:10px; color:var(--text-faint); padding:4px 0 0; text-align:right; }
 
-    /* Resumo graficos */
-    .ev-stats-grid {
-        display: grid; grid-template-columns: repeat(4,1fr); gap: 8px;
-        padding: 12px 16px 8px;
-    }
-    .ev-stat-box {
-        background: var(--bg-card); border: 1px solid var(--border);
-        border-radius: 10px; padding: 12px; text-align: center;
-    }
-    .ev-stat-num { font-family: var(--font-title); font-size: 22px; font-weight: 700; }
-    .ev-stat-label { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
-    .ev-stat-pct { font-size: 11px; font-weight: bold; margin-top: 2px; }
-    .ev-grafico-wrap {
-        background: var(--bg-card); border: 1px solid var(--border);
-        border-radius: 12px; padding: 16px; margin: 0 16px 12px;
-    }
-    .ev-grafico-title {
-        font-family: var(--font-title); font-size: 9px; letter-spacing: 2px;
-        text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px;
-    }
-    .ev-pizza-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-    .ev-legend { display: flex; flex-direction: column; gap: 6px; }
-    .ev-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
-    .ev-legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.ev-list { flex:1; overflow-y:auto; padding:6px; -webkit-overflow-scrolling:touch; }
+.ev-list-item { display:flex; align-items:flex-start; gap:8px; padding:8px; border-radius:8px; cursor:pointer; transition:background .12s; border:1px solid transparent; }
+.ev-list-item:hover { background:var(--primary-faint); }
+.ev-list-item.active { background:var(--primary-faint); border-color:var(--primary); }
+.ev-list-avatar { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; background:var(--primary-faint); color:var(--primary-dark); }
+.ev-list-info { flex:1; min-width:0; }
+.ev-list-nome { font-size:12px; font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ev-list-sub { font-size:10px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+.ev-list-badges { display:flex; gap:3px; margin-top:2px; flex-wrap:wrap; }
+.ev-list-sep { font-family:var(--font-title); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); padding:8px 8px 3px; border-top:1px solid var(--border); margin-top:4px; }
+.ev-list-sep:first-child { border-top:none; margin-top:0; }
 
-    /* Tipos de evento */
-    .tipo-row {
-        background: var(--bg-card); border: 1px solid var(--border);
-        border-radius: 10px; padding: 12px 14px;
-        display: flex; align-items: center; gap: 12px;
-    }
-    .tipo-num {
-        width: 26px; height: 26px; border-radius: 6px; background: var(--primary-faint);
-        color: var(--primary-dark); font-family: var(--font-title); font-size: 11px;
-        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .tipo-nome { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-main); }
-    .tipo-sub { font-size: 11px; color: var(--primary-dark); margin-top: 2px; }
-    .tipo-actions { display: flex; gap: 4px; }
+.ev-btn-novo { width:calc(100% - 12px); margin:6px; padding:7px; border-radius:8px; border:1px dashed var(--primary); background:var(--primary-faint); color:var(--primary-dark); font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer; transition:all .15s; flex-shrink:0; }
+.ev-btn-novo:hover { background:var(--primary); color:#fff; border-style:solid; }
 
-    /* Form drawer overrides */
-    .ev-form { display: flex; flex-direction: column; gap: 0; }
-    .ev-section-title {
-        font-family: var(--font-title); font-size: 9px; letter-spacing: 2px;
-        text-transform: uppercase; color: var(--text-faint);
-        padding: 14px 0 6px; border-bottom: 1px solid var(--border); margin-bottom: 10px;
-        grid-column: 1/-1;
-    }
-    .ev-empty {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 60px 24px; text-align: center; gap: 10px;
-    }
-    .ev-empty-icon { font-size: 32px; opacity: 0.3; }
-    .ev-empty-txt { font-size: 13px; color: var(--text-faint); }
+/* ── PAINEL DIREITO ──────────────────────────────────────────────────── */
+.ev-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; background:var(--bg); }
+.ev-panel-inner { flex:1; overflow-y:auto; padding:16px; -webkit-overflow-scrolling:touch; }
+.ev-panel-inner::-webkit-scrollbar { width:4px; }
+.ev-panel-inner::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 
-    /* QR Modal overlay */
-    .qr-modal-overlay {
-        position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-        z-index: 9999; display: flex; align-items: center; justify-content: center;
-        backdrop-filter: blur(4px);
-    }
-    .qr-modal {
-        background: var(--bg-card); border: 1px solid var(--border);
-        border-radius: 16px; padding: 28px 24px; max-width: 360px; width: 90%;
-        text-align: center;
-    }
-    .qr-modal-title {
-        font-family: var(--font-title); font-size: 11px; letter-spacing: 2px;
-        text-transform: uppercase; color: var(--primary-dark); margin-bottom: 4px;
-    }
-    .qr-modal-sub { font-size: 12px; color: var(--text-faint); margin-bottom: 20px; }
-    .qr-canvas-wrap {
-        background: #fff; border-radius: 10px; padding: 16px;
-        display: inline-block; margin-bottom: 16px;
-    }
-    .qr-url {
-        font-size: 10px; color: var(--text-faint); word-break: break-all;
-        background: var(--bg-input); padding: 8px 10px; border-radius: 8px;
-        margin-bottom: 14px; text-align: left;
-    }
-    .qr-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.ev-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:300px; gap:10px; padding:40px; text-align:center; }
+.ev-empty-icon { font-size:28px; opacity:.25; }
+.ev-empty-txt { font-size:13px; color:var(--text-faint); line-height:1.6; max-width:260px; }
+
+/* Botoes */
+.ev-btn { padding:7px 14px; border-radius:8px; font-family:var(--font-title); font-size:9px; letter-spacing:1px; text-transform:uppercase; border:1px solid var(--border); background:var(--bg-input); color:var(--text-muted); cursor:pointer; transition:all .12s; }
+.ev-btn:hover { border-color:var(--primary); color:var(--primary-dark); background:var(--primary-faint); }
+.ev-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+.ev-btn.primary:hover { background:var(--primary-dark); }
+.ev-btn.success { color:#2e7d32; border-color:rgba(46,125,50,.35); }
+.ev-btn.success:hover { background:rgba(46,125,50,.08); }
+.ev-btn.danger  { color:#c62828; border-color:rgba(198,40,40,.35); }
+.ev-btn.danger:hover  { background:rgba(198,40,40,.08); }
+.ev-btn.qr      { color:var(--primary-dark); border-color:var(--primary); background:var(--primary-faint); }
+.ev-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Presencas */
+.ev-pres-add { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
+.ev-pres-add-title { font-family:var(--font-title); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px; }
+.ev-pres-add-row { display:flex; gap:6px; align-items:center; }
+.ev-grupo-label { font-family:var(--font-title); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); padding:10px 0 5px; border-top:1px solid var(--border); margin-top:6px; }
+.ev-pres-row { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:5px; }
+.ev-pres-foto { width:36px; height:36px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; background:var(--primary-faint); color:var(--primary-dark); overflow:hidden; }
+.ev-pres-foto img { width:100%; height:100%; object-fit:cover; }
+.ev-pres-info { flex:1; min-width:0; }
+.ev-pres-nome { font-size:13px; font-weight:600; color:var(--text-main); }
+.ev-pres-areas { display:flex; gap:3px; flex-wrap:wrap; margin-top:3px; }
+.ev-pres-btns { display:flex; gap:4px; flex-wrap:wrap; }
+
+/* Stats */
+.ev-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px; }
+.ev-stat-box { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 8px; text-align:center; }
+.ev-stat-num { font-family:var(--font-title); font-size:22px; font-weight:700; }
+.ev-stat-lbl { font-size:9px; color:var(--text-faint); margin-top:2px; }
+.ev-chart-box { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:12px; }
+.ev-chart-title { font-family:var(--font-title); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); margin-bottom:12px; }
+.ev-pizza-row { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.ev-legend { display:flex; flex-direction:column; gap:6px; }
+.ev-legend-item { display:flex; align-items:center; gap:6px; font-size:12px; }
+.ev-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* QR Modal */
+.ev-qr-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
+.ev-qr-modal { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:28px 24px; max-width:340px; width:92%; text-align:center; }
+.ev-qr-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--primary-dark); margin-bottom:3px; }
+.ev-qr-sub { font-size:12px; color:var(--text-faint); margin-bottom:18px; }
+.ev-qr-canvas-wrap { background:#fff; border-radius:10px; padding:14px; display:inline-block; margin-bottom:14px; }
+.ev-qr-url { font-size:10px; color:var(--text-faint); word-break:break-all; background:var(--bg-input); padding:8px 10px; border-radius:8px; margin-bottom:14px; text-align:left; }
+.ev-qr-btns { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+
+.ev-form-section { font-family:var(--font-title); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); padding:14px 0 6px; border-bottom:1px solid var(--border); margin-bottom:10px; grid-column:1/-1; }
 </style>
 
-<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">
-
-    <!-- TABS -->
-    <div class="ev-tabs" id="ev-tabs">
-        <button class="ev-tab active" id="ev-tab-0" onclick="evSetTab(0)">Eventos</button>
-        <button class="ev-tab" id="ev-tab-1" onclick="evSetTab(1)">Tipos de Evento</button>
+<div class="ev-wrap" id="ev-wrap">
+    <!-- SIDEBAR -->
+    <div class="ev-side" id="ev-side">
+        <div class="ev-side-head">
+            <div class="ev-tabs">
+                <button class="ev-tab active" id="ev-tab-0" onclick="evSetTab(0)">Eventos</button>
+                <button class="ev-tab"        id="ev-tab-1" onclick="evSetTab(1)">Tipos</button>
+            </div>
+            <div id="ev-filtros-wrap">
+                <input class="ev-search" id="ev-search" type="text" placeholder="Pesquisar evento..." oninput="evFiltrar()">
+                <div class="ev-filtros">
+                    <div class="ev-filtro-titulo">Tipo de Reuniao</div>
+                    <select class="ev-filtro-select" id="ev-filtro-tipo" onchange="evFiltrar()">
+                        <option value="">Todos os tipos</option>
+                    </select>
+                    <div class="ev-filtro-titulo">Estado</div>
+                    <div class="ev-filtro-grupo">
+                        <button class="ev-filtro-chip" data-st="aberto"    onclick="evToggleSt(this)">Aberto</button>
+                        <button class="ev-filtro-chip" data-st="em_curso"  onclick="evToggleSt(this)">Em Curso</button>
+                        <button class="ev-filtro-chip" data-st="concluido" onclick="evToggleSt(this)">Concluido</button>
+                        <button class="ev-filtro-chip" data-st="cancelado" onclick="evToggleSt(this)">Cancelado</button>
+                    </div>
+                    <div class="ev-count" id="ev-count"></div>
+                </div>
+            </div>
+        </div>
+        <div class="ev-list" id="ev-list"><div style="padding:16px;font-size:12px;color:var(--text-faint)">A carregar...</div></div>
+        <button class="ev-btn-novo" id="ev-btn-novo" onclick="evAbrirForm(null)">+ Novo Evento</button>
     </div>
 
-    <!-- CONTEUDO -->
-    <div id="ev-main" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
-
+    <!-- PAINEL -->
+    <div class="ev-panel" id="ev-panel">
+        <div class="ev-panel-inner" id="ev-panel-inner">
+            <div class="ev-empty"><div class="ev-empty-icon">—</div><div class="ev-empty-txt">Seleciona um evento na lista lateral ou cria um novo.</div></div>
+        </div>
+    </div>
 </div>
 
 <script>
-    (function() {
+(function(){
 
-// ── ESTADO ─────────────────────────────────────────────────────────────────
-        let evTab         = 0;
-        let evEventos     = [];
-        let evPresencas   = [];
-        let evLidMin      = {};
-        let evAtivo       = null;  // evento a ver presencas
-        let evPresSearchQ = '';
+let evTab=0, evEventos=[], evPresencas=[], evLidMin={}, evAtivo=null, evView='info';
+let evFiltroQ='', evFiltroSt=new Set(), evFiltroTipo='', evPresSearchQ='', _motivoId=null, evTipoIdx=null;
 
-        let evFiltroQ     = '';
-        let evFiltroTipo  = '';
-        let evFiltroSt    = '';
+const ST={aberto:{label:'Aberto',cls:'badge-green'},em_curso:{label:'Em Curso',cls:'badge-primary'},concluido:{label:'Concluido',cls:'badge-gray'},cancelado:{label:'Cancelado',cls:'badge-red'}};
+const _sb=window.sb;
 
-        const EV_STATUS = {
-            aberto:   { label: 'Aberto',    cls: 'badge-green'   },
-            em_curso: { label: 'Em Curso',  cls: 'badge-primary' },
-            concluido:{ label: 'Concluído', cls: 'badge-gray'    },
-            cancelado:{ label: 'Cancelado', cls: 'badge-red'     },
-        };
+function getTipos(){try{const s=localStorage.getItem('zion_tipos_evento');return s?JSON.parse(s):['Reuniao de Lideres','Culto Especial','Conferencia','Retiro','Treinamento','Workshop','Conferencia de Jovens','Encontro de Casais','Culto de Oracao','Seminario','Outro'];}catch{return[];}}
+function saveTipos(l){localStorage.setItem('zion_tipos_evento',JSON.stringify(l));}
 
-// ── HELPERS GLOBAIS (supabase + membros herdados do admin) ─────────────────
-        const _sb = window.sb;
-        const _membros = () => window.membros || [];
-        const _user    = () => window.currentUser || {};
-        const _SUPA_URL = () => window.SUPA_URL || '';
-        const _SUPA_KEY = () => window.SUPA_KEY || '';
+async function evInit(){
+    evEventos=await _sb('eventos?select=*&order=data_inicio')||[];
+    evSetTab(0);
+}
 
-        function getTipos() {
-            try {
-                const s = localStorage.getItem('zion_tipos_evento');
-                return s ? JSON.parse(s) : ['Reunião de Líderes','Culto Especial','Conferência','Retiro','Treinamento','Workshop','Conferência de Jovens','Encontro de Casais','Culto de Oração','Seminário','Outro'];
-            } catch { return []; }
-        }
-        function saveTipos(l) {
-            localStorage.setItem('zion_tipos_evento', JSON.stringify(l));
-            if (window.syncTiposEvento) window.syncTiposEvento();
-        }
+function evSetTab(t){
+    evTab=t;
+    document.querySelectorAll('.ev-tab').forEach((b,i)=>b.classList.toggle('active',i===t));
+    const fw=document.getElementById('ev-filtros-wrap');
+    if(fw) fw.style.display=t===0?'':'none';
+    const nb=document.getElementById('ev-btn-novo');
+    if(t===0){if(nb){nb.textContent='+ Novo Evento';nb.onclick=()=>evAbrirForm(null);} evRenderSide(); evAtivo?evRenderDetalhe():evPanelEmpty('Seleciona um evento.');}
+    if(t===1){if(nb){nb.textContent='+ Novo Tipo';nb.onclick=()=>evAbrirFormTipo(null);} evRenderSideTipos(); evPanelEmpty('Seleciona um tipo para editar ou cria um novo.');}
+}
 
-// ── INIT ───────────────────────────────────────────────────────────────────
-        async function evInit() {
-            evEventos = await _sb('eventos?select=*&order=data_inicio') || [];
-            evSetTab(0);
-        }
+function evPanelEmpty(msg){document.getElementById('ev-panel-inner').innerHTML=`<div class="ev-empty"><div class="ev-empty-icon">—</div><div class="ev-empty-txt">${msg}</div></div>`;}
 
-        function evSetTab(t) {
-            evTab = t;
-            document.querySelectorAll('.ev-tab').forEach((b,i) => b.classList.toggle('active', i === t));
-            if (t === 0) evRenderEventos();
-            if (t === 1) evRenderTipos();
-        }
+// ── SIDEBAR EVENTOS ────────────────────────────────────────────────────
+function evRenderSide(){
+    const tipos=getTipos();
+    const sel=document.getElementById('ev-filtro-tipo');
+    if(sel) sel.innerHTML='<option value="">Todos os tipos</option>'+tipos.map(t=>`<option value="${t}" ${evFiltroTipo===t?'selected':''}>${t}</option>`).join('');
 
-// ══════════════════════════════════════════════════════════════════════════
-// ABA 0 — LISTA DE EVENTOS
-// ══════════════════════════════════════════════════════════════════════════
-        function evRenderEventos() {
-            if (evAtivo) { evRenderPresencas(); return; }
+    let lista=[...evEventos].sort((a,b)=>new Date(b.data_inicio)-new Date(a.data_inicio));
+    if(evFiltroQ) lista=lista.filter(e=>(e.titulo||'').toLowerCase().includes(evFiltroQ.toLowerCase()));
+    if(evFiltroSt.size) lista=lista.filter(e=>evFiltroSt.has(e.status));
+    if(evFiltroTipo) lista=lista.filter(e=>e.tipo===evFiltroTipo);
 
-            const tipos = getTipos();
-            let lista = [...evEventos].sort((a,b) => new Date(a.data_inicio) - new Date(b.data_inicio));
-            if (evFiltroQ)   lista = lista.filter(e => (e.titulo||'').toLowerCase().includes(evFiltroQ.toLowerCase()) || (e.local||'').toLowerCase().includes(evFiltroQ.toLowerCase()));
-            if (evFiltroTipo)lista = lista.filter(e => e.tipo === evFiltroTipo);
-            if (evFiltroSt)  lista = lista.filter(e => e.status === evFiltroSt);
+    const ct=document.getElementById('ev-count'); if(ct) ct.textContent=`${lista.length} evento(s)`;
+    const list=document.getElementById('ev-list');
+    if(!lista.length){list.innerHTML=`<div style="padding:16px;font-size:12px;color:var(--text-faint)">Nenhum evento encontrado.</div>`;return;}
 
-            const tipoOpts = tipos.map(t => `<option value="${t}" ${evFiltroTipo===t?'selected':''}>${t}</option>`).join('');
+    const grupos={em_curso:[],aberto:[],concluido:[],cancelado:[]};
+    lista.forEach(e=>{(grupos[e.status||'aberto']=grupos[e.status||'aberto']||[]).push(e);});
+    const ord=['em_curso','aberto','concluido','cancelado'];
+    const lbs={em_curso:'Em Curso',aberto:'Abertos',concluido:'Concluidos',cancelado:'Cancelados'};
 
-            let html = `
-    <div class="ev-toolbar">
-        <input class="ev-search" placeholder="Pesquisar evento..." value="${evFiltroQ}"
-               oninput="evFiltroQ=this.value;evRenderEventos()">
-        <select class="ev-select" onchange="evFiltroTipo=this.value;evRenderEventos()">
-            <option value="">Todos os tipos</option>${tipoOpts}
-        </select>
-        <select class="ev-select" onchange="evFiltroSt=this.value;evRenderEventos()">
-            <option value="">Todos os estados</option>
-            <option value="aberto"   ${evFiltroSt==='aberto'?'selected':''}>Aberto</option>
-            <option value="em_curso" ${evFiltroSt==='em_curso'?'selected':''}>Em Curso</option>
-            <option value="concluido"${evFiltroSt==='concluido'?'selected':''}>Concluído</option>
-            <option value="cancelado"${evFiltroSt==='cancelado'?'selected':''}>Cancelado</option>
-        </select>
-        <button class="ev-btn-new" onclick="evAbrirForm(null)">+ Novo</button>
-    </div>`;
-
-            if (!lista.length) {
-                html += `<div class="ev-empty"><div class="ev-empty-icon">—</div><div class="ev-empty-txt">Nenhum evento encontrado.</div></div>`;
-                document.getElementById('ev-main').innerHTML = html; return;
-            }
-
-            html += '<div class="ev-list">';
-            lista.forEach((e, i) => {
-                const st  = EV_STATUS[e.status] || EV_STATUS.aberto;
-                const dI  = e.data_inicio ? new Date(e.data_inicio).toLocaleDateString('pt-PT', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-                const dF  = e.data_fim    ? new Date(e.data_fim).toLocaleDateString('pt-PT', {day:'2-digit',month:'short'}) : '';
-                const btns = [];
-
-                if (e.status === 'aberto') {
-                    btns.push(`<button class="ev-btn" onclick="evEditar('${e.id}')">Editar</button>`);
-                    btns.push(`<button class="ev-btn success" onclick="evIniciar('${e.id}')">Iniciar</button>`);
-                }
-                if (e.status === 'em_curso') {
-                    btns.push(`<button class="ev-btn primary" onclick="evAbrirPresencas('${e.id}')">Presenças</button>`);
-                    btns.push(`<button class="ev-btn qr" onclick="evMostrarQR('${e.id}')">QR Code</button>`);
-                    btns.push(`<button class="ev-btn success" onclick="evConcluir('${e.id}')">Concluir</button>`);
-                }
-                if (e.status === 'concluido' || e.status === 'cancelado') {
-                    btns.push(`<button class="ev-btn" onclick="evAbrirPresencas('${e.id}')">Ver Resumo</button>`);
-                }
-                if (e.status === 'concluido') {
-                    btns.push(`<button class="ev-btn danger" onclick="evGerarPDF('${e.id}')">PDF</button>`);
-                }
-                if (e.status !== 'cancelado' && e.status !== 'concluido') {
-                    btns.push(`<button class="ev-btn danger" onclick="evCancelar('${e.id}')">Cancelar</button>`);
-                }
-
-                html += `
-        <div class="ev-card" style="animation:fadeIn 0.2s ease both;animation-delay:${Math.min(i,10)*0.03}s">
-            <div class="ev-card-head">
-                <div class="ev-card-avatar">${(e.titulo||'E')[0]}</div>
-                <div class="ev-card-info">
-                    <div class="ev-card-titulo">${e.titulo || '—'}</div>
-                    <div class="ev-card-sub">${dI}${dF ? ' — ' + dF : ''}${e.local ? ' · ' + e.local : ''}</div>
-                    <div class="ev-card-badges">
-                        <span class="badge ${st.cls}">${st.label}</span>
-                        ${e.tipo ? `<span class="badge badge-gray">${e.tipo}</span>` : ''}
-                        ${e.gratuito ? '<span class="badge badge-green">Gratuito</span>' : ''}
-                        ${e.destaque ? '<span class="badge badge-primary">Destaque</span>' : ''}
+    let html='';
+    ord.forEach(g=>{
+        if(!grupos[g]?.length) return;
+        html+=`<div class="ev-list-sep">${lbs[g]} (${grupos[g].length})</div>`;
+        grupos[g].forEach(e=>{
+            const st=ST[e.status]||ST.aberto;
+            const dI=e.data_inicio?new Date(e.data_inicio).toLocaleDateString('pt-PT',{day:'2-digit',month:'short'}):'—';
+            html+=`<div class="ev-list-item ${evAtivo?.id===e.id?'active':''}" onclick="evSelEvento('${e.id}')">
+                <div class="ev-list-avatar">${(e.titulo||'E')[0]}</div>
+                <div class="ev-list-info">
+                    <div class="ev-list-nome">${e.titulo||'—'}</div>
+                    <div class="ev-list-sub">${dI}${e.local?' · '+e.local:''}</div>
+                    <div class="ev-list-badges">
+                        <span class="badge ${st.cls}" style="font-size:8px;padding:1px 6px">${st.label}</span>
+                        ${e.tipo?`<span class="badge badge-gray" style="font-size:8px;padding:1px 6px">${e.tipo}</span>`:''}
                     </div>
                 </div>
-            </div>
-            <div class="ev-card-actions">${btns.join('')}</div>
-        </div>`;
-            });
-            html += '</div>';
-            document.getElementById('ev-main').innerHTML = html;
-        }
-
-// ── ACOES EVENTO ───────────────────────────────────────────────────────────
-        async function evIniciar(id) {
-            const ev = evEventos.find(e => e.id === id);
-            if (!ev) return;
-            const isLideres = ev.tipo === 'Reunião de Líderes';
-            if (!confirm(`Iniciar "${ev.titulo}"?${isLideres ? ' Todos os líderes serão adicionados automaticamente.' : ''}`)) return;
-            await _sb(`eventos?id=eq.${id}`, { method:'PATCH', body: JSON.stringify({ status: 'em_curso' }) });
-            if (isLideres) {
-                const lideres = await _sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true').catch(()=>[]);
-                if (lideres?.length) {
-                    const rows = lideres.map(l => ({ evento_id: id, membro_id: l.id, status: 'pendente' }));
-                    await _sb('evento_presencas', { method:'POST', body: JSON.stringify(rows) });
-                }
-            }
-            await evRecarregar(); evRenderEventos();
-        }
-
-        async function evConcluir(id) {
-            if (!confirm('Concluir evento? Pendentes serão marcados como faltaram.')) return;
-            await _sb(`evento_presencas?evento_id=eq.${id}&status=eq.pendente`, { method:'PATCH', body: JSON.stringify({ status:'faltou' }) });
-            await _sb(`eventos?id=eq.${id}`, { method:'PATCH', body: JSON.stringify({ status:'concluido' }) });
-            evAtivo = null; await evRecarregar(); evRenderEventos();
-        }
-
-        async function evCancelar(id) {
-            if (!confirm('Cancelar este evento?')) return;
-            await _sb(`eventos?id=eq.${id}`, { method:'PATCH', body: JSON.stringify({ status:'cancelado' }) });
-            await evRecarregar(); evRenderEventos();
-        }
-
-        async function evRecarregar() {
-            evEventos = await _sb('eventos?select=*&order=data_inicio') || [];
-        }
-
-        function evEditar(id) { evAbrirForm(id); }
-
-// ── QR CODE ────────────────────────────────────────────────────────────────
-        async function evMostrarQR(id) {
-            const ev = evEventos.find(e => e.id === id);
-            if (!ev) return;
-
-            // Garantir que o evento tem um qr_token
-            let token = ev.qr_token;
-            if (!token) {
-                token = evGerarToken();
-                await _sb(`eventos?id=eq.${id}`, { method:'PATCH', body: JSON.stringify({ qr_token: token }) });
-                ev.qr_token = token;
-            }
-
-            const baseUrl = window.location.origin + window.location.pathname.replace('admin.html','');
-            const url = `${baseUrl}presenca.html?e=${id}&t=${token}`;
-
-            // Criar overlay
-            const overlay = document.createElement('div');
-            overlay.className = 'qr-modal-overlay';
-            overlay.id = 'qr-overlay';
-            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-            overlay.innerHTML = `
-    <div class="qr-modal">
-        <div class="qr-modal-title">QR Code de Presença</div>
-        <div class="qr-modal-sub">${ev.titulo}</div>
-        <div class="qr-canvas-wrap">
-            <canvas id="qr-canvas"></canvas>
-        </div>
-        <div class="qr-url">${url}</div>
-        <div class="qr-actions">
-            <button class="ev-btn" onclick="evCopiarURL('${url}')">Copiar Link</button>
-            <button class="ev-btn primary" onclick="evDownloadQR('${ev.titulo}')">Download PNG</button>
-            <button class="ev-btn" onclick="document.getElementById('qr-overlay').remove()">Fechar</button>
-        </div>
-    </div>`;
-            document.body.appendChild(overlay);
-
-            // Gerar QR com qrcode.js (CDN)
-            evCarregarQRLib().then(() => {
-                const canvas = document.getElementById('qr-canvas');
-                if (canvas && window.QRCode) {
-                    QRCode.toCanvas(canvas, url, { width: 200, margin: 1, color: { dark: '#005f65', light: '#ffffff' } }, () => {});
-                }
-            });
-        }
-
-        function evGerarToken() {
-            const arr = new Uint8Array(20);
-            crypto.getRandomValues(arr);
-            return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
-        }
-
-        function evCopiarURL(url) {
-            navigator.clipboard.writeText(url).then(() => alert('Link copiado!')).catch(() => {
-                const el = document.createElement('textarea');
-                el.value = url; document.body.appendChild(el); el.select();
-                document.execCommand('copy'); el.remove(); alert('Link copiado!');
-            });
-        }
-
-        function evDownloadQR(nome) {
-            const canvas = document.getElementById('qr-canvas');
-            if (!canvas) return;
-            const a = document.createElement('a');
-            a.download = `qr-${(nome||'evento').replace(/\s+/g,'-').toLowerCase()}.png`;
-            a.href = canvas.toDataURL('image/png');
-            a.click();
-        }
-
-        function evCarregarQRLib() {
-            return new Promise(resolve => {
-                if (window.QRCode) { resolve(); return; }
-                const s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-                s.onload = resolve; s.onerror = resolve;
-                document.head.appendChild(s);
-            });
-        }
-
-// ── PRESENÇAS ──────────────────────────────────────────────────────────────
-        async function evAbrirPresencas(id) {
-            evAtivo = evEventos.find(e => e.id === id);
-            evPresencas = await _sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url)&evento_id=eq.${id}&order=created_at`) || [];
-            const mIds = evPresencas.map(p => p.membro_id).filter(Boolean);
-            evLidMin = {};
-            if (mIds.length) {
-                const vincs = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`) || [];
-                vincs.forEach(v => {
-                    if (!evLidMin[v.membro_id]) evLidMin[v.membro_id] = [];
-                    evLidMin[v.membro_id].push({ papel: v.papel, nome: v.ministerios?.nome||'—', tipo: v.ministerios?.tipo||'—' });
-                });
-            }
-            evRenderPresencas();
-        }
-
-        function evRenderPresencas() {
-            const ev      = evAtivo;
-            const st      = EV_STATUS[ev?.status] || EV_STATUS.aberto;
-            const emCurso = ev?.status === 'em_curso';
-            const q       = evPresSearchQ.toLowerCase();
-            let lista     = [...evPresencas];
-            if (q) lista  = lista.filter(p => (p.membros?.nome||'').toLowerCase().includes(q));
-
-            const presentes = evPresencas.filter(p => p.status === 'presente').length;
-            const faltaram  = evPresencas.filter(p => p.status === 'faltou').length;
-            const comMotivo = evPresencas.filter(p => p.status === 'faltou_motivo').length;
-            const pendentes = evPresencas.filter(p => p.status === 'pendente').length;
-            const total     = evPresencas.length;
-
-            const jaAdicionados  = new Set(evPresencas.map(p => p.membro_id));
-            const membrosDisp    = _membros().filter(m => !jaAdicionados.has(m.id));
-
-            let html = `
-    <div class="ev-toolbar" style="top:37px">
-        <button class="ev-btn" onclick="evVoltarLista()">← Voltar</button>
-        ${ev?.status === 'em_curso' ? `<button class="ev-btn qr" onclick="evMostrarQR('${ev.id}')">QR Code</button>` : ''}
-        ${ev?.status === 'concluido' ? `<button class="ev-btn danger" onclick="evGerarPDF('${ev.id}')">PDF</button>` : ''}
-        <input class="ev-search" style="flex:1;min-width:100px" placeholder="Pesquisar participante..."
-               value="${evPresSearchQ}" oninput="evPresSearchQ=this.value;evRenderPresencas()">
-        ${emCurso ? `<button class="ev-btn-new" onclick="evFinalizarEntradas()">Finalizar Entradas</button>` : ''}
-    </div>
-
-    <div class="pres-header">
-        <div class="pres-title">${ev?.titulo || '—'}</div>
-        <div class="pres-stats">
-            <span class="badge ${st.cls}">${st.label}</span>
-            <span class="badge badge-green">Presentes: ${presentes}</span>
-            <span class="badge badge-red">Faltaram: ${faltaram + comMotivo}</span>
-            ${comMotivo ? `<span class="badge badge-primary">Com motivo: ${comMotivo}</span>` : ''}
-            ${pendentes ? `<span class="badge badge-gray">Pendentes: ${pendentes}</span>` : ''}
-            <span class="badge badge-gray">Total: ${total}</span>
-        </div>
-    </div>`;
-
-            if (emCurso) {
-                html += `
-        <div class="pres-add-panel">
-            <div class="pres-add-title">Adicionar participante</div>
-            <div class="pres-add-row">
-                <select class="form-select" id="ev-add-membro" style="flex:1">
-                    <option value="">Seleciona membro...</option>
-                    ${membrosDisp.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
-                </select>
-                <button class="ev-btn primary" onclick="evAddParticipante()">+ Adicionar</button>
-            </div>
-        </div>`;
-            }
-
-            html += '<div style="height:1px;background:var(--border);margin:8px 16px"></div>';
-
-            if (!lista.length) {
-                html += `<div class="ev-empty"><div class="ev-empty-txt">Nenhum participante encontrado.</div></div>`;
-            } else {
-                const grupos = [
-                    { key:'presente',      label:'Presentes',          items: lista.filter(p => p.status === 'presente')      },
-                    { key:'pendente',      label:'Pendentes',           items: lista.filter(p => p.status === 'pendente')      },
-                    { key:'faltou_motivo', label:'Faltaram com Motivo', items: lista.filter(p => p.status === 'faltou_motivo') },
-                    { key:'faltou',        label:'Faltaram',            items: lista.filter(p => p.status === 'faltou')        },
-                ].filter(g => g.items.length > 0);
-
-                grupos.forEach(grupo => {
-                    html += `<div class="pres-grupo-label">${grupo.label} (${grupo.items.length})</div>`;
-                    html += '<div class="pres-list">';
-                    grupo.items.forEach((p, i) => {
-                        const nome   = p.membros?.nome || '—';
-                        const stColor = { presente:'var(--green)', faltou:'var(--red)', faltou_motivo:'var(--orange,#e65100)', pendente:'var(--border)' }[p.status] || 'var(--border)';
-                        const mins   = evLidMin[p.membro_id] || [];
-                        const minsHtml = mins.map(m => `<span class="badge badge-gray" style="font-size:8px">${m.tipo==='ministerio'?'MIN':'AE'} · ${m.nome}${m.papel?' · '+m.papel:''}</span>`).join('');
-
-                        let btns = '';
-                        if (emCurso) {
-                            if (p.status !== 'presente')      btns += `<button class="ev-btn success" onclick="evMarcarPresenca('${p.id}','presente')">Presente</button>`;
-                            if (p.status !== 'faltou')        btns += `<button class="ev-btn danger"  onclick="evMarcarPresenca('${p.id}','faltou')">Faltou</button>`;
-                            if (p.status !== 'faltou_motivo') btns += `<button class="ev-btn" onclick="evAbrirMotivo('${p.id}','${nome.replace(/'/g,"\\'")}')">Com Motivo</button>`;
-                            if (p.status !== 'pendente')      btns += `<button class="ev-btn" title="Desfazer" onclick="evMarcarPresenca('${p.id}','pendente')">↩</button>`;
-                        }
-
-                        let zapBtn = '';
-                        if (p.membros?.telefone) {
-                            const tel = p.membros.telefone.replace(/\D/g,'');
-                            const dEvt = evAtivo?.data_inicio ? new Date(evAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '';
-                            const msg  = encodeURIComponent(`Olá ${p.membros.nome?.split(' ')[0]}! Confirmas presença na ${evAtivo?.titulo||'reunião'} ${dEvt}?`);
-                            zapBtn = `<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener"
-                        style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#25D366;text-decoration:none;padding:2px 6px;border-radius:6px;border:1px solid rgba(37,211,102,0.3);background:rgba(37,211,102,0.06)">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Zap</a>`;
-                        }
-
-                        const fotoSrc = p.membros?.foto_url;
-                        const fotoHtml = fotoSrc
-                            ? `<img src="${fotoSrc}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid ${stColor}" onerror="this.style.display='none'">`
-                            : `<div class="pres-foto" style="border:2px solid ${stColor}">${nome[0]||'?'}</div>`;
-
-                        html += `
-                <div class="pres-row" style="animation:fadeIn 0.15s ease both;animation-delay:${Math.min(i,20)*0.01}s">
-                    ${fotoHtml}
-                    <div class="pres-info">
-                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                            <span class="pres-nome">${nome}</span>${zapBtn}
-                        </div>
-                        <div class="pres-areas">${minsHtml || '<span style="font-size:10px;color:var(--text-faint)">Sem áreas</span>'}</div>
-                        ${p.motivo ? `<div class="pres-motivo">Motivo: ${p.motivo}</div>` : ''}
-                    </div>
-                    <div class="pres-actions">${btns}</div>
-                </div>`;
-                    });
-                    html += '</div>';
-                });
-            }
-
-            // Graficos resumo
-            if (ev?.status === 'concluido' || ev?.status === 'em_curso') {
-                html += '<div style="height:1px;background:var(--border);margin:12px 16px 4px"></div>';
-                html += `<div style="padding:6px 16px 2px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">Resumo</div>`;
-                html += evRenderResumo(evPresencas, evLidMin);
-            }
-
-            document.getElementById('ev-main').innerHTML = html;
-            const si = document.getElementById('ev-main').querySelector('input[type=text]');
-        }
-
-        function evVoltarLista() { evAtivo = null; evPresSearchQ = ''; evRenderEventos(); }
-
-        async function evMarcarPresenca(presId, novoSt) {
-            const patch = { status: novoSt, registado_em: new Date().toISOString() };
-            if (novoSt === 'pendente') patch.motivo = '';
-            await _sb(`evento_presencas?id=eq.${presId}`, { method:'PATCH', body: JSON.stringify(patch) });
-            const idx = evPresencas.findIndex(p => p.id === presId);
-            if (idx >= 0) { evPresencas[idx].status = novoSt; if (novoSt === 'pendente') evPresencas[idx].motivo = ''; }
-            evRenderPresencas();
-        }
-
-        async function evAddParticipante() {
-            const sel   = document.getElementById('ev-add-membro');
-            const memId = sel?.value;
-            if (!memId) return;
-            if (evPresencas.find(p => p.membro_id === memId)) { alert('Este membro já está na lista.'); return; }
-            await _sb('evento_presencas', { method:'POST', body: JSON.stringify([{ evento_id: evAtivo.id, membro_id: memId, status:'pendente' }]) });
-            await evAbrirPresencas(evAtivo.id);
-        }
-
-        async function evFinalizarEntradas() {
-            if (!evAtivo) return;
-            if (!confirm('Pendentes serão marcados como faltaram.')) return;
-            await _sb(`evento_presencas?evento_id=eq.${evAtivo.id}&status=eq.pendente`, { method:'PATCH', body: JSON.stringify({ status:'faltou' }) });
-            evPresencas.forEach(p => { if (p.status === 'pendente') p.status = 'faltou'; });
-            evRenderPresencas();
-        }
-
-        let _motivoId = null;
-        function evAbrirMotivo(presId, nome) {
-            _motivoId = presId;
-            if (window.openDrawer) {
-                openDrawer(`Motivo — ${nome}`, `<div class="form-grid">
-            <div class="form-group form-full"><label class="form-label">Motivo da Falta</label>
-                <textarea class="form-textarea" id="ev-motivo-txt" placeholder="Descreve o motivo..." style="height:100px"></textarea></div>
-            <div class="form-actions">
-                <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
-                <button class="btn-save" onclick="evGuardarMotivo()">Guardar</button>
-            </div></div>`);
-            } else {
-                document.getElementById('drawer-title').textContent = `Motivo — ${nome}`;
-                document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
-            <div class="form-group form-full"><label class="form-label">Motivo da Falta</label>
-                <textarea class="form-textarea" id="ev-motivo-txt" placeholder="Descreve o motivo..." style="height:100px"></textarea></div>
-            <div class="form-actions">
-                <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
-                <button class="btn-save" onclick="evGuardarMotivo()">Guardar</button>
-            </div></div>`;
-                document.getElementById('overlay').classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-        async function evGuardarMotivo() {
-            const motivo = document.getElementById('ev-motivo-txt')?.value?.trim();
-            if (!motivo) { alert('Escreve o motivo.'); return; }
-            await _sb(`evento_presencas?id=eq.${_motivoId}`, { method:'PATCH', body: JSON.stringify({ status:'faltou_motivo', motivo, registado_em: new Date().toISOString() }) });
-            const idx = evPresencas.findIndex(p => p.id === _motivoId);
-            if (idx >= 0) { evPresencas[idx].status = 'faltou_motivo'; evPresencas[idx].motivo = motivo; }
-            closeDrawer(); evRenderPresencas();
-        }
-
-// ── RESUMO GRAFICOS ────────────────────────────────────────────────────────
-        function evRenderResumo(pres, minsMap) {
-            const presentes = pres.filter(p => p.status === 'presente').length;
-            const faltaram  = pres.filter(p => p.status === 'faltou').length;
-            const comMotivo = pres.filter(p => p.status === 'faltou_motivo').length;
-            const total     = pres.length;
-            const pct       = total > 0 ? Math.round(presentes / total * 100) : 0;
-
-            let html = `<div class="ev-stats-grid">
-        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--green)">${presentes}</div><div class="ev-stat-label">Presentes</div><div class="ev-stat-pct" style="color:var(--green)">${pct}%</div></div>
-        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--red)">${faltaram}</div><div class="ev-stat-label">Faltaram</div><div class="ev-stat-pct" style="color:var(--red)">${total>0?Math.round(faltaram/total*100):0}%</div></div>
-        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--orange,#e65100)">${comMotivo}</div><div class="ev-stat-label">Com Motivo</div><div class="ev-stat-pct" style="color:var(--orange,#e65100)">${total>0?Math.round(comMotivo/total*100):0}%</div></div>
-        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--text-muted)">${total}</div><div class="ev-stat-label">Total</div><div class="ev-stat-pct" style="color:var(--text-faint)">100%</div></div>
-    </div>`;
-
-            // Pizza
-            if (total > 0) {
-                const dados = [
-                    { val: presentes, cor:'#2e7d32', label:'Presentes' },
-                    { val: comMotivo, cor:'#e65100', label:'Com Motivo' },
-                    { val: faltaram,  cor:'#c62828', label:'Faltaram'  },
-                ];
-                const r=60, cx=70, cy=70;
-                let paths='', start=-Math.PI/2;
-                dados.forEach(d => {
-                    if (!d.val) return;
-                    const a = d.val/total*Math.PI*2, end = start+a;
-                    const x1=cx+r*Math.cos(start), y1=cy+r*Math.sin(start);
-                    const x2=cx+r*Math.cos(end),   y2=cy+r*Math.sin(end);
-                    paths += `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${a>Math.PI?1:0},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${d.cor}" opacity="0.9"/>`;
-                    start = end;
-                });
-                paths += `<circle cx="${cx}" cy="${cy}" r="30" fill="var(--bg-card)"/>`;
-                paths += `<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-main)">${total}</text>`;
-                paths += `<text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="9" fill="var(--text-faint)">TOTAL</text>`;
-                const legend = dados.map(d => `<div class="ev-legend-item"><div class="ev-legend-dot" style="background:${d.cor}"></div><span>${d.label}: <strong>${d.val}</strong> (${total>0?Math.round(d.val/total*100):0}%)</span></div>`).join('');
-                html += `<div class="ev-grafico-wrap">
-            <div class="ev-grafico-title">Distribuicao Geral</div>
-            <div class="ev-pizza-wrap">
-                <svg width="140" height="140" viewBox="0 0 140 140">${paths}</svg>
-                <div class="ev-legend">${legend}</div>
-            </div></div>`;
-            }
-
-            // Barras por area
-            const porArea = {};
-            pres.forEach(p => {
-                const mins = minsMap[p.membro_id] || [{ tipo:'Sem area', nome:'Sem area', papel:'' }];
-                mins.forEach(m => {
-                    const k = `${m.tipo}||${m.nome}`;
-                    if (!porArea[k]) porArea[k] = { tipo:m.tipo, nome:m.nome, presentes:0, faltaram:0, total:0 };
-                    porArea[k].total++;
-                    if (p.status==='presente') porArea[k].presentes++;
-                    else if (p.status==='faltou'||p.status==='faltou_motivo') porArea[k].faltaram++;
-                });
-            });
-            const areas = Object.values(porArea).sort((a,b) => b.total-a.total);
-            if (areas.length) {
-                const barras = areas.map(a => {
-                    const pctA = Math.round(a.presentes/(a.total||1)*100);
-                    const tipoL = a.tipo==='ministerio'?'MIN':a.tipo==='Sem area'?'—':'AE';
-                    return `<div style="margin-bottom:10px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-                    <span style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                        <span style="font-size:9px;background:var(--bg-input);padding:1px 5px;border-radius:4px;color:var(--text-faint);margin-right:5px">${tipoL}</span>${a.nome}
-                    </span>
-                    <span style="font-size:10px;font-weight:bold;color:${pctA>=80?'var(--green)':pctA>=50?'var(--orange,#e65100)':'var(--red)'}">${pctA}%</span>
-                </div>
-                <div style="display:flex;gap:4px;height:12px">
-                    <div style="flex:${a.presentes||0};background:#2e7d32;border-radius:4px 0 0 4px;opacity:0.8;min-width:${a.presentes?'4px':'0'}"></div>
-                    <div style="flex:${a.faltaram||0};background:#c62828;border-radius:0 4px 4px 0;opacity:0.8;min-width:${a.faltaram?'4px':'0'}"></div>
-                </div>
-                <div style="font-size:10px;color:var(--text-faint);margin-top:2px">${a.presentes} presentes · ${a.faltaram} faltaram · ${a.total} total</div>
             </div>`;
-                }).join('');
-                html += `<div class="ev-grafico-wrap">
-            <div class="ev-grafico-title">Presencas por Area / Ministerio</div>
-            <div style="display:flex;gap:12px;margin-bottom:10px">
-                <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#2e7d32;border-radius:2px;opacity:0.8"></div>Presentes</div>
-                <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#c62828;border-radius:2px;opacity:0.8"></div>Faltaram</div>
-            </div>
-            ${barras}</div>`;
-            }
-            return html;
-        }
+        });
+    });
+    list.innerHTML=html;
+}
 
-// ── PDF ────────────────────────────────────────────────────────────────────
-        async function evGerarPDF(eventoId) {
-            const ev = evEventos.find(e => e.id === eventoId);
-            if (!ev) return;
-            const pres = await _sb(`evento_presencas?select=*,membros(id,nome,foto_url,telefone)&evento_id=eq.${eventoId}&order=created_at`) || [];
-            const mIds = pres.map(p => p.membro_id).filter(Boolean);
-            let mMap = {};
-            if (mIds.length) {
-                const v = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`) || [];
-                v.forEach(x => { if (!mMap[x.membro_id]) mMap[x.membro_id]=[]; mMap[x.membro_id].push({tipo:x.ministerios?.tipo||'?',nome:x.ministerios?.nome||'—',papel:x.papel||''}); });
-            }
-            const presentes = pres.filter(p => p.status==='presente');
-            const faltaram  = pres.filter(p => p.status==='faltou');
-            const comMotivo = pres.filter(p => p.status==='faltou_motivo');
-            const total     = pres.length;
-            const dEvt      = ev.data_inicio ? new Date(ev.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-            const rowM = p => { const ms=(mMap[p.membro_id]||[]).map(m=>`[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}${m.papel?' · '+m.papel:''}`).join(' | '); return `<tr><td>${p.membros?.nome||'—'}</td><td style="font-size:11px;color:#666">${ms||'—'}</td><td style="font-size:11px;color:#c07000">${p.motivo||'—'}</td></tr>`; };
-            const htm = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>Relatorio — ${ev.titulo}</title>
-    <style>body{font-family:Arial,sans-serif;color:#222;padding:32px;max-width:900px;margin:0 auto}h1{font-size:22px;color:#006b70}h2{font-size:15px;margin:24px 0 8px;color:#006b70;border-bottom:2px solid #009098;padding-bottom:4px}.meta{font-size:13px;color:#555;margin-bottom:20px}.badges{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}.badge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold}.g{background:#e8f5e9;color:#2e7d32}.r{background:#ffebee;color:#c62828}.o{background:#fff8e1;color:#e65100}.gr{background:#f5f5f5;color:#555}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f0f7f8;padding:8px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888}td{padding:6px 8px;border-bottom:1px solid #eee}</style>
-    </head><body>
-    <h1>${ev.titulo}</h1>
-    <div class="meta">${dEvt}${ev.local?' · '+ev.local:''}${ev.tipo?' · '+ev.tipo:''}</div>
-    <div class="badges">
-        <span class="badge g">Presentes: ${presentes.length}</span>
-        <span class="badge r">Faltaram: ${faltaram.length}</span>
-        <span class="badge o">Com motivo: ${comMotivo.length}</span>
-        <span class="badge gr">Total: ${total}</span>
-        <span class="badge gr">Taxa: ${total>0?Math.round(presentes.length/total*100):0}%</span>
+function evFiltrar(){evFiltroQ=document.getElementById('ev-search')?.value||'';evFiltroTipo=document.getElementById('ev-filtro-tipo')?.value||'';evRenderSide();}
+function evToggleSt(btn){const st=btn.dataset.st;if(evFiltroSt.has(st)){evFiltroSt.delete(st);btn.classList.remove('active');}else{evFiltroSt.add(st);btn.classList.add('active');}evRenderSide();}
+
+// ── DETALHE EVENTO ─────────────────────────────────────────────────────
+function evSelEvento(id){evAtivo=evEventos.find(e=>e.id===id)||null;evView='info';evRenderSide();evRenderDetalhe();}
+
+function evRenderDetalhe(){
+    const e=evAtivo; if(!e){evPanelEmpty('Seleciona um evento.');return;}
+    const st=ST[e.status]||ST.aberto;
+    const dI=e.data_inicio?new Date(e.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    const dF=e.data_fim?new Date(e.data_fim).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    const emC=e.status==='em_curso',ab=e.status==='aberto',conc=e.status==='concluido',canc=e.status==='cancelado';
+
+    let btns='';
+    if(ab)       btns+=`<button class="ev-btn" onclick="evAbrirForm('${e.id}')">Editar</button>`;
+    if(ab)       btns+=`<button class="ev-btn success" onclick="evIniciar('${e.id}')">Iniciar Evento</button>`;
+    if(emC)      btns+=`<button class="ev-btn primary" onclick="evVerPresencas('${e.id}')">Presencas</button>`;
+    if(emC)      btns+=`<button class="ev-btn qr" onclick="evMostrarQR('${e.id}')">QR Code</button>`;
+    if(emC)      btns+=`<button class="ev-btn success" onclick="evConcluir('${e.id}')">Concluir</button>`;
+    if(conc||canc) btns+=`<button class="ev-btn" onclick="evVerPresencas('${e.id}')">Ver Resumo</button>`;
+    if(conc)     btns+=`<button class="ev-btn danger" onclick="evGerarPDF('${e.id}')">PDF</button>`;
+    if(!conc&&!canc) btns+=`<button class="ev-btn danger" onclick="evCancelar('${e.id}')">Cancelar</button>`;
+
+    let html=`<div style="animation:fadeIn .2s ease">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+            <div style="font-size:18px;font-weight:700;color:var(--text-main);margin-bottom:4px">${e.titulo||'—'}</div>
+            <div style="font-size:12px;color:var(--text-faint);margin-bottom:10px">${dI}${dF?' — '+dF:''}${e.local?' · '+e.local:''}</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">
+                <span class="badge ${st.cls}">${st.label}</span>
+                ${e.tipo?`<span class="badge badge-gray">${e.tipo}</span>`:''}
+                ${e.gratuito?'<span class="badge badge-green">Gratuito</span>':''}
+                ${e.destaque?'<span class="badge badge-primary">Destaque</span>':''}
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${btns}</div>
+        </div>`;
+
+    if(e.descricao) html+=`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--text-muted);line-height:1.6">${e.descricao}</div>`;
+    if(e.link_inscricao) html+=`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px"><div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);margin-bottom:6px">LINK DE INSCRICAO</div><a href="${e.link_inscricao}" target="_blank" style="font-size:12px;color:var(--primary-dark)">${e.link_inscricao}</a></div>`;
+    if(e.valor) html+=`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px"><span style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint)">VALOR</span><span style="font-size:16px;font-weight:700;color:var(--primary-dark);margin-left:10px">${Number(e.valor).toFixed(2)} €</span></div>`;
+    html+='</div>';
+
+    document.getElementById('ev-panel-inner').innerHTML=html;
+    if(evView==='presencas') evVerPresencas(e.id);
+}
+
+// ── ACOES ──────────────────────────────────────────────────────────────
+async function evIniciar(id){
+    const ev=evEventos.find(e=>e.id===id);if(!ev)return;
+    const isL=ev.tipo==='Reuniao de Lideres'||ev.tipo==='Reunião de Líderes';
+    if(!confirm(`Iniciar "${ev.titulo}"?${isL?' Todos os lideres serao adicionados automaticamente.':''}`))return;
+    await _sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'em_curso'})});
+    if(isL){const l=await _sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true').catch(()=>[]);if(l?.length)await _sb('evento_presencas',{method:'POST',body:JSON.stringify(l.map(x=>({evento_id:id,membro_id:x.id,status:'pendente'})))});}
+    await evRecarregar();evSelEvento(id);
+}
+async function evConcluir(id){
+    if(!confirm('Concluir evento? Pendentes serao marcados como faltaram.'))return;
+    await _sb(`evento_presencas?evento_id=eq.${id}&status=eq.pendente`,{method:'PATCH',body:JSON.stringify({status:'faltou'})});
+    await _sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'concluido'})});
+    evView='info';await evRecarregar();evSelEvento(id);
+}
+async function evCancelar(id){
+    if(!confirm('Cancelar este evento?'))return;
+    await _sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'cancelado'})});
+    await evRecarregar();evSelEvento(id);
+}
+async function evRecarregar(){evEventos=await _sb('eventos?select=*&order=data_inicio')||[];if(evAtivo)evAtivo=evEventos.find(e=>e.id===evAtivo.id)||null;evRenderSide();}
+
+// ── QR CODE NATIVO ─────────────────────────────────────────────────────
+async function evMostrarQR(id){
+    const ev=evEventos.find(e=>e.id===id);if(!ev)return;
+    let token=ev.qr_token;
+    if(!token){token=evGerarToken();await _sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({qr_token:token})});ev.qr_token=token;}
+    const base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
+    const url=`${base}presenca.html?e=${id}&t=${token}`;
+    const safeNome=(ev.titulo||'evento').replace(/'/g,'').replace(/\s+/g,'-').toLowerCase();
+
+    const ov=document.createElement('div');
+    ov.className='ev-qr-overlay';ov.id='ev-qr-ov';
+    ov.onclick=x=>{if(x.target===ov)ov.remove();};
+    ov.innerHTML=`<div class="ev-qr-modal">
+        <div class="ev-qr-title">QR Code de Presenca</div>
+        <div class="ev-qr-sub">${ev.titulo}</div>
+        <div class="ev-qr-canvas-wrap"><canvas id="ev-qr-cv" width="200" height="200"></canvas></div>
+        <div class="ev-qr-url">${url}</div>
+        <div class="ev-qr-btns">
+            <button class="ev-btn" onclick="evCopiarURL('${url}')">Copiar Link</button>
+            <button class="ev-btn primary" onclick="evDownloadQR('${safeNome}')">Download PNG</button>
+            <button class="ev-btn" onclick="document.getElementById('ev-qr-ov').remove()">Fechar</button>
+        </div></div>`;
+    document.body.appendChild(ov);
+    setTimeout(()=>evDrawQR(document.getElementById('ev-qr-cv'),url),60);
+}
+
+function evGerarToken(){const a=new Uint8Array(20);crypto.getRandomValues(a);return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function evCopiarURL(url){navigator.clipboard?.writeText(url).then(()=>alert('Link copiado!')).catch(()=>{const el=document.createElement('textarea');el.value=url;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove();alert('Link copiado!');});}
+function evDownloadQR(nome){const c=document.getElementById('ev-qr-cv');if(!c)return;const a=document.createElement('a');a.download=`qr-${nome}.png`;a.href=c.toDataURL('image/png');a.click();}
+
+function evDrawQR(canvas,text){
+    if(window.QRCode){_evRenderQR(canvas,text);return;}
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload=()=>_evRenderQR(canvas,text);
+    s.onerror=()=>_evQRFallback(canvas,text);
+    document.head.appendChild(s);
+}
+function _evRenderQR(canvas,text){
+    try{
+        const tmp=document.createElement('div');tmp.style.cssText='position:fixed;left:-9999px;top:-9999px;width:200px;height:200px';document.body.appendChild(tmp);
+        new QRCode(tmp,{text,width:200,height:200,colorDark:'#005f65',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+        setTimeout(()=>{
+            const src=tmp.querySelector('canvas');
+            if(src){const ctx=canvas.getContext('2d');ctx.drawImage(src,0,0,200,200);}
+            else{const img=tmp.querySelector('img');if(img){const i=new Image();i.onload=()=>canvas.getContext('2d').drawImage(i,0,0,200,200);i.src=img.src;}}
+            tmp.remove();
+        },150);
+    }catch(e){_evQRFallback(canvas,text);}
+}
+function _evQRFallback(canvas,text){
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,200,200);
+    ctx.fillStyle='#005f65';ctx.textAlign='center';ctx.font='bold 11px monospace';ctx.fillText('Abrir link abaixo',100,90);
+    ctx.font='9px monospace';let y=110,line='';
+    for(const c of text){line+=c;if(line.length>30){ctx.fillText(line,100,y);y+=13;line='';}}
+    if(line)ctx.fillText(line,100,y);
+}
+
+// ── PRESENCAS ──────────────────────────────────────────────────────────
+async function evVerPresencas(id){
+    evView='presencas';evAtivo=evEventos.find(e=>e.id===id)||evAtivo;
+    evPresencas=await _sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url)&evento_id=eq.${id}&order=created_at`)||[];
+    const mIds=evPresencas.map(p=>p.membro_id).filter(Boolean);evLidMin={};
+    if(mIds.length){const vs=await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`)||[];vs.forEach(v=>{if(!evLidMin[v.membro_id])evLidMin[v.membro_id]=[];evLidMin[v.membro_id].push({papel:v.papel,nome:v.ministerios?.nome||'—',tipo:v.ministerios?.tipo||'—'});});}
+    evRenderPresencas();
+}
+
+function evRenderPresencas(){
+    const ev=evAtivo;if(!ev)return;
+    const emC=ev.status==='em_curso',q=evPresSearchQ.toLowerCase();
+    let lista=[...evPresencas];if(q)lista=lista.filter(p=>(p.membros?.nome||'').toLowerCase().includes(q));
+    const nP=evPresencas.filter(p=>p.status==='presente').length,nF=evPresencas.filter(p=>p.status==='faltou').length,nM=evPresencas.filter(p=>p.status==='faltou_motivo').length,nPend=evPresencas.filter(p=>p.status==='pendente').length,tot=evPresencas.length;
+    const jaAdd=new Set(evPresencas.map(p=>p.membro_id));
+    const mDisp=(window.membros||[]).filter(m=>!jaAdd.has(m.id));
+
+    let html=`<div style="animation:fadeIn .2s ease">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="ev-btn" onclick="evView='info';evRenderDetalhe()">← Voltar</button>
+        ${emC?`<button class="ev-btn qr" onclick="evMostrarQR('${ev.id}')">QR Code</button>`:''}
+        ${ev.status==='concluido'?`<button class="ev-btn danger" onclick="evGerarPDF('${ev.id}')">PDF</button>`:''}
+        <input style="flex:1;min-width:120px;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;outline:none" placeholder="Pesquisar participante..." value="${evPresSearchQ}" oninput="evPresSearchQ=this.value;evRenderPresencas()">
+        ${emC?`<button class="ev-btn success" onclick="evFinalizarEntradas()">Finalizar Pendentes</button>`:''}
     </div>
-    <h2>Presentes (${presentes.length})</h2>
-    <table><thead><tr><th>Nome</th><th>Areas</th><th>—</th></tr></thead><tbody>${presentes.map(rowM).join('')}</tbody></table>
-    ${comMotivo.length?`<h2>Com Motivo (${comMotivo.length})</h2><table><thead><tr><th>Nome</th><th>Areas</th><th>Motivo</th></tr></thead><tbody>${comMotivo.map(rowM).join('')}</tbody></table>`:''}
-    ${faltaram.length?`<h2>Faltaram (${faltaram.length})</h2><table><thead><tr><th>Nome</th><th>Areas</th><th>—</th></tr></thead><tbody>${faltaram.map(rowM).join('')}</tbody></table>`:''}
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">${ev.titulo}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="badge ${(ST[ev.status]||ST.aberto).cls}">${(ST[ev.status]||ST.aberto).label}</span>
+            <span class="badge badge-green">Presentes: ${nP}</span>
+            <span class="badge badge-red">Faltaram: ${nF+nM}</span>
+            ${nM?`<span class="badge badge-primary">Com motivo: ${nM}</span>`:''}
+            ${nPend?`<span class="badge badge-gray">Pendentes: ${nPend}</span>`:''}
+            <span class="badge badge-gray">Total: ${tot}</span>
+        </div>
+    </div>`;
+
+    if(emC){html+=`<div class="ev-pres-add"><div class="ev-pres-add-title">Adicionar manualmente</div><div class="ev-pres-add-row"><select class="form-select" id="ev-add-mb" style="flex:1;font-size:12px"><option value="">Seleciona membro...</option>${mDisp.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select><button class="ev-btn primary" onclick="evAddParticipante()">Adicionar</button></div></div>`;}
+
+    if(!lista.length){html+=`<div style="text-align:center;padding:30px;font-size:13px;color:var(--text-faint)">Nenhum participante encontrado.</div>`;}
+    else{
+        const gs=[{key:'presente',label:'Presentes',items:lista.filter(p=>p.status==='presente')},{key:'pendente',label:'Pendentes',items:lista.filter(p=>p.status==='pendente')},{key:'faltou_motivo',label:'Faltaram com Motivo',items:lista.filter(p=>p.status==='faltou_motivo')},{key:'faltou',label:'Faltaram',items:lista.filter(p=>p.status==='faltou')}].filter(g=>g.items.length);
+        gs.forEach((g,gi)=>{
+            html+=`<div class="ev-grupo-label" style="${gi===0?'margin-top:0;border-top:none':''}">${g.label} (${g.items.length})</div>`;
+            g.items.forEach((p,pi)=>{
+                const nome=p.membros?.nome||'—',stC={presente:'var(--green)',faltou:'var(--red)',faltou_motivo:'#e65100',pendente:'var(--border)'}[p.status]||'var(--border)';
+                const mins=evLidMin[p.membro_id]||[];
+                const mH=mins.map(m=>`<span class="badge badge-gray" style="font-size:8px">${m.tipo==='ministerio'?'MIN':'AE'} · ${m.nome}${m.papel?' · '+m.papel:''}</span>`).join('');
+                const fH=p.membros?.foto_url?`<img src="${p.membros.foto_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:nome[0]||'?';
+                let btns='';
+                if(emC){
+                    if(p.status!=='presente')btns+=`<button class="ev-btn success" style="font-size:9px;padding:4px 8px" onclick="evMarcarPres('${p.id}','presente')">Presente</button>`;
+                    if(p.status!=='faltou')btns+=`<button class="ev-btn danger" style="font-size:9px;padding:4px 8px" onclick="evMarcarPres('${p.id}','faltou')">Faltou</button>`;
+                    if(p.status!=='faltou_motivo')btns+=`<button class="ev-btn" style="font-size:9px;padding:4px 8px" onclick="evAbrirMotivo('${p.id}','${nome.replace(/'/g,"\\'")}')">Motivo</button>`;
+                    if(p.status!=='pendente')btns+=`<button class="ev-btn" style="font-size:9px;padding:4px 8px" title="Desfazer" onclick="evMarcarPres('${p.id}','pendente')">↩</button>`;
+                }
+                let zapBtn='';
+                if(p.membros?.telefone){const tel=p.membros.telefone.replace(/\D/g,''),dE=evAtivo?.data_inicio?new Date(evAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'',msg=encodeURIComponent(`Ola ${p.membros.nome?.split(' ')[0]}! Confirmas presenca na ${evAtivo?.titulo||'reuniao'} ${dE}?`);zapBtn=`<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" style="font-size:10px;color:#25D366;text-decoration:none;padding:2px 5px;border-radius:5px;border:1px solid rgba(37,211,102,.3)">Zap</a>`;}
+                html+=`<div class="ev-pres-row" style="animation:fadeIn .12s ease both;animation-delay:${Math.min(pi,15)*.015}s"><div class="ev-pres-foto" style="border:2px solid ${stC}">${fH}</div><div class="ev-pres-info"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="ev-pres-nome">${nome}</span>${zapBtn}</div><div class="ev-pres-areas">${mH||'<span style="font-size:10px;color:var(--text-faint)">Sem areas</span>'}</div>${p.motivo?`<div style="font-size:11px;color:#e65100;margin-top:2px">Motivo: ${p.motivo}</div>`:''}</div><div class="ev-pres-btns">${btns}</div></div>`;
+            });
+        });
+    }
+
+    if(ev.status!=='aberto'){html+='<div style="height:1px;background:var(--border);margin:16px 0 12px"></div>';html+=evRenderResumo(evPresencas,evLidMin);}
+    html+='</div>';
+    document.getElementById('ev-panel-inner').innerHTML=html;
+}
+
+async function evMarcarPres(presId,st){
+    const p={status:st,registado_em:new Date().toISOString()};if(st==='pendente')p.motivo='';
+    await _sb(`evento_presencas?id=eq.${presId}`,{method:'PATCH',body:JSON.stringify(p)});
+    const i=evPresencas.findIndex(x=>x.id===presId);if(i>=0){evPresencas[i].status=st;if(st==='pendente')evPresencas[i].motivo='';}
+    evRenderPresencas();
+}
+async function evAddParticipante(){
+    const sel=document.getElementById('ev-add-mb'),memId=sel?.value;if(!memId)return;
+    if(evPresencas.find(p=>p.membro_id===memId)){alert('Membro ja na lista.');return;}
+    await _sb('evento_presencas',{method:'POST',body:JSON.stringify([{evento_id:evAtivo.id,membro_id:memId,status:'pendente'}])});
+    await evVerPresencas(evAtivo.id);
+}
+async function evFinalizarEntradas(){
+    if(!evAtivo)return;if(!confirm('Pendentes serao marcados como faltaram.'))return;
+    await _sb(`evento_presencas?evento_id=eq.${evAtivo.id}&status=eq.pendente`,{method:'PATCH',body:JSON.stringify({status:'faltou'})});
+    evPresencas.forEach(p=>{if(p.status==='pendente')p.status='faltou';});evRenderPresencas();
+}
+function evAbrirMotivo(presId,nome){
+    _motivoId=presId;
+    document.getElementById('drawer-title').textContent=`Motivo — ${nome}`;
+    document.getElementById('drawer-body').innerHTML=`<div class="form-grid"><div class="msg-form" id="form-msg"></div><div class="form-group form-full"><label class="form-label">Motivo da Falta</label><textarea class="form-textarea" id="ev-mot-txt" style="height:100px" placeholder="Descreve o motivo..."></textarea></div><div class="form-actions"><button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button><button class="btn-save" onclick="evGuardarMotivo()">Guardar</button></div></div>`;
+    document.getElementById('overlay').classList.remove('hidden');document.body.style.overflow='hidden';
+}
+async function evGuardarMotivo(){
+    const m=document.getElementById('ev-mot-txt')?.value?.trim();if(!m){alert('Escreve o motivo.');return;}
+    await _sb(`evento_presencas?id=eq.${_motivoId}`,{method:'PATCH',body:JSON.stringify({status:'faltou_motivo',motivo:m,registado_em:new Date().toISOString()})});
+    const i=evPresencas.findIndex(p=>p.id===_motivoId);if(i>=0){evPresencas[i].status='faltou_motivo';evPresencas[i].motivo=m;}
+    closeDrawer();evRenderPresencas();
+}
+
+// ── RESUMO GRAFICOS ─────────────────────────────────────────────────────
+function evRenderResumo(pres,mMap){
+    const nP=pres.filter(p=>p.status==='presente').length,nF=pres.filter(p=>p.status==='faltou').length,nM=pres.filter(p=>p.status==='faltou_motivo').length,tot=pres.length,pct=tot>0?Math.round(nP/tot*100):0;
+    let html=`<div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);margin-bottom:10px">RESUMO</div>
+    <div class="ev-stats-grid">
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--green)">${nP}</div><div class="ev-stat-lbl">Presentes</div><div style="font-size:10px;font-weight:700;color:var(--green)">${pct}%</div></div>
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--red)">${nF}</div><div class="ev-stat-lbl">Faltaram</div><div style="font-size:10px;color:var(--red)">${tot>0?Math.round(nF/tot*100):0}%</div></div>
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:#e65100">${nM}</div><div class="ev-stat-lbl">Com motivo</div><div style="font-size:10px;color:#e65100">${tot>0?Math.round(nM/tot*100):0}%</div></div>
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--text-muted)">${tot}</div><div class="ev-stat-lbl">Total</div></div>
+    </div>`;
+    if(tot>0){
+        const d=[{v:nP,c:'#2e7d32',l:'Presentes'},{v:nM,c:'#e65100',l:'Com Motivo'},{v:nF,c:'#c62828',l:'Faltaram'}];
+        const r=55,cx=65,cy=65;let paths='',s=-Math.PI/2;
+        d.forEach(x=>{if(!x.v)return;const a=x.v/tot*Math.PI*2,en=s+a,x1=cx+r*Math.cos(s),y1=cy+r*Math.sin(s),x2=cx+r*Math.cos(en),y2=cy+r*Math.sin(en);paths+=`<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${a>Math.PI?1:0},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${x.c}" opacity=".85"/>`;s=en;});
+        paths+=`<circle cx="${cx}" cy="${cy}" r="26" fill="var(--bg-card)"/><text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-main)">${tot}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="8" fill="var(--text-faint)">TOTAL</text>`;
+        const leg=d.map(x=>`<div class="ev-legend-item"><div class="ev-legend-dot" style="background:${x.c}"></div><span>${x.l}: <strong>${x.v}</strong> (${tot>0?Math.round(x.v/tot*100):0}%)</span></div>`).join('');
+        html+=`<div class="ev-chart-box"><div class="ev-chart-title">Distribuicao Geral</div><div class="ev-pizza-row"><svg width="130" height="130" viewBox="0 0 130 130">${paths}</svg><div class="ev-legend">${leg}</div></div></div>`;
+    }
+    const porArea={};
+    pres.forEach(p=>{(mMap[p.membro_id]||[{tipo:'Sem area',nome:'Sem area',papel:''}]).forEach(m=>{const k=`${m.tipo}||${m.nome}`;if(!porArea[k])porArea[k]={tipo:m.tipo,nome:m.nome,pres:0,falt:0,total:0};porArea[k].total++;if(p.status==='presente')porArea[k].pres++;else if(p.status==='faltou'||p.status==='faltou_motivo')porArea[k].falt++;});});
+    const areas=Object.values(porArea).sort((a,b)=>b.total-a.total);
+    if(areas.length){
+        const bs=areas.map(a=>{const pA=Math.round(a.pres/(a.total||1)*100),tL=a.tipo==='ministerio'?'MIN':a.tipo==='Sem area'?'—':'AE';return`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:11px"><span style="font-size:8px;background:var(--bg-input);padding:1px 4px;border-radius:3px;color:var(--text-faint);margin-right:4px">${tL}</span>${a.nome}</span><span style="font-size:10px;font-weight:bold;color:${pA>=80?'var(--green)':pA>=50?'#e65100':'var(--red)'}">${pA}%</span></div><div style="display:flex;gap:2px;height:10px"><div style="flex:${a.pres||0};background:#2e7d32;border-radius:3px;opacity:.8;min-width:${a.pres?'3px':'0'}"></div><div style="flex:${a.falt||0};background:#c62828;border-radius:3px;opacity:.8;min-width:${a.falt?'3px':'0'}"></div></div><div style="font-size:9px;color:var(--text-faint);margin-top:1px">${a.pres} pres. · ${a.falt} falt. · ${a.total} total</div></div>`;}).join('');
+        html+=`<div class="ev-chart-box"><div class="ev-chart-title">Presencas por Area / Ministerio</div>${bs}</div>`;
+    }
+    return html;
+}
+
+// ── PDF ────────────────────────────────────────────────────────────────
+async function evGerarPDF(evId){
+    const ev=evEventos.find(e=>e.id===evId);if(!ev)return;
+    const pres=await _sb(`evento_presencas?select=*,membros(id,nome)&evento_id=eq.${evId}&order=created_at`)||[];
+    const mIds=pres.map(p=>p.membro_id).filter(Boolean);let mMap={};
+    if(mIds.length){const v=await _sb(`membro_ministerios?select=membro_id,papel,ministerios(nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`)||[];v.forEach(x=>{if(!mMap[x.membro_id])mMap[x.membro_id]=[];mMap[x.membro_id].push({tipo:x.ministerios?.tipo,nome:x.ministerios?.nome||'—',papel:x.papel||''});});}
+    const rowM=p=>{const ms=(mMap[p.membro_id]||[]).map(m=>`[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}${m.papel?' · '+m.papel:''}`).join(' | ');return`<tr><td>${p.membros?.nome||'—'}</td><td style="font-size:11px;color:#666">${ms||'—'}</td><td style="font-size:11px;color:#c07000">${p.motivo||'—'}</td></tr>`;};
+    const nP=pres.filter(p=>p.status==='presente'),nF=pres.filter(p=>p.status==='faltou'),nM=pres.filter(p=>p.status==='faltou_motivo'),tot=pres.length;
+    const dE=ev.data_inicio?new Date(ev.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    const htm=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ev.titulo}</title><style>body{font-family:Arial,sans-serif;padding:32px;max-width:900px;margin:0 auto}h1{font-size:22px;color:#006b70}h2{font-size:15px;margin:24px 0 8px;color:#006b70;border-bottom:2px solid #009098;padding-bottom:4px}.meta{font-size:13px;color:#555;margin-bottom:20px}.bs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}.b{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold}.g{background:#e8f5e9;color:#2e7d32}.r{background:#ffebee;color:#c62828}.o{background:#fff8e1;color:#e65100}.gr{background:#f5f5f5;color:#555}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f0f7f8;padding:8px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888}td{padding:6px 8px;border-bottom:1px solid #eee}</style></head><body>
+    <h1>${ev.titulo}</h1><div class="meta">${dE}${ev.local?' · '+ev.local:''}${ev.tipo?' · '+ev.tipo:''}</div>
+    <div class="bs"><span class="b g">Presentes: ${nP.length}</span><span class="b r">Faltaram: ${nF.length}</span><span class="b o">Com motivo: ${nM.length}</span><span class="b gr">Total: ${tot}</span><span class="b gr">Taxa: ${tot>0?Math.round(nP.length/tot*100):0}%</span></div>
+    <h2>Presentes (${nP.length})</h2><table><thead><tr><th>Nome</th><th>Areas</th><th>—</th></tr></thead><tbody>${nP.map(rowM).join('')}</tbody></table>
+    ${nM.length?`<h2>Com Motivo (${nM.length})</h2><table><thead><tr><th>Nome</th><th>Areas</th><th>Motivo</th></tr></thead><tbody>${nM.map(rowM).join('')}</tbody></table>`:''}
+    ${nF.length?`<h2>Faltaram (${nF.length})</h2><table><thead><tr><th>Nome</th><th>Areas</th><th>—</th></tr></thead><tbody>${nF.map(rowM).join('')}</tbody></table>`:''}
     <div style="margin-top:40px;font-size:11px;color:#aaa;text-align:center">Gerado em ${new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})} · Zion Lisboa</div>
     <script>window.onload=()=>window.print();<\/script></body></html>`;
-            const win = window.open('','_blank'); win.document.write(htm); win.document.close();
-        }
+    const w=window.open('','_blank');w.document.write(htm);w.document.close();
+}
 
-// ── FORM EVENTO ────────────────────────────────────────────────────────────
-        function evAbrirForm(id) {
-            const e = id ? evEventos.find(x => x.id === id) : null;
-            const fv  = (k,d='') => e?.[k] ?? d;
-            const fdt = k => { const v=e?.[k]; if(!v) return ''; return new Date(v).toISOString().slice(0,16); };
-            const tipos = getTipos();
-            const tipoOpts = tipos.map(t => `<option value="${t}" ${fv('tipo')===t?'selected':''}>${t}</option>`).join('');
-            const body = `<div class="form-grid">
-        <div class="msg-form" id="form-msg"></div>
-        <div class="form-section-title">Identificacao</div>
-        <div class="form-group form-full"><label class="form-label">Titulo</label>
-            <input class="form-input" id="fe_titulo" type="text" placeholder="Nome do evento" value="${fv('titulo')}"></div>
-        <div class="form-group"><label class="form-label">Tipo</label>
-            <select class="form-select" id="fe_tipo"><option value="">-- Seleciona --</option>${tipoOpts}</select></div>
-        <div class="form-group"><label class="form-label">Local</label>
-            <input class="form-input" id="fe_local" type="text" placeholder="Ex: Sede Lisboa" value="${fv('local')}"></div>
-        <div class="form-group form-full"><label class="form-label">Descricao</label>
-            <textarea class="form-textarea" id="fe_descricao">${fv('descricao')}</textarea></div>
-        <div class="form-section-title">Data e Hora</div>
-        <div class="form-group"><label class="form-label">Data Inicio</label>
-            <input class="form-input" id="fe_data_inicio" type="datetime-local" value="${fdt('data_inicio')}"></div>
-        <div class="form-group"><label class="form-label">Data Fim</label>
-            <input class="form-input" id="fe_data_fim" type="datetime-local" value="${fdt('data_fim')}"></div>
-        <div class="form-section-title">Inscricao</div>
-        <div class="form-group"><label class="form-label">Valor (€)</label>
-            <input class="form-input" id="fe_valor" type="number" placeholder="0.00" value="${fv('valor')}"></div>
-        <div class="form-group"><label class="form-label">Link Inscricao</label>
-            <input class="form-input" id="fe_link_inscricao" type="url" placeholder="https://..." value="${fv('link_inscricao')}"></div>
+// ── FORM EVENTO ────────────────────────────────────────────────────────
+function evAbrirForm(id){
+    const e=id?evEventos.find(x=>x.id===id):null;
+    const fv=(k,d='')=>e?.[k]??d;const fdt=k=>{const v=e?.[k];if(!v)return'';return new Date(v).toISOString().slice(0,16);};
+    const tipos=getTipos(),tOpts=tipos.map(t=>`<option value="${t}" ${fv('tipo')===t?'selected':''}>${t}</option>`).join('');
+    const body=`<div class="form-grid"><div class="msg-form" id="form-msg"></div>
+        <div class="ev-form-section">Identificacao</div>
+        <div class="form-group form-full"><label class="form-label">Titulo *</label><input class="form-input" id="fe_titulo" type="text" placeholder="Nome do evento" value="${fv('titulo')}"></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="fe_tipo"><option value="">-- Seleciona --</option>${tOpts}</select></div>
+        <div class="form-group"><label class="form-label">Local</label><input class="form-input" id="fe_local" type="text" placeholder="Ex: Sede Lisboa" value="${fv('local')}"></div>
+        <div class="form-group form-full"><label class="form-label">Descricao</label><textarea class="form-textarea" id="fe_descricao">${fv('descricao')}</textarea></div>
+        <div class="ev-form-section">Data e Hora</div>
+        <div class="form-group"><label class="form-label">Data Inicio</label><input class="form-input" id="fe_data_inicio" type="datetime-local" value="${fdt('data_inicio')}"></div>
+        <div class="form-group"><label class="form-label">Data Fim</label><input class="form-input" id="fe_data_fim" type="datetime-local" value="${fdt('data_fim')}"></div>
+        <div class="ev-form-section">Inscricao</div>
+        <div class="form-group"><label class="form-label">Valor (€)</label><input class="form-input" id="fe_valor" type="number" placeholder="0.00" value="${fv('valor')}"></div>
+        <div class="form-group"><label class="form-label">Link Inscricao</label><input class="form-input" id="fe_link" type="url" placeholder="https://..." value="${fv('link_inscricao')}"></div>
         <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fe_gratuito" ${fv('gratuito')?'checked':''}><span>Gratuito</span></label></div>
         <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fe_destaque" ${fv('destaque')?'checked':''}><span>Destaque</span></label></div>
         <div class="form-group"><label class="form-toggle"><input type="checkbox" id="fe_ativo" ${fv('ativo')!==false?'checked':''}><span>Ativo</span></label></div>
-        <div class="form-actions">
-            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
-            <button class="btn-save" id="btn-save" onclick="evSalvarEvento('${e?.id||''}')">Guardar</button>
-        </div></div>`;
-            document.getElementById('drawer-title').textContent = e ? 'Editar Evento' : 'Novo Evento';
-            document.getElementById('drawer-body').innerHTML = body;
-            document.getElementById('overlay').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
+        <div class="form-actions"><button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button><button class="btn-save" id="btn-ev-save" onclick="evSalvar('${e?.id||''}')">Guardar</button></div>
+    </div>`;
+    document.getElementById('drawer-title').textContent=e?'Editar Evento':'Novo Evento';
+    document.getElementById('drawer-body').innerHTML=body;
+    document.getElementById('overlay').classList.remove('hidden');
+    document.body.style.overflow='hidden';
+}
+async function evSalvar(id){
+    const get=k=>{const el=document.getElementById('fe_'+k);return el?el.value||null:null;},chk=k=>{const el=document.getElementById('fe_'+k);return el?el.checked:false;};
+    const body={titulo:get('titulo'),tipo:get('tipo'),local:get('local'),descricao:get('descricao'),data_inicio:get('data_inicio'),data_fim:get('data_fim'),valor:get('valor')?Number(get('valor')):null,link_inscricao:get('link'),gratuito:chk('gratuito'),destaque:chk('destaque'),ativo:chk('ativo')};
+    if(!body.titulo){document.getElementById('form-msg').textContent='Titulo obrigatorio.';document.getElementById('form-msg').className='msg-form error';return;}
+    const btn=document.getElementById('btn-ev-save');btn.disabled=true;btn.textContent='A guardar...';
+    try{
+        if(!id){body.status='aberto';await _sb('eventos',{method:'POST',body:JSON.stringify(body)});}else await _sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
+        document.getElementById('form-msg').textContent='Guardado!';document.getElementById('form-msg').className='msg-form success';
+        await evRecarregar();
+        setTimeout(()=>{closeDrawer();if(id)evSelEvento(id);else{const n=evEventos.find(e=>e.titulo===body.titulo);if(n)evSelEvento(n.id);}},700);
+    }catch(err){document.getElementById('form-msg').textContent='Erro: '+(err?.message||JSON.stringify(err));document.getElementById('form-msg').className='msg-form error';btn.disabled=false;btn.textContent='Guardar';}
+}
 
-        async function evSalvarEvento(id) {
-            const get = k => { const el=document.getElementById('fe_'+k); return el?el.value||null:null; };
-            const chk = k => { const el=document.getElementById('fe_'+k); return el?el.checked:false; };
-            const body = { titulo:get('titulo'), tipo:get('tipo'), local:get('local'), descricao:get('descricao'),
-                data_inicio:get('data_inicio'), data_fim:get('data_fim'),
-                valor:get('valor')?Number(get('valor')):null, link_inscricao:get('link_inscricao'),
-                gratuito:chk('gratuito'), destaque:chk('destaque'), ativo:chk('ativo') };
-            if (!body.titulo) { document.getElementById('form-msg').textContent='Titulo obrigatorio.'; document.getElementById('form-msg').className='msg-form error'; return; }
-            const btn = document.getElementById('btn-save'); btn.disabled=true; btn.textContent='A guardar...';
-            try {
-                if (!id) { body.status='aberto'; await _sb('eventos',{method:'POST',body:JSON.stringify(body)}); }
-                else await _sb(`eventos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
-                document.getElementById('form-msg').textContent='Guardado!'; document.getElementById('form-msg').className='msg-form success';
-                await evRecarregar();
-                setTimeout(() => { closeDrawer(); evRenderEventos(); }, 700);
-            } catch(err) {
-                document.getElementById('form-msg').textContent='Erro: '+(err?.message||JSON.stringify(err)); document.getElementById('form-msg').className='msg-form error';
-                btn.disabled=false; btn.textContent='Guardar';
-            }
-        }
-
-// ══════════════════════════════════════════════════════════════════════════
-// ABA 1 — TIPOS DE EVENTO
-// ══════════════════════════════════════════════════════════════════════════
-        function evRenderTipos() {
-            const lista = getTipos();
-            let html = `
-    <div class="ev-toolbar">
-        <span style="flex:1;font-family:var(--font-title);font-size:10px;letter-spacing:1px;color:var(--text-muted)">
-            ${lista.length} tipo(s) configurado(s)
-        </span>
-        <button class="ev-btn-new" onclick="evAbrirFormTipo(null)">+ Novo Tipo</button>
-    </div>
-    <div style="padding:8px 16px 4px">
-        <div style="font-size:11px;color:var(--text-faint);line-height:1.6;background:var(--primary-faint);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
-            Quando o tipo e <strong>Reuniao de Lideres</strong>, todos os lideres sao adicionados automaticamente ao iniciar o evento.
-            Os outros tipos comecam com lista vazia e os participantes sao geridos manualmente.
+// ══ TIPOS DE EVENTO ════════════════════════════════════════════════════
+function evRenderSideTipos(){
+    const lista=getTipos();
+    document.getElementById('ev-list').innerHTML='<div style="padding:8px 6px 2px;font-size:10px;color:var(--text-faint)">'+lista.length+' tipo(s)</div>'+
+        lista.map((t,i)=>`<div class="ev-list-item ${evTipoIdx===i?'active':''}" onclick="evSelTipo(${i})" id="evt-item-${i}">
+            <div class="ev-list-avatar" style="border-radius:6px;font-size:10px">${i+1}</div>
+            <div class="ev-list-info">
+                <div class="ev-list-nome">${t}</div>
+                ${t==='Reuniao de Lideres'||t==='Reunião de Líderes'?'<div class="ev-list-sub">Auto-adiciona lideres</div>':''}
+            </div>
+        </div>`).join('');
+}
+function evSelTipo(idx){
+    evTipoIdx=idx;
+    document.querySelectorAll('[id^="evt-item-"]').forEach((el,i)=>el.classList.toggle('active',i===idx));
+    const lista=getTipos(),t=lista[idx],isL=t==='Reuniao de Lideres'||t==='Reunião de Líderes';
+    document.getElementById('ev-panel-inner').innerHTML=`<div style="animation:fadeIn .2s ease">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
+            <div style="font-size:18px;font-weight:700;margin-bottom:6px">${t}</div>
+            ${isL?`<div style="font-size:12px;color:var(--primary-dark);background:var(--primary-faint);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os lideres sao adicionados automaticamente.</div>`:''}
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                ${!isL?`<button class="ev-btn" onclick="evAbrirFormTipo(${idx})">Editar Nome</button>`:''}
+                ${idx>0?`<button class="ev-btn" onclick="evMoverTipo(${idx},-1)">Subir</button>`:''}
+                ${idx<lista.length-1?`<button class="ev-btn" onclick="evMoverTipo(${idx},1)">Descer</button>`:''}
+                ${!isL?`<button class="ev-btn danger" onclick="evRemoverTipo(${idx})">Remover</button>`:''}
+            </div>
         </div>
-    </div>
-    <div style="padding:8px 16px;display:flex;flex-direction:column;gap:6px">`;
+        <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;color:var(--text-faint)">Posicao: <strong>${idx+1}</strong> de <strong>${lista.length}</strong></div>
+    </div>`;
+}
+function evAbrirFormTipo(idx){
+    const lista=getTipos(),isN=idx===null,v=isN?'':lista[idx];
+    document.getElementById('drawer-title').textContent=isN?'Novo Tipo':'Editar Tipo';
+    document.getElementById('drawer-body').innerHTML=`<div class="form-grid"><div class="msg-form" id="form-msg"></div><div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="ft_nome" type="text" placeholder="Ex: Encontro de Jovens" value="${v}"></div><div class="form-actions"><button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button><button class="btn-save" onclick="evSalvarTipo(${idx})">Guardar</button></div></div>`;
+    document.getElementById('overlay').classList.remove('hidden');document.body.style.overflow='hidden';
+}
+function evSalvarTipo(idx){
+    const nome=document.getElementById('ft_nome')?.value?.trim();if(!nome){document.getElementById('form-msg').textContent='Nome obrigatorio.';document.getElementById('form-msg').className='msg-form error';return;}
+    const lista=getTipos();if(idx===null)lista.splice(lista.length-1,0,nome);else lista[idx]=nome;
+    saveTipos(lista);closeDrawer();evRenderSideTipos();if(idx!==null)evSelTipo(idx);
+}
+function evRemoverTipo(idx){const lista=getTipos();if(!confirm(`Remover "${lista[idx]}"?`))return;lista.splice(idx,1);saveTipos(lista);evRenderSideTipos();evPanelEmpty('Seleciona um tipo.');evTipoIdx=null;}
+function evMoverTipo(idx,dir){const lista=getTipos(),n=idx+dir;if(n<0||n>=lista.length)return;[lista[idx],lista[n]]=[lista[n],lista[idx]];saveTipos(lista);evRenderSideTipos();evSelTipo(n);evTipoIdx=n;}
 
-            lista.forEach((tipo, i) => {
-                const isLideres = tipo === 'Reunião de Líderes';
-                html += `
-        <div class="tipo-row" style="animation:fadeIn 0.15s ease both;animation-delay:${i*0.03}s">
-            <div class="tipo-num">${i+1}</div>
-            <div style="flex:1">
-                <div class="tipo-nome">${tipo}</div>
-                ${isLideres ? '<div class="tipo-sub">Auto-adiciona todos os lideres ao iniciar</div>' : ''}
-            </div>
-            <div class="tipo-actions">
-                <button class="ev-btn" onclick="evAbrirFormTipo(${i})">Editar</button>
-                ${!isLideres ? `<button class="ev-btn danger" onclick="evRemoverTipo(${i})">Remover</button>` : ''}
-                ${i > 0 ? `<button class="ev-btn" onclick="evMoverTipo(${i},-1)" title="Subir">↑</button>` : ''}
-                ${i < lista.length-1 ? `<button class="ev-btn" onclick="evMoverTipo(${i},1)" title="Descer">↓</button>` : ''}
-            </div>
-        </div>`;
-            });
+// ── EXPOR ──────────────────────────────────────────────────────────────
+Object.assign(window,{evSetTab,evFiltrar,evToggleSt,evSelEvento,evAbrirForm,evSalvar,evIniciar,evConcluir,evCancelar,evMostrarQR,evCopiarURL,evDownloadQR,evVerPresencas,evRenderPresencas,evMarcarPres,evAddParticipante,evFinalizarEntradas,evAbrirMotivo,evGuardarMotivo,evGerarPDF,evRenderSideTipos,evSelTipo,evAbrirFormTipo,evSalvarTipo,evRemoverTipo,evMoverTipo});
 
-            html += '</div>';
-            document.getElementById('ev-main').innerHTML = html;
-        }
-
-        function evAbrirFormTipo(idx) {
-            const lista = getTipos();
-            const isNovo = idx === null;
-            const valor  = isNovo ? '' : lista[idx];
-            const body = `<div class="form-grid">
-        <div class="msg-form" id="form-msg"></div>
-        <div class="form-group form-full"><label class="form-label">Nome do Tipo</label>
-            <input class="form-input" id="ft_nome" type="text" placeholder="Ex: Encontro de Jovens" value="${valor}"></div>
-        <div class="form-actions">
-            <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
-            <button class="btn-save" onclick="evSalvarTipo(${idx})">Guardar</button>
-        </div></div>`;
-            document.getElementById('drawer-title').textContent = isNovo ? 'Novo Tipo de Evento' : 'Editar Tipo';
-            document.getElementById('drawer-body').innerHTML = body;
-            document.getElementById('overlay').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function evSalvarTipo(idx) {
-            const nome = document.getElementById('ft_nome')?.value?.trim();
-            if (!nome) { document.getElementById('form-msg').textContent='Nome obrigatorio.'; document.getElementById('form-msg').className='msg-form error'; return; }
-            const lista = getTipos();
-            if (idx === null) lista.splice(lista.length-1, 0, nome);
-            else lista[idx] = nome;
-            saveTipos(lista);
-            closeDrawer(); evRenderTipos();
-        }
-
-        function evRemoverTipo(idx) {
-            const lista = getTipos();
-            if (!confirm(`Remover "${lista[idx]}"?`)) return;
-            lista.splice(idx, 1); saveTipos(lista); evRenderTipos();
-        }
-
-        function evMoverTipo(idx, dir) {
-            const lista = getTipos();
-            const novo  = idx + dir;
-            if (novo < 0 || novo >= lista.length) return;
-            [lista[idx], lista[novo]] = [lista[novo], lista[idx]];
-            saveTipos(lista); evRenderTipos();
-        }
-
-// ── EXPOR FUNCOES GLOBAIS NECESSARIAS ──────────────────────────────────────
-        window.evSetTab         = evSetTab;
-        window.evRenderEventos  = evRenderEventos;
-        window.evRenderPresencas= evRenderPresencas;
-        window.evIniciar        = evIniciar;
-        window.evConcluir       = evConcluir;
-        window.evCancelar       = evCancelar;
-        window.evEditar         = evEditar;
-        window.evAbrirForm      = evAbrirForm;
-        window.evSalvarEvento   = evSalvarEvento;
-        window.evAbrirPresencas = evAbrirPresencas;
-        window.evVoltarLista    = evVoltarLista;
-        window.evMarcarPresenca = evMarcarPresenca;
-        window.evAddParticipante= evAddParticipante;
-        window.evFinalizarEntradas = evFinalizarEntradas;
-        window.evAbrirMotivo    = evAbrirMotivo;
-        window.evGuardarMotivo  = evGuardarMotivo;
-        window.evMostrarQR      = evMostrarQR;
-        window.evCopiarURL      = evCopiarURL;
-        window.evDownloadQR     = evDownloadQR;
-        window.evGerarPDF       = evGerarPDF;
-        window.evRenderTipos    = evRenderTipos;
-        window.evAbrirFormTipo  = evAbrirFormTipo;
-        window.evSalvarTipo     = evSalvarTipo;
-        window.evRemoverTipo    = evRemoverTipo;
-        window.evMoverTipo      = evMoverTipo;
-
-// INIT
-        evInit();
-
-    })();
+evInit();
+})();
 </script>

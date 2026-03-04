@@ -1,0 +1,633 @@
+<style>
+    /* ══════════════════════════════════════════════════════
+       FORNECEDORES MODULE
+       Layout: sidebar esquerda + painel direito
+       Prefixo: fn_
+       ══════════════════════════════════════════════════════ */
+
+    .fn-wrap {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        font-family: var(--font-body);
+    }
+
+    /* ── SIDEBAR ──────────────────────────────────────── */
+    .fn-side {
+        width: 260px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        overflow: hidden;
+    }
+    .fn-side-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .fn-search {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+    }
+    .fn-search:focus { border-color: var(--primary); }
+    .fn-side-row { display: flex; gap: 6px; align-items: center; }
+    .fn-btn-novo {
+        flex: 1;
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+    }
+    .fn-btn-novo:hover    { background: var(--primary-dark); }
+    .fn-btn-novo:disabled { opacity: 0.4; cursor: not-allowed; }
+    .fn-filter {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 8px;
+        font-size: 11px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+    }
+    .fn-filter:focus { border-color: var(--primary); }
+    .fn-list { flex: 1; overflow-y: auto; }
+
+    /* ── ITEM DA LISTA ────────────────────────────────── */
+    .fn-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.12s;
+    }
+    .fn-item:hover  { background: var(--primary-faint); }
+    .fn-item.active { background: var(--primary-faint); border-left: 3px solid var(--primary); }
+    .fn-item.inativo { opacity: 0.45; }
+    .fn-item-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        flex-shrink: 0;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        font-family: var(--font-title);
+        font-size: 13px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .fn-item-info { flex: 1; min-width: 0; }
+    .fn-item-nome {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .fn-item-tipo {
+        font-size: 10px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-faint);
+        margin-top: 1px;
+    }
+    .fn-item-badge {
+        font-size: 9px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        flex-shrink: 0;
+    }
+    .fn-empty {
+        padding: 40px 16px;
+        text-align: center;
+        color: var(--text-faint);
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    /* ── PAINEL DIREITO ───────────────────────────────── */
+    .fn-panel {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--bg-main);
+        display: flex;
+        flex-direction: column;
+    }
+    .fn-panel-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: var(--text-faint);
+    }
+    .fn-panel-empty-icon { opacity: 0.3; }
+    .fn-panel-empty-txt { font-size: 13px; }
+    .fn-panel-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+        flex-shrink: 0;
+    }
+    .fn-panel-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        font-family: var(--font-title);
+        font-size: 18px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .fn-panel-head-info { flex: 1; min-width: 0; }
+    .fn-panel-nome {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .fn-panel-tipo {
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        color: var(--primary-dark);
+        margin-top: 2px;
+    }
+    .fn-panel-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .fn-panel-btn {
+        padding: 7px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: var(--text-muted);
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .fn-panel-btn:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-faint); }
+    .fn-panel-btn.danger:hover { border-color: rgba(192,57,43,0.4); color: #c0392b; background: rgba(192,57,43,0.06); }
+    .fn-panel-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── TABS ─────────────────────────────────────────── */
+    .fn-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+        padding: 0 20px;
+        flex-shrink: 0;
+    }
+    .fn-tab {
+        padding: 10px 14px;
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-faint);
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin-bottom: -1px;
+    }
+    .fn-tab:hover  { color: var(--text-main); }
+    .fn-tab.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
+    .fn-tab-content { display: none; }
+    .fn-tab-content.active { display: block; }
+
+    /* ── FORM ────────────────────────────────────────── */
+    .fn-form { padding: 20px; }
+    .fn-form-title {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        padding: 14px 0 6px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 12px;
+    }
+    .fn-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .fn-form-full { grid-column: 1 / -1; }
+    .fn-group { display: flex; flex-direction: column; gap: 4px; }
+    .fn-label {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+    }
+    .fn-input, .fn-textarea, .fn-select {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+        transition: border-color 0.2s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .fn-input:focus, .fn-textarea:focus, .fn-select:focus { border-color: var(--primary); }
+    .fn-textarea { height: 80px; resize: vertical; }
+    .fn-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-main);
+        cursor: pointer;
+    }
+    .fn-toggle input { accent-color: var(--primary); width: 15px; height: 15px; }
+    .fn-msg {
+        font-size: 12px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: none;
+    }
+    .fn-msg.success { display: block; background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
+    .fn-msg.error   { display: block; background: rgba(198,40,40,0.1); color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
+    .fn-form-btns { display: flex; gap: 8px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border); margin-top: 8px; }
+    .fn-btn-cancel {
+        padding: 9px 18px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .fn-btn-save {
+        padding: 9px 20px;
+        border-radius: 20px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .fn-btn-save:hover    { background: var(--primary-dark); }
+    .fn-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── INFO VIEW (nao editar) ─────────────────────────── */
+    .fn-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; padding: 20px; }
+    .fn-info-item {}
+    .fn-info-label { font-size: 10px; font-family: var(--font-title); letter-spacing: 1px; color: var(--text-faint); margin-bottom: 3px; }
+    .fn-info-val   { font-size: 13px; color: var(--text-main); word-break: break-all; }
+    .fn-info-full  { grid-column: 1 / -1; }
+</style>
+
+<div class="fn-wrap">
+    <div class="fn-side">
+        <div class="fn-side-head">
+            <input class="fn-search" id="fn-search" placeholder="Pesquisar fornecedor..." oninput="fn_filtrar()">
+            <div class="fn-side-row">
+                <button class="fn-btn-novo" id="fn-btn-novo" onclick="fn_novo()">+ Novo</button>
+                <select class="fn-filter" id="fn-filter-tipo" onchange="fn_filtrar()">
+                    <option value="">Todos os tipos</option>
+                    <option value="servicos">Servicos</option>
+                    <option value="produtos">Produtos</option>
+                    <option value="tecnologia">Tecnologia</option>
+                    <option value="manutencao">Manutencao</option>
+                    <option value="outro">Outro</option>
+                </select>
+            </div>
+        </div>
+        <div class="fn-list" id="fn-list">
+            <div class="fn-empty">A carregar...</div>
+        </div>
+    </div>
+    <div class="fn-panel" id="fn-panel">
+        <div class="fn-panel-empty">
+            <div class="fn-panel-empty-icon">
+                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </div>
+            <div class="fn-panel-empty-txt">Seleciona um fornecedor</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Estado ────────────────────────────────────────────────────────────────────
+    var fn_dados   = [];
+    var fn_idAtivo = null;
+    var fn_tab     = 'info';  // 'info' | 'editar'
+
+    // ── Helpers ───────────────────────────────────────────────────────────────────
+    function fn_perm(acao) { return window.perm ? window.perm('fornecedores', acao) : true; }
+
+    function fn_showMsg(txt, tipo) {
+        var el = document.getElementById('fn-msg');
+        if (!el) return;
+        el.textContent = txt;
+        el.className = 'fn-msg ' + tipo;
+        if (tipo === 'success') setTimeout(function() { el.className = 'fn-msg'; }, 3000);
+    }
+
+    function fn_nomeCurto(nome) {
+        if (!nome) return '?';
+        var partes = nome.trim().split(' ');
+        return partes.length === 1 ? nome.slice(0,2).toUpperCase() : (partes[0][0] + partes[partes.length-1][0]).toUpperCase();
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────────
+    async function fn_init() {
+        try {
+            var nb = document.getElementById('fn-btn-novo');
+            if (nb && !fn_perm('criar')) { nb.disabled = true; nb.title = 'Sem permissao'; }
+            fn_dados = await sb('fornecedores?select=*&order=nome') || [];
+            fn_renderList();
+        } catch (e) {
+            var el = document.getElementById('fn-list');
+            if (el) el.innerHTML = '<div class="fn-empty">Erro ao carregar: ' + (e?.message || JSON.stringify(e)) + '</div>';
+        }
+    }
+
+    // ── Render lista ──────────────────────────────────────────────────────────────
+    window.fn_filtrar = function() { fn_renderList(); };
+
+    function fn_renderList() {
+        var q    = (document.getElementById('fn-search')?.value || '').toLowerCase();
+        var tipo = (document.getElementById('fn-filter-tipo')?.value || '');
+        var lista = fn_dados.filter(function(f) {
+            var ok = true;
+            if (q)    ok = ok && ((f.nome||'').toLowerCase().includes(q) || (f.nif||'').includes(q) || (f.email||'').toLowerCase().includes(q));
+            if (tipo) ok = ok && (f.tipo || '') === tipo;
+            return ok;
+        });
+        var el = document.getElementById('fn-list');
+        if (!el) return;
+        if (!lista.length) {
+            el.innerHTML = '<div class="fn-empty">Nenhum fornecedor encontrado.</div>';
+            return;
+        }
+        el.innerHTML = lista.map(function(f) {
+            var ativo = f.ativo !== false;
+            return '<div class="fn-item' + (fn_idAtivo === f.id ? ' active' : '') + (!ativo ? ' inativo' : '') + '" onclick="fn_selecionar(\'' + f.id + '\')">' +
+                '<div class="fn-item-avatar">' + fn_nomeCurto(f.nome) + '</div>' +
+                '<div class="fn-item-info">' +
+                '<div class="fn-item-nome">' + (f.nome || '—') + '</div>' +
+                (f.tipo ? '<div class="fn-item-tipo">' + f.tipo + '</div>' : '') +
+                '</div>' +
+                (!ativo ? '<span class="fn-item-badge">inativo</span>' : '') +
+                '</div>';
+        }).join('');
+    }
+
+    // ── Selecionar / Novo ─────────────────────────────────────────────────────────
+    window.fn_selecionar = function(id) {
+        fn_idAtivo = id;
+        fn_tab = 'info';
+        fn_renderList();
+        var f = fn_dados.find(function(x) { return x.id === id; });
+        if (f) fn_renderPanel(f);
+    };
+
+    window.fn_novo = function() {
+        fn_idAtivo = null;
+        fn_tab = 'editar';
+        fn_renderList();
+        fn_renderPanel(null);
+    };
+
+    // ── Render painel ─────────────────────────────────────────────────────────────
+    function fn_renderPanel(f) {
+        var panel = document.getElementById('fn-panel');
+        if (!panel) return;
+
+        var isNovo = !f;
+        var podeEdit    = fn_perm(isNovo ? 'criar' : 'editar');
+        var podeInativar = f && fn_perm('eliminar');
+
+        var headHtml = '';
+        if (f) {
+            headHtml = '<div class="fn-panel-head">' +
+                '<div class="fn-panel-avatar">' + fn_nomeCurto(f.nome) + '</div>' +
+                '<div class="fn-panel-head-info">' +
+                '<div class="fn-panel-nome">' + (f.nome || '—') + '</div>' +
+                (f.tipo ? '<div class="fn-panel-tipo">' + f.tipo + '</div>' : '') +
+                '</div>' +
+                '<div class="fn-panel-actions">' +
+                (podeEdit ? '<button class="fn-panel-btn" onclick="fn_setTab(\'editar\')">Editar</button>' : '') +
+                '<button class="fn-panel-btn danger" onclick="fn_toggleAtivo(\'' + f.id + '\',' + (f.ativo !== false) + ')"' +
+                (podeInativar ? '' : ' disabled title="Sem permissao"') + '>' +
+                (f.ativo !== false ? 'Inativar' : 'Reativar') +
+                '</button>' +
+                '</div>' +
+                '</div>';
+        }
+
+        var tabsHtml = f ? (
+            '<div class="fn-tabs">' +
+            '<div class="fn-tab' + (fn_tab === 'info' ? ' active' : '') + '" onclick="fn_setTab(\'info\')">Informacoes</div>' +
+            (podeEdit ? '<div class="fn-tab' + (fn_tab === 'editar' ? ' active' : '') + '" onclick="fn_setTab(\'editar\')">Editar</div>' : '') +
+            '</div>'
+        ) : '';
+
+        var bodyHtml;
+        if (fn_tab === 'info' && f) {
+            bodyHtml = fn_buildInfo(f);
+        } else {
+            bodyHtml = fn_buildForm(f, podeEdit);
+        }
+
+        panel.innerHTML = headHtml + tabsHtml + bodyHtml;
+    }
+
+    function fn_buildInfo(f) {
+        var campos = [
+            { l: 'NIF / NIPC', v: f.nif },
+            { l: 'Tipo',       v: f.tipo },
+            { l: 'Email',      v: f.email },
+            { l: 'Telefone',   v: f.telefone },
+            { l: 'Website',    v: f.website },
+            { l: 'Morada',     v: f.morada, full: true },
+            { l: 'Codigo Postal', v: f.cod_postal },
+            { l: 'Localidade', v: f.localidade },
+            { l: 'IBAN',       v: f.iban, full: true },
+            { l: 'Observacoes', v: f.observacoes, full: true },
+        ];
+        return '<div class="fn-info-grid">' +
+            campos.filter(function(c) { return c.v; }).map(function(c) {
+                return '<div class="fn-info-item' + (c.full ? ' fn-info-full' : '') + '">' +
+                    '<div class="fn-info-label">' + c.l + '</div>' +
+                    '<div class="fn-info-val">' + c.v + '</div>' +
+                    '</div>';
+            }).join('') +
+            '</div>';
+    }
+
+    function fn_buildForm(f, podeEdit) {
+        var fv  = function(k, d) { var v = f ? f[k] : undefined; return v !== undefined && v !== null ? String(v) : (d !== undefined ? String(d) : ''); };
+        var chk = function(k, d) { var v = f ? f[k] : undefined; return (v !== undefined ? !!v : !!d) ? 'checked' : ''; };
+        var dis = podeEdit ? '' : ' disabled style="opacity:0.6"';
+        return '<div class="fn-form">' +
+            '<div id="fn-msg" class="fn-msg"></div>' +
+            '<div class="fn-form-title">Identificacao</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Nome / Razao Social *</label>' +
+            '<input class="fn-input" id="fn-nome" value="' + fv('nome') + '" placeholder="Nome completo ou razao social"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">NIF / NIPC</label>' +
+            '<input class="fn-input" id="fn-nif" value="' + fv('nif') + '" placeholder="000000000"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Tipo</label>' +
+            '<select class="fn-select" id="fn-tipo"' + dis + '>' +
+            '<option value="">Selecionar tipo...</option>' +
+            ['servicos','produtos','tecnologia','manutencao','outro'].map(function(t) {
+                return '<option value="' + t + '"' + (fv('tipo') === t ? ' selected' : '') + '>' + t.charAt(0).toUpperCase() + t.slice(1) + '</option>';
+            }).join('') +
+            '</select></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Contacto</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group"><label class="fn-label">Email</label>' +
+            '<input class="fn-input" id="fn-email" type="email" value="' + fv('email') + '" placeholder="email@empresa.com"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Telefone</label>' +
+            '<input class="fn-input" id="fn-telefone" type="tel" value="' + fv('telefone') + '" placeholder="+351 2XX XXX XXX"' + dis + '></div>' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Website</label>' +
+            '<input class="fn-input" id="fn-website" type="url" value="' + fv('website') + '" placeholder="https://empresa.com"' + dis + '></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Morada</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Morada</label>' +
+            '<input class="fn-input" id="fn-morada" value="' + fv('morada') + '" placeholder="Rua, numero, andar..."' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Codigo Postal</label>' +
+            '<input class="fn-input" id="fn-cod-postal" value="' + fv('cod_postal') + '" placeholder="0000-000"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Localidade</label>' +
+            '<input class="fn-input" id="fn-localidade" value="' + fv('localidade') + '" placeholder="Lisboa"' + dis + '></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Dados Bancarios</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">IBAN</label>' +
+            '<input class="fn-input" id="fn-iban" value="' + fv('iban') + '" placeholder="PT50 0000 0000 0000 0000 0000 0"' + dis + '></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Notas</div>' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Observacoes</label>' +
+            '<textarea class="fn-textarea" id="fn-obs"' + dis + '>' + fv('observacoes') + '</textarea></div>' +
+            '<div style="padding-top:10px;display:flex;align-items:center">' +
+            '<label class="fn-toggle"><input type="checkbox" id="fn-ativo" ' + chk('ativo', true) + (dis ? ' disabled' : '') + '><span>Ativo</span></label>' +
+            '</div>' +
+            '<div class="fn-form-btns">' +
+            '<button class="fn-btn-cancel" onclick="fn_cancelar()">Cancelar</button>' +
+            '<button class="fn-btn-save" id="fn-btn-save" onclick="fn_guardar()"' + (podeEdit ? '' : ' disabled') + '>Guardar</button>' +
+            '</div>' +
+            '</div>';
+    }
+
+    window.fn_setTab = function(tab) {
+        fn_tab = tab;
+        var f = fn_dados.find(function(x) { return x.id === fn_idAtivo; }) || null;
+        fn_renderPanel(f);
+    };
+
+    // ── Guardar ───────────────────────────────────────────────────────────────────
+    window.fn_guardar = async function() {
+        var nome = document.getElementById('fn-nome')?.value?.trim();
+        if (!nome) { fn_showMsg('Nome / Razao Social e obrigatorio.', 'error'); return; }
+        var body = {
+            nome:         nome,
+            nif:          document.getElementById('fn-nif')?.value?.trim()       || null,
+            tipo:         document.getElementById('fn-tipo')?.value               || null,
+            email:        document.getElementById('fn-email')?.value?.trim()      || null,
+            telefone:     document.getElementById('fn-telefone')?.value?.trim()   || null,
+            website:      document.getElementById('fn-website')?.value?.trim()    || null,
+            morada:       document.getElementById('fn-morada')?.value?.trim()     || null,
+            cod_postal:   document.getElementById('fn-cod-postal')?.value?.trim() || null,
+            localidade:   document.getElementById('fn-localidade')?.value?.trim() || null,
+            iban:         document.getElementById('fn-iban')?.value?.trim()       || null,
+            observacoes:  document.getElementById('fn-obs')?.value?.trim()        || null,
+            ativo:        document.getElementById('fn-ativo')?.checked !== false,
+        };
+        var btn = document.getElementById('fn-btn-save');
+        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+        try {
+            var res;
+            if (!fn_idAtivo) {
+                res = await sb('fornecedores', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) });
+            } else {
+                res = await sb('fornecedores?id=eq.' + fn_idAtivo, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) });
+            }
+            var criado = Array.isArray(res) ? res[0] : res;
+            fn_showMsg('Guardado com sucesso!', 'success');
+            fn_dados = await sb('fornecedores?select=*&order=nome') || [];
+            if (criado?.id) fn_idAtivo = criado.id;
+            fn_tab = 'info';
+            setTimeout(function() { fn_renderList(); fn_renderPanel(fn_dados.find(function(x) { return x.id === fn_idAtivo; }) || null); }, 600);
+        } catch (e) {
+            fn_showMsg('Erro: ' + (e?.message || e?.details || JSON.stringify(e)), 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+        }
+    };
+
+    window.fn_toggleAtivo = async function(id, ativo) {
+        if (!confirm(ativo ? 'Inativar este fornecedor?' : 'Reativar este fornecedor?')) return;
+        try {
+            await sb('fornecedores?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
+            fn_dados = await sb('fornecedores?select=*&order=nome') || [];
+            fn_renderList();
+            fn_renderPanel(fn_dados.find(function(x) { return x.id === id; }) || null);
+        } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+    };
+
+    window.fn_cancelar = function() {
+        if (fn_idAtivo) {
+            fn_tab = 'info';
+            fn_renderPanel(fn_dados.find(function(x) { return x.id === fn_idAtivo; }) || null);
+        } else {
+            fn_idAtivo = null;
+            fn_renderList();
+            var panel = document.getElementById('fn-panel');
+            if (panel) panel.innerHTML = '<div class="fn-panel-empty"><div class="fn-panel-empty-icon"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="fn-panel-empty-txt">Seleciona um fornecedor</div></div>';
+        }
+    };
+
+    // ── Arrancar ──────────────────────────────────────────────────────────────────
+    window.fn_init = fn_init;
+    fn_init();
+</script>

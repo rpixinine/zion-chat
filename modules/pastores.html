@@ -1,0 +1,638 @@
+<style>
+    /* ══════════════════════════════════════════════════════
+       PASTORES MODULE
+       Layout: sidebar esquerda + painel direito (igual a cultos/ministerios)
+       Prefixo: pa_
+       ══════════════════════════════════════════════════════ */
+
+    .pa-wrap {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        font-family: var(--font-body);
+    }
+
+    /* ── SIDEBAR ──────────────────────────────────────── */
+    .pa-side {
+        width: 260px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        overflow: hidden;
+    }
+    .pa-side-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .pa-search {
+        flex: 1;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+    }
+    .pa-search:focus { border-color: var(--primary); }
+    .pa-btn-novo {
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .pa-btn-novo:hover   { background: var(--primary-dark); }
+    .pa-btn-novo:disabled { opacity: 0.4; cursor: not-allowed; }
+    .pa-list { flex: 1; overflow-y: auto; }
+
+    /* ── ITEM DA LISTA ────────────────────────────────── */
+    .pa-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.12s;
+    }
+    .pa-item:hover   { background: var(--primary-faint); }
+    .pa-item.active  { background: var(--primary-faint); border-left: 3px solid var(--primary); }
+    .pa-item.inativo { opacity: 0.45; }
+    .pa-item-foto {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        font-family: var(--font-title);
+        font-size: 14px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .pa-item-foto img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .pa-item-info { flex: 1; min-width: 0; }
+    .pa-item-nome {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .pa-item-cargo {
+        font-size: 11px;
+        color: var(--text-faint);
+        font-family: var(--font-title);
+        letter-spacing: 0.3px;
+        margin-top: 1px;
+    }
+    .pa-item-badge {
+        font-size: 9px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        flex-shrink: 0;
+    }
+    .pa-empty {
+        padding: 40px 16px;
+        text-align: center;
+        color: var(--text-faint);
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    /* ── PAINEL DIREITO ───────────────────────────────── */
+    .pa-panel {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--bg-main);
+        display: flex;
+        flex-direction: column;
+    }
+    .pa-panel-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: var(--text-faint);
+    }
+    .pa-panel-empty-icon { opacity: 0.3; }
+    .pa-panel-empty-txt { font-size: 13px; }
+    .pa-panel-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+        flex-shrink: 0;
+    }
+    .pa-panel-foto {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        font-family: var(--font-title);
+        font-size: 20px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .pa-panel-foto img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .pa-panel-head-info { flex: 1; min-width: 0; }
+    .pa-panel-nome {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .pa-panel-cargo {
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        color: var(--primary-dark);
+        margin-top: 2px;
+    }
+    .pa-panel-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .pa-panel-btn {
+        padding: 7px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: var(--text-muted);
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .pa-panel-btn:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-faint); }
+    .pa-panel-btn.danger:hover { border-color: rgba(192,57,43,0.4); color: #c0392b; background: rgba(192,57,43,0.06); }
+    .pa-panel-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── FORM ────────────────────────────────────────── */
+    .pa-form { padding: 20px; display: flex; flex-direction: column; gap: 0; }
+    .pa-form-title {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        padding: 14px 0 6px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 12px;
+    }
+    .pa-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .pa-form-full { grid-column: 1 / -1; }
+    .pa-group { display: flex; flex-direction: column; gap: 4px; }
+    .pa-label {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+    }
+    .pa-input, .pa-textarea, .pa-select {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+        transition: border-color 0.2s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .pa-input:focus, .pa-textarea:focus, .pa-select:focus { border-color: var(--primary); }
+    .pa-textarea { height: 90px; resize: vertical; }
+    .pa-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-main);
+        cursor: pointer;
+    }
+    .pa-toggle input { accent-color: var(--primary); width: 15px; height: 15px; }
+    .pa-msg {
+        font-size: 12px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: none;
+    }
+    .pa-msg.success { display: block; background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
+    .pa-msg.error   { display: block; background: rgba(198,40,40,0.1); color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
+    .pa-form-btns { display: flex; gap: 8px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border); margin-top: 8px; }
+    .pa-btn-cancel {
+        padding: 9px 18px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .pa-btn-save {
+        padding: 9px 20px;
+        border-radius: 20px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .pa-btn-save:hover    { background: var(--primary-dark); }
+    .pa-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── IMAGEM ────────────────────────────────────────── */
+    .pa-img-box {
+        width: 100%;
+        height: 180px;
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        background: var(--bg-input);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+        transition: border-color 0.2s, background 0.2s;
+        box-sizing: border-box;
+    }
+    .pa-img-box:hover { border-color: var(--primary); background: var(--primary-faint); }
+    .pa-img-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-faint);
+        pointer-events: none;
+    }
+    .pa-img-placeholder span { font-size: 12px; font-weight: 600; }
+    .pa-img-placeholder small { font-size: 10px; }
+    .pa-img-btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+    .pa-img-btn {
+        padding: 5px 11px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .pa-img-btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+    .pa-img-btn.danger:hover { border-color: rgba(192,57,43,0.4); color: #c0392b; }
+    .pa-img-status { font-size: 11px; min-height: 16px; margin-top: 3px; color: var(--text-faint); }
+</style>
+
+<div class="pa-wrap">
+    <div class="pa-side">
+        <div class="pa-side-head">
+            <input class="pa-search" id="pa-search" placeholder="Pesquisar..." oninput="pa_filtrar()">
+            <button class="pa-btn-novo" id="pa-btn-novo" onclick="pa_novo()">+ Novo</button>
+        </div>
+        <div class="pa-list" id="pa-list">
+            <div class="pa-empty">A carregar...</div>
+        </div>
+    </div>
+    <div class="pa-panel" id="pa-panel">
+        <div class="pa-panel-empty">
+            <div class="pa-panel-empty-icon">
+                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+            </div>
+            <div class="pa-panel-empty-txt">Seleciona um pastor</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Estado ────────────────────────────────────────────────────────────────────
+    var pa_dados  = [];
+    var pa_idAtivo = null;
+    var pa_modoNovo = false;
+
+    // ── Helpers ───────────────────────────────────────────────────────────────────
+    function pa_perm(acao) { return window.perm ? window.perm('pastores', acao) : true; }
+
+    function pa_showMsg(txt, tipo) {
+        var el = document.getElementById('pa-msg');
+        if (!el) return;
+        el.textContent = txt;
+        el.className = 'pa-msg ' + tipo;
+        if (tipo === 'success') setTimeout(function() { el.className = 'pa-msg'; }, 3000);
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────────
+    async function pa_init() {
+        try {
+            var nb = document.getElementById('pa-btn-novo');
+            if (nb && !pa_perm('criar')) { nb.disabled = true; nb.title = 'Sem permissao'; }
+            pa_dados = await sb('pastores?select=*&order=nome') || [];
+            pa_renderList();
+        } catch (e) {
+            var el = document.getElementById('pa-list');
+            if (el) el.innerHTML = '<div class="pa-empty">Erro ao carregar: ' + (e?.message || JSON.stringify(e)) + '</div>';
+        }
+    }
+
+    // ── Render lista ──────────────────────────────────────────────────────────────
+    window.pa_filtrar = function() { pa_renderList(); };
+
+    function pa_renderList() {
+        var q = (document.getElementById('pa-search')?.value || '').toLowerCase();
+        var lista = pa_dados.filter(function(p) {
+            if (!q) return true;
+            return (p.nome || '').toLowerCase().includes(q) || (p.cargo || '').toLowerCase().includes(q);
+        });
+        var el = document.getElementById('pa-list');
+        if (!el) return;
+        if (!lista.length) {
+            el.innerHTML = '<div class="pa-empty">Nenhum pastor encontrado.</div>';
+            return;
+        }
+        el.innerHTML = lista.map(function(p) {
+            var ativo = p.ativo !== false;
+            var fotoHtml = p.foto_url
+                ? '<div class="pa-item-foto"><img src="' + p.foto_url + '" alt="" onerror="this.parentElement.innerHTML=\'' + (p.nome||'P')[0].toUpperCase() + '\'"></div>'
+                : '<div class="pa-item-foto">' + (p.nome || 'P')[0].toUpperCase() + '</div>';
+            return '<div class="pa-item' + (pa_idAtivo === p.id ? ' active' : '') + (!ativo ? ' inativo' : '') + '" onclick="pa_selecionar(\'' + p.id + '\')">' +
+                fotoHtml +
+                '<div class="pa-item-info">' +
+                '<div class="pa-item-nome">' + (p.nome || '—') + '</div>' +
+                (p.cargo ? '<div class="pa-item-cargo">' + p.cargo + '</div>' : '') +
+                '</div>' +
+                (!ativo ? '<span class="pa-item-badge">inativo</span>' : '') +
+                '</div>';
+        }).join('');
+    }
+
+    // ── Selecionar pastor ─────────────────────────────────────────────────────────
+    window.pa_selecionar = function(id) {
+        pa_idAtivo = id;
+        pa_modoNovo = false;
+        pa_renderList();
+        var p = pa_dados.find(function(x) { return x.id === id; });
+        if (p) pa_renderForm(p);
+    };
+
+    window.pa_novo = function() {
+        pa_idAtivo = null;
+        pa_modoNovo = true;
+        pa_renderList();
+        pa_renderForm(null);
+    };
+
+    // ── Render painel ─────────────────────────────────────────────────────────────
+    function pa_renderForm(p) {
+        var panel = document.getElementById('pa-panel');
+        if (!panel) return;
+        var fv  = function(k, d) { var v = p ? p[k] : undefined; return v !== undefined && v !== null ? String(v) : (d !== undefined ? String(d) : ''); };
+        var chk = function(k, d) { var v = p ? p[k] : undefined; return (v !== undefined ? !!v : !!d) ? 'checked' : ''; };
+        var isNovo  = !p;
+        var podeEdit = pa_perm(isNovo ? 'criar' : 'editar');
+        var podeInativar = p && pa_perm('eliminar');
+
+        var headHtml = p ? (
+            '<div class="pa-panel-head">' +
+            (p.foto_url
+                ? '<div class="pa-panel-foto"><img src="' + p.foto_url + '" alt="" onerror="this.parentElement.innerHTML=\'' + (p.nome||'P')[0].toUpperCase() + '\'"></div>'
+                : '<div class="pa-panel-foto">' + (p.nome||'P')[0].toUpperCase() + '</div>') +
+            '<div class="pa-panel-head-info">' +
+            '<div class="pa-panel-nome">' + (p.nome || '—') + '</div>' +
+            (p.cargo ? '<div class="pa-panel-cargo">' + p.cargo + '</div>' : '') +
+            '</div>' +
+            '<div class="pa-panel-actions">' +
+            '<button class="pa-panel-btn danger" onclick="pa_toggleAtivo(\'' + p.id + '\',' + (p.ativo !== false) + ')"' +
+            (podeInativar ? '' : ' disabled title="Sem permissao"') + '>' +
+            (p.ativo !== false ? 'Inativar' : 'Reativar') +
+            '</button>' +
+            '</div>' +
+            '</div>'
+        ) : '';
+
+        var imgBox;
+        if (p && p.foto_url) {
+            imgBox = '<div class="pa-img-box" onclick="pa_triggerFile()">' +
+                '<img src="' + p.foto_url + '" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" onerror="this.innerHTML=pa_imgPlaceholderHtml()">' +
+                '</div>';
+        } else {
+            imgBox = '<div class="pa-img-box" onclick="pa_triggerFile()">' + pa_imgPlaceholderHtml() + '</div>';
+        }
+
+        panel.innerHTML = headHtml +
+            '<div class="pa-form">' +
+            '<div id="pa-msg" class="pa-msg"></div>' +
+            '<div class="pa-form-title">Dados Pessoais</div>' +
+            '<div class="pa-form-grid">' +
+            '<div class="pa-group pa-form-full"><label class="pa-label">Nome *</label>' +
+            '<input class="pa-input" id="pa-nome" value="' + fv('nome') + '" placeholder="Nome completo"></div>' +
+            '<div class="pa-group"><label class="pa-label">Cargo</label>' +
+            '<input class="pa-input" id="pa-cargo" value="' + fv('cargo') + '" placeholder="Ex: Pastor Principal"></div>' +
+            '<div class="pa-group"><label class="pa-label">Email</label>' +
+            '<input class="pa-input" id="pa-email" type="email" value="' + fv('email') + '" placeholder="email@exemplo.com"></div>' +
+            '<div class="pa-group"><label class="pa-label">Telefone</label>' +
+            '<input class="pa-input" id="pa-telefone" type="tel" value="' + fv('telefone') + '" placeholder="+351 9XX XXX XXX"></div>' +
+            '<div class="pa-group"><label class="pa-label">Instagram</label>' +
+            '<input class="pa-input" id="pa-instagram" value="' + fv('instagram') + '" placeholder="@handle"></div>' +
+            '<div class="pa-group" style="justify-content:flex-end;padding-top:18px">' +
+            '<label class="pa-toggle"><input type="checkbox" id="pa-ativo" ' + chk('ativo', true) + '><span>Ativo</span></label>' +
+            '</div>' +
+            '</div>' +
+            '<div class="pa-form-title">Foto</div>' +
+            '<div class="pa-group">' +
+            imgBox +
+            '<div class="pa-img-btns">' +
+            '<button type="button" class="pa-img-btn" onclick="pa_triggerFile()">Escolher ficheiro</button>' +
+            '<button type="button" class="pa-img-btn" onclick="pa_triggerCamera()">Camara</button>' +
+            (p && p.foto_url ? '<button type="button" class="pa-img-btn danger" onclick="pa_removerFoto()">Remover</button>' : '') +
+            '</div>' +
+            '<input type="text" id="pa-img-url-text" placeholder="Ou cola um URL da imagem..." value="' + fv('foto_url') + '" ' +
+            'style="margin-top:6px;width:100%;box-sizing:border-box;background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text-main);outline:none;font-family:var(--font-body)">' +
+            '<button type="button" class="pa-img-btn" style="margin-top:4px" onclick="pa_aplicarUrl()">Usar URL</button>' +
+            '<div class="pa-img-status" id="pa-img-status"></div>' +
+            '<input type="hidden" id="pa-foto-url" value="' + fv('foto_url') + '">' +
+            '<input type="file" id="pa-file-input" accept="image/*" style="display:none" onchange="pa_handleFile(this)">' +
+            '<input type="file" id="pa-cam-input"  accept="image/*" capture="environment" style="display:none" onchange="pa_handleFile(this)">' +
+            '</div>' +
+            '<div class="pa-form-title">Biografia</div>' +
+            '<div class="pa-group">' +
+            '<textarea class="pa-textarea" id="pa-bio" placeholder="Breve biografia...">' + fv('bio') + '</textarea>' +
+            '</div>' +
+            '<div class="pa-form-btns">' +
+            '<button class="pa-btn-cancel" onclick="pa_cancelar()">Cancelar</button>' +
+            '<button class="pa-btn-save" id="pa-btn-save" onclick="pa_guardar()"' + (podeEdit ? '' : ' disabled') + '>Guardar</button>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function pa_imgPlaceholderHtml() {
+        return '<div class="pa-img-placeholder">' +
+            '<svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>' +
+            '<span>Clica para escolher imagem</span><small>JPG, PNG, WEBP</small>' +
+            '</div>';
+    }
+    window.pa_imgPlaceholderHtml = pa_imgPlaceholderHtml;
+
+    window.pa_triggerFile   = function() { document.getElementById('pa-file-input')?.click(); };
+    window.pa_triggerCamera = function() { document.getElementById('pa-cam-input')?.click(); };
+    window.pa_aplicarUrl    = function() {
+        var url = document.getElementById('pa-img-url-text')?.value?.trim();
+        if (!url) return;
+        document.getElementById('pa-foto-url').value = url;
+        pa_atualizarPreview(url);
+    };
+    window.pa_removerFoto   = function() {
+        document.getElementById('pa-foto-url').value = '';
+        document.getElementById('pa-img-url-text').value = '';
+        var box = document.querySelector('.pa-img-box');
+        if (box) box.innerHTML = pa_imgPlaceholderHtml();
+    };
+    function pa_atualizarPreview(url) {
+        var box = document.querySelector('.pa-img-box');
+        if (!box) return;
+        box.innerHTML = '<img src="' + url + '" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" onerror="this.parentElement.innerHTML=pa_imgPlaceholderHtml()">';
+    }
+
+    // ── Upload de imagem ──────────────────────────────────────────────────────────
+    window.pa_handleFile = async function(input) {
+        var file = input.files?.[0];
+        if (!file) return;
+        pa_atualizarPreview(URL.createObjectURL(file));
+        var status = document.getElementById('pa-img-status');
+        if (status) { status.textContent = 'A comprimir...'; status.style.color = 'var(--text-faint)'; }
+        try {
+            var blob = await new Promise(function(resolve) {
+                var img = new Image();
+                var url = URL.createObjectURL(file);
+                img.onload = function() {
+                    var w = img.width, h = img.height;
+                    var max = 800;
+                    if (w > max || h > max) { var r = Math.min(max/w, max/h); w = Math.round(w*r); h = Math.round(h*r); }
+                    var cv = document.createElement('canvas');
+                    cv.width = w; cv.height = h;
+                    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+                    URL.revokeObjectURL(url);
+                    cv.toBlob(function(b) { resolve(b); }, 'image/jpeg', 0.82);
+                };
+                img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
+                img.src = url;
+            });
+            var fname = 'pastores/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.jpg';
+            if (status) status.textContent = 'A fazer upload...';
+            var res = await fetch(window.SUPABASE_URL + '/storage/v1/object/imagens/' + fname, {
+                method: 'POST',
+                headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+                body: blob,
+            });
+            if (!res.ok) { var err = await res.json().catch(function() { return {}; }); throw new Error(err?.error || err?.message || 'Erro ' + res.status); }
+            var pub = window.SUPABASE_URL + '/storage/v1/object/public/imagens/' + fname;
+            document.getElementById('pa-foto-url').value = pub;
+            document.getElementById('pa-img-url-text').value = pub;
+            pa_atualizarPreview(pub);
+            if (status) { status.textContent = 'Upload concluido (' + Math.round(blob.size / 1024) + ' KB)'; status.style.color = 'var(--green, #2e7d32)'; }
+        } catch (e) {
+            if (status) { status.textContent = 'Erro: ' + e.message; status.style.color = 'var(--red, #c0392b)'; }
+        }
+        input.value = '';
+    };
+
+    // ── Guardar ───────────────────────────────────────────────────────────────────
+    window.pa_guardar = async function() {
+        var nome = document.getElementById('pa-nome')?.value?.trim();
+        if (!nome) { pa_showMsg('Nome e obrigatorio.', 'error'); return; }
+        var body = {
+            nome:      nome,
+            cargo:     document.getElementById('pa-cargo')?.value?.trim()    || null,
+            email:     document.getElementById('pa-email')?.value?.trim()    || null,
+            telefone:  document.getElementById('pa-telefone')?.value?.trim() || null,
+            instagram: document.getElementById('pa-instagram')?.value?.trim()|| null,
+            foto_url:  document.getElementById('pa-foto-url')?.value?.trim() || null,
+            bio:       document.getElementById('pa-bio')?.value?.trim()      || null,
+            ativo:     document.getElementById('pa-ativo')?.checked !== false,
+        };
+        var btn = document.getElementById('pa-btn-save');
+        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+        try {
+            var res;
+            if (!pa_idAtivo) {
+                res = await sb('pastores', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) });
+            } else {
+                res = await sb('pastores?id=eq.' + pa_idAtivo, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) });
+            }
+            var criado = Array.isArray(res) ? res[0] : res;
+            pa_showMsg('Guardado com sucesso!', 'success');
+            pa_dados = await sb('pastores?select=*&order=nome') || [];
+            if (criado?.id) pa_idAtivo = criado.id;
+            pa_modoNovo = false;
+            setTimeout(function() { pa_renderList(); pa_renderForm(pa_dados.find(function(x) { return x.id === pa_idAtivo; }) || null); }, 600);
+        } catch (e) {
+            pa_showMsg('Erro: ' + (e?.message || e?.details || JSON.stringify(e)), 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+        }
+    };
+
+    window.pa_toggleAtivo = async function(id, ativo) {
+        if (!confirm(ativo ? 'Inativar este pastor?' : 'Reativar este pastor?')) return;
+        try {
+            await sb('pastores?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
+            pa_dados = await sb('pastores?select=*&order=nome') || [];
+            pa_renderList();
+            pa_renderForm(pa_dados.find(function(x) { return x.id === id; }) || null);
+        } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+    };
+
+    window.pa_cancelar = function() {
+        pa_idAtivo = null;
+        pa_modoNovo = false;
+        pa_renderList();
+        var panel = document.getElementById('pa-panel');
+        if (panel) panel.innerHTML = '<div class="pa-panel-empty"><div class="pa-panel-empty-icon"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="pa-panel-empty-txt">Seleciona um pastor</div></div>';
+    };
+
+    // ── Arrancar ──────────────────────────────────────────────────────────────────
+    window.pa_init = pa_init;
+    pa_init();
+</script>

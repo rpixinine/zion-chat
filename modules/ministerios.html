@@ -48,17 +48,6 @@
     .badge-green    { background:rgba(46,125,50,0.1); color:var(--green); }
     .badge-gray     { background:rgba(0,0,0,0.06); color:var(--text-faint); }
 
-    /*PDF*/
-    .pdf-header {
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .pdf-logo {
-        height: 22mm !important;
-        width: 22mm !important;
-        object-fit: contain;
-    }
-
     /* Disponibilidade grid */
     .disp-table { width:100%; border-collapse:collapse; font-size:12px; }
     .disp-table th { font-family:var(--font-title); font-size:9px; letter-spacing:1px; color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--border); text-align:center; white-space:nowrap; }
@@ -123,11 +112,46 @@
     <div class="mod-sidebar">
         <div class="mod-sidebar-hd">
             <div class="mod-sidebar-title">Ministérios</div>
+            <button class="btn-add" style="font-size:11px;padding:4px 10px" onclick="min_abrirFormMin(null)">+ Novo</button>
         </div>
         <div class="mod-list" id="min-sidebar"></div>
     </div>
     <div class="mod-content" id="min-content">
         <div class="mod-empty"><div class="mod-empty-title">Selecciona um Ministério</div></div>
+    </div>
+</div>
+
+<!-- MODAL MINISTERIO (criar/editar) -->
+<div id="min-modal-min" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:center;justify-content:center">
+    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:420px;max-width:96vw;box-shadow:var(--shadow-md)">
+        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:16px" id="min-modal-min-title">Novo Ministério</div>
+        <div class="crud-group" style="margin-bottom:12px">
+            <label>Nome *</label>
+            <input id="min-f-nome" type="text" placeholder="Ex: Louvor, Kids, Multimidia...">
+        </div>
+        <div class="crud-group" style="margin-bottom:12px">
+            <label>Tipo</label>
+            <select id="min-f-tipo">
+                <option value="">-- Seleciona --</option>
+                <option value="ministerio">Ministério</option>
+                <option value="ae">Área de Extensão (AE)</option>
+                <option value="presbitero">Presbítério</option>
+                <option value="outro">Outro</option>
+            </select>
+        </div>
+        <div class="crud-group" style="margin-bottom:12px">
+            <label>Descrição</label>
+            <input id="min-f-desc" type="text" placeholder="Breve descrição (opcional)">
+        </div>
+        <div class="crud-group" style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+            <label style="margin:0">Ativo</label>
+            <input type="checkbox" id="min-f-ativo" checked style="width:auto">
+        </div>
+        <div class="form-msg" id="min-f-msg"></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn-sm" style="flex:1" onclick="min_fecharFormMin()">Cancelar</button>
+            <button class="btn-sm primary" style="flex:1" id="min-f-save" onclick="min_salvarMin()">Guardar</button>
+        </div>
     </div>
 </div>
 
@@ -226,13 +250,19 @@
         min_minMems=mems||[]; min_minCults=cults||[];
         min_memNoMin=new Set(min_minMems.map(m=>m.membro_id));
         document.getElementById('min-content').innerHTML=`
-        <div class="mod-tabs">
-            <button class="mod-tab active" id="mint-membros"  onclick="min_tab('membros')">Membros (${min_minMems.length})</button>
-            <button class="mod-tab"        id="mint-cultos"   onclick="min_tab('cultos')">Cultos</button>
-            <button class="mod-tab"        id="mint-disp"     onclick="min_tab('disp')">Disponibilidade</button>
-            <button class="mod-tab"        id="mint-indisp"   onclick="min_tab('indisp')">Indisponibilidades</button>
-            <button class="mod-tab"        id="mint-escala"   onclick="min_tab('escala')">Escala</button>
-            <button class="mod-tab"        id="mint-partilha" onclick="min_tab('partilha')">Partilhar</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px 0;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;flex-wrap:wrap">
+            <div class="mod-tabs" style="padding:0;border-bottom:none;flex:1">
+                <button class="mod-tab active" id="mint-membros"  onclick="min_tab('membros')">Membros (${min_minMems.length})</button>
+                <button class="mod-tab"        id="mint-cultos"   onclick="min_tab('cultos')">Cultos</button>
+                <button class="mod-tab"        id="mint-disp"     onclick="min_tab('disp')">Disponibilidade</button>
+                <button class="mod-tab"        id="mint-indisp"   onclick="min_tab('indisp')">Indisponibilidades</button>
+                <button class="mod-tab"        id="mint-escala"   onclick="min_tab('escala')">Escala</button>
+                <button class="mod-tab"        id="mint-partilha" onclick="min_tab('partilha')">Partilhar</button>
+            </div>
+            <div style="display:flex;gap:6px;padding-bottom:8px;flex-shrink:0">
+                <button class="btn-sm" onclick="min_abrirFormMin('${min_minAtivo.id}')">Editar</button>
+                <button class="btn-sm danger" onclick="min_inativarMin('${min_minAtivo.id}')">${min_minAtivo.ativo===false?'Reativar':'Inativar'}</button>
+            </div>
         </div>
         <div class="mod-tab-body active" id="mintb-membros"></div>
         <div class="mod-tab-body"        id="mintb-cultos"></div>
@@ -361,8 +391,8 @@
                 <td>${m.membros?.nome||'—'}</td>
                 <td><span class="badge ${m.papel==='lider'?'badge-lider':m.papel==='aprendiz'?'badge-aprendiz':'badge-membro'}">${PAPEL_LBL[m.papel]||m.papel}</span></td>
                 ${cults.map(c=>{ const k=m.membro_id+'_'+c.id; const d=min_dispMap[k]; const on=d?d.disponivel:true;
-            return `<td><button class="disp-toggle ${on?'on':''}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
-        }).join('')}
+                return `<td><button class="disp-toggle ${on?'on':''}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
+                }).join('')}
             </tr>`).join('')}
             </tbody>
         </table></div>`;
@@ -517,9 +547,9 @@
         <thead><tr>
             <th class="th-culto">Culto</th>
             ${todasDatas.map(iso=>{
-            const {d,dw}=dataMap[iso]||{d:'?',dw:0};
-            return `<th>${DIAS_PT[dw]}<br><span style="font-size:10px;font-weight:400">${String(d).padStart(2,'0')} ${MESES_ABV[m]}</span></th>`;
-        }).join('')}
+                const {d,dw}=dataMap[iso]||{d:'?',dw:0};
+                return `<th>${DIAS_PT[dw]}<br><span style="font-size:10px;font-weight:400">${String(d).padStart(2,'0')} ${MESES_ABV[m]}</span></th>`;
+            }).join('')}
         </tr></thead>
         <tbody>`;
 
@@ -531,18 +561,18 @@
                     <div style="font-size:10px;color:var(--text-faint)">${c.hora_inicio?.slice(0,5)}</div>
                 </td>
                 ${todasDatas.map(iso=>{
-                if(!datasSet.has(iso)) return `<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
-                const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
-                const faltam=Math.max(0,c.vagas-ps.filter(p=>p.papel_escala==='servindo').length);
-                if(!ps.length){
-                    return `<td class="td-vazia">
+                    if(!datasSet.has(iso)) return `<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
+                    const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
+                    const faltam=Math.max(0,c.vagas-ps.filter(p=>p.papel_escala==='servindo').length);
+                    if(!ps.length){
+                        return `<td class="td-vazia">
                             <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
                                 <span style="color:var(--text-faint);font-size:10px">—</span>
                                 <span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span>
                             </div>
                         </td>`;
-                }
-                return `<td>
+                    }
+                    return `<td>
                         <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
                             ${ps.map(p=>`<div class="esc-cell">
                                 <span class="esc-cell-nome">${p.membros?.nome||'—'}</span>
@@ -554,7 +584,7 @@
                             <span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span>
                         </div>
                     </td>`;
-            }).join('')}
+                }).join('')}
             </tr>`;
         });
 
@@ -675,9 +705,9 @@
             <tr>
                 <th style="background:#009098;color:white;padding:10px 14px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.2);min-width:130px">Culto</th>
                 ${todasDatas.map(iso=>{
-            const {d,dw}=dataMap[iso]||{d:'?',dw:0};
-            return `<th style="background:#009098;color:white;padding:10px 12px;text-align:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.2);white-space:nowrap">${String(d).padStart(2,'0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;
-        }).join('')}
+                    const {d,dw}=dataMap[iso]||{d:'?',dw:0};
+                    return `<th style="background:#009098;color:white;padding:10px 12px;text-align:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.2);white-space:nowrap">${String(d).padStart(2,'0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;
+                }).join('')}
             </tr>
         </thead>
         <tbody>`;
@@ -691,16 +721,16 @@
                     <div style="font-size:10px;color:#009098;font-weight:400">${c.hora_inicio?.slice(0,5)||''}</div>
                 </td>
                 ${todasDatas.map(iso=>{
-                if(!datasSet.has(iso)) return `<td style="background:#f5f5f5;border:1px solid #e0e0e0;text-align:center;color:#ccc">—</td>`;
-                const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id);
-                if(!ps.length) return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;color:#bbb;font-size:11px">---</td>`;
-                const conteudo=ps.map(p=>{
-                    const extra=p.papel_escala!=='servindo'?` <span style="font-size:9px;color:#e65100;font-style:italic">(${p.papel_escala})</span>`:'';
-                    const nota=p.notas?`<br><span style="font-size:10px;color:#999">${p.notas}</span>`:'';
-                    return `<div style="padding:2px 0">${p.membros?.nome||'—'}${extra}${nota}</div>`;
-                }).join('');
-                return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;vertical-align:middle;padding:8px 10px">${conteudo}</td>`;
-            }).join('')}
+                    if(!datasSet.has(iso)) return `<td style="background:#f5f5f5;border:1px solid #e0e0e0;text-align:center;color:#ccc">—</td>`;
+                    const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id);
+                    if(!ps.length) return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;color:#bbb;font-size:11px">---</td>`;
+                    const conteudo=ps.map(p=>{
+                        const extra=p.papel_escala!=='servindo'?` <span style="font-size:9px;color:#e65100;font-style:italic">(${p.papel_escala})</span>`:'';
+                        const nota=p.notas?`<br><span style="font-size:10px;color:#999">${p.notas}</span>`:'';
+                        return `<div style="padding:2px 0">${p.membros?.nome||'—'}${extra}${nota}</div>`;
+                    }).join('');
+                    return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;vertical-align:middle;padding:8px 10px">${conteudo}</td>`;
+                }).join('')}
             </tr>`;
         });
 
@@ -720,26 +750,18 @@
         <!-- HEADER -->
         <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #009098;padding-bottom:12px;margin-bottom:20px">
             <div>
-                <div class="pdf-header"><img src="assets/logo_zion.png" style="width:22mm;height:22mm;object-fit:contain;" /></div>
-                <div style="font-size:11px;color:#999;letter-spacing:1px;margin-top:2px">Igreja Zion Lisboa</div>
+                <div style="font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:#007078;letter-spacing:3px">ZION LISBOA</div>
+                <div style="font-size:11px;color:#999;letter-spacing:1px;margin-top:2px">Igreja EVANGELICAL</div>
             </div>
             <div style="text-align:right">
                 <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#009098">${min_minAtivo.nome}</div>
-                <div style="font-size:16px;font-weight:700;color:#333;margin-top:3px">Escala</div>
+                <div style="font-size:16px;font-weight:700;color:#333;margin-top:3px">Escala de Serviço</div>
                 <div style="font-size:13px;color:#009098;font-weight:600">${mesLbl(min_escMes).toUpperCase()}</div>
             </div>
         </div>
         <!-- TABELA -->
         ${tabelaHtml||'<p style="color:#bbb;text-align:center;padding:20px">Nenhuma escala para este mês.</p>'}
         <!-- FOOTER -->
-        <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e0e0e0;padding-top:8px">
-            <div style="font-size:10px;color:#ccc">
-                AVISOS:<br>
-                VOX - CHEGAR ÀS 17:00h<br>
-                FLOW / EVENTOS - CHEGADA A SER DEFINIDA CONFORME HORÁRIO DOS EVENTOS PASSADOS PREVIAMENTE<br>
-                CULTOS: MANHÃ > CHEGADA ÀS 8:00h | TARDE > CHEGADA ÀS 15:00H
-            </div>
-        </div>
         <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e0e0e0;padding-top:8px">
             <div style="font-size:10px;color:#ccc">Gerado em ${new Date().toLocaleDateString('pt-PT')} · Sistema Zion Lisboa</div>
             <div style="font-size:10px;color:#ccc">Ministério de ${min_minAtivo.nome}</div>
@@ -750,7 +772,7 @@
 
     function min_textoWhatsApp(esc,cults,dias,a,m){
         if(!esc.length) return '';
-        let s=`*ESCALA*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
+        let s=`📋 *ESCALA DE SERVIÇO*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
         const sabDatas=dias.filter(d=>d.dw===6);
         const domDatas=dias.filter(d=>d.dw===0);
         const cultDatas=cults.map(c=>({ c, datas:isSabado(c.dia_semana)?sabDatas:domDatas }));
@@ -775,6 +797,93 @@
 
     function min_copiar(){ if(!window._minTxt){min_t('Sem escala','err');return;} navigator.clipboard.writeText(window._minTxt).then(()=>min_t('Copiado!')).catch(()=>min_t('Erro ao copiar','err')); }
     function min_imprimir(){ if(!window._minHtml){min_t('Sem escala','err');return;} const w=window.open('','_blank'); w.document.write(window._minHtml); w.document.close(); }
+
+
+    /* ── CRUD MINISTÉRIO (criar / editar / inativar) ── */
+    var min_formEditId = null;
+
+    function min_abrirFormMin(id) {
+        min_formEditId = id || null;
+        const isEdit = !!id;
+        const m = isEdit ? min_mins.find(x => x.id === id) : null;
+        document.getElementById('min-modal-min-title').textContent = isEdit ? 'Editar Ministério' : 'Novo Ministério';
+        document.getElementById('min-f-nome').value = m?.nome || '';
+        document.getElementById('min-f-tipo').value = m?.tipo || '';
+        document.getElementById('min-f-desc').value = m?.descricao || '';
+        document.getElementById('min-f-ativo').checked = m ? m.ativo !== false : true;
+        const msg = document.getElementById('min-f-msg');
+        msg.textContent = ''; msg.className = 'form-msg';
+        document.getElementById('min-modal-min').style.display = 'flex';
+        setTimeout(() => document.getElementById('min-f-nome').focus(), 80);
+    }
+
+    function min_fecharFormMin() {
+        document.getElementById('min-modal-min').style.display = 'none';
+    }
+
+    async function min_salvarMin() {
+        const nome = document.getElementById('min-f-nome').value.trim();
+        const tipo = document.getElementById('min-f-tipo').value || null;
+        const descricao = document.getElementById('min-f-desc').value.trim() || null;
+        const ativo = document.getElementById('min-f-ativo').checked;
+        const btn = document.getElementById('min-f-save');
+        const msgEl = document.getElementById('min-f-msg');
+
+        if (!nome) { msgEl.textContent = 'Nome é obrigatório.'; msgEl.className = 'form-msg err'; return; }
+
+        btn.disabled = true; btn.textContent = 'A guardar...';
+        try {
+            if (min_formEditId) {
+                // Editar existente
+                await min_sb(`ministerios?id=eq.${min_formEditId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ nome, tipo, descricao, ativo })
+                });
+                const idx = min_mins.findIndex(m => m.id === min_formEditId);
+                if (idx >= 0) Object.assign(min_mins[idx], { nome, tipo, descricao, ativo });
+                min_t('Ministério actualizado');
+                // Actualizar nome no cabeçalho se estiver aberto
+                if (min_minAtivo?.id === min_formEditId) {
+                    min_minAtivo.nome = nome; min_minAtivo.tipo = tipo; min_minAtivo.ativo = ativo;
+                }
+            } else {
+                // Criar novo
+                const res = await min_sb('ministerios', {
+                    method: 'POST',
+                    body: JSON.stringify({ nome, tipo, descricao, ativo: true })
+                });
+                const novo = Array.isArray(res) ? res[0] : res;
+                if (novo) min_mins.push(novo);
+                min_t('Ministério criado');
+            }
+            min_renderSide();
+            min_fecharFormMin();
+        } catch (e) {
+            msgEl.textContent = e.message || JSON.stringify(e);
+            msgEl.className = 'form-msg err';
+        }
+        btn.disabled = false; btn.textContent = 'Guardar';
+    }
+
+    async function min_inativarMin(id) {
+        const m = min_mins.find(x => x.id === id); if (!m) return;
+        const ativar = m.ativo === false;
+        const msg = ativar ? `Reativar "${m.nome}"?` : `Inativar "${m.nome}"? Deixará de aparecer na lista principal.`;
+        if (!confirm(msg)) return;
+        await min_sb(`ministerios?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: ativar }) });
+        m.ativo = ativar;
+        min_t(ativar ? 'Ministério reativado' : 'Ministério inativado');
+        // Recarregar lista (inclui/exclui conforme ativo)
+        const todos = await min_sb('ministerios?select=*&order=nome').catch(() => []);
+        min_mins = (todos || []).filter(x => x.ativo !== false);
+        min_renderSide();
+        // Se inativou o que estava aberto, limpar painel
+        if (!ativar && min_minAtivo?.id === id) {
+            min_minAtivo = null;
+            const el = document.getElementById('min-content');
+            if (el) el.innerHTML = `<div class="mod-empty"><div class="mod-empty-title">Ministério inativado</div></div>`;
+        }
+    }
 
     min_init();
 </script>

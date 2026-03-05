@@ -1,0 +1,803 @@
+<style>
+    /* ══════════════════════════════════════════════════════
+       SALAS MODULE
+       Layout: sidebar (lista salas) + painel direito
+       Prefixo: sl_
+       ══════════════════════════════════════════════════════ */
+
+    .sl-wrap {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        font-family: var(--font-body);
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    .sl-side {
+        width: 300px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        background: var(--bg-card);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .sl-side-header {
+        padding: 14px 14px 10px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .sl-side-title {
+        font-family: var(--font-title);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .sl-tabs {
+        display: flex;
+        gap: 4px;
+    }
+    .sl-tab {
+        flex: 1;
+        padding: 6px 0;
+        text-align: center;
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-faint);
+        cursor: pointer;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        transition: all 0.12s;
+        position: relative;
+    }
+    .sl-tab:hover { background: var(--primary-faint); color: var(--primary-dark); }
+    .sl-tab.active { background: var(--primary-faint); color: var(--primary-dark); border-color: var(--primary); font-weight: 600; }
+    .sl-tab-badge {
+        position: absolute;
+        top: -4px; right: -4px;
+        background: #e74c3c;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 9px;
+        font-weight: 700;
+        min-width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+    }
+    .sl-search-wrap {
+        position: relative;
+    }
+    .sl-search {
+        width: 100%;
+        padding: 7px 10px 7px 30px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+        box-sizing: border-box;
+    }
+    .sl-search:focus { border-color: var(--primary); }
+    .sl-search-icon {
+        position: absolute;
+        left: 8px; top: 50%; transform: translateY(-50%);
+        width: 14px; height: 14px;
+        color: var(--text-faint);
+        pointer-events: none;
+    }
+    .sl-list { flex: 1; overflow-y: auto; }
+
+    /* ── SALA ITEM ───────────────────────────────────────── */
+    .sl-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        border-left: 3px solid transparent;
+        transition: background 0.12s;
+    }
+    .sl-item:hover { background: var(--primary-faint); }
+    .sl-item.active { background: var(--primary-faint); border-left-color: var(--primary); }
+    .sl-item-icon {
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        background: var(--primary-faint);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .sl-item-icon svg { width: 18px; height: 18px; color: var(--primary-dark); }
+    .sl-item-info { flex: 1; min-width: 0; }
+    .sl-item-nome {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sl-item-sub {
+        font-size: 11px;
+        color: var(--text-faint);
+        margin-top: 2px;
+    }
+    .sl-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-family: var(--font-title);
+        letter-spacing: 0.3px;
+        flex-shrink: 0;
+    }
+    .sl-badge-green { background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
+    .sl-badge-gray  { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
+    .sl-badge-warn  { background: rgba(230,126,34,0.1); color: #e67e22; border: 1px solid rgba(230,126,34,0.3); }
+    .sl-badge-red   { background: rgba(192,57,43,0.1); color: #c0392b; border: 1px solid rgba(192,57,43,0.3); }
+
+    /* ── PENDING ITEM ────────────────────────────────────── */
+    .sl-pending-item {
+        display: flex; flex-direction: column; gap: 6px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        border-left: 3px solid #e74c3c;
+        transition: background 0.12s;
+    }
+    .sl-pending-item:hover { background: rgba(231,76,60,0.04); }
+    .sl-pending-nome { font-size: 13px; font-weight: 600; color: var(--text-main); }
+    .sl-pending-sub  { font-size: 11px; color: var(--text-faint); }
+    .sl-pending-actions { display: flex; gap: 6px; }
+
+    /* ── PAINEL ──────────────────────────────────────────── */
+    .sl-panel {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--bg-main);
+        display: flex;
+        flex-direction: column;
+    }
+    .sl-panel-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-faint);
+        gap: 8px;
+    }
+    .sl-panel-empty svg { width: 40px; height: 40px; opacity: 0.3; }
+    .sl-panel-empty-txt { font-size: 13px; }
+
+    .sl-panel-header {
+        padding: 20px 24px 14px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        background: var(--bg-card);
+    }
+    .sl-panel-title { font-size: 17px; font-weight: 700; color: var(--text-main); }
+    .sl-panel-sub   { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
+    .sl-panel-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .sl-panel-body { padding: 20px 24px; flex: 1; }
+
+    /* ── DATA CARD ───────────────────────────────────────── */
+    .sl-data-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        margin-bottom: 12px;
+    }
+    .sl-data-card-title {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+    }
+    .sl-field-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border);
+        gap: 12px;
+        font-size: 13px;
+    }
+    .sl-field-row:last-child { border-bottom: none; }
+    .sl-field-label { color: var(--text-faint); font-size: 12px; flex-shrink: 0; }
+    .sl-field-val   { color: var(--text-main); font-weight: 500; text-align: right; }
+
+    /* ── FORM ────────────────────────────────────────────── */
+    .sl-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .sl-form-full { grid-column: 1 / -1; }
+    .sl-field-label-form {
+        font-size: 10px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        color: var(--text-faint);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        display: block;
+    }
+    .sl-input, .sl-select, .sl-textarea {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+        width: 100%;
+    }
+    .sl-input:focus, .sl-select:focus, .sl-textarea:focus { border-color: var(--primary); }
+    .sl-textarea { height: 80px; resize: vertical; }
+
+    /* ── BOTOES ──────────────────────────────────────────── */
+    .sl-btn {
+        padding: 7px 16px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+    .sl-btn:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-faint); }
+    .sl-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .sl-btn.primary:hover { background: var(--primary-dark); }
+    .sl-btn.danger { border-color: rgba(192,57,43,0.3); color: #c0392b; }
+    .sl-btn.danger:hover { background: rgba(192,57,43,0.08); }
+    .sl-btn.approve { background: rgba(46,125,50,0.1); border-color: rgba(46,125,50,0.4); color: #2e7d32; }
+    .sl-btn.approve:hover { background: rgba(46,125,50,0.2); }
+    .sl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── MSG ─────────────────────────────────────────────── */
+    .sl-msg {
+        font-size: 12px; padding: 7px 12px; border-radius: 8px;
+        margin-bottom: 10px; display: none;
+    }
+    .sl-msg.success { display: block; background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
+    .sl-msg.error   { display: block; background: rgba(198,40,40,0.1); color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
+</style>
+
+<div class="sl-wrap">
+    <!-- Sidebar -->
+    <div class="sl-side">
+        <div class="sl-side-header">
+            <div class="sl-side-title">
+                <span>Salas</span>
+                <span id="sl-count" style="font-size:11px;font-weight:600;color:var(--primary-dark)"></span>
+            </div>
+            <!-- Tabs: Salas | Aprovacoes -->
+            <div class="sl-tabs">
+                <div class="sl-tab active" id="sl-tab-salas" onclick="sl_setTab('salas')">Salas</div>
+                <div class="sl-tab" id="sl-tab-aprovacoes" onclick="sl_setTab('aprovacoes')" style="position:relative">
+                    Aprovacoes
+                    <span class="sl-tab-badge" id="sl-badge-aprovacoes" style="display:none">0</span>
+                </div>
+            </div>
+            <!-- Search (apenas tab salas) -->
+            <div class="sl-search-wrap" id="sl-search-wrap">
+                <svg class="sl-search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input class="sl-search" id="sl-search" placeholder="Pesquisar sala..." oninput="sl_filtrar()">
+            </div>
+        </div>
+        <div class="sl-list" id="sl-list">
+            <div style="padding:20px;color:var(--text-faint);font-size:12px;text-align:center">A carregar...</div>
+        </div>
+        <div style="padding:10px 14px;border-top:1px solid var(--border)">
+            <button class="sl-btn primary" style="width:100%" onclick="sl_novaSala()">+ Nova Sala</button>
+        </div>
+    </div>
+
+    <!-- Painel direito -->
+    <div class="sl-panel" id="sl-panel">
+        <div class="sl-panel-empty" id="sl-empty">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <div class="sl-panel-empty-txt">Selecciona uma sala para ver detalhes</div>
+        </div>
+        <div id="sl-panel-content" style="display:none;flex:1;flex-direction:column;display:none"></div>
+    </div>
+</div>
+
+<script>
+    // ══════════════════════════════════════════════════════════════════════════════
+    // SALAS MODULE
+    // Tabelas: salas, agendamentos, notificacoes
+    // Prefixo: sl_
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    var sl_salas        = [];
+    var sl_agendamentos = [];
+    var sl_activoId     = null;
+    var sl_editMode     = false;
+    var sl_isNovo       = false;
+    var sl_tab          = 'salas';  // 'salas' | 'aprovacoes'
+
+    // ── INIT ─────────────────────────────────────────────────────────────────────
+    async function sl_init() {
+        try {
+            var res = await Promise.all([
+                sb('salas?select=*&order=nome').catch(function() { return []; }),
+                sb('agendamentos?select=*&order=data_inicio').catch(function() { return []; }),
+            ]);
+            sl_salas        = res[0] || [];
+            sl_agendamentos = res[1] || [];
+            sl_renderList();
+            sl_updateBadge();
+        } catch(e) {
+            console.error('sl_init:', e);
+        }
+    }
+
+    // ── TABS ──────────────────────────────────────────────────────────────────────
+    window.sl_setTab = function(tab) {
+        sl_tab = tab;
+        sl_activoId = null;
+        sl_editMode = false;
+        sl_isNovo   = false;
+        ['salas','aprovacoes'].forEach(function(t) {
+            var el = document.getElementById('sl-tab-' + t);
+            if (el) el.classList.toggle('active', t === tab);
+        });
+        var sw = document.getElementById('sl-search-wrap');
+        if (sw) sw.style.display = tab === 'salas' ? '' : 'none';
+        sl_renderList();
+        sl_showEmpty();
+    };
+
+    // ── BADGE (aprovacoes pendentes) ──────────────────────────────────────────────
+    function sl_updateBadge() {
+        var pendentes = sl_agendamentos.filter(function(a) { return a.estado === 'pendente'; });
+        var badge = document.getElementById('sl-badge-aprovacoes');
+        if (badge) {
+            badge.textContent = pendentes.length;
+            badge.style.display = pendentes.length ? 'flex' : 'none';
+        }
+        // Expor badge global para o admin.html poder mostrar no menu principal
+        if (window.sl_badgeCount !== undefined || true) {
+            window.sl_badgeCount = pendentes.length;
+            // Se o admin tiver um elemento de badge para salas, atualizar
+            var menuBadge = document.querySelector('[data-secao="salas"] .nav-badge');
+            if (menuBadge) {
+                menuBadge.textContent = pendentes.length;
+                menuBadge.style.display = pendentes.length ? 'flex' : 'none';
+            }
+        }
+    }
+
+    // ── LIST RENDER ───────────────────────────────────────────────────────────────
+    function sl_renderList() {
+        var list = document.getElementById('sl-list');
+        var count = document.getElementById('sl-count');
+        if (!list) return;
+
+        if (sl_tab === 'aprovacoes') {
+            sl_renderAprovacoes(list, count);
+            return;
+        }
+
+        // Tab salas
+        var q = (document.getElementById('sl-search')?.value || '').toLowerCase();
+        var lista = sl_salas.filter(function(s) {
+            if (!q) return true;
+            return (s.nome || '').toLowerCase().includes(q) || (s.tipo || '').toLowerCase().includes(q);
+        });
+
+        if (count) count.textContent = lista.length + ' sala' + (lista.length !== 1 ? 's' : '');
+
+        if (!lista.length) {
+            list.innerHTML = '<div style="padding:20px;color:var(--text-faint);font-size:12px;text-align:center">' +
+                (q ? 'Nenhuma sala encontrada.' : 'Nenhuma sala registada.') + '</div>';
+            return;
+        }
+
+        list.innerHTML = lista.map(function(s) {
+            var ativa = sl_activoId === s.id;
+            var badge = s.ativo !== false
+                ? '<span class="sl-badge sl-badge-green">Ativa</span>'
+                : '<span class="sl-badge sl-badge-gray">Inativa</span>';
+            return '<div class="sl-item' + (ativa ? ' active' : '') + '" onclick="sl_selecionar(\'' + s.id + '\')">' +
+                '<div class="sl-item-icon">' +
+                '<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' +
+                '</div>' +
+                '<div class="sl-item-info">' +
+                '<div class="sl-item-nome">' + (s.nome || '—') + '</div>' +
+                '<div class="sl-item-sub">' + (s.tipo || '') + (s.capacidade ? ' · ' + s.capacidade + ' lugares' : '') + '</div>' +
+                '</div>' +
+                badge +
+                '</div>';
+        }).join('');
+    }
+
+    function sl_renderAprovacoes(list, count) {
+        var pendentes = sl_agendamentos.filter(function(a) { return a.estado === 'pendente'; });
+        if (count) count.textContent = pendentes.length + ' pendente' + (pendentes.length !== 1 ? 's' : '');
+
+        if (!pendentes.length) {
+            list.innerHTML = '<div style="padding:20px;color:var(--text-faint);font-size:12px;text-align:center">Nenhum pedido pendente. ✓</div>';
+            return;
+        }
+
+        list.innerHTML = pendentes.map(function(a) {
+            var dataStr = '—';
+            if (a.data_inicio) {
+                try {
+                    dataStr = new Date(a.data_inicio).toLocaleDateString('pt-PT', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                } catch(_) {}
+            }
+            // Encontrar nome da sala
+            var sala = sl_salas.find(function(s) { return s.id === a.sala_id; });
+            var salaNome = sala ? sala.nome : (a.sala || '—');
+
+            return '<div class="sl-pending-item">' +
+                '<div class="sl-pending-nome">' + (a.titulo || 'Pedido de agendamento') + '</div>' +
+                '<div class="sl-pending-sub">' + salaNome + ' · ' + dataStr + '</div>' +
+                (a.solicitante_nome ? '<div class="sl-pending-sub">Por: ' + a.solicitante_nome + '</div>' : '') +
+                (a.descricao ? '<div class="sl-pending-sub" style="font-style:italic">"' + a.descricao.substring(0,80) + '"</div>' : '') +
+                '<div class="sl-pending-actions">' +
+                '<button class="sl-btn approve" onclick="sl_aprovar(\'' + a.id + '\')">Aprovar</button>' +
+                '<button class="sl-btn danger" onclick="sl_rejeitar(\'' + a.id + '\')">Rejeitar</button>' +
+                '<button class="sl-btn" onclick="sl_verAgendamento(\'' + a.id + '\')">Ver</button>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    // ── FILTRAR ───────────────────────────────────────────────────────────────────
+    window.sl_filtrar = function() { sl_renderList(); };
+
+    // ── SELECIONAR SALA ───────────────────────────────────────────────────────────
+    window.sl_selecionar = function(id) {
+        sl_activoId = id;
+        sl_editMode = false;
+        sl_isNovo   = false;
+        sl_renderList();
+        sl_renderPainel();
+    };
+
+    // ── NOVA SALA ─────────────────────────────────────────────────────────────────
+    window.sl_novaSala = function() {
+        sl_activoId = null;
+        sl_editMode = true;
+        sl_isNovo   = true;
+        sl_tab = 'salas';
+        document.getElementById('sl-tab-salas')?.classList.add('active');
+        document.getElementById('sl-tab-aprovacoes')?.classList.remove('active');
+        sl_renderPainel();
+    };
+
+    // ── PAINEL ────────────────────────────────────────────────────────────────────
+    function sl_showEmpty() {
+        document.getElementById('sl-empty').style.display = 'flex';
+        document.getElementById('sl-panel-content').style.display = 'none';
+    }
+
+    function sl_renderPainel() {
+        var empty   = document.getElementById('sl-empty');
+        var content = document.getElementById('sl-panel-content');
+        if (empty)   empty.style.display   = 'none';
+        if (content) { content.style.display = 'flex'; content.style.flexDirection = 'column'; }
+
+        if (sl_editMode) {
+            sl_renderForm(content);
+        } else {
+            sl_renderView(content);
+        }
+    }
+
+    function sl_renderView(container) {
+        var s = sl_salas.find(function(x) { return x.id === sl_activoId; });
+        if (!s) { sl_showEmpty(); return; }
+
+        // Agendamentos desta sala
+        var ags = sl_agendamentos.filter(function(a) { return a.sala_id === s.id; });
+        var pendentes = ags.filter(function(a) { return a.estado === 'pendente'; });
+        var aprovados = ags.filter(function(a) { return a.estado === 'aprovado'; });
+
+        container.innerHTML =
+            '<div class="sl-panel-header">' +
+            '<div>' +
+            '<div class="sl-panel-title">' + (s.nome || '—') + '</div>' +
+            '<div class="sl-panel-sub">' + (s.tipo || '') + (s.capacidade ? ' · ' + s.capacidade + ' lugares' : '') + '</div>' +
+            '</div>' +
+            '<div class="sl-panel-actions">' +
+            '<button class="sl-btn" onclick="sl_toggleAtivo(\'' + s.id + '\')">' + (s.ativo !== false ? 'Desativar' : 'Ativar') + '</button>' +
+            '<button class="sl-btn primary" onclick="sl_editar()">Editar</button>' +
+            '</div>' +
+            '</div>' +
+            '<div class="sl-panel-body">' +
+            '<div id="sl-msg" class="sl-msg"></div>' +
+            '<div class="sl-data-card">' +
+            '<div class="sl-data-card-title">Detalhes</div>' +
+            sl_fieldRow('Nome', s.nome || '—') +
+            sl_fieldRow('Tipo', s.tipo || '—') +
+            sl_fieldRow('Capacidade', s.capacidade ? s.capacidade + ' pessoas' : '—') +
+            sl_fieldRow('Localizacao', s.localizacao || '—') +
+            sl_fieldRow('Requer Aprovacao', s.requer_aprovacao ? 'Sim' : 'Nao') +
+            sl_fieldRow('Estado', s.ativo !== false ? 'Ativa' : 'Inativa') +
+            (s.descricao ? sl_fieldRow('Descricao', s.descricao) : '') +
+            '</div>' +
+            // Agendamentos pendentes desta sala
+            (pendentes.length ? (
+                '<div class="sl-data-card">' +
+                '<div class="sl-data-card-title">Pedidos Pendentes (' + pendentes.length + ')</div>' +
+                pendentes.map(function(a) {
+                    var dataStr = a.data_inicio ? new Date(a.data_inicio).toLocaleDateString('pt-PT', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+                    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+                        '<div><div style="font-size:13px;color:var(--text-main);font-weight:500">' + (a.titulo||'Pedido') + '</div>' +
+                        '<div style="font-size:11px;color:var(--text-faint)">' + dataStr + (a.solicitante_nome?' · '+a.solicitante_nome:'') + '</div></div>' +
+                        '<div style="display:flex;gap:6px">' +
+                        '<button class="sl-btn approve" style="font-size:10px;padding:4px 10px" onclick="sl_aprovar(\'' + a.id + '\')">Aprovar</button>' +
+                        '<button class="sl-btn danger" style="font-size:10px;padding:4px 10px" onclick="sl_rejeitar(\'' + a.id + '\')">Rejeitar</button>' +
+                        '</div>' +
+                        '</div>';
+                }).join('') +
+                '</div>'
+            ) : '') +
+            // Proximos aprovados
+            (aprovados.length ? (
+                '<div class="sl-data-card">' +
+                '<div class="sl-data-card-title">Proximos Agendamentos (' + aprovados.length + ')</div>' +
+                aprovados.slice(0,5).map(function(a) {
+                    var dataStr = a.data_inicio ? new Date(a.data_inicio).toLocaleDateString('pt-PT', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+                    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">' +
+                        '<span style="color:var(--text-main)">' + (a.titulo||'Agendamento') + '</span>' +
+                        '<span style="color:var(--text-faint);font-size:11px">' + dataStr + '</span>' +
+                        '</div>';
+                }).join('') +
+                '</div>'
+            ) : '') +
+            '</div>';
+    }
+
+    function sl_fieldRow(label, val) {
+        return '<div class="sl-field-row"><span class="sl-field-label">' + label + '</span><span class="sl-field-val">' + val + '</span></div>';
+    }
+
+    function sl_renderForm(container) {
+        var s = sl_isNovo ? {} : (sl_salas.find(function(x) { return x.id === sl_activoId; }) || {});
+        var fv = function(k, d) { return s[k] !== undefined && s[k] !== null ? s[k] : (d !== undefined ? d : ''); };
+
+        container.innerHTML =
+            '<div class="sl-panel-header">' +
+            '<div>' +
+            '<div class="sl-panel-title">' + (sl_isNovo ? 'Nova Sala' : 'Editar — ' + (s.nome || '')) + '</div>' +
+            '<div class="sl-panel-sub">' + (sl_isNovo ? 'Preenche os dados da nova sala.' : 'Altera os dados da sala.') + '</div>' +
+            '</div>' +
+            '<div class="sl-panel-actions">' +
+            '<button class="sl-btn" onclick="sl_cancelar()">Cancelar</button>' +
+            '<button class="sl-btn primary" onclick="sl_guardar(\'' + (s.id || '') + '\')">Guardar</button>' +
+            '</div>' +
+            '</div>' +
+            '<div class="sl-panel-body">' +
+            '<div id="sl-msg" class="sl-msg"></div>' +
+            '<div class="sl-data-card">' +
+            '<div class="sl-data-card-title">Informacoes</div>' +
+            '<div class="sl-form-grid">' +
+            '<div class="sl-form-full">' +
+            '<label class="sl-field-label-form">Nome da Sala</label>' +
+            '<input class="sl-input" id="slf-nome" value="' + fv('nome') + '" placeholder="Ex: Sala de Reunioes">' +
+            '</div>' +
+            '<div>' +
+            '<label class="sl-field-label-form">Tipo</label>' +
+            '<select class="sl-select" id="slf-tipo">' +
+            '<option value="">—</option>' +
+            ['Sala de Reunioes','Auditorio','Sala de Culto','Sala de Ensaio','Sala Multiusos','Outro'].map(function(t) {
+                return '<option value="' + t + '"' + (fv('tipo') === t ? ' selected' : '') + '>' + t + '</option>';
+            }).join('') +
+            '</select>' +
+            '</div>' +
+            '<div>' +
+            '<label class="sl-field-label-form">Capacidade (pessoas)</label>' +
+            '<input class="sl-input" id="slf-capacidade" type="number" min="1" value="' + fv('capacidade') + '" placeholder="Ex: 50">' +
+            '</div>' +
+            '<div class="sl-form-full">' +
+            '<label class="sl-field-label-form">Localizacao / Andar</label>' +
+            '<input class="sl-input" id="slf-localizacao" value="' + fv('localizacao') + '" placeholder="Ex: Piso 1, ala norte">' +
+            '</div>' +
+            '<div class="sl-form-full">' +
+            '<label class="sl-field-label-form">Descricao / Equipamentos</label>' +
+            '<textarea class="sl-textarea" id="slf-descricao" placeholder="Projector, som, capacidade, notas...">' + fv('descricao') + '</textarea>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+            '<input type="checkbox" id="slf-requer_aprovacao"' + (fv('requer_aprovacao', true) ? ' checked' : '') + '>' +
+            '<label for="slf-requer_aprovacao" style="font-size:13px;color:var(--text-main);cursor:pointer">Requer aprovacao para agendamento</label>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+            '<input type="checkbox" id="slf-ativo"' + (fv('ativo', true) !== false ? ' checked' : '') + '>' +
+            '<label for="slf-ativo" style="font-size:13px;color:var(--text-main);cursor:pointer">Sala ativa</label>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+    }
+
+    // ── ACOES ─────────────────────────────────────────────────────────────────────
+    window.sl_editar = function() {
+        sl_editMode = true;
+        sl_renderPainel();
+    };
+
+    window.sl_cancelar = function() {
+        if (sl_isNovo) { sl_isNovo = false; sl_activoId = null; sl_editMode = false; sl_showEmpty(); return; }
+        sl_editMode = false;
+        sl_renderPainel();
+    };
+
+    window.sl_guardar = async function(id) {
+        var nome     = document.getElementById('slf-nome')?.value?.trim();
+        if (!nome) { sl_showMsg('error', 'Nome obrigatorio.'); return; }
+
+        var dados = {
+            nome:              nome,
+            tipo:              document.getElementById('slf-tipo')?.value || null,
+            capacidade:        parseInt(document.getElementById('slf-capacidade')?.value) || null,
+            localizacao:       document.getElementById('slf-localizacao')?.value?.trim() || null,
+            descricao:         document.getElementById('slf-descricao')?.value?.trim() || null,
+            requer_aprovacao:  document.getElementById('slf-requer_aprovacao')?.checked ?? true,
+            ativo:             document.getElementById('slf-ativo')?.checked ?? true,
+        };
+
+        try {
+            var btn = document.querySelector('[onclick^="sl_guardar"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+            if (id) {
+                await sb('salas?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(dados) });
+            } else {
+                await sb('salas', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(dados) });
+            }
+
+            // Reload
+            sl_salas = await sb('salas?select=*&order=nome').catch(function() { return sl_salas; });
+            sl_editMode = false;
+            sl_isNovo   = false;
+            if (!id) sl_activoId = sl_salas.find(function(s) { return s.nome === nome; })?.id || null;
+            sl_renderList();
+            sl_renderPainel();
+        } catch(e) {
+            sl_showMsg('error', 'Erro: ' + (e?.message || JSON.stringify(e)));
+            var btn2 = document.querySelector('[onclick^="sl_guardar"]');
+            if (btn2) { btn2.disabled = false; btn2.textContent = 'Guardar'; }
+        }
+    };
+
+    window.sl_toggleAtivo = async function(id) {
+        var s = sl_salas.find(function(x) { return x.id === id; });
+        if (!s) return;
+        var novoEstado = s.ativo === false ? true : false;
+        var label = novoEstado ? 'ativar' : 'desativar';
+        if (!confirm(label.charAt(0).toUpperCase() + label.slice(1) + ' esta sala?')) return;
+        try {
+            await sb('salas?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: novoEstado }) });
+            s.ativo = novoEstado;
+            sl_renderList();
+            sl_renderPainel();
+        } catch(e) { alert('Erro: ' + (e?.message || e)); }
+    };
+
+    // ── APROVACOES ────────────────────────────────────────────────────────────────
+    window.sl_aprovar = async function(id) {
+        if (!confirm('Aprovar este agendamento?')) return;
+        try {
+            await sb('agendamentos?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ estado: 'aprovado' }) });
+            // Registar notificacao
+            await sl_registarNotificacao(id, 'aprovado');
+            // Reload agendamentos
+            sl_agendamentos = await sb('agendamentos?select=*&order=data_inicio').catch(function() { return sl_agendamentos; });
+            sl_updateBadge();
+            sl_renderList();
+            if (sl_activoId) sl_renderPainel();
+        } catch(e) { alert('Erro ao aprovar: ' + (e?.message || e)); }
+    };
+
+    window.sl_rejeitar = async function(id) {
+        var motivo = prompt('Motivo da rejeicao (opcional):');
+        if (motivo === null) return;
+        try {
+            var body = { estado: 'rejeitado' };
+            if (motivo) body.motivo_rejeicao = motivo;
+            await sb('agendamentos?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) });
+            await sl_registarNotificacao(id, 'rejeitado', motivo);
+            sl_agendamentos = await sb('agendamentos?select=*&order=data_inicio').catch(function() { return sl_agendamentos; });
+            sl_updateBadge();
+            sl_renderList();
+            if (sl_activoId) sl_renderPainel();
+        } catch(e) { alert('Erro ao rejeitar: ' + (e?.message || e)); }
+    };
+
+    window.sl_verAgendamento = function(id) {
+        var a = sl_agendamentos.find(function(x) { return x.id === id; });
+        if (!a) return;
+        var sala = sl_salas.find(function(s) { return s.id === a.sala_id; });
+        var msg = [
+            'Titulo: ' + (a.titulo || '—'),
+            'Sala: ' + (sala ? sala.nome : a.sala || '—'),
+            'Data: ' + (a.data_inicio || '—'),
+            'Solicitante: ' + (a.solicitante_nome || '—'),
+            'Descricao: ' + (a.descricao || '—'),
+            'Estado: ' + (a.estado || '—'),
+        ].join('\n');
+        alert(msg);
+    };
+
+    async function sl_registarNotificacao(agendamento_id, estado, motivo) {
+        // Tabela notificacoes separada
+        try {
+            var a = sl_agendamentos.find(function(x) { return x.id === agendamento_id; });
+            await sb('notificacoes', {
+                method: 'POST',
+                body: JSON.stringify({
+                    tipo:          'agendamento_sala',
+                    referencia_id: agendamento_id,
+                    destinatario_id: a?.solicitante_id || null,
+                    titulo:        estado === 'aprovado' ? 'Agendamento aprovado' : 'Agendamento rejeitado',
+                    mensagem:      estado === 'aprovado'
+                        ? 'O teu pedido de sala foi aprovado.'
+                        : 'O teu pedido de sala foi rejeitado.' + (motivo ? ' Motivo: ' + motivo : ''),
+                    lida:          false,
+                }),
+            });
+        } catch(_) { /* tabela pode nao existir ainda */ }
+    }
+
+    // ── UTILS ─────────────────────────────────────────────────────────────────────
+    function sl_showMsg(tipo, txt) {
+        var el = document.getElementById('sl-msg');
+        if (!el) return;
+        el.textContent = txt;
+        el.className = 'sl-msg ' + tipo;
+        if (tipo === 'success') setTimeout(function() { el.className = 'sl-msg'; }, 3000);
+    }
+
+    // ── EXPOSE ────────────────────────────────────────────────────────────────────
+    window.sl_init          = sl_init;
+    window.sl_setTab        = sl_setTab;
+    window.sl_filtrar       = sl_filtrar;
+    window.sl_selecionar    = sl_selecionar;
+    window.sl_novaSala      = sl_novaSala;
+    window.sl_editar        = sl_editar;
+    window.sl_cancelar      = sl_cancelar;
+    window.sl_guardar       = sl_guardar;
+    window.sl_toggleAtivo   = sl_toggleAtivo;
+    window.sl_aprovar       = sl_aprovar;
+    window.sl_rejeitar      = sl_rejeitar;
+    window.sl_verAgendamento = sl_verAgendamento;
+
+    sl_init();
+</script>

@@ -863,28 +863,24 @@ async function mb_init() {
             });
         }
 
-        // Carregar cursos e filhos dos membros activos
-                if (ids.length) {
-                    const [cursosM, filhosM] = await Promise.all([
-                        sb('membro_cursos?select=*,zao_cursos(id,nome)&membro_id=in.(' + ids.join(',') + ')').catch(() => []),
-                        sb('membro_filhos?select=*&membro_id=in.(' + ids.join(',') + ')&order=data_nascimento').catch(() => []),
-                    ]);
-                    mb_cursos_membro = {};
-                    (cursosM || []).forEach(r => {
-                        if (!mb_cursos_membro[r.membro_id]) mb_cursos_membro[r.membro_id] = [];
-                        mb_cursos_membro[r.membro_id].push({
-                            id: r.id, curso_id: r.curso_id,
-                            nome: r.zao_cursos?.nome || r.curso_id,
-                            data_conclusao: r.data_conclusao,
-                            certificado: r.certificado,
-                        });
-                    });
-                    mb_filhos_cache = {};
-                    (filhosM || []).forEach(r => {
-                        if (!mb_filhos_cache[r.membro_id]) mb_filhos_cache[r.membro_id] = [];
-                        mb_filhos_cache[r.membro_id].push(r);
-                    });
-                }
+        // Carregar relações familiares via membros_filhos
+                const relsFamiliar = await sb('membros_filhos?select=pai_id,filho_id').catch(() => []);
+                mb_familia_cache = {};
+                mb_membros.forEach(mem => {
+                    const conjuge = mem.conjuge_id
+                        ? mb_membros.find(x => x.id === mem.conjuge_id) || null : null;
+                    const pai = mem.pai_id
+                        ? mb_membros.find(x => x.id === mem.pai_id) || null : null;
+                    const mae = mem.mae_id
+                        ? mb_membros.find(x => x.id === mem.mae_id) || null : null;
+                    const filhosIds = (relsFamiliar || [])
+                        .filter(r => r.pai_id === mem.id)
+                        .map(r => r.filho_id);
+                    const filhos = filhosIds
+                        .map(fid => mb_membros.find(x => x.id === fid))
+                        .filter(Boolean);
+                    mb_familia_cache[mem.id] = { conjuge, pai, mae, filhos };
+                });
 
         // Popular select de ministério no filtro
         const sel = document.getElementById('mb-filtro-min');
@@ -1463,27 +1459,34 @@ function mb_buildView(m, mins) {
     }
 
     if (mb_panelTab === 'cursos') {
-        const cursosM   = mb_cursos_membro[m.id] || [];
+        // cursos_concluidos é JSONB/text na própria tabela membros
+        let cursosM = [];
+        try {
+            const raw = m.cursos_concluidos;
+            cursosM = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
+        } catch(_) { cursosM = []; }
+
         const cursosOpts = mb_cursos_cache.map(c =>
-            `<option value="${c.id}">${c.nome}</option>`
+            `<option value="${c.id}" data-nome="${c.nome}">${c.nome}</option>`
         ).join('');
+
         const cursosHtml = cursosM.length
-            ? cursosM.map(r => {
-                const dataStr = r.data_conclusao
-                    ? new Date(r.data_conclusao + 'T12:00:00').toLocaleDateString('pt-PT') : '';
-                const anos = r.data_conclusao ? (() => {
-                    const diff = Date.now() - new Date(r.data_conclusao).getTime();
+            ? cursosM.map((r, idx) => {
+                const dataStr = r.data
+                    ? new Date(r.data + 'T12:00:00').toLocaleDateString('pt-PT') : '';
+                const anos = r.data ? (() => {
+                    const diff = Date.now() - new Date(r.data).getTime();
                     return Math.floor(diff / (1000*60*60*24*365.25));
                 })() : null;
                 return `<div class="mb-min-item">
                     <span class="mb-badge mb-badge-blue">ZAO</span>
-                    <div class="mb-min-nome">${r.nome}</div>
+                    <div class="mb-min-nome">${r.nome || r.curso_id}</div>
                     <div class="mb-min-papel">${dataStr}${anos !== null ? ' · ' + anos + ' ano' + (anos!==1?'s':'') + ' atras' : ''}</div>
-                    ${r.certificado ? '<span class="mb-badge mb-badge-green">Certificado</span>' : ''}
-                    <button class="mb-min-remove" title="Remover" onclick="mb_removerCurso('${r.id}','${m.id}')">x</button>
+                    <button class="mb-min-remove" title="Remover" onclick="mb_removerCurso(${idx},'${m.id}')">x</button>
                 </div>`;
             }).join('')
             : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Nenhum curso concluido.</div>';
+
         return `<div>
             <div class="mb-data-card">
                 <div class="mb-data-card-title">Cursos ZAO Concluidos (${cursosM.length})</div>
@@ -1493,9 +1496,6 @@ function mb_buildView(m, mins) {
                         <option value="">Selecciona curso...</option>${cursosOpts}
                     </select>
                     <input class="mb-form-input" id="mb-add-curso-data" type="date" style="width:140px" title="Data de conclusao">
-                    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-main);white-space:nowrap;cursor:pointer">
-                        <input type="checkbox" id="mb-add-curso-cert" style="accent-color:var(--primary)"> Certificado
-                    </label>
                     <button class="mb-btn-save" onclick="mb_addCurso('${m.id}')">Adicionar</button>
                 </div>
             </div>
@@ -1503,46 +1503,72 @@ function mb_buildView(m, mins) {
     }
 
     if (mb_panelTab === 'filhos') {
-        const filhos = mb_filhos_cache[m.id] || [];
-        const filhosHtml = filhos.length
-            ? filhos.map(f => {
-                const dataStr = f.data_nascimento
-                    ? new Date(f.data_nascimento + 'T12:00:00').toLocaleDateString('pt-PT') : '';
-                const idade = f.data_nascimento ? (() => {
-                    const diff = Date.now() - new Date(f.data_nascimento).getTime();
+        // Filhos são membros! Lookup via membros_filhos (pai_id, filho_id)
+        // mb_familia_cache[membroId] = { pai, mae, filhos[], conjuge }
+        const fam     = mb_familia_cache[m.id] || {};
+        const filhos  = fam.filhos || [];
+        const conjuge = fam.conjuge || null;
+        const pai     = fam.pai || null;
+        const mae     = fam.mae || null;
+
+        const membroCard = (rel, mem) => {
+            if (!mem) return '';
+            const foto = mem.foto_url
+                ? `<img src="${mem.foto_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+                : `<div class="mb-list-avatar" style="width:36px;height:36px;font-size:13px;flex-shrink:0">${(mem.nome||'?')[0]}</div>`;
+            const nasc = mem.data_nascimento
+                ? (() => {
+                    const diff = Date.now() - new Date(mem.data_nascimento).getTime();
                     const anos = Math.floor(diff / (1000*60*60*24*365.25));
-                    return anos + ' ano' + (anos!==1?'s':'');
-                })() : null;
-                return `<div class="mb-min-item">
-                    <div class="mb-list-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">
-                        ${(f.nome||'?')[0]}
-                    </div>
-                    <div class="mb-min-nome">${f.nome || '—'}</div>
-                    <div class="mb-min-papel">${dataStr}${idade ? ' · ' + idade : ''}</div>
-                    ${f.genero ? `<span class="mb-badge mb-badge-gray">${f.genero}</span>` : ''}
-                    <button class="mb-min-remove" title="Remover" onclick="mb_removerFilho('${f.id}','${m.id}')">x</button>
-                </div>`;
-            }).join('')
-            : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Sem filhos registados.</div>';
+                    return anos + ' anos';
+                  })() : null;
+            return `<div class="mb-min-item" style="cursor:pointer" onclick="mb_selectMembro('${mem.id}')">
+                ${foto}
+                <div style="flex:1;min-width:0">
+                    <div class="mb-min-nome">${mem.nome}</div>
+                    <div class="mb-min-papel">${nasc ? nasc + ' · ' : ''}${mem.genero || ''}${mem.estado_civil ? ' · ' + mem.estado_civil : ''}</div>
+                </div>
+                <span class="mb-badge mb-badge-gray">${rel}</span>
+            </div>`;
+        };
+
+        // Select para adicionar filho (membros que ainda nao sao filhos)
+        const filhosIds = new Set(filhos.map(f => f.id));
+        filhosIds.add(m.id);
+        const membrosSel = mb_membros.filter(x => !filhosIds.has(x.id) && x.ativo !== false);
+        const memOpts = membrosSel.map(x =>
+            `<option value="${x.id}">${x.nome}${x.data_nascimento ? ' (' + new Date(x.data_nascimento+'T12:00:00').getFullYear() + ')' : ''}</option>`
+        ).join('');
+
         return `<div>
+            <div class="mb-data-card" style="margin-bottom:10px">
+                <div class="mb-data-card-title">Nucleo Familiar</div>
+                ${conjuge ? membroCard('Conjuge', conjuge) : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Sem conjuge registado.</div>'}
+                ${pai ? membroCard('Pai', pai) : ''}
+                ${mae ? membroCard('Mae', mae) : ''}
+            </div>
             <div class="mb-data-card">
                 <div class="mb-data-card-title">Filhos (${filhos.length})</div>
-                <div id="mb-filhos-lista">${filhosHtml}</div>
-                <div class="mb-sub-add" style="margin-top:10px;flex-wrap:wrap">
-                    <input class="mb-form-input" id="mb-add-filho-nome" type="text" placeholder="Nome completo" style="flex:1;min-width:120px">
-                    <input class="mb-form-input" id="mb-add-filho-nasc" type="date" style="width:140px" title="Data de nascimento">
-                    <select class="mb-filtro-select" id="mb-add-filho-genero" style="width:110px">
-                        <option value="">Genero</option>
-                        <option value="masculino">Masculino</option>
-                        <option value="feminino">Feminino</option>
+                <div id="mb-filhos-lista">
+                    ${filhos.length
+                        ? filhos.map(f => membroCard('Filho', f)).join('')
+                        : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Sem filhos registados.</div>'
+                    }
+                </div>
+                <div class="mb-sub-add" style="margin-top:10px">
+                    <select class="mb-filtro-select" id="mb-add-filho-id" style="flex:1">
+                        <option value="">Selecciona membro...</option>${memOpts}
                     </select>
-                    <button class="mb-btn-save" onclick="mb_addFilho('${m.id}')">Adicionar</button>
+                    <button class="mb-btn-save" onclick="mb_addFilho('${m.id}')">Associar filho</button>
+                </div>
+                <div style="margin-top:6px;font-size:11px;color:var(--text-faint)">
+                    Clica num familiar para abrir o perfil. Filhos devem ja estar registados como membros.
                 </div>
             </div>
         </div>`;
     }
 
-    if (mb_panelTab === 'historia') {
+        if (mb_panelTab === 'historia') {
         return `<div>
             <div class="mb-data-card">
                 <div class="mb-data-card-title">Historia</div>
@@ -2225,6 +2251,114 @@ async function mb_confirmarConversao(visitanteId) {
     }
 }
 
+// ── CURSOS DO MEMBRO (JSONB em membros.cursos_concluidos) ─────────────────────
+async function mb_addCurso(membroId) {
+    const sel      = document.getElementById('mb-add-curso-id');
+    const cursoId  = sel?.value;
+    const cursoNome = sel?.options[sel.selectedIndex]?.dataset?.nome
+                   || sel?.options[sel.selectedIndex]?.text || '';
+    const data = document.getElementById('mb-add-curso-data')?.value || null;
+    if (!cursoId) { alert('Selecciona um curso.'); return; }
+
+    const mem = mb_membros.find(x => x.id === membroId);
+    if (!mem) return;
+    let cursos = [];
+    try { cursos = JSON.parse(mem.cursos_concluidos || '[]') || []; } catch(_) {}
+    if (cursos.some(r => r.curso_id === cursoId)) { alert('Curso ja adicionado.'); return; }
+    cursos.push({ curso_id: cursoId, nome: cursoNome, data: data || null });
+
+    try {
+        await sb('membros?id=eq.' + membroId, {
+            method: 'PATCH',
+            body: JSON.stringify({ cursos_concluidos: JSON.stringify(cursos) }),
+        });
+        const idx = mb_membros.findIndex(x => x.id === membroId);
+        if (idx >= 0) mb_membros[idx].cursos_concluidos = JSON.stringify(cursos);
+        mb_panelTab = 'cursos';
+        mb_renderPerfil();
+    } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+}
+
+async function mb_removerCurso(cursoIdx, membroId) {
+    if (!confirm('Remover este curso?')) return;
+    const mem = mb_membros.find(x => x.id === membroId);
+    if (!mem) return;
+    let cursos = [];
+    try { cursos = JSON.parse(mem.cursos_concluidos || '[]') || []; } catch(_) {}
+    cursos.splice(cursoIdx, 1);
+    try {
+        await sb('membros?id=eq.' + membroId, {
+            method: 'PATCH',
+            body: JSON.stringify({ cursos_concluidos: JSON.stringify(cursos) }),
+        });
+        const idx = mb_membros.findIndex(x => x.id === membroId);
+        if (idx >= 0) mb_membros[idx].cursos_concluidos = JSON.stringify(cursos);
+        mb_panelTab = 'cursos';
+        mb_renderPerfil();
+    } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+}
+
+// ── FAMILIA: filhos via membros_filhos + membros ──────────────────────────────
+async function mb_addFilho(paiId) {
+    const filhoId = document.getElementById('mb-add-filho-id')?.value;
+    if (!filhoId) { alert('Selecciona um membro como filho.'); return; }
+    const jaExiste = (mb_familia_cache[paiId]?.filhos || []).some(f => f.id === filhoId);
+    if (jaExiste) { alert('Ja associado como filho.'); return; }
+    try {
+        await sb('membros_filhos', {
+            method: 'POST',
+            body: JSON.stringify({ pai_id: paiId, filho_id: filhoId }),
+        });
+        // Actualizar pai_id ou mae_id no registo do filho
+        const paiMem = mb_membros.find(x => x.id === paiId);
+        if (paiMem) {
+            const campo = paiMem.genero === 'feminino' ? 'mae_id' : 'pai_id';
+            await sb('membros?id=eq.' + filhoId, {
+                method: 'PATCH',
+                body: JSON.stringify({ [campo]: paiId }),
+            });
+            const fi = mb_membros.findIndex(x => x.id === filhoId);
+            if (fi >= 0) mb_membros[fi][campo] = paiId;
+        }
+        await mb_recarregarFamilia();
+        mb_panelTab = 'filhos';
+        mb_renderPerfil();
+    } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+}
+
+async function mb_removerFilho(paiId, filhoId) {
+    if (!confirm('Remover esta ligacao familiar?')) return;
+    try {
+        await sb('membros_filhos?pai_id=eq.' + paiId + '&filho_id=eq.' + filhoId, { method: 'DELETE' });
+        const paiMem = mb_membros.find(x => x.id === paiId);
+        if (paiMem) {
+            const campo = paiMem.genero === 'feminino' ? 'mae_id' : 'pai_id';
+            await sb('membros?id=eq.' + filhoId, {
+                method: 'PATCH',
+                body: JSON.stringify({ [campo]: null }),
+            });
+            const fi = mb_membros.findIndex(x => x.id === filhoId);
+            if (fi >= 0) mb_membros[fi][campo] = null;
+        }
+        await mb_recarregarFamilia();
+        mb_panelTab = 'filhos';
+        mb_renderPerfil();
+    } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+}
+
+async function mb_recarregarFamilia() {
+    const rels = await sb('membros_filhos?select=pai_id,filho_id').catch(() => []);
+    mb_membros.forEach(mem => {
+        const conjuge = mem.conjuge_id ? mb_membros.find(x => x.id === mem.conjuge_id) || null : null;
+        const pai     = mem.pai_id     ? mb_membros.find(x => x.id === mem.pai_id)     || null : null;
+        const mae     = mem.mae_id     ? mb_membros.find(x => x.id === mem.mae_id)     || null : null;
+        const filhosIds = (rels || []).filter(r => r.pai_id === mem.id).map(r => r.filho_id);
+        const filhos    = filhosIds.map(fid => mb_membros.find(x => x.id === fid)).filter(Boolean);
+        mb_familia_cache[mem.id] = { conjuge, pai, mae, filhos };
+    });
+}
+
+
 // ── ARRANCAR ──────────────────────────────────────────
 // Esconder filtros e search inicialmente (começa em dash)
 (function setup() {
@@ -2260,10 +2394,11 @@ window.mb_applyFotoUrl    = typeof mb_applyFotoUrl    === 'function' ? mb_applyF
 window.mb_addMinisterio   = typeof mb_addMinisterio   === 'function' ? mb_addMinisterio   : ()=>{};
 window.mb_abrirConversao  = typeof mb_abrirConversao  === 'function' ? mb_abrirConversao  : ()=>{};
 window.mb_confirmarConversao = typeof mb_confirmarConversao === 'function' ? mb_confirmarConversao : ()=>{};
-window.mb_addCurso        = typeof mb_addCurso        === 'function' ? mb_addCurso        : ()=>{};
-window.mb_removerCurso    = typeof mb_removerCurso    === 'function' ? mb_removerCurso    : ()=>{};
-window.mb_addFilho        = typeof mb_addFilho        === 'function' ? mb_addFilho        : ()=>{};
-window.mb_removerFilho    = typeof mb_removerFilho    === 'function' ? mb_removerFilho    : ()=>{};
+window.mb_addCurso          = typeof mb_addCurso          === 'function' ? mb_addCurso          : ()=>{};
+window.mb_removerCurso      = typeof mb_removerCurso      === 'function' ? mb_removerCurso      : ()=>{};
+window.mb_addFilho          = typeof mb_addFilho          === 'function' ? mb_addFilho          : ()=>{};
+window.mb_removerFilho      = typeof mb_removerFilho      === 'function' ? mb_removerFilho      : ()=>{};
+window.mb_recarregarFamilia = typeof mb_recarregarFamilia === 'function' ? mb_recarregarFamilia : ()=>{};
 
 mb_init();
 

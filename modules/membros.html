@@ -15,7 +15,7 @@
 
 /* ── SIDEBAR ──────────────────────────────────────── */
 .mb-side {
-    width: 320px;
+    width: 380px;
     flex-shrink: 0;
     border-right: 1px solid var(--border);
     display: flex;
@@ -751,21 +751,6 @@
                     <button class="mb-filtro-chip"            data-filtro="tem_filhos" onclick="mb_toggleChip(this,'tem_filhos')">Com Filhos</button>
                 </div>
 
-                <div class="mb-filtros-titulo" style="margin-top:8px">Ministerio</div>
-                <select class="mb-filtro-select" id="mb-filtro-min" onchange="mb_filtrar()">
-                    <option value="">Todos os ministerios</option>
-                </select>
-
-                <div class="mb-filtros-titulo" style="margin-top:8px">Link</div>
-                <select class="mb-filtro-select" id="mb-filtro-link" onchange="mb_filtrar()">
-                    <option value="">Todos os links</option>
-                </select>
-
-                <div class="mb-filtros-titulo" style="margin-top:8px">Zona</div>
-                <select class="mb-filtro-select" id="mb-filtro-zona" onchange="mb_filtrar()">
-                    <option value="">Todas as zonas</option>
-                </select>
-
                 <div class="mb-filtros-titulo" style="margin-top:8px">Genero</div>
                 <div class="mb-filtro-grupo">
                     <button class="mb-filtro-chip" data-filtro="masculino" onclick="mb_toggleChip(this,'masculino')">Masculino</button>
@@ -940,9 +925,8 @@ function mb_setTab(tab) {
     // Limpar filtros ao mudar de aba para não contaminar visitantes/membros
     mb_filtros.clear();
     document.querySelectorAll('.mb-filtro-chip.active').forEach(el => el.classList.remove('active'));
-    ['mb-filtro-min','mb-filtro-link','mb-filtro-zona'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.value = '';
-    });
+    const selMinT = document.getElementById('mb-filtro-min');
+    if (selMinT) selMinT.value = '';
     const srch = document.getElementById('mb-search');
     if (srch) srch.value = '';
     if (btnNovo) {
@@ -1007,13 +991,7 @@ function mb_renderSide() {
     if (mb_filtros.has('feminino'))   lista = lista.filter(m => m.genero === 'feminino');
     if (mb_filtros.has('tem_filhos')) lista = lista.filter(m => m.tem_filhos === true);
 
-    // Filtro por Link
-    const filtLink = document.getElementById('mb-filtro-link')?.value || '';
-    if (filtLink) lista = lista.filter(m => m.link_id === filtLink);
 
-    // Filtro por Zona
-    const filtZona = document.getElementById('mb-filtro-zona')?.value || '';
-    if (filtZona) lista = lista.filter(m => m.zona === filtZona);
 
     // Filtro por ministério
     if (filtMin) {
@@ -1155,10 +1133,8 @@ function mb_toggleChip(el, filtro) {
 function mb_clearFiltros() {
     mb_filtros.clear();
     document.querySelectorAll('.mb-filtro-chip.active').forEach(c => c.classList.remove('active'));
-    ['mb-filtro-min','mb-filtro-link','mb-filtro-zona'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
+    const selMin = document.getElementById('mb-filtro-min');
+    if (selMin) selMin.value = '';
     if (document.getElementById('mb-search')) document.getElementById('mb-search').value = '';
     mb_filtrar();
 }
@@ -1864,6 +1840,8 @@ function mb_buildForm(m) {
             {k:'e_presbitero',  l:'Presbítero'},
             {k:'e_voluntario',  l:'Voluntário'},
             {k:'professor',     l:'Professor'},
+            {k:'pastor',        l:'Pastor'},
+            {k:'office',        l:'Office'},
             {k:'e_lider_link',  l:'Lider de Link'},
             {k:'e_lider_area',  l:'Lider de Área'},
             {k:'e_lider_pilar', l:'Lider de Pilar'},

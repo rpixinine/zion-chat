@@ -1,7 +1,6 @@
 <style>
     /* ══════════════════════════════════════════════════════
-       CONFIGURACOES MODULE
-       Layout: lista de secoes laterais + painel de conteudo
+       CONFIGURACOES MODULE  v2
        Prefixo: cfg_
        ══════════════════════════════════════════════════════ */
 
@@ -13,9 +12,9 @@
         font-family: var(--font-body);
     }
 
-    /* ── NAV LATERAL ──────────────────────────────────── */
+    /* ── NAV LATERAL ─────────────────────────────────────── */
     .cfg-nav {
-        width: 200px;
+        width: 210px;
         flex-shrink: 0;
         border-right: 1px solid var(--border);
         background: var(--bg-card);
@@ -36,12 +35,13 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 9px 16px;
+        padding: 10px 16px;
         font-size: 13px;
         color: var(--text-muted);
         cursor: pointer;
         border-left: 3px solid transparent;
         transition: all 0.12s;
+        position: relative;
     }
     .cfg-nav-item:hover { background: var(--primary-faint); color: var(--text-main); }
     .cfg-nav-item.active {
@@ -51,8 +51,25 @@
         font-weight: 600;
     }
     .cfg-nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+    .cfg-nav-badge {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #e74c3c;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        min-width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+    }
 
-    /* ── PAINEL DE CONTEUDO ───────────────────────────── */
+    /* ── PAINEL CONTEUDO ─────────────────────────────────── */
     .cfg-content {
         flex: 1;
         overflow-y: auto;
@@ -74,7 +91,7 @@
         line-height: 1.6;
     }
 
-    /* ── CARD ─────────────────────────────────────────── */
+    /* ── CARD ─────────────────────────────────────────────── */
     .cfg-card {
         background: var(--bg-card);
         border: 1px solid var(--border);
@@ -105,23 +122,41 @@
     .cfg-row-desc  { font-size: 11px; color: var(--text-faint); margin-top: 2px; line-height: 1.4; }
     .cfg-row-ctrl  { flex-shrink: 0; }
 
-    /* ── INPUTS / CONTROLOS ───────────────────────────── */
+    /* ── FORM GRID ──────────────────────────────────────── */
+    .cfg-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .cfg-form-full { grid-column: 1 / -1; }
+    .cfg-field-label {
+        font-size: 10px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        color: var(--text-faint);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        display: block;
+    }
+
+    /* ── INPUTS ──────────────────────────────────────────── */
     .cfg-input, .cfg-select, .cfg-textarea {
         background: var(--bg-input);
         border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 7px 12px;
+        padding: 8px 12px;
         font-size: 13px;
         font-family: var(--font-body);
         color: var(--text-main);
         outline: none;
         transition: border-color 0.2s;
         box-sizing: border-box;
+        width: 100%;
     }
     .cfg-input:focus, .cfg-select:focus, .cfg-textarea:focus { border-color: var(--primary); }
-    .cfg-input-full { width: 100%; }
-    .cfg-input-sm   { width: 140px; }
-    .cfg-textarea   { width: 100%; height: 80px; resize: vertical; }
+    .cfg-input-sm   { width: 150px; }
+    .cfg-textarea   { height: 90px; resize: vertical; }
+    .cfg-textarea-lg { height: 130px; }
 
     /* Toggle switch */
     .cfg-switch {
@@ -153,7 +188,7 @@
     .cfg-switch input:checked + .cfg-switch-slider { background: var(--primary); }
     .cfg-switch input:checked + .cfg-switch-slider:before { transform: translateX(18px); }
 
-    /* ── BOTOES ───────────────────────────────────────── */
+    /* ── BOTOES ──────────────────────────────────────────── */
     .cfg-btn {
         padding: 8px 18px;
         border-radius: 20px;
@@ -165,6 +200,7 @@
         color: var(--text-muted);
         cursor: pointer;
         transition: all 0.15s;
+        white-space: nowrap;
     }
     .cfg-btn:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-faint); }
     .cfg-btn.primary {
@@ -178,7 +214,7 @@
     .cfg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .cfg-btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 
-    /* ── MENSAGENS ────────────────────────────────────── */
+    /* ── MENSAGENS ───────────────────────────────────────── */
     .cfg-msg {
         font-size: 12px;
         padding: 8px 12px;
@@ -189,7 +225,7 @@
     .cfg-msg.success { display: block; background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
     .cfg-msg.error   { display: block; background: rgba(198,40,40,0.1); color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
 
-    /* ── TABELA DE TIPOS ──────────────────────────────── */
+    /* ── TIPOS DE EVENTO ─────────────────────────────────── */
     .cfg-tipo-row {
         display: flex;
         align-items: center;
@@ -203,12 +239,7 @@
         from { opacity: 0; transform: translateY(4px); }
         to   { opacity: 1; transform: none; }
     }
-    .cfg-tipo-color {
-        width: 12px;
-        height: 12px;
-        border-radius: 3px;
-        flex-shrink: 0;
-    }
+    .cfg-tipo-color { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
     .cfg-tipo-nome { flex: 1; font-size: 13px; color: var(--text-main); }
     .cfg-tipo-btn-rm {
         padding: 4px 10px;
@@ -222,50 +253,50 @@
         transition: all 0.12s;
     }
     .cfg-tipo-btn-rm:hover { border-color: rgba(192,57,43,0.4); color: #c0392b; }
-    .cfg-tipo-add-row {
-        display: flex;
-        gap: 6px;
-        margin-top: 10px;
-        align-items: center;
-    }
+    .cfg-tipo-add-row { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
 
-    /* ── INFO BOXES ───────────────────────────────────── */
-    .cfg-info-box {
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 12px 14px;
-        font-size: 12px;
-        color: var(--text-faint);
-        line-height: 1.7;
-        margin-top: 8px;
-    }
-    .cfg-info-box code {
-        font-family: monospace;
-        font-size: 11px;
-        background: var(--bg-card);
-        padding: 1px 5px;
-        border-radius: 4px;
-        color: var(--primary-dark);
-    }
+    /* ── BADGES ──────────────────────────────────────────── */
     .cfg-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-        border-radius: 20px;
-        font-size: 10px;
-        font-family: var(--font-title);
-        letter-spacing: 0.5px;
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 8px; border-radius: 20px;
+        font-size: 10px; font-family: var(--font-title); letter-spacing: 0.5px;
     }
-    .cfg-badge.ok  { background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
-    .cfg-badge.err { background: rgba(198,40,40,0.1); color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
+    .cfg-badge.ok   { background: rgba(46,125,50,0.1);  color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
+    .cfg-badge.err  { background: rgba(198,40,40,0.1);  color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
+    .cfg-badge.warn { background: rgba(230,126,34,0.1); color: #e67e22; border: 1px solid rgba(230,126,34,0.3); }
+
+    /* ── PENDING ITEMS ───────────────────────────────────── */
+    .cfg-pending-item {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 11px 0; border-bottom: 1px solid var(--border);
+    }
+    .cfg-pending-item:last-child { border-bottom: none; }
+    .cfg-pending-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #e74c3c; flex-shrink: 0; margin-top: 4px;
+    }
+    .cfg-pending-info { flex: 1; }
+    .cfg-pending-title { font-size: 13px; color: var(--text-main); font-weight: 500; }
+    .cfg-pending-sub   { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .cfg-pending-actions { display: flex; gap: 6px; margin-top: 6px; }
+
+    /* ── SOBRE: dados da BD ──────────────────────────────── */
+    .cfg-sobre-campo {
+        display: flex; flex-direction: column; gap: 2px;
+        padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .cfg-sobre-campo:last-child { border-bottom: none; }
+    .cfg-sobre-label { font-size: 10px; font-family: var(--font-title); letter-spacing: 1px; color: var(--text-faint); text-transform: uppercase; }
+    .cfg-sobre-val { font-size: 13px; color: var(--text-main); line-height: 1.5; }
+    .cfg-sobre-val a { color: var(--primary); text-decoration: none; }
+    .cfg-sobre-val a:hover { text-decoration: underline; }
 </style>
 
 <div class="cfg-wrap">
     <!-- Nav lateral -->
     <div class="cfg-nav">
         <div class="cfg-nav-title">Configuracoes</div>
+
         <div class="cfg-nav-item active" onclick="cfg_setSecao('geral')">
             <svg class="cfg-nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
             Geral
@@ -274,13 +305,15 @@
             <svg class="cfg-nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Igreja
         </div>
+
         <div class="cfg-nav-item" onclick="cfg_setSecao('tipos-evento')">
             <svg class="cfg-nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Tipos de Evento
         </div>
-        <div class="cfg-nav-item" onclick="cfg_setSecao('notificacoes')">
+        <div class="cfg-nav-item" onclick="cfg_setSecao('notificacoes')" id="cfg-nav-notif">
             <svg class="cfg-nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             Notificacoes
+            <span class="cfg-nav-badge" id="cfg-notif-badge" style="display:none">0</span>
         </div>
         <div class="cfg-nav-item" onclick="cfg_setSecao('integracao')">
             <svg class="cfg-nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -293,25 +326,26 @@
     </div>
 
     <!-- Conteudo -->
-    <div class="cfg-content" id="cfg-content">
+    <div class="cfg-content">
 
-        <!-- GERAL -->
+        <!-- ══ GERAL ════════════════════════════════════════ -->
         <div class="cfg-section active" id="cfg-geral">
             <div class="cfg-section-title">Geral</div>
-            <div class="cfg-section-desc">Preferencias gerais da aplicacao.</div>
+            <div class="cfg-section-desc">Preferencias visuais e de sessao. Guardadas localmente neste browser.</div>
             <div id="cfg-msg-geral" class="cfg-msg"></div>
+
             <div class="cfg-card">
                 <div class="cfg-card-title">Aparencia</div>
                 <div class="cfg-row">
                     <div>
                         <div class="cfg-row-label">Tema</div>
-                        <div class="cfg-row-desc">Escolhe entre o modo claro e escuro.</div>
+                        <div class="cfg-row-desc">Modo claro, escuro ou automatico (segue o sistema operativo).</div>
                     </div>
                     <div class="cfg-row-ctrl">
-                        <select class="cfg-select cfg-input-sm" id="cfg-tema" onchange="cfg_aplicarTema(this.value)">
+                        <select class="cfg-input cfg-input-sm" id="cfg-tema" onchange="cfg_aplicarTema(this.value)">
                             <option value="auto">Automatico</option>
                             <option value="light">Claro</option>
-                            <option value="dark">Escuro</option>
+                            <option value="dark" selected>Escuro</option>
                         </select>
                     </div>
                 </div>
@@ -321,13 +355,14 @@
                         <div class="cfg-row-desc">Idioma da interface.</div>
                     </div>
                     <div class="cfg-row-ctrl">
-                        <select class="cfg-select cfg-input-sm" id="cfg-idioma">
+                        <select class="cfg-input cfg-input-sm" id="cfg-idioma">
                             <option value="pt">Portugues</option>
                             <option value="en">English</option>
                         </select>
                     </div>
                 </div>
             </div>
+
             <div class="cfg-card">
                 <div class="cfg-card-title">Sessao</div>
                 <div class="cfg-row">
@@ -340,59 +375,170 @@
                     </div>
                 </div>
             </div>
+
             <div class="cfg-btn-row">
                 <button class="cfg-btn primary" onclick="cfg_guardarGeral()">Guardar preferencias</button>
             </div>
         </div>
 
-        <!-- IGREJA -->
+        <!-- ══ IGREJA ═══════════════════════════════════════ -->
         <div class="cfg-section" id="cfg-igreja">
             <div class="cfg-section-title">Dados da Igreja</div>
-            <div class="cfg-section-desc">Informacoes da igreja que aparecem em documentos e comunicacoes.</div>
+            <div class="cfg-section-desc">
+                Informacoes da igreja guardadas directamente na base de dados (tabela <code style="font-family:monospace;font-size:11px;color:var(--primary-dark)">configuracoes</code>).
+                Usadas em documentos, PDFs, pagina publica e comunicacoes.
+            </div>
             <div id="cfg-msg-igreja" class="cfg-msg"></div>
+
             <div class="cfg-card">
-                <div class="cfg-card-title">Identificacao</div>
-                <div style="display:flex;flex-direction:column;gap:10px">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                        <div>
-                            <div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:4px">Nome da Igreja</div>
-                            <input class="cfg-input cfg-input-full" id="cfg-ig-nome" placeholder="Ex: Zion Lisboa">
-                        </div>
-                        <div>
-                            <div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:4px">NIF</div>
-                            <input class="cfg-input cfg-input-full" id="cfg-ig-nif" placeholder="000000000">
-                        </div>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                        <div>
-                            <div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:4px">Email</div>
-                            <input class="cfg-input cfg-input-full" id="cfg-ig-email" type="email" placeholder="geral@zion.com">
-                        </div>
-                        <div>
-                            <div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:4px">Telefone</div>
-                            <input class="cfg-input cfg-input-full" id="cfg-ig-tel" type="tel" placeholder="+351 2XX XXX XXX">
-                        </div>
+                <div class="cfg-card-title">Identificacao e Contacto</div>
+                <div class="cfg-form-grid">
+                    <div class="cfg-form-full">
+                        <label class="cfg-field-label">Nome da Igreja</label>
+                        <input class="cfg-input" id="cfg-ig-nome" placeholder="Ex: Zion Lisboa">
                     </div>
                     <div>
-                        <div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:4px">Morada</div>
-                        <input class="cfg-input cfg-input-full" id="cfg-ig-morada" placeholder="Rua, numero, localidade">
+                        <label class="cfg-field-label">Email</label>
+                        <input class="cfg-input" id="cfg-ig-email" type="email" placeholder="geral@igreja.com">
                     </div>
                     <div>
-                        <div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:4px">Website</div>
-                        <input class="cfg-input cfg-input-full" id="cfg-ig-web" type="url" placeholder="https://zion.com">
+                        <label class="cfg-field-label">Telefone</label>
+                        <input class="cfg-input" id="cfg-ig-telefone" type="tel" placeholder="+351 2XX XXX XXX">
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Website</label>
+                        <input class="cfg-input" id="cfg-ig-site" type="url" placeholder="https://zionchurch.org.br">
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Instagram</label>
+                        <input class="cfg-input" id="cfg-ig-instagram" placeholder="https://instagram.com/...">
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">NIF / Numero Identificacao</label>
+                        <input class="cfg-input" id="cfg-ig-nif" placeholder="000000000">
                     </div>
                 </div>
             </div>
+
+            <div class="cfg-card">
+                <div class="cfg-card-title">Localizacao</div>
+                <div class="cfg-form-grid">
+                    <div class="cfg-form-full">
+                        <label class="cfg-field-label">Morada (Rua e Numero)</label>
+                        <input class="cfg-input" id="cfg-ig-endereco" placeholder="Rua do Centro Cultural, 11">
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Codigo Postal</label>
+                        <input class="cfg-input" id="cfg-ig-codigo_postal" placeholder="1700-036">
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Cidade / Distrito</label>
+                        <input class="cfg-input" id="cfg-ig-cidade" placeholder="Alvalade — Lisboa, Portugal">
+                    </div>
+                    <div class="cfg-form-full">
+                        <label class="cfg-field-label">Link Google Maps</label>
+                        <input class="cfg-input" id="cfg-ig-maps_url" type="url" placeholder="https://maps.google.com/?q=...">
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Identidade e Visao -->
+            <div class="cfg-card">
+                <div class="cfg-card-title">Identidade e Visao</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div>
+                        <label class="cfg-field-label">Lema</label>
+                        <input class="cfg-input" id="cfg-ct-lema" placeholder="Lema da igreja...">
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Nossa Visao</label>
+                        <textarea class="cfg-textarea cfg-textarea-lg" id="cfg-ct-nossa_visao" placeholder="Declaracao de visao da igreja..."></textarea>
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Copyright / Rodape</label>
+                        <input class="cfg-input" id="cfg-ct-copy" placeholder="© 2026 Zion Lisboa — Todos os direitos reservados">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Valores -->
+            <div class="cfg-card">
+                <div class="cfg-card-title">Valores da Igreja</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div>
+                        <label class="cfg-field-label">Intimidade com Deus</label>
+                        <textarea class="cfg-textarea" id="cfg-ct-valor_intimindade" placeholder="Texto sobre intimidade com Deus..."></textarea>
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Familia</label>
+                        <textarea class="cfg-textarea" id="cfg-ct-valor_familia" placeholder="Texto sobre o valor da familia..."></textarea>
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Discipulado</label>
+                        <textarea class="cfg-textarea" id="cfg-ct-valor_discipulado" placeholder="Texto sobre discipulado..."></textarea>
+                    </div>
+                </div>
+            </div>
+
             <div class="cfg-btn-row">
-                <button class="cfg-btn primary" onclick="cfg_guardarIgreja()">Guardar dados da igreja</button>
+                <button class="cfg-btn primary" onclick="cfg_guardarTudo()">Guardar Igreja e Conteudo</button>
             </div>
         </div>
 
-        <!-- TIPOS DE EVENTO -->
+        <!-- ══ CONTEUDO ══════════════════════════════════════ -->
+        <div class="cfg-section" id="cfg-conteudo">
+            <div class="cfg-section-title">Conteudo</div>
+            <div class="cfg-section-desc">Textos institucionais: lema, visao, valores da igreja e copyright. Guardados na base de dados.</div>
+            <div id="cfg-msg-conteudo" class="cfg-msg"></div>
+
+            <div class="cfg-card">
+                <div class="cfg-card-title">Identidade</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div>
+                        <label class="cfg-field-label">Lema</label>
+                        <input class="cfg-input" id="cfg-ct-lema" placeholder="Lema da igreja...">
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Nossa Visao</label>
+                        <textarea class="cfg-textarea cfg-textarea-lg" id="cfg-ct-nossa_visao" placeholder="Declaracao de visao da igreja..."></textarea>
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Copyright / Rodape</label>
+                        <input class="cfg-input" id="cfg-ct-copy" placeholder="© 2026 Zion Lisboa — Todos os direitos reservados">
+                    </div>
+                </div>
+            </div>
+
+            <div class="cfg-card">
+                <div class="cfg-card-title">Valores da Igreja</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div>
+                        <label class="cfg-field-label">Intimidade com Deus</label>
+                        <textarea class="cfg-textarea" id="cfg-ct-valor_intimindade" placeholder="Texto sobre intimidade com Deus..."></textarea>
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Familia</label>
+                        <textarea class="cfg-textarea" id="cfg-ct-valor_familia" placeholder="Texto sobre o valor da familia..."></textarea>
+                    </div>
+                    <div>
+                        <label class="cfg-field-label">Discipulado</label>
+                        <textarea class="cfg-textarea" id="cfg-ct-valor_discipulado" placeholder="Texto sobre discipulado..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cfg-btn-row">
+                <button class="cfg-btn primary" onclick="cfg_guardarTudo()">Guardar Igreja e Conteudo</button>
+            </div>
+        </div>
+
+        <!-- ══ TIPOS DE EVENTO ═══════════════════════════════ -->
         <div class="cfg-section" id="cfg-tipos-evento">
             <div class="cfg-section-title">Tipos de Evento</div>
-            <div class="cfg-section-desc">Define os tipos de evento disponiveis no modulo de Eventos.</div>
+            <div class="cfg-section-desc">Define os tipos de evento disponiveis no modulo de Eventos e Cultos.</div>
             <div id="cfg-msg-tipos" class="cfg-msg"></div>
+
             <div class="cfg-card">
                 <div class="cfg-card-title">Tipos ativos</div>
                 <div id="cfg-tipos-lista">
@@ -400,28 +546,35 @@
                 </div>
                 <div class="cfg-tipo-add-row">
                     <input class="cfg-input" id="cfg-tipo-novo-nome" placeholder="Nome do novo tipo..." style="flex:1">
-                    <input type="color" id="cfg-tipo-novo-cor" value="#7b6af0" title="Cor" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;background:var(--bg-input)">
+                    <input type="color" id="cfg-tipo-novo-cor" value="#7b6af0" title="Cor"
+                           style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;background:var(--bg-input)">
                     <button class="cfg-btn primary" onclick="cfg_adicionarTipo()">Adicionar</button>
                 </div>
             </div>
+
             <div class="cfg-btn-row">
                 <button class="cfg-btn primary" onclick="cfg_guardarTipos()">Guardar tipos</button>
             </div>
         </div>
 
-        <!-- NOTIFICACOES -->
+        <!-- ══ NOTIFICACOES ══════════════════════════════════ -->
         <div class="cfg-section" id="cfg-notificacoes">
             <div class="cfg-section-title">Notificacoes</div>
-            <div class="cfg-section-desc">Controla quais os avisos e alertas que o sistema envia.</div>
+            <div class="cfg-section-desc">Preferencias de alertas do sistema. As aprovacoes de sala sao geridas no modulo Salas.</div>
+            <div id="cfg-msg-notificacoes" class="cfg-msg"></div>
+
             <div class="cfg-card">
                 <div class="cfg-card-title">Email</div>
                 <div class="cfg-row">
                     <div>
                         <div class="cfg-row-label">Avisos de presenca em falta</div>
-                        <div class="cfg-row-desc">Enviar email quando um membro falta a um evento sem justificacao.</div>
+                        <div class="cfg-row-desc">Notificar quando um membro falta sem justificacao.</div>
                     </div>
                     <div class="cfg-row-ctrl">
-                        <label class="cfg-switch"><input type="checkbox" id="cfg-notif-falta" checked><div class="cfg-switch-slider"></div></label>
+                        <label class="cfg-switch">
+                            <input type="checkbox" id="cfg-notif-falta" checked>
+                            <div class="cfg-switch-slider"></div>
+                        </label>
                     </div>
                 </div>
                 <div class="cfg-row">
@@ -430,28 +583,20 @@
                         <div class="cfg-row-desc">Enviar resumo semanal de atividades para lideres de ministerio.</div>
                     </div>
                     <div class="cfg-row-ctrl">
-                        <label class="cfg-switch"><input type="checkbox" id="cfg-notif-resumo"><div class="cfg-switch-slider"></div></label>
+                        <label class="cfg-switch">
+                            <input type="checkbox" id="cfg-notif-resumo">
+                            <div class="cfg-switch-slider"></div>
+                        </label>
                     </div>
                 </div>
             </div>
-            <div class="cfg-card">
-                <div class="cfg-card-title">Push / Browser</div>
-                <div class="cfg-row">
-                    <div>
-                        <div class="cfg-row-label">Notificacoes do browser</div>
-                        <div class="cfg-row-desc">Alertas em tempo real quando ha novos eventos ou alteracoes.</div>
-                    </div>
-                    <div class="cfg-row-ctrl">
-                        <label class="cfg-switch"><input type="checkbox" id="cfg-notif-push"><div class="cfg-switch-slider"></div></label>
-                    </div>
-                </div>
-            </div>
+
             <div class="cfg-btn-row">
                 <button class="cfg-btn primary" onclick="cfg_guardarNotificacoes()">Guardar preferencias</button>
             </div>
         </div>
 
-        <!-- INTEGRACAO -->
+        <!-- ══ INTEGRACAO ════════════════════════════════════ -->
         <div class="cfg-section" id="cfg-integracao">
             <div class="cfg-section-title">Integracao</div>
             <div class="cfg-section-desc">Estado das ligacoes a servicos externos.</div>
@@ -462,18 +607,14 @@
                         <div class="cfg-row-label">Base de dados</div>
                         <div class="cfg-row-desc" id="cfg-sb-url">A verificar...</div>
                     </div>
-                    <div class="cfg-row-ctrl" id="cfg-sb-status">
-                        <span class="cfg-badge">—</span>
-                    </div>
+                    <div class="cfg-row-ctrl" id="cfg-sb-status"><span class="cfg-badge">—</span></div>
                 </div>
                 <div class="cfg-row">
                     <div>
                         <div class="cfg-row-label">Storage (imagens)</div>
                         <div class="cfg-row-desc">Bucket publico para fotos de pastores, salas, etc.</div>
                     </div>
-                    <div class="cfg-row-ctrl" id="cfg-storage-status">
-                        <span class="cfg-badge">—</span>
-                    </div>
+                    <div class="cfg-row-ctrl" id="cfg-storage-status"><span class="cfg-badge">—</span></div>
                 </div>
             </div>
             <div class="cfg-card">
@@ -485,15 +626,15 @@
             </div>
         </div>
 
-        <!-- SOBRE -->
+        <!-- ══ SOBRE ═════════════════════════════════════════ -->
         <div class="cfg-section" id="cfg-sobre">
             <div class="cfg-section-title">Sobre</div>
-            <div class="cfg-section-desc">Informacoes tecnicas sobre esta instalacao.</div>
+            <div class="cfg-section-desc">Informacoes da instalacao e dados institucionais registados na base de dados.</div>
             <div class="cfg-card">
                 <div class="cfg-card-title">Sistema</div>
                 <div class="cfg-row">
                     <div class="cfg-row-label">Versao</div>
-                    <div style="font-size:12px;color:var(--text-faint)" id="cfg-versao">1.0.0</div>
+                    <div style="font-size:12px;color:var(--text-faint)">2.0.0</div>
                 </div>
                 <div class="cfg-row">
                     <div class="cfg-row-label">Ambiente</div>
@@ -504,55 +645,77 @@
                     <div style="font-size:12px;color:var(--text-faint)">Supabase / PostgreSQL</div>
                 </div>
             </div>
+            <!-- Dados reais da BD -->
+            <div class="cfg-card">
+                <div class="cfg-card-title">Dados da Igreja (base de dados)</div>
+                <div id="cfg-sobre-bd-lista">
+                    <div style="color:var(--text-faint);font-size:12px;padding:8px 0">A carregar...</div>
+                </div>
+            </div>
+            <div class="cfg-card">
+                <div class="cfg-card-title">Conteudo (base de dados)</div>
+                <div id="cfg-sobre-ct-lista">
+                    <div style="color:var(--text-faint);font-size:12px;padding:8px 0">A carregar...</div>
+                </div>
+            </div>
         </div>
 
     </div><!-- /cfg-content -->
 </div><!-- /cfg-wrap -->
 
-<script>
-    // ── Estado ────────────────────────────────────────────────────────────────────
-    var cfg_secaoAtiva = 'geral';
-    var cfg_tiposEvento = [];  // array de { nome, cor }
 
-    // ── Init ──────────────────────────────────────────────────────────────────────
+<script>
+    // ══════════════════════════════════════════════════════════════════════════════
+    // CONFIGURACOES MODULE v2
+    // - Igreja + Conteudo numa aba (guardar tudo junto)
+    // - Notificacoes simples (sem aprovacoes de sala — essas ficam no modulo Salas)
+    // - Tabela configuracoes: chave/valor individual + blob "igreja" para retrocompat
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    var cfg_secaoAtiva  = 'geral';
+    var cfg_tiposEvento = [];
+    var cfg_bdCache     = {};   // chave -> valor
+
+    // ── INIT ─────────────────────────────────────────────────────────────────────
     async function cfg_init() {
         try {
+            var rows = await sb('configuracoes?select=chave,valor').catch(function() { return []; });
+            cfg_bdCache = {};
+            (rows || []).forEach(function(r) { cfg_bdCache[r.chave] = r.valor; });
+
             cfg_carregarPrefs();
             cfg_carregarSessao();
-            cfg_carregarIgreja();
+            cfg_carregarIgreja();     // inclui conteudo
             cfg_carregarTipos();
+            cfg_carregarNotificacoes();
             cfg_verificarIntegracao();
-        } catch (e) {
+            cfg_carregarSobre();
+        } catch(e) {
             console.error('cfg_init error:', e);
         }
     }
 
-    // ── Navegacao ─────────────────────────────────────────────────────────────────
+    // ── NAVEGACAO ─────────────────────────────────────────────────────────────────
     window.cfg_setSecao = function(id) {
         cfg_secaoAtiva = id;
+        document.querySelectorAll('.cfg-nav-item').forEach(function(el) { el.classList.remove('active'); });
         document.querySelectorAll('.cfg-nav-item').forEach(function(el) {
-            el.classList.remove('active');
-        });
-        var alvo = 'cfg-' + id;
-        // Nav item com onclick contendo o id
-        document.querySelectorAll('.cfg-nav-item').forEach(function(el) {
-            if (el.getAttribute('onclick') && el.getAttribute('onclick').includes("'" + id + "'")) {
-                el.classList.add('active');
-            }
+            if ((el.getAttribute('onclick') || '').includes("'" + id + "'")) el.classList.add('active');
         });
         document.querySelectorAll('.cfg-section').forEach(function(el) {
-            el.classList.toggle('active', el.id === alvo);
+            el.classList.toggle('active', el.id === 'cfg-' + id);
         });
     };
 
-    // ── Preferencias gerais ───────────────────────────────────────────────────────
+    // ── PREFERENCIAS GERAIS ───────────────────────────────────────────────────────
     function cfg_carregarPrefs() {
-        var tema   = localStorage.getItem('cfg_tema')   || 'auto';
+        var tema   = localStorage.getItem('cfg_tema')   || 'dark';
         var idioma = localStorage.getItem('cfg_idioma') || 'pt';
-        var selTema   = document.getElementById('cfg-tema');
-        var selIdioma = document.getElementById('cfg-idioma');
-        if (selTema)   selTema.value   = tema;
-        if (selIdioma) selIdioma.value = idioma;
+        var selTema = document.getElementById('cfg-tema');
+        var selIdi  = document.getElementById('cfg-idioma');
+        if (selTema) selTema.value = tema;
+        if (selIdi)  selIdi.value  = idioma;
+        cfg_aplicarTema(tema);
     }
 
     window.cfg_aplicarTema = function(valor) {
@@ -560,24 +723,25 @@
         html.classList.remove('theme-light', 'theme-dark');
         if (valor === 'light') html.classList.add('theme-light');
         else if (valor === 'dark') html.classList.add('theme-dark');
+        localStorage.setItem('cfg_tema', valor);
     };
 
     window.cfg_guardarGeral = function() {
-        var tema   = document.getElementById('cfg-tema')?.value   || 'auto';
+        var tema   = document.getElementById('cfg-tema')?.value   || 'dark';
         var idioma = document.getElementById('cfg-idioma')?.value || 'pt';
-        localStorage.setItem('cfg_tema',   tema);
+        localStorage.setItem('cfg_tema', tema);
         localStorage.setItem('cfg_idioma', idioma);
         cfg_aplicarTema(tema);
         cfg_showMsg('geral', 'Preferencias guardadas.', 'success');
     };
 
-    // ── Sessao ────────────────────────────────────────────────────────────────────
+    // ── SESSAO ────────────────────────────────────────────────────────────────────
     function cfg_carregarSessao() {
         var info = document.getElementById('cfg-user-info');
         if (!info) return;
-        var nome = localStorage.getItem('zion_nome') || sessionStorage.getItem('zion_nome');
+        var nome  = localStorage.getItem('zion_nome')  || sessionStorage.getItem('zion_nome');
         var email = localStorage.getItem('zion_email') || sessionStorage.getItem('zion_email');
-        info.textContent = (nome || email || '—');
+        info.textContent = nome || email || '—';
     }
 
     window.cfg_logout = function() {
@@ -587,59 +751,120 @@
         window.location.reload();
     };
 
-    // ── Igreja ────────────────────────────────────────────────────────────────────
+    // ── IGREJA + CONTEUDO ─────────────────────────────────────────────────────────
+    // Campos individuais da BD. leg = chave no blob legado "igreja" (retrocompat)
+    var CFG_IGREJA = [
+        { id: 'cfg-ig-nome',          chave: 'ig_nome',       desc: 'Nome da Igreja',   leg: 'nome'   },
+        { id: 'cfg-ig-email',         chave: 'ig_email',      desc: 'Email',            leg: 'email'  },
+        { id: 'cfg-ig-telefone',      chave: 'telefone',      desc: 'Telefone geral',   leg: 'tel'    },
+        { id: 'cfg-ig-site',          chave: 'site',          desc: 'Site oficial',     leg: 'web'    },
+        { id: 'cfg-ig-instagram',     chave: 'instagram',     desc: 'Instagram',        leg: null     },
+        { id: 'cfg-ig-nif',           chave: 'ig_nif',        desc: 'NIF',              leg: 'nif'    },
+        { id: 'cfg-ig-endereco',      chave: 'endereco',      desc: 'Morada da igreja', leg: 'morada' },
+        { id: 'cfg-ig-codigo_postal', chave: 'codigo_postal', desc: 'Codigo postal',    leg: null     },
+        { id: 'cfg-ig-cidade',        chave: 'cidade',        desc: 'Cidade',           leg: null     },
+        { id: 'cfg-ig-maps_url',      chave: 'maps_url',      desc: 'Link Google Maps', leg: null     },
+    ];
+
+    var CFG_CONTEUDO = [
+        { id: 'cfg-ct-lema',              chave: 'lema',              desc: 'Lema'               },
+        { id: 'cfg-ct-nossa_visao',       chave: 'nossa_visao',       desc: 'Visao'              },
+        { id: 'cfg-ct-copy',              chave: 'copy',              desc: 'Copyright'          },
+        { id: 'cfg-ct-valor_intimindade', chave: 'valor_intimindade', desc: 'Valor: Intimidade'  },
+        { id: 'cfg-ct-valor_familia',     chave: 'valor_familia',     desc: 'Valor: Familia'     },
+        { id: 'cfg-ct-valor_discipulado', chave: 'valor_discipulado', desc: 'Valor: Discipulado' },
+    ];
+
     function cfg_carregarIgreja() {
-        var campos = ['nome', 'nif', 'email', 'tel', 'morada', 'web'];
-        campos.forEach(function(c) {
-            var val = localStorage.getItem('cfg_ig_' + c) || '';
-            var el  = document.getElementById('cfg-ig-' + c);
-            if (el) el.value = val;
+        // Fallback para blob legado
+        var legado = {};
+        try { legado = JSON.parse(cfg_bdCache['igreja'] || '{}'); } catch(_) {}
+
+        CFG_IGREJA.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            if (!el) return;
+            var val = cfg_bdCache[f.chave] || '';
+            if (!val && f.leg) val = legado[f.leg] || '';
+            el.value = val;
+        });
+
+        CFG_CONTEUDO.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            if (el) el.value = cfg_bdCache[f.chave] || '';
         });
     }
 
-    window.cfg_guardarIgreja = async function() {
-        var campos = ['nome', 'nif', 'email', 'tel', 'morada', 'web'];
-        var dados  = {};
-        campos.forEach(function(c) {
-            var val = document.getElementById('cfg-ig-' + c)?.value?.trim() || '';
-            localStorage.setItem('cfg_ig_' + c, val);
-            dados[c] = val;
-        });
-        // Tentar guardar na BD (tabela configuracoes ou similar)
+    // Um botao guarda tudo (Igreja + Conteudo)
+    window.cfg_guardarTudo = async function() {
+        var btn = document.querySelector('[onclick="cfg_guardarTudo()"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
         try {
-            if (window.sb) {
-                await sb('configuracoes?chave=eq.igreja', {
+            var ops = [];
+
+            // Igreja - chaves individuais
+            var legado = {};
+            try { legado = JSON.parse(cfg_bdCache['igreja'] || '{}'); } catch(_) {}
+
+            CFG_IGREJA.forEach(function(f) {
+                var val = document.getElementById(f.id)?.value?.trim() || '';
+                cfg_bdCache[f.chave] = val;
+                if (f.leg) legado[f.leg] = val;
+                ops.push(sb('configuracoes?chave=eq.' + f.chave, {
                     method: 'POST',
                     headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-                    body: JSON.stringify({ chave: 'igreja', valor: JSON.stringify(dados) }),
-                });
-            }
-        } catch (_) { /* fallback ja guardou no localStorage */ }
-        cfg_showMsg('igreja', 'Dados guardados.', 'success');
+                    body: JSON.stringify({ chave: f.chave, valor: val, descricao: f.desc }),
+                }));
+            });
+
+            // Blob legado "igreja" (retrocompat)
+            var igBlob = JSON.stringify(legado);
+            cfg_bdCache['igreja'] = igBlob;
+            ops.push(sb('configuracoes?chave=eq.igreja', {
+                method: 'POST',
+                headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+                body: JSON.stringify({ chave: 'igreja', valor: igBlob }),
+            }));
+
+            // Conteudo
+            CFG_CONTEUDO.forEach(function(f) {
+                var val = document.getElementById(f.id)?.value?.trim() || '';
+                cfg_bdCache[f.chave] = val;
+                ops.push(sb('configuracoes?chave=eq.' + f.chave, {
+                    method: 'POST',
+                    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+                    body: JSON.stringify({ chave: f.chave, valor: val, descricao: f.desc }),
+                }));
+            });
+
+            await Promise.all(ops);
+            cfg_showMsg('igreja', 'Igreja e conteudo guardados com sucesso.', 'success');
+            cfg_carregarSobre();
+        } catch(e) {
+            cfg_showMsg('igreja', 'Erro: ' + (e?.message || JSON.stringify(e)), 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Guardar Igreja e Conteudo'; }
+        }
     };
 
-    // ── Tipos de evento ───────────────────────────────────────────────────────────
-    async function cfg_carregarTipos() {
-        var lista = document.getElementById('cfg-tipos-lista');
-        if (!lista) return;
+    // ── TIPOS DE EVENTO ───────────────────────────────────────────────────────────
+    function cfg_carregarTipos() {
         try {
-            var rows = await sb('configuracoes?chave=eq.tipos_evento') || [];
-            if (rows.length && rows[0].valor) {
-                cfg_tiposEvento = JSON.parse(rows[0].valor);
+            var raw = cfg_bdCache['tipos_evento'];
+            if (raw) {
+                var parsed = JSON.parse(raw);
+                cfg_tiposEvento = parsed.map(function(t) {
+                    return typeof t === 'string' ? { nome: t, cor: '#7b6af0' } : t;
+                });
             } else {
-                // defaults
                 cfg_tiposEvento = [
-                    { nome: 'Culto', cor: '#7b6af0' },
-                    { nome: 'Celula', cor: '#2ecc71' },
+                    { nome: 'Culto',       cor: '#7b6af0' },
+                    { nome: 'Celula',      cor: '#2ecc71' },
                     { nome: 'Conferencia', cor: '#e67e22' },
                     { nome: 'Treinamento', cor: '#3498db' },
                 ];
             }
-        } catch (_) {
-            cfg_tiposEvento = [
-                { nome: 'Culto', cor: '#7b6af0' },
-                { nome: 'Celula', cor: '#2ecc71' },
-            ];
+        } catch(_) {
+            cfg_tiposEvento = [{ nome: 'Culto', cor: '#7b6af0' }];
         }
         cfg_renderTipos();
     }
@@ -653,7 +878,7 @@
         }
         lista.innerHTML = cfg_tiposEvento.map(function(t, i) {
             return '<div class="cfg-tipo-row">' +
-                '<div class="cfg-tipo-color" style="background:' + (t.cor||'#7b6af0') + '"></div>' +
+                '<div class="cfg-tipo-color" style="background:' + (t.cor || '#7b6af0') + '"></div>' +
                 '<div class="cfg-tipo-nome">' + t.nome + '</div>' +
                 '<button class="cfg-tipo-btn-rm" onclick="cfg_removerTipo(' + i + ')">Remover</button>' +
                 '</div>';
@@ -680,31 +905,41 @@
 
     window.cfg_guardarTipos = async function() {
         try {
+            var val = JSON.stringify(cfg_tiposEvento);
+            cfg_bdCache['tipos_evento'] = val;
             await sb('configuracoes?chave=eq.tipos_evento', {
                 method: 'POST',
                 headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-                body: JSON.stringify({ chave: 'tipos_evento', valor: JSON.stringify(cfg_tiposEvento) }),
+                body: JSON.stringify({ chave: 'tipos_evento', valor: val }),
             });
-            cfg_showMsg('tipos', 'Tipos guardados com sucesso.', 'success');
-            // Atualizar cache global se existir
+            cfg_showMsg('tipos', 'Tipos guardados.', 'success');
             if (window.TIPOS_EVENTO !== undefined) window.TIPOS_EVENTO = cfg_tiposEvento.map(function(t) { return t.nome; });
-        } catch (e) {
+        } catch(e) {
             cfg_showMsg('tipos', 'Erro: ' + (e?.message || JSON.stringify(e)), 'error');
         }
     };
 
-    // ── Notificacoes ───────────────────────────────────────────────────────────────
+    // ── NOTIFICACOES (simples — sem sala) ─────────────────────────────────────────
+    function cfg_carregarNotificacoes() {
+        try {
+            var saved = JSON.parse(localStorage.getItem('cfg_notificacoes') || '{}');
+            var el_falta  = document.getElementById('cfg-notif-falta');
+            var el_resumo = document.getElementById('cfg-notif-resumo');
+            if (el_falta)  el_falta.checked  = saved.falta  !== false;
+            if (el_resumo) el_resumo.checked = saved.resumo === true;
+        } catch(_) {}
+    }
+
     window.cfg_guardarNotificacoes = function() {
         var vals = {
-            falta:  document.getElementById('cfg-notif-falta')?.checked,
-            resumo: document.getElementById('cfg-notif-resumo')?.checked,
-            push:   document.getElementById('cfg-notif-push')?.checked,
+            falta:  document.getElementById('cfg-notif-falta')?.checked  !== false,
+            resumo: document.getElementById('cfg-notif-resumo')?.checked === true,
         };
         localStorage.setItem('cfg_notificacoes', JSON.stringify(vals));
         cfg_showMsg('notificacoes', 'Preferencias guardadas.', 'success');
     };
 
-    // ── Integracao ────────────────────────────────────────────────────────────────
+    // ── INTEGRACAO ────────────────────────────────────────────────────────────────
     async function cfg_verificarIntegracao() {
         var urlEl    = document.getElementById('cfg-sb-url');
         var statusEl = document.getElementById('cfg-sb-status');
@@ -713,19 +948,20 @@
             try {
                 await sb('configuracoes?limit=1');
                 statusEl.innerHTML = '<span class="cfg-badge ok">Ligado</span>';
-            } catch (_) {
+            } catch(_) {
                 statusEl.innerHTML = '<span class="cfg-badge err">Falhou</span>';
             }
         }
-        // Storage
         var stEl = document.getElementById('cfg-storage-status');
         if (stEl) {
             try {
                 var r = await fetch(window.SUPABASE_URL + '/storage/v1/bucket', {
                     headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY }
                 });
-                stEl.innerHTML = r.ok ? '<span class="cfg-badge ok">Acessivel</span>' : '<span class="cfg-badge err">Sem acesso</span>';
-            } catch (_) {
+                stEl.innerHTML = r.ok
+                    ? '<span class="cfg-badge ok">Acessivel</span>'
+                    : '<span class="cfg-badge err">Sem acesso</span>';
+            } catch(_) {
                 stEl.innerHTML = '<span class="cfg-badge err">Sem acesso</span>';
             }
         }
@@ -738,13 +974,71 @@
             var t0 = Date.now();
             await sb('configuracoes?limit=1');
             var ms = Date.now() - t0;
-            if (el) { el.textContent = 'Ligacao OK — latencia: ' + ms + ' ms'; el.style.color = 'var(--green, #2e7d32)'; }
-        } catch (e) {
-            if (el) { el.textContent = 'Falha: ' + (e?.message || JSON.stringify(e)); el.style.color = 'var(--red, #c0392b)'; }
+            if (el) { el.textContent = 'Ligacao OK — latencia: ' + ms + ' ms'; el.style.color = '#2e7d32'; }
+        } catch(e) {
+            if (el) { el.textContent = 'Falha: ' + (e?.message || JSON.stringify(e)); el.style.color = '#c0392b'; }
         }
     };
 
-    // ── Mensagens ─────────────────────────────────────────────────────────────────
+    // ── SOBRE ─────────────────────────────────────────────────────────────────────
+    function cfg_carregarSobre() {
+        var legado = {};
+        try { legado = JSON.parse(cfg_bdCache['igreja'] || '{}'); } catch(_) {}
+
+        var igFields = [
+            { chave: 'ig_nome',       label: 'Nome da Igreja', leg: 'nome'   },
+            { chave: 'ig_email',      label: 'Email',          leg: 'email'  },
+            { chave: 'telefone',      label: 'Telefone',       leg: 'tel'    },
+            { chave: 'site',          label: 'Website',        leg: 'web'    },
+            { chave: 'instagram',     label: 'Instagram',      leg: null     },
+            { chave: 'ig_nif',        label: 'NIF',            leg: 'nif'    },
+            { chave: 'endereco',      label: 'Morada',         leg: 'morada' },
+            { chave: 'codigo_postal', label: 'Codigo Postal',  leg: null     },
+            { chave: 'cidade',        label: 'Cidade',         leg: null     },
+            { chave: 'maps_url',      label: 'Google Maps',    leg: null     },
+        ];
+
+        function renderField(label, val) {
+            if (!val) return '';
+            var isUrl = val.startsWith('http');
+            return '<div class="cfg-sobre-campo">' +
+                '<div class="cfg-sobre-label">' + label + '</div>' +
+                '<div class="cfg-sobre-val">' + (isUrl ? '<a href="' + val + '" target="_blank">' + val + '</a>' : val) + '</div>' +
+                '</div>';
+        }
+
+        var igHtml = igFields.map(function(f) {
+            var val = cfg_bdCache[f.chave] || (f.leg ? legado[f.leg] : '') || '';
+            return renderField(f.label, val);
+        }).filter(Boolean).join('');
+
+        var igEl = document.getElementById('cfg-sobre-bd-lista');
+        if (igEl) igEl.innerHTML = igHtml || '<div style="color:var(--text-faint);font-size:12px;padding:8px 0">Sem dados. Preenche a aba Igreja.</div>';
+
+        var ctFields = [
+            { chave: 'lema',              label: 'Lema'              },
+            { chave: 'nossa_visao',       label: 'Visao'             },
+            { chave: 'valor_intimindade', label: 'Valor: Intimidade' },
+            { chave: 'valor_familia',     label: 'Valor: Familia'    },
+            { chave: 'valor_discipulado', label: 'Valor: Discipulado'},
+            { chave: 'copy',              label: 'Copyright'         },
+        ];
+
+        var ctHtml = ctFields.map(function(f) {
+            var val = cfg_bdCache[f.chave] || '';
+            if (!val) return '';
+            var preview = val.length > 160 ? val.substring(0, 160) + '...' : val;
+            return '<div class="cfg-sobre-campo">' +
+                '<div class="cfg-sobre-label">' + f.label + '</div>' +
+                '<div class="cfg-sobre-val" style="white-space:pre-wrap">' + preview + '</div>' +
+                '</div>';
+        }).filter(Boolean).join('');
+
+        var ctEl = document.getElementById('cfg-sobre-ct-lista');
+        if (ctEl) ctEl.innerHTML = ctHtml || '<div style="color:var(--text-faint);font-size:12px;padding:8px 0">Sem conteudo. Preenche a aba Igreja.</div>';
+    }
+
+    // ── UTILS ─────────────────────────────────────────────────────────────────────
     function cfg_showMsg(secao, txt, tipo) {
         var el = document.getElementById('cfg-msg-' + secao);
         if (!el) return;
@@ -753,9 +1047,18 @@
         if (tipo === 'success') setTimeout(function() { el.className = 'cfg-msg'; }, 3000);
     }
 
-    // ── Arrancar ──────────────────────────────────────────────────────────────────
-    window.cfg_init = cfg_init;
-    window.cfg_setSecao = cfg_setSecao;
-    window.cfg_aplicarTema = cfg_aplicarTema;
+    // ── EXPOSE + ARRANCAR ─────────────────────────────────────────────────────────
+    window.cfg_init                = cfg_init;
+    window.cfg_setSecao            = cfg_setSecao;
+    window.cfg_aplicarTema         = cfg_aplicarTema;
+    window.cfg_guardarGeral        = cfg_guardarGeral;
+    window.cfg_logout              = cfg_logout;
+    window.cfg_guardarTudo         = cfg_guardarTudo;   // Igreja + Conteudo
+    window.cfg_adicionarTipo       = cfg_adicionarTipo;
+    window.cfg_removerTipo         = cfg_removerTipo;
+    window.cfg_guardarTipos        = cfg_guardarTipos;
+    window.cfg_guardarNotificacoes = cfg_guardarNotificacoes;
+    window.cfg_testarConexao       = cfg_testarConexao;
+
     cfg_init();
 </script>

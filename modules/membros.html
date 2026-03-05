@@ -170,8 +170,8 @@
 .mb-list-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 8px;
+    gap: 10px;
+    padding: 9px 10px;
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.12s;
@@ -183,13 +183,13 @@
     border-color: var(--primary);
 }
 .mb-list-avatar {
-    width: 32px;
-    height: 32px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     flex-shrink: 0;
     overflow: hidden;
@@ -203,7 +203,7 @@
 }
 .mb-list-info { flex: 1; min-width: 0; }
 .mb-list-nome {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-main);
     white-space: nowrap;
@@ -211,7 +211,7 @@
     text-overflow: ellipsis;
 }
 .mb-list-sub {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-faint);
     white-space: nowrap;
     overflow: hidden;
@@ -817,6 +817,7 @@ let mb_links_cache   = [];   // links para select
 let mb_ministerios_cache = [];
 let mb_cursos_cache  = [];
 let mb_membros_min   = {};   // membro_id -> [{tipo,nome,papel}]
+let mb_familia_cache = {};   // membro_id -> {conjuge,pai,mae,filhos[]}
 
 let mb_tab         = 'dash';       // dash | membros | visitantes
 let mb_activoId    = null;         // id do membro/visitante activo
@@ -864,7 +865,7 @@ async function mb_init() {
         // Carregar ministérios de todos os membros activos
         const ids = mb_membros.filter(m => m.ativo !== false).map(m => m.id);
         if (ids.length) {
-            const vincs = await sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${ids.join(',')})&ativo=eq.true`).catch(() => []);
+            const vincs = await sb(`membro_ministerios?select=id,membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${ids.join(',')})&ativo=eq.true`).catch(() => []);
             mb_membros_min = {};
             (vincs || []).forEach(v => {
                 if (!mb_membros_min[v.membro_id]) mb_membros_min[v.membro_id] = [];
@@ -935,6 +936,15 @@ function mb_setTab(tab) {
 
     if (filtrosWrap) filtrosWrap.style.display = tab === 'membros' ? '' : 'none';
     if (searchWrap)  searchWrap.style.display  = tab !== 'dash'    ? '' : 'none';
+
+    // Limpar filtros ao mudar de aba para não contaminar visitantes/membros
+    mb_filtros.clear();
+    document.querySelectorAll('.mb-filtro-chip.active').forEach(el => el.classList.remove('active'));
+    ['mb-filtro-min','mb-filtro-link','mb-filtro-zona'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const srch = document.getElementById('mb-search');
+    if (srch) srch.value = '';
     if (btnNovo) {
         btnNovo.style.display = tab === 'dash' ? 'none' : '';
         btnNovo.textContent = tab === 'visitantes' ? '+ Novo Visitante' : '+ Novo Membro';
@@ -1710,7 +1720,7 @@ function mb_buildForm(m) {
                 </div>
                 <div class="mb-form-group">
                     <label class="mb-form-label">Email</label>
-                    <input class="mb-form-input" id="mf_email" type="email" value="${fv('email')}" ${m?.id?'readonly':''}>
+                    <input class="mb-form-input" id="mf_email" type="email" value="${fv('email')}">
                 </div>
                 <div class="mb-form-group">
                     <label class="mb-form-label">Telefone</label>
@@ -1947,6 +1957,7 @@ async function mb_salvar(id) {
 
         // Reload
         mb_membros = await sb('membros?select=*&order=nome') || [];
+        await mb_recarregarFamilia();
         if (!id) {
             mb_activoId = null;
             mb_editMode = false;
@@ -2059,19 +2070,13 @@ async function mb_addMinisterio(membroId) {
         // Reload vinculacoes deste membro
         const vincs = await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${membroId}&ativo=eq.true`);
         mb_membros_min[membroId] = (vincs||[]).map(v => ({
-            tipo: v.ministerios?.tipo||'?',
-            nome: v.ministerios?.nome||'—',
-            papel: v.papel||'',
+            id_vinc: v.id,
+            tipo:    v.ministerios?.tipo||'?',
+            nome:    v.ministerios?.nome||'—',
+            papel:   v.papel||'',
         }));
-        // Re-render secao ministerios
-        const lista = document.getElementById('mb-mins-lista');
-        if (lista) {
-            lista.innerHTML = mb_membros_min[membroId].map(mv => `<div class="mb-min-item">
-                <span class="mb-badge ${mv.tipo==='ministerio'?'mb-badge-teal':'mb-badge-blue'}">${mv.tipo==='ministerio'?'MIN':'AE'}</span>
-                <div class="mb-min-nome">${mv.nome}</div>
-                <div class="mb-min-papel">${mv.papel || ''}</div>
-            </div>`).join('');
-        }
+        mb_panelTab = 'ministerios';
+        mb_renderPerfil();
         document.getElementById('mb-add-min-id').value = '';
         document.getElementById('mb-add-min-papel').value = '';
     } catch(e) { alert('Erro: '+JSON.stringify(e)); }

@@ -15,7 +15,7 @@
 
 /* ── SIDEBAR ──────────────────────────────────────── */
 .mb-side {
-    width: 260px;
+    width: 320px;
     flex-shrink: 0;
     border-right: 1px solid var(--border);
     display: flex;
@@ -735,24 +735,38 @@
                     <button class="mb-filtro-chip" data-filtro="e_presbitero" onclick="mb_toggleChip(this,'e_presbitero')">Presbitero</button>
                     <button class="mb-filtro-chip" data-filtro="e_voluntario" onclick="mb_toggleChip(this,'e_voluntario')">Voluntario</button>
                     <button class="mb-filtro-chip" data-filtro="professor"    onclick="mb_toggleChip(this,'professor')">Professor</button>
+                    <button class="mb-filtro-chip" data-filtro="pastor"       onclick="mb_toggleChip(this,'pastor')">Pastor</button>
+                    <button class="mb-filtro-chip" data-filtro="office"       onclick="mb_toggleChip(this,'office')">Office</button>
                     <button class="mb-filtro-chip" data-filtro="e_lider_link" onclick="mb_toggleChip(this,'e_lider_link')">Lider Link</button>
                     <button class="mb-filtro-chip" data-filtro="e_lider_area" onclick="mb_toggleChip(this,'e_lider_area')">Lider Area</button>
+                    <button class="mb-filtro-chip" data-filtro="e_lider_pilar" onclick="mb_toggleChip(this,'e_lider_pilar')">Lider Pilar</button>
                 </div>
 
-                <div class="mb-filtros-titulo" style="margin-top:6px">Estado</div>
+                <div class="mb-filtros-titulo" style="margin-top:8px">Estado</div>
                 <div class="mb-filtro-grupo">
                     <button class="mb-filtro-chip chip-green" data-filtro="ativo"    onclick="mb_toggleChip(this,'ativo')">Ativos</button>
                     <button class="mb-filtro-chip chip-red"   data-filtro="inativo"  onclick="mb_toggleChip(this,'inativo')">Inativos</button>
                     <button class="mb-filtro-chip"            data-filtro="batizado" onclick="mb_toggleChip(this,'batizado')">Batizados</button>
                     <button class="mb-filtro-chip"            data-filtro="casado"   onclick="mb_toggleChip(this,'casado')">Casados</button>
+                    <button class="mb-filtro-chip"            data-filtro="tem_filhos" onclick="mb_toggleChip(this,'tem_filhos')">Com Filhos</button>
                 </div>
 
-                <div class="mb-filtros-titulo" style="margin-top:6px">Ministerio</div>
+                <div class="mb-filtros-titulo" style="margin-top:8px">Ministerio</div>
                 <select class="mb-filtro-select" id="mb-filtro-min" onchange="mb_filtrar()">
                     <option value="">Todos os ministerios</option>
                 </select>
 
-                <div class="mb-filtros-titulo" style="margin-top:6px">Genero</div>
+                <div class="mb-filtros-titulo" style="margin-top:8px">Link</div>
+                <select class="mb-filtro-select" id="mb-filtro-link" onchange="mb_filtrar()">
+                    <option value="">Todos os links</option>
+                </select>
+
+                <div class="mb-filtros-titulo" style="margin-top:8px">Zona</div>
+                <select class="mb-filtro-select" id="mb-filtro-zona" onchange="mb_filtrar()">
+                    <option value="">Todas as zonas</option>
+                </select>
+
+                <div class="mb-filtros-titulo" style="margin-top:8px">Genero</div>
                 <div class="mb-filtro-grupo">
                     <button class="mb-filtro-chip" data-filtro="masculino" onclick="mb_toggleChip(this,'masculino')">Masculino</button>
                     <button class="mb-filtro-chip" data-filtro="feminino"  onclick="mb_toggleChip(this,'feminino')">Feminino</button>
@@ -973,14 +987,23 @@ function mb_renderSide() {
     }
 
     // Filtros de função/genero/estado
-    const funcFiltros = ['e_lider','e_presbitero','e_voluntario','professor','e_lider_link','e_lider_area'];
+    const funcFiltros = ['e_lider','e_presbitero','e_voluntario','professor','pastor','office','e_lider_link','e_lider_area','e_lider_pilar'];
     funcFiltros.forEach(f => {
         if (mb_filtros.has(f)) lista = lista.filter(m => m[f] === true);
     });
-    if (mb_filtros.has('batizado'))  lista = lista.filter(m => m.foi_batizado === true);
-    if (mb_filtros.has('casado'))    lista = lista.filter(m => m.estado_civil === 'casado');
-    if (mb_filtros.has('masculino')) lista = lista.filter(m => m.genero === 'masculino');
-    if (mb_filtros.has('feminino'))  lista = lista.filter(m => m.genero === 'feminino');
+    if (mb_filtros.has('batizado'))   lista = lista.filter(m => m.foi_batizado === true);
+    if (mb_filtros.has('casado'))     lista = lista.filter(m => m.estado_civil === 'casado');
+    if (mb_filtros.has('masculino'))  lista = lista.filter(m => m.genero === 'masculino');
+    if (mb_filtros.has('feminino'))   lista = lista.filter(m => m.genero === 'feminino');
+    if (mb_filtros.has('tem_filhos')) lista = lista.filter(m => m.tem_filhos === true);
+
+    // Filtro por Link
+    const filtLink = document.getElementById('mb-filtro-link')?.value || '';
+    if (filtLink) lista = lista.filter(m => m.link_id === filtLink);
+
+    // Filtro por Zona
+    const filtZona = document.getElementById('mb-filtro-zona')?.value || '';
+    if (filtZona) lista = lista.filter(m => m.zona === filtZona);
 
     // Filtro por ministério
     if (filtMin) {
@@ -1122,8 +1145,10 @@ function mb_toggleChip(el, filtro) {
 function mb_clearFiltros() {
     mb_filtros.clear();
     document.querySelectorAll('.mb-filtro-chip.active').forEach(c => c.classList.remove('active'));
-    const sel = document.getElementById('mb-filtro-min');
-    if (sel) sel.value = '';
+    ['mb-filtro-min','mb-filtro-link','mb-filtro-zona'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
     if (document.getElementById('mb-search')) document.getElementById('mb-search').value = '';
     mb_filtrar();
 }
@@ -1288,8 +1313,8 @@ async function mb_renderPerfil() {
 
     const sub = [m.tipo, m.zona, m.genero].filter(Boolean).join(' · ');
 
-    const tabsHtml = ['info','morada','funcoes','ministerios','cursos','filhos','historia'].map(t => {
-        const labels = {info:'Dados',morada:'Morada',funcoes:'Funcoes',ministerios:'Ministerios',cursos:'Cursos',filhos:'Filhos',historia:'Historia'};
+    const tabsHtml = ['info','morada','funcoes','ministerios','link','cursos','filhos','historia'].map(t => {
+        const labels = {info:'Dados',morada:'Morada',funcoes:'Funcoes',ministerios:'Ministerios',link:'Link',cursos:'Cursos',filhos:'Familia',historia:'Historia'};
         return `<button class="mb-panel-tab ${mb_panelTab===t?'active':''}" onclick="mb_setPanelTab('${t}')">${labels[t]}</button>`;
     }).join('');
 
@@ -1414,6 +1439,8 @@ function mb_buildView(m, mins) {
             {k:'e_presbitero', l:'Presbítero'},
             {k:'e_voluntario', l:'Voluntário'},
             {k:'professor',    l:'Professor'},
+            {k:'pastor',       l:'Pastor'},
+            {k:'office',       l:'Office'},
             {k:'e_lider_link', l:'Lider de Link'},
             {k:'e_lider_area', l:'Lider de Área'},
             {k:'e_lider_pilar',l:'Lider de Pilar'},
@@ -1436,6 +1463,7 @@ function mb_buildView(m, mins) {
                 <span class="mb-badge ${mv.tipo==='ministerio'?'mb-badge-teal':'mb-badge-blue'}">${mv.tipo==='ministerio'?'MIN':'AE'}</span>
                 <div class="mb-min-nome">${mv.nome}</div>
                 <div class="mb-min-papel">${mv.papel || ''}</div>
+                <button class="mb-min-remove" title="Remover" onclick="mb_removerMinisterio('${mv.id_vinc}','${m.id}')">x</button>
               </div>`).join('')
             : '<div style="font-size:12px;color:var(--text-faint)">Sem ministerios associados.</div>';
 
@@ -1447,13 +1475,73 @@ function mb_buildView(m, mins) {
             <div class="mb-data-card">
                 <div class="mb-data-card-title">Ministerios e Areas</div>
                 <div id="mb-mins-lista">${minsHtml}</div>
-                <div class="mb-sub-add" style="margin-top:10px">
-                    <select class="mb-filtro-select" id="mb-add-min-id" style="flex:1">
+                <div class="mb-sub-add" style="margin-top:10px;flex-wrap:wrap">
+                    <select class="mb-filtro-select" id="mb-add-min-id" style="flex:1;min-width:130px">
                         <option value="">Selecciona ministerio...</option>${minOpts}
                     </select>
-                    <input class="mb-form-input" id="mb-add-min-papel" type="text" placeholder="Papel" style="width:110px">
+                    <select class="mb-filtro-select" id="mb-add-min-papel" style="width:120px">
+                        <option value="">Papel...</option>
+                        <option value="Lider">Lider</option>
+                        <option value="Co-lider">Co-lider</option>
+                        <option value="Voluntario">Voluntario</option>
+                    </select>
                     <button class="mb-btn-save" onclick="mb_addMinisterio('${m.id}')">Adicionar</button>
                 </div>
+            </div>
+        </div>`;
+    }
+
+    if (mb_panelTab === 'link') {
+        const linkAtual = mb_links_cache.find(l => l.id === m.link_id) || null;
+        const membrosLink = linkAtual
+            ? mb_membros.filter(x => x.link_id === m.link_id && x.id !== m.id && x.ativo !== false)
+            : [];
+        const linkOpts = mb_links_cache.map(l =>
+            `<option value="${l.id}" ${m.link_id === l.id ? 'selected' : ''}>${l.nome}</option>`
+        ).join('');
+
+        const memCard = (mem) => {
+            const foto = mem.foto_url
+                ? `<img src="${mem.foto_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+                : `<div class="mb-list-avatar" style="width:30px;height:30px;font-size:11px;flex-shrink:0">${(mem.nome||'?')[0]}</div>`;
+            const badges = [
+                mem.e_lider ? '<span class="mb-badge mb-badge-teal">Lider</span>' : '',
+                mem.e_presbitero ? '<span class="mb-badge mb-badge-blue">Pres.</span>' : '',
+            ].filter(Boolean).join('');
+            return `<div class="mb-min-item" style="cursor:pointer" onclick="mb_selectMembro('${mem.id}')">
+                ${foto}
+                <div style="flex:1;min-width:0">
+                    <div class="mb-min-nome">${mem.nome}</div>
+                    <div class="mb-min-papel">${mem.zona || ''}</div>
+                </div>
+                ${badges}
+            </div>`;
+        };
+
+        return `<div>
+            <div class="mb-data-card" style="margin-bottom:10px">
+                <div class="mb-data-card-title">Link Atual</div>
+                ${linkAtual
+                    ? `<div class="mb-field-row">
+                        <div class="mb-field-label">Link</div>
+                        <div class="mb-field-val" style="font-weight:600;color:var(--primary-dark)">${linkAtual.nome}</div>
+                       </div>`
+                    : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Sem link associado.</div>'
+                }
+                <div class="mb-sub-add" style="margin-top:10px">
+                    <select class="mb-filtro-select" id="mb-link-sel" style="flex:1">
+                        <option value="">— Sem Link —</option>${linkOpts}
+                    </select>
+                    <button class="mb-btn-save" onclick="mb_salvarLink('${m.id}')">Guardar</button>
+                </div>
+                <div id="mb-link-msg" style="font-size:11px;min-height:14px;margin-top:4px;color:var(--text-faint)"></div>
+            </div>
+            <div class="mb-data-card">
+                <div class="mb-data-card-title">Membros do mesmo Link (${membrosLink.length})</div>
+                ${membrosLink.length
+                    ? membrosLink.map(memCard).join('')
+                    : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Nenhum outro membro neste link.</div>'
+                }
             </div>
         </div>`;
     }
@@ -1522,6 +1610,7 @@ function mb_buildView(m, mins) {
                     const anos = Math.floor(diff / (1000*60*60*24*365.25));
                     return anos + ' anos';
                   })() : null;
+            const showRemove = rel === 'Filho';
             return `<div class="mb-min-item" style="cursor:pointer" onclick="mb_selectMembro('${mem.id}')">
                 ${foto}
                 <div style="flex:1;min-width:0">
@@ -1529,6 +1618,7 @@ function mb_buildView(m, mins) {
                     <div class="mb-min-papel">${nasc ? nasc + ' · ' : ''}${mem.genero || ''}${mem.estado_civil ? ' · ' + mem.estado_civil : ''}</div>
                 </div>
                 <span class="mb-badge mb-badge-gray">${rel}</span>
+                ${showRemove ? `<button class="mb-min-remove" title="Remover ligacao" onclick="event.stopPropagation();mb_removerFilho('${m.id}','${mem.id}')">x</button>` : ''}
             </div>`;
         };
 
@@ -2346,6 +2436,45 @@ async function mb_removerFilho(paiId, filhoId) {
     } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
 }
 
+async function mb_removerMinisterio(vinculoId, membroId) {
+    if (!confirm('Remover este ministerio?')) return;
+    try {
+        await sb('membro_ministerios?id=eq.' + vinculoId, { method: 'DELETE' });
+        const rows = await sb(
+            'membro_ministerios?select=id,ministerio_id,papel,ministerios(id,nome,tipo)&membro_id=eq.' + membroId
+        ).catch(() => []);
+        mb_membros_min[membroId] = (rows || []).map(r => ({
+            id_vinc: r.id,
+            id:      r.ministerio_id,
+            nome:    r.ministerios?.nome || '',
+            tipo:    r.ministerios?.tipo || 'ministerio',
+            papel:   r.papel || '',
+        }));
+        mb_panelTab = 'ministerios';
+        mb_renderPerfil();
+    } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+}
+
+async function mb_salvarLink(membroId) {
+    const sel    = document.getElementById('mb-link-sel');
+    const linkId = sel?.value || null;
+    const msg    = document.getElementById('mb-link-msg');
+    try {
+        await sb('membros?id=eq.' + membroId, {
+            method: 'PATCH',
+            body: JSON.stringify({ link_id: linkId || null }),
+        });
+        const idx = mb_membros.findIndex(x => x.id === membroId);
+        if (idx >= 0) mb_membros[idx].link_id = linkId || null;
+        if (msg) { msg.style.color = 'var(--primary)'; msg.textContent = 'Link guardado!'; }
+        setTimeout(() => { if (msg) msg.textContent = ''; }, 2000);
+        mb_renderPerfil();
+    } catch(e) {
+        if (msg) { msg.style.color = 'var(--danger)'; msg.textContent = 'Erro: ' + (e?.message || JSON.stringify(e)); }
+    }
+}
+
+
 async function mb_recarregarFamilia() {
     const rels = await sb('membros_filhos?select=pai_id,filho_id').catch(() => []);
     mb_membros.forEach(mem => {
@@ -2398,7 +2527,9 @@ window.mb_addCurso          = typeof mb_addCurso          === 'function' ? mb_ad
 window.mb_removerCurso      = typeof mb_removerCurso      === 'function' ? mb_removerCurso      : ()=>{};
 window.mb_addFilho          = typeof mb_addFilho          === 'function' ? mb_addFilho          : ()=>{};
 window.mb_removerFilho      = typeof mb_removerFilho      === 'function' ? mb_removerFilho      : ()=>{};
-window.mb_recarregarFamilia = typeof mb_recarregarFamilia === 'function' ? mb_recarregarFamilia : ()=>{};
+window.mb_recarregarFamilia  = typeof mb_recarregarFamilia  === 'function' ? mb_recarregarFamilia  : ()=>{};
+window.mb_removerMinisterio  = typeof mb_removerMinisterio  === 'function' ? mb_removerMinisterio  : ()=>{};
+window.mb_salvarLink         = typeof mb_salvarLink         === 'function' ? mb_salvarLink         : ()=>{};
 
 mb_init();
 

@@ -514,7 +514,6 @@
             <div class="dz-card" style="padding:14px">
                 <div class="payment-grid">
                     <div class="payment-option" id="pay-mbway" onclick="selectPayment('mbway')">
-                        <span class="pay-soon">Em breve</span>
                         <div class="pay-icon-wrap">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
                         </div>
@@ -539,10 +538,36 @@
                 </div>
 
                 <div class="pay-detail" id="det-mbway">
-                    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Integracao em desenvolvimento. O pedido sera enviado para o seu telemovel apos confirmacao.</p>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                        <div style="width:8px;height:8px;border-radius:50%;background:#27ae60;flex-shrink:0"></div>
+                        <span style="font-size:11px;color:var(--text-muted)">Notificacao enviada para o seu telemovel MB WAY</span>
+                    </div>
                     <div class="form-group" style="margin:0">
-                        <label class="form-label">Telemovel MBWay</label>
-                        <input class="form-input" id="f-mbway" type="tel" placeholder="+351 9XX XXX XXX">
+                        <label class="form-label">Telemovel MB WAY</label>
+                        <input class="form-input" id="f-mbway" type="tel" placeholder="+351 9XX XXX XXX"
+                               value="" oninput="onMbwayTelChange()">
+                        <div id="mbway-tel-hint" style="font-size:10px;color:var(--text-faint);margin-top:4px">
+                            Introduza o numero associado a app MB WAY
+                        </div>
+                    </div>
+                    <!-- Countdown + estado (aparece apos envio) -->
+                    <div id="mbway-status-wrap" style="display:none;margin-top:12px">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                            <span style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">
+                                Aguarda confirmacao
+                            </span>
+                            <div id="mbway-countdown" style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark);font-weight:700">
+                                4:00
+                            </div>
+                        </div>
+                        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+                            <div id="mbway-progress" style="height:100%;width:100%;background:var(--primary);transition:width 1s linear;border-radius:2px"></div>
+                        </div>
+                        <div id="mbway-estado-msg" style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center"></div>
+                        <button id="mbway-reenviar-btn" onclick="mbwayReenviar()"
+                                style="display:none;width:100%;margin-top:8px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm,7px);font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--primary-dark);cursor:pointer">
+                            Reenviar Notificacao
+                        </button>
                     </div>
                 </div>
                 <div class="pay-detail" id="det-multibanco">
@@ -902,7 +927,9 @@ function submitOferta() {
     var cp     = document.getElementById('f-cp').value      || '';
     var pais   = document.getElementById('f-pais').value    || 'Portugal';
 
-    var tiposAtivos = TIPOS.filter(function(t){ return (valores[t.key] || 0) > 0; });
+    var tiposAtivos       = TIPOS.filter(function(t){ return (valores[t.key] || 0) > 0; });
+    var dizimoIdsGravados = [];   // IDs dos dizimos criados — usados pelo MBWay
+    var crIdsGravados     = [];   // IDs dos contas_receber criados
 
     // Actualiza dados do membro em background (nao bloqueia)
     if (SB_URL && SB_KEY && (nif || tel || morada)) {
@@ -962,8 +989,10 @@ function submitOferta() {
                     status:             'pendente',
                     observacoes:        obsVal
                 }).then(function(crRows) {
-                    // 3. Liga dizimo ao contas_receber
+                    // 3. Liga dizimo ao contas_receber e colecta IDs para MBWay
                     if (dzRows && crRows && dzRows[0] && crRows[0]) {
+                        dizimoIdsGravados.push(dzRows[0].id);
+                        crIdsGravados.push(crRows[0].id);
                         return sbReq('dizimos?id=eq.' + dzRows[0].id, 'PATCH', {
                             contas_receber_id: crRows[0].id
                         }).catch(function(){});
@@ -976,7 +1005,7 @@ function submitOferta() {
     });
 
     chain.then(function() {
-        // Resumo de sucesso
+        // Resumo de sucesso (partilhado entre todos os metodos)
         document.getElementById('success-ref').textContent = 'REF: ' + ref;
         var sh = '<div class="dz-card" style="padding:12px;margin-bottom:0">';
         tiposAtivos.forEach(function(t) {
@@ -984,6 +1013,23 @@ function submitOferta() {
         });
         sh += '<div class="sum-total-row"><div class="sum-total-label">Total</div><div class="sum-total-val">€' + fmtEuro(total) + '</div></div></div>';
         document.getElementById('success-summary').innerHTML = sh;
+
+        // MBWay: chama Edge Function APOS gravar os dizimos
+        // O step 5 sera ativado automaticamente pelo polling quando o pagamento for confirmado
+        if (pagamento === 'mbway') {
+            // Colecta os IDs gravados para passar para a Edge Function
+            // Os IDs foram guardados no array dizimoIdsGravados durante o chain
+            btn.disabled    = false;
+            btn.textContent = 'Confirmar e Registar Oferta';
+            mbwayIniciar(total, ref, dizimoIdsGravados, crIdsGravados)
+                .then(function() {
+                    showToast('Notificacao MB WAY enviada!', 'ok');
+                })
+                .catch(function(e) {
+                    showToast(e.message || 'Erro ao enviar MB WAY', 'error');
+                });
+            return; // nao avanca para step 5 ainda — o polling trata disso
+        }
 
         goToStep(5);
         showToast('Oferta registada com sucesso!', 'ok');
@@ -1183,6 +1229,138 @@ if (SB_URL && SB_KEY) {
         })
         .catch(function(e) { console.warn('Pre-load membroId:', e.message); });
 }
+
+// ─────────────────────────────────────────────────────────────
+//  MBWAY — estado local
+// ─────────────────────────────────────────────────────────────
+var mbwayTimer      = null;   // intervalo do countdown
+var mbwayPollTimer  = null;   // intervalo de polling de estado
+var mbwaySegsLeft   = 240;    // 4 minutos
+var mbwayTransacao  = null;   // id_transacao devolvido pela Edge Function
+var mbwayDizimoIds  = [];     // ids dos dizimos criados (para ligar ao pagamento)
+var mbwayCrIds      = [];     // ids dos contas_receber
+
+var SB_FUNCTIONS_URL = SB_URL.replace('.supabase.co', '.functions.supabase.co') || '';
+
+function onMbwayTelChange() {
+    // Limpa estado anterior quando o utilizador muda o telemovel
+    if (mbwayTimer)     { clearInterval(mbwayTimer);     mbwayTimer = null; }
+    if (mbwayPollTimer) { clearInterval(mbwayPollTimer); mbwayPollTimer = null; }
+    document.getElementById('mbway-status-wrap').style.display = 'none';
+    mbwayTransacao = null;
+}
+
+/**
+ * Chamado pelo submitOferta quando forma_pagamento === 'mbway'
+ * Devolve uma Promise que resolve com { id_transacao } ou rejeita com erro
+ */
+function mbwayIniciar(totalValor, referencia, dizimoIds, crIds) {
+    var tel = (document.getElementById('f-mbway').value || '').trim();
+    if (!tel) return Promise.reject(new Error('Indique o numero MB WAY'));
+
+    mbwayDizimoIds = dizimoIds || [];
+    mbwayCrIds     = crIds     || [];
+
+    var fnUrl = SB_URL.replace('https://', 'https://').replace('.supabase.co', '.supabase.co')
+                      .replace('/rest/v1', '') + '/functions/v1/mbway-iniciar';
+    // URL correcta: https://<project>.supabase.co/functions/v1/mbway-iniciar
+    fnUrl = SB_URL.split('/rest')[0] + '/functions/v1/mbway-iniciar';
+
+    return fetch(fnUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
+        body: JSON.stringify({
+            telemovel:          tel,
+            valor:              totalValor.toFixed(2),
+            referencia:         referencia,
+            descricao:          'Oferta Zion Lisboa',
+            email:              authUser.email || '',
+            dizimo_ids:         mbwayDizimoIds,
+            contas_receber_ids: mbwayCrIds,
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data.success) throw new Error(data.error || 'Erro MB WAY');
+        mbwayTransacao = data.id_transacao;
+        mbwayIniciarCountdown();
+        return data;
+    });
+}
+
+function mbwayIniciarCountdown() {
+    mbwaySegsLeft = 240;
+    document.getElementById('mbway-status-wrap').style.display = 'block';
+    document.getElementById('mbway-reenviar-btn').style.display = 'none';
+    document.getElementById('mbway-estado-msg').textContent = 'Verifique a notificacao na app MB WAY e confirme o pagamento.';
+    mbwayRenderCountdown();
+
+    if (mbwayTimer) clearInterval(mbwayTimer);
+    mbwayTimer = setInterval(function() {
+        mbwaySegsLeft--;
+        mbwayRenderCountdown();
+        if (mbwaySegsLeft <= 0) {
+            clearInterval(mbwayTimer);
+            mbwayTimer = null;
+            clearInterval(mbwayPollTimer);
+            mbwayPollTimer = null;
+            document.getElementById('mbway-estado-msg').textContent = 'Tempo expirado. Reenvie a notificacao.';
+            document.getElementById('mbway-reenviar-btn').style.display = 'block';
+        }
+    }, 1000);
+
+    // Polling a cada 5s para verificar se foi pago
+    if (mbwayPollTimer) clearInterval(mbwayPollTimer);
+    mbwayPollTimer = setInterval(mbwayPollEstado, 5000);
+}
+
+function mbwayRenderCountdown() {
+    var m   = Math.floor(mbwaySegsLeft / 60);
+    var s   = mbwaySegsLeft % 60;
+    var pct = (mbwaySegsLeft / 240) * 100;
+    document.getElementById('mbway-countdown').textContent =
+        m + ':' + (s < 10 ? '0' : '') + s;
+    document.getElementById('mbway-progress').style.width = pct + '%';
+}
+
+function mbwayPollEstado() {
+    if (!mbwayTransacao || !SB_URL || !SB_KEY) return;
+    // Consulta o estado no Supabase directamente (o callback ja actualizou)
+    sbReq('dizimos?select=status,eupago_estado&eupago_id_transacao=eq.' + mbwayTransacao + '&limit=1', 'GET')
+        .then(function(rows) {
+            if (!rows || !rows.length) return;
+            var st = rows[0].status;
+            if (st === 'confirmado') {
+                clearInterval(mbwayTimer);
+                clearInterval(mbwayPollTimer);
+                mbwayTimer = mbwayPollTimer = null;
+                document.getElementById('mbway-countdown').textContent = '';
+                document.getElementById('mbway-progress').style.width = '100%';
+                document.getElementById('mbway-progress').style.background = '#27ae60';
+                document.getElementById('mbway-estado-msg').textContent = 'Pagamento confirmado!';
+                document.getElementById('mbway-estado-msg').style.color = '#27ae60';
+                // Avanca automaticamente para o step de sucesso
+                setTimeout(function() { goToStep(5); }, 1200);
+            } else if (st === 'cancelado') {
+                clearInterval(mbwayTimer);
+                clearInterval(mbwayPollTimer);
+                mbwayTimer = mbwayPollTimer = null;
+                document.getElementById('mbway-estado-msg').textContent = 'Pagamento recusado ou cancelado.';
+                document.getElementById('mbway-estado-msg').style.color = '#c0392b';
+                document.getElementById('mbway-reenviar-btn').style.display = 'block';
+            }
+        })
+        .catch(function(){});
+}
+
+function mbwayReenviar() {
+    var tel = (document.getElementById('f-mbway').value || '').trim();
+    if (!tel) { showToast('Indique o numero MB WAY', 'error'); return; }
+    document.getElementById('mbway-reenviar-btn').style.display = 'none';
+    mbwayIniciar(calcTotal(), 'ZL' + Date.now().toString(36).toUpperCase(), mbwayDizimoIds, mbwayCrIds)
+        .catch(function(e) { showToast(e.message, 'error'); });
+}
+
 </script>
 </body>
 </html>

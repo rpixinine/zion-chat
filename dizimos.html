@@ -937,6 +937,8 @@ function submitOferta() {
                 referencia:     ref
             }).then(function(dzRows) {
                 // 2. Insert em contas_receber
+                // NOTA: valor_pendente e coluna gerada (calculada automaticamente),
+                // nao pode ser inserida manualmente
                 return sbReq('contas_receber', 'POST', {
                     tipo:               'dizimo',
                     membro_id:          authUser.id,
@@ -945,7 +947,6 @@ function submitOferta() {
                     referencia:         ref,
                     valor_total:        v,
                     valor_recebido:     0,
-                    valor_pendente:     v,
                     data_emissao:       today,
                     data_vencimento:    today,
                     forma_pagamento:    pagamento,
@@ -1025,7 +1026,7 @@ function loadHistorico() {
     }
 
     var qs = 'dizimos?select=*&membro_id=eq.' + authUser.id + '&order=data_oferta.desc';
-    if (ano && mes)  qs += '&data_oferta=gte.' + ano + '-' + mes + '-01&data_oferta=lte.' + ano + '-' + mes + '-31';
+    if (ano && mes) { var ud = new Date(parseInt(ano), parseInt(mes), 0).getDate(); var uds = String(ud).padStart(2,'0'); qs += '&data_oferta=gte.' + ano + '-' + mes + '-01&data_oferta=lte.' + ano + '-' + mes + '-' + uds; }
     else if (ano)    qs += '&data_oferta=gte.' + ano + '-01-01&data_oferta=lte.' + ano + '-12-31';
     if (tipo)        qs += '&tipo_oferta=eq.' + tipo;
 

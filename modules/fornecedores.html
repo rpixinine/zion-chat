@@ -711,6 +711,68 @@
             '</div>';
     }
 
+    function fn_buildFormold(f, podeEdit) {
+        var fv = function (k, d) {
+            var v = f ? f[k] : undefined;
+            return v !== undefined && v !== null ? String(v) : (d !== undefined ? String(d) : '');
+        };
+        var chk = function (k, d) {
+            var v = f ? f[k] : undefined;
+            return (v !== undefined ? !!v : !!d) ? 'checked' : '';
+        };
+        var dis = podeEdit ? '' : ' disabled style="opacity:0.6"';
+        return '<div class="fn-form">' +
+            '<div id="fn-msg" class="fn-msg"></div>' +
+            '<div class="fn-form-title">Identificacao</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Nome / Razao Social *</label>' +
+            '<input class="fn-input" id="fn-nome" value="' + fv('nome') + '" placeholder="Nome completo ou razao social"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">NIF / NIPC</label>' +
+            '<input class="fn-input" id="fn-nif" value="' + fv('nif') + '" placeholder="000000000"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Tipo</label>' +
+            '<select class="fn-select" id="fn-tipo"' + dis + '>' +
+            '<option value="">Selecionar tipo...</option>' +
+            ['servicos', 'produtos', 'tecnologia', 'manutencao', 'outro'].map(function (t) {
+                return '<option value="' + t + '"' + (fv('tipo') === t ? ' selected' : '') + '>' + t.charAt(0).toUpperCase() + t.slice(1) + '</option>';
+            }).join('') +
+            '</select></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Contacto</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group"><label class="fn-label">Email</label>' +
+            '<input class="fn-input" id="fn-email" type="email" value="' + fv('email') + '" placeholder="email@empresa.com"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Telefone</label>' +
+            '<input class="fn-input" id="fn-telefone" type="tel" value="' + fv('telefone') + '" placeholder="+351 2XX XXX XXX"' + dis + '></div>' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Website</label>' +
+            '<input class="fn-input" id="fn-website" type="url" value="' + fv('website') + '" placeholder="https://empresa.com"' + dis + '></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Morada</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Morada</label>' +
+            '<input class="fn-input" id="fn-morada" value="' + fv('morada') + '" placeholder="Rua, numero, andar..."' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Codigo Postal</label>' +
+            '<input class="fn-input" id="fn-cod-postal" value="' + fv('cod_postal') + '" placeholder="0000-000"' + dis + '></div>' +
+            '<div class="fn-group"><label class="fn-label">Localidade</label>' +
+            '<input class="fn-input" id="fn-localidade" value="' + fv('localidade') + '" placeholder="Lisboa"' + dis + '></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Dados Bancarios</div>' +
+            '<div class="fn-form-grid">' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">IBAN</label>' +
+            '<input class="fn-input" id="fn-iban" value="' + fv('iban') + '" placeholder="PT50 0000 0000 0000 0000 0000 0"' + dis + '></div>' +
+            '</div>' +
+            '<div class="fn-form-title">Notas</div>' +
+            '<div class="fn-group fn-form-full"><label class="fn-label">Observacoes</label>' +
+            '<textarea class="fn-textarea" id="fn-obs"' + dis + '>' + fv('observacoes') + '</textarea></div>' +
+            '<div style="padding-top:10px;display:flex;align-items:center">' +
+            '<label class="fn-toggle"><input type="checkbox" id="fn-ativo" ' + chk('ativo', true) + (dis ? ' disabled' : '') + '><span>Ativo</span></label>' +
+            '</div>' +
+            '<div class="fn-form-btns">' +
+            '<button class="fn-btn-cancel" onclick="fn_cancelar()">Cancelar</button>' +
+            '<button class="fn-btn-save" id="fn-btn-save" onclick="fn_guardar()"' + (podeEdit ? '' : ' disabled') + '>Guardar</button>' +
+            '</div>' +
+            '</div>';
+    }
+
     function fn_buildForm(f, podeEdit) {
 
         var fv = function(k, d){
@@ -740,9 +802,21 @@
             </div>
 
             <div class="fn-group">
-                <label class="fn-label">Tipo</label>
-                <input class="fn-input" id="fn-tipo" value="${fv('tipo')}" ${dis}>
-            </div>
+    <label class="fn-label">Tipo</label>
+
+    <select class="fn-select" id="fn-tipo" ${dis}>
+        <option value="">Selecionar tipo...</option>
+
+        ${['servicos','produtos','tecnologia','manutencao','outro']
+            .map(function(t){
+                return '<option value="'+t+'"'+
+                    (fv('tipo') === t ? ' selected' : '')+'>'+
+                    t.charAt(0).toUpperCase()+t.slice(1)+
+                    '</option>';
+            }).join('')}
+
+    </select>
+</div>
 
             <div class="fn-group">
                 <label class="fn-label">Categoria</label>

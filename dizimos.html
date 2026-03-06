@@ -701,6 +701,7 @@ function sbReq(path, method, body) {
 // ─────────────────────────────────────────────────────────────
 var valores   = {};
 var membroDB  = null;   // dados completos do membro (null enquanto nao carregado)
+var membroId  = null;   // UUID real do membro (de usuarios.membro_id)
 var pagamento = null;
 
 // ─────────────────────────────────────────────────────────────
@@ -809,20 +810,27 @@ function prepareStep2() {
     document.getElementById('cb-dados').checked = false;
     document.getElementById('btn-s2').disabled  = true;
 
-    // Carregar do Supabase e preencher campos adicionais
+    // Carregar do Supabase:
+    // 1. Le membro_id de usuarios (authUser.id = usuarios.id)
+    // 2. Com esse membro_id busca os dados em membros
     if (!SB_URL || !SB_KEY) return;
 
-    sbReq('membros?select=nif,telefone,morada,cidade,codigo_postal,pais,email,nome&id=eq.' + authUser.id, 'GET')
-        .then(function(rows) {
-            if (rows && rows.length > 0) {
-                membroDB = rows[0];
-                // So preenche se houver valor — nao apaga o que ja estava
-                if (membroDB.nif)      document.getElementById('f-nif').value      = membroDB.nif;
-                if (membroDB.telefone) document.getElementById('f-telefone').value = membroDB.telefone;
-                // Sobrescreve nome/email se o Supabase tiver valor mais completo
-                if (membroDB.nome)     document.getElementById('f-nome').value     = membroDB.nome;
-                if (membroDB.email)    document.getElementById('f-email').value    = membroDB.email;
+    sbReq('usuarios?select=membro_id&id=eq.' + authUser.id, 'GET')
+        .then(function(urows) {
+            if (!urows || !urows.length || !urows[0].membro_id) {
+                console.warn('Utilizador nao tem membro_id associado');
+                return;
             }
+            membroId = urows[0].membro_id;
+            return sbReq('membros?select=id,nif,telefone,morada,cidade,codigo_postal,pais,email,nome&id=eq.' + membroId, 'GET');
+        })
+        .then(function(rows) {
+            if (!rows || !rows.length) return;
+            membroDB = rows[0];
+            if (membroDB.nif)      document.getElementById('f-nif').value      = membroDB.nif;
+            if (membroDB.telefone) document.getElementById('f-telefone').value = membroDB.telefone;
+            if (membroDB.nome)     document.getElementById('f-nome').value     = membroDB.nome;
+            if (membroDB.email)    document.getElementById('f-email').value    = membroDB.email;
         })
         .catch(function(e) { console.warn('Carregar membro:', e.message); });
 }
@@ -905,7 +913,7 @@ function submitOferta() {
         if (cidade) patch.cidade         = cidade;
         if (cp)     patch.codigo_postal  = cp;
         if (pais)   patch.pais           = pais;
-        sbReq('membros?id=eq.' + authUser.id, 'PATCH', patch)
+        sbReq('membros?id=eq.' + (membroId || authUser.id), 'PATCH', patch)
             .catch(function(e){ console.warn('Patch membro:', e.message); });
     }
 
@@ -924,9 +932,10 @@ function submitOferta() {
                 return Promise.resolve();
             }
 
-            // 1. Insert em dizimos
+            // 1. Insert em dizimos — usa membroId (usuarios.membro_id → membros.id)
+            var midToUse = membroId || authUser.id;
             return sbReq('dizimos', 'POST', {
-                membro_id:      authUser.id,
+                membro_id:      midToUse,
                 membro_nome:    nome,
                 data_oferta:    today,
                 tipo_oferta:    t.key,
@@ -941,7 +950,7 @@ function submitOferta() {
                 // nao pode ser inserida manualmente
                 return sbReq('contas_receber', 'POST', {
                     tipo:               'dizimo',
-                    membro_id:          authUser.id,
+                    membro_id:          midToUse,
                     membro_nome:        nome,
                     descricao:          t.label + ' — ' + nome,
                     referencia:         ref,
@@ -1025,12 +1034,16 @@ function loadHistorico() {
         return;
     }
 
-    var qs = 'dizimos?select=*&membro_id=eq.' + authUser.id + '&order=data_oferta.desc';
+    // Se ainda nao temos o membroId (utilizador foi direto para historico),
+    // carrega primeiro de usuarios e depois corre a query
+    function _runHistoricoQuery() {
+        var mid = membroId || authUser.id;
+        var qs = 'dizimos?select=*&membro_id=eq.' + mid + '&order=data_oferta.desc';
     if (ano && mes) { var ud = new Date(parseInt(ano), parseInt(mes), 0).getDate(); var uds = String(ud).padStart(2,'0'); qs += '&data_oferta=gte.' + ano + '-' + mes + '-01&data_oferta=lte.' + ano + '-' + mes + '-' + uds; }
     else if (ano)    qs += '&data_oferta=gte.' + ano + '-01-01&data_oferta=lte.' + ano + '-12-31';
     if (tipo)        qs += '&tipo_oferta=eq.' + tipo;
 
-    sbReq(qs, 'GET').then(function(data) {
+        sbReq(qs, 'GET').then(function(data) {
         if (!data) data = [];
 
         // Stats
@@ -1100,11 +1113,25 @@ function loadHistorico() {
         });
         document.getElementById('hist-content').innerHTML = html;
 
-    }).catch(function(e) {
-        console.error('loadHistorico:', e.message);
-        document.getElementById('hist-content').innerHTML =
-            '<div class="empty-state"><div class="empty-label">Erro ao carregar historico</div></div>';
-    });
+        }).catch(function(e) {
+            console.error('loadHistorico:', e.message);
+            document.getElementById('hist-content').innerHTML =
+                '<div class="empty-state"><div class="empty-label">Erro ao carregar historico</div></div>';
+        });
+    }
+
+    if (membroId) {
+        _runHistoricoQuery();
+    } else {
+        sbReq('usuarios?select=membro_id&id=eq.' + authUser.id, 'GET')
+            .then(function(urows) {
+                if (urows && urows.length && urows[0].membro_id) {
+                    membroId = urows[0].membro_id;
+                }
+                _runHistoricoQuery();
+            })
+            .catch(function() { _runHistoricoQuery(); });
+    }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1141,6 +1168,21 @@ function populateYears() {
 // ─────────────────────────────────────────────────────────────
 buildOfertaTable();
 populateYears();
+
+// Pre-carrega membroId assim que a pagina abre
+// para estar disponivel quando o utilizador chegar ao step 2 ou historico
+if (SB_URL && SB_KEY) {
+    sbReq('usuarios?select=membro_id&id=eq.' + authUser.id, 'GET')
+        .then(function(urows) {
+            if (urows && urows.length && urows[0].membro_id) {
+                membroId = urows[0].membro_id;
+                console.log('membroId carregado:', membroId);
+            } else {
+                console.warn('Utilizador nao tem membro_id — verifique a tabela usuarios');
+            }
+        })
+        .catch(function(e) { console.warn('Pre-load membroId:', e.message); });
+}
 </script>
 </body>
 </html>

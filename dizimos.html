@@ -376,9 +376,19 @@
     function buildOfertaTable(){
         var tbody=document.getElementById('oferta-tbody');
         TIPOS.forEach(function(t){
-            var tr=document.createElement('tr'); tr.className='oferta-row';
-            tr.innerHTML='<td><div class="oferta-name-cell"><div class="oferta-icon-wrap">'+t.svg+'</div><div class="oferta-label">'+t.label+'</div></div><textarea class="oferta-obs" id="obs-'+t.key+'" rows="1" placeholder="Observacao (opcional)..."></textarea></td><td><div class="oferta-input-wrap"><span class="oferta-currency">€</span><input class="oferta-input" type="number" min="0" step="0.01" id="val-'+t.key+'" placeholder="0,00" oninput="onValorChange(''+t.key+'')"></div></td>';
+            var tr=document.createElement('tr');
+            tr.className='oferta-row';
+            var td1=document.createElement('td');
+            td1.innerHTML='<div class="oferta-name-cell"><div class="oferta-icon-wrap">'+t.svg+'</div><div class="oferta-label">'+t.label+'</div></div>';
+            var obs=document.createElement('textarea');
+            obs.className='oferta-obs'; obs.id='obs-'+t.key; obs.rows=1; obs.placeholder='Observacao (opcional)...';
+            td1.appendChild(obs);
+            var td2=document.createElement('td');
+            td2.innerHTML='<div class="oferta-input-wrap"><span class="oferta-currency">€</span><input class="oferta-input" type="number" min="0" step="0.01" id="val-'+t.key+'" placeholder="0,00"></div>';
+            tr.appendChild(td1); tr.appendChild(td2);
             tbody.appendChild(tr);
+            // Attach event listener (avoids quoting issues with inline oninput)
+            (function(key){ td2.querySelector('input').addEventListener('input', function(){ onValorChange(key); }); })(t.key);
         });
     }
     function onValorChange(key){ var v=parseFloat(document.getElementById('val-'+key).value)||0; valores[key]=v; document.getElementById('obs-'+key).style.display=v>0?'block':'none'; updateTotal(); }
@@ -544,12 +554,11 @@
             if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
             if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});
             var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
-            var payUrl=data.paymentUrl;
-            document.getElementById(uiId).innerHTML=
-                '<div style="text-align:center;padding:8px 0">'+
-                '<button class="pay-open-btn" onclick="window.open(''+payUrl+'','_blank')">'+
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</button>'+
-                '<div class="url-pay-poll"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
+            // Store paymentUrl in a global so the button can access it without quoting issues
+            window._urlPayCurrent=data.paymentUrl;
+            var uiEl=document.getElementById(uiId);
+            uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><button class="pay-open-btn" id="btn-url-pay-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</button><div class="url-pay-poll"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
+            document.getElementById('btn-url-pay-open').addEventListener('click',function(){ window.open(window._urlPayCurrent,'_blank'); });
             if(urlPayPollTimer) clearInterval(urlPayPollTimer);
             urlPayPollTimer=setInterval(function(){ urlPayVerificarEstado(refEupago); },5000);
             showToast('Pagina de pagamento aberta!','ok');
@@ -558,7 +567,7 @@
             showToast(e.message||'Erro ao preparar pagamento','error');
         });
     }
-
+    
     function urlPayVerificarEstado(refEupago){
         if(!refEupago||!SB_URL||!SB_KEY) return;
         sbReq('dizimos?select=status&eupago_referencia=eq.'+refEupago+'&limit=1','GET').then(function(rows){

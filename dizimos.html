@@ -91,9 +91,16 @@
         .iban-text{font-family:var(--font-title);font-size:13px;color:var(--primary-dark);letter-spacing:1px;margin:8px 0 4px}
         .iban-sub{font-size:11px;color:var(--text-faint);line-height:1.6}
         /* URL Payment waiting */
-        .pay-open-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:var(--primary-dark);border:none;border-radius:var(--radius-md,10px);font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;color:#fff;cursor:pointer;transition:all 0.2s;box-shadow:0 3px 12px rgba(0,100,110,0.25);margin-bottom:12px}
+        .pay-open-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:var(--primary-dark);border:none;border-radius:var(--radius-md,10px);font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;color:#fff;cursor:pointer;transition:all 0.2s;box-shadow:0 3px 12px rgba(0,100,110,0.25);margin-bottom:12px;text-decoration:none}
         .pay-open-btn:hover{background:var(--primary)}
         .url-pay-poll{margin-top:10px;text-align:center}
+        .mb-ref-card{background:var(--surface-soft);border-radius:12px;padding:16px;margin:4px 0}
+        .mb-ref-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-light)}
+        .mb-ref-row:last-of-type{border-bottom:none}
+        .mb-ref-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-faint)}
+        .mb-ref-value{font-family:var(--font-title);font-size:13px;color:var(--text-main);font-weight:600}
+        .mb-ref-big{font-size:20px;letter-spacing:4px;color:var(--primary-dark)}
+        .mb-ref-hint{font-size:10px;color:var(--text-faint);text-align:center;margin-top:10px;margin-bottom:0;line-height:1.5}
         .url-pay-poll-ring{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 8px}
         .url-pay-msg{font-size:11px;color:var(--text-muted)}
         .sum-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,144,152,0.07);font-size:13px}
@@ -239,7 +246,6 @@
                         <div class="pay-name">Apple Pay</div><div class="pay-desc">Safari / iPhone</div>
                     </div>
                     <div class="payment-option" id="pay-multibanco" onclick="selectPayment('multibanco')">
-                        <span class="pay-soon">Em breve</span>
                         <div class="pay-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
                         <div class="pay-name">Multibanco</div><div class="pay-desc">Ref. ATM</div>
                     </div>
@@ -283,6 +289,12 @@
                 </div>
                 <!-- Multibanco detail -->
                 <div class="pay-detail" id="det-multibanco"><p style="font-size:12px;color:var(--text-muted)">Pagamento via referencia Multibanco estara disponivel em breve.</p></div>
+                <!-- Multibanco detail -->
+                <div class="pay-detail" id="det-multibanco" style="display:none">
+                    <div id="det-multibanco-ui" style="padding:4px 0">
+                        <p style="text-align:center;font-size:12px;color:var(--text-faint)">Clica em "Gerar Referencia Multibanco" para obteres os dados de pagamento.</p>
+                    </div>
+                </div>
                 <!-- Transferencia detail -->
                 <div class="pay-detail" id="det-transferencia">
                     <div class="dz-badge">IBAN Zion Lisboa</div>
@@ -513,8 +525,10 @@
                 }).catch(function(e){ showToast(e.message||'Erro ao enviar MB WAY','error'); });
                 return;
             }
-            if(pagamento==='cartao'||pagamento==='applepay'){
-                btn.disabled=false; btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar e Registar Oferta';
+            if(pagamento==='cartao'||pagamento==='applepay'||pagamento==='multibanco'){
+                btn.disabled=false;
+                if(pagamento==='multibanco') btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Gerar Referencia Multibanco';
+                else btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar e Registar Oferta';
                 urlPagamentoIniciar(pagamento,total,ref,email,tel,dizimoIdsGravados,crIdsGravados);
                 return;
             }
@@ -539,7 +553,8 @@
 
     function urlPagamentoIniciar(tipo,totalValor,referencia,email,tel,dizimoIds,crIds){
         urlPayDizimoIds=dizimoIds||[]; urlPayCrIds=crIds||[]; urlPayReferencia=referencia;
-        var uiId='det-'+(tipo==='cartao'?'cartao':'applepay')+'-ui';
+        var uiMap={'cartao':'det-cartao-ui','applepay':'det-applepay-ui','multibanco':'det-multibanco-ui'};
+        var uiId=uiMap[tipo]||'det-cartao-ui';
         document.getElementById(uiId).innerHTML='<div class="dz-loader"><div class="dz-loader-ring"></div></div><p style="text-align:center;font-size:11px;color:var(--text-faint);margin-top:4px">A preparar pagamento seguro...</p>';
         var fnUrl=SB_URL.split('/rest')[0]+'/functions/v1/eupago-url-pagamento';
         fetch(fnUrl,{
@@ -553,12 +568,20 @@
             var refEupago=data.referencia||referencia; urlPayReferencia=refEupago;
             if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
             if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});
-            var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
-            // Store paymentUrl in a global so the button can access it without quoting issues
-            window._urlPayCurrent=data.paymentUrl;
             var uiEl=document.getElementById(uiId);
-            uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><button class="pay-open-btn" id="btn-url-pay-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</button><div class="url-pay-poll"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
-            document.getElementById('btn-url-pay-open').addEventListener('click',function(){ window.open(window._urlPayCurrent,'_blank'); });
+            if(tipo==='multibanco'){
+                // Mostrar Entidade + Referencia ATM
+                var ent=data.entidade||'--'; var ref=data.referencia||'--';
+                uiEl.innerHTML='<div class="mb-ref-card">'+
+                    '<div class="mb-ref-row"><span class="mb-ref-label">Entidade</span><span class="mb-ref-value">'+ent+'</span></div>'+
+                    '<div class="mb-ref-row"><span class="mb-ref-label">Referencia</span><span class="mb-ref-value mb-ref-big">'+ref+'</span></div>'+
+                    '<div class="mb-ref-row"><span class="mb-ref-label">Valor</span><span class="mb-ref-value">'+totalValor.toFixed(2)+' €</span></div>'+
+                    '<p class="mb-ref-hint">Paga no Multibanco ou Homebanking.<br>Esta pagina actualiza automaticamente quando o pagamento for confirmado.</p>'+
+                    '</div>';
+            } else {
+                var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
+                uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><a class="pay-open-btn" href="'+data.paymentUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</a><div class="url-pay-poll" style="margin-top:12px"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
+            }
             if(urlPayPollTimer) clearInterval(urlPayPollTimer);
             urlPayPollTimer=setInterval(function(){ urlPayVerificarEstado(refEupago); },5000);
             showToast('Pagina de pagamento aberta!','ok');

@@ -764,239 +764,239 @@
 <!-- JS vem na Parte 2 -->
 
 <script>
-// ══════════════════════════════════════════════════════════════════
-//  PDV — PARTE 2: Core JS
-//  Supabase helper · Estado global · Relógio · Abas
-//  Carregar dados · Grid de produtos · Categorias
-// ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════
+    //  PDV — PARTE 2: Core JS
+    //  Supabase helper · Estado global · Relógio · Abas
+    //  Carregar dados · Grid de produtos · Categorias
+    // ══════════════════════════════════════════════════════════════════
 
-// ── SUPABASE ─────────────────────────────────────────────────────
-const SUPA_URL = window.SUPABASE_URL      || '';
-const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+    // ── SUPABASE ─────────────────────────────────────────────────────
+    const SUPA_URL = window.SUPABASE_URL      || '';
+    const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
-async function sb(path, opts = {}) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-        ...opts,
-        headers: {
-            'apikey':        SUPA_KEY,
-            'Authorization': `Bearer ${SUPA_KEY}`,
-            'Content-Type':  'application/json',
-            'Prefer':        'return=representation',
-            ...opts.headers,
-        },
-    });
-    if (!r.ok) {
-        const e = await r.json().catch(() => ({}));
-        throw e;
+    async function sb(path, opts = {}) {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+            ...opts,
+            headers: {
+                'apikey':        SUPA_KEY,
+                'Authorization': `Bearer ${SUPA_KEY}`,
+                'Content-Type':  'application/json',
+                'Prefer':        'return=representation',
+                ...opts.headers,
+            },
+        });
+        if (!r.ok) {
+            const e = await r.json().catch(() => ({}));
+            throw e;
+        }
+        const t = await r.text();
+        return t ? JSON.parse(t) : [];
     }
-    const t = await r.text();
-    return t ? JSON.parse(t) : [];
-}
 
-// ── ESTADO GLOBAL ─────────────────────────────────────────────────
-let lojaProds   = [];   // produtos da tabela loja_produtos
-let keolaProds  = [];   // produtos da tabela keola_menu
-let prodsAtivos = [];   // lista activa conforme source seleccionado
-let membros     = [];   // membros para o select de cliente
+    // ── ESTADO GLOBAL ─────────────────────────────────────────────────
+    let lojaProds   = [];   // produtos da tabela loja_produtos
+    let keolaProds  = [];   // produtos da tabela keola_menu
+    let prodsAtivos = [];   // lista activa conforme source seleccionado
+    let membros     = [];   // membros para o select de cliente
 
-let itens       = [];   // itens no carrinho actual
-let pagTipo     = 'dinheiro';
-let descTipo    = 'pct';
-let sourceAtivo = 'keola';
-let catAtiva    = '';
-let estSrc      = 'loja';
-let user        = null;
-let cfg         = {};
+    let itens       = [];   // itens no carrinho actual
+    let pagTipo     = 'dinheiro';
+    let descTipo    = 'pct';
+    let sourceAtivo = 'keola';
+    let catAtiva    = '';
+    let estSrc      = 'loja';
+    let user        = null;
+    let cfg         = {};
 
-// Caixa gestão
-let caixaAtual     = null;  // sessão aberta ou null
-let caixaRetiradas = [];    // retiradas da sessão actual
+    // Caixa gestão
+    let caixaAtual     = null;  // sessão aberta ou null
+    let caixaRetiradas = [];    // retiradas da sessão actual
 
-// Relatórios
-let relPeriodo = 'hoje';
-let relSubTab  = 'vendas';
-let relData    = null;      // cache dos dados carregados
+    // Relatórios
+    let relPeriodo = 'hoje';
+    let relSubTab  = 'vendas';
+    let relData    = null;      // cache dos dados carregados
 
-// MBWay PDV
-let mbwayPDVTimer           = null;
-let mbwayPDVSegsLeft        = 300;
-let mbwayPDVConfirmado      = false;
-let mbwayPDVPolling         = null;
-let mbwayPDVContasReceberId = null;
+    // MBWay PDV
+    let mbwayPDVTimer           = null;
+    let mbwayPDVSegsLeft        = 300;
+    let mbwayPDVConfirmado      = false;
+    let mbwayPDVPolling         = null;
+    let mbwayPDVContasReceberId = null;
 
-// Pedidos
-let pedidosData   = [];
-let pedidosFiltro = 'ativos';
+    // Pedidos
+    let pedidosData   = [];
+    let pedidosFiltro = 'ativos';
 
-// Dados guardados do cupom (para imprimir após fechar modal)
-let _cupomSnapshot = null;
-// Callback do modal de nome de cliente
-let _nomeClienteCallback = null;
-// Snapshot dos dados para o modal de fechar caixa
-let _fechoCaixaDados = null;
+    // Dados guardados do cupom (para imprimir após fechar modal)
+    let _cupomSnapshot = null;
+    // Callback do modal de nome de cliente
+    let _nomeClienteCallback = null;
+    // Snapshot dos dados para o modal de fechar caixa
+    let _fechoCaixaDados = null;
 
-// Labels e ícones reutilizados
-const PAG_LABEL = {
-    dinheiro:      '💵 Dinheiro',
-    cartao:        '💳 Cartão',
-    mbway:         '📱 MB Way',
-    transferencia: '🏦 Transferência',
-    multibanco:    '🏧 Multibanco',
-};
-const PAG_ICONS = {
-    dinheiro:      '💵',
-    cartao:        '💳',
-    mbway:         '📱',
-    transferencia: '🏦',
-    multibanco:    '🏧',
-};
-const STATUS_INFO = {
-    pendente:      { label: 'Pendente',      emoji: '⏳' },
-    em_preparacao: { label: 'Em Preparação', emoji: '🍳' },
-    pronto:        { label: 'Pronto',        emoji: '✅' },
-    entregue:      { label: 'Entregue',      emoji: '📦' },
-    cancelado:     { label: 'Cancelado',     emoji: '✕'  },
-};
+    // Labels e ícones reutilizados
+    const PAG_LABEL = {
+        dinheiro:      '💵 Dinheiro',
+        cartao:        '💳 Cartão',
+        mbway:         '📱 MB Way',
+        transferencia: '🏦 Transferência',
+        multibanco:    '🏧 Multibanco',
+    };
+    const PAG_ICONS = {
+        dinheiro:      '💵',
+        cartao:        '💳',
+        mbway:         '📱',
+        transferencia: '🏦',
+        multibanco:    '🏧',
+    };
+    const STATUS_INFO = {
+        pendente:      { label: 'Pendente',      emoji: '⏳' },
+        em_preparacao: { label: 'Em Preparação', emoji: '🍳' },
+        pronto:        { label: 'Pronto',        emoji: '✅' },
+        entregue:      { label: 'Entregue',      emoji: '📦' },
+        cancelado:     { label: 'Cancelado',     emoji: '✕'  },
+    };
 
-// ── CONFIG (localStorage) ─────────────────────────────────────────
-function loadCfg() {
-    try { cfg = JSON.parse(localStorage.getItem('zion_pdv_cfg') || '{}'); }
-    catch { cfg = {}; }
-    if (!cfg.pagMethods) {
-        cfg.pagMethods = { dinheiro: true, cartao: false, mbway: false, multibanco: false, transferencia: false };
+    // ── CONFIG (localStorage) ─────────────────────────────────────────
+    function loadCfg() {
+        try { cfg = JSON.parse(localStorage.getItem('zion_pdv_cfg') || '{}'); }
+        catch { cfg = {}; }
+        if (!cfg.pagMethods) {
+            cfg.pagMethods = { dinheiro: true, cartao: false, mbway: false, multibanco: false, transferencia: false };
+        }
     }
-}
-function saveCfgLocal() {
-    localStorage.setItem('zion_pdv_cfg', JSON.stringify(cfg));
-}
+    function saveCfgLocal() {
+        localStorage.setItem('zion_pdv_cfg', JSON.stringify(cfg));
+    }
 
-// ── RELÓGIO ───────────────────────────────────────────────────────
-function tick() {
-    const n = new Date(), p = v => String(v).padStart(2, '0');
-    document.getElementById('clock').textContent =
-        `${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
-}
-setInterval(tick, 1000);
-tick();
+    // ── RELÓGIO ───────────────────────────────────────────────────────
+    function tick() {
+        const n = new Date(), p = v => String(v).padStart(2, '0');
+        document.getElementById('clock').textContent =
+            `${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
+    }
+    setInterval(tick, 1000);
+    tick();
 
-// ── ABAS ──────────────────────────────────────────────────────────
-function setAba(aba) {
-    // Aba Venda usa grid layout especial
-    document.getElementById('aba-venda').style.display = aba === 'venda' ? 'grid' : 'none';
+    // ── ABAS ──────────────────────────────────────────────────────────
+    function setAba(aba) {
+        // Aba Venda usa grid layout especial
+        document.getElementById('aba-venda').style.display = aba === 'venda' ? 'grid' : 'none';
 
-    // Restantes usam classe .active
-    ['pedidos', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => {
-        document.getElementById(`aba-${a}`).classList.toggle('active', a === aba);
-    });
+        // Restantes usam classe .active
+        ['pedidos', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => {
+            document.getElementById(`aba-${a}`).classList.toggle('active', a === aba);
+        });
 
-    // Tabs do header
-    ['venda', 'pedidos', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => {
-        document.getElementById(`tab-${a}`)?.classList.toggle('active', a === aba);
-    });
+        // Tabs do header
+        ['venda', 'pedidos', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => {
+            document.getElementById(`tab-${a}`)?.classList.toggle('active', a === aba);
+        });
 
-    // Acções ao entrar em cada aba
-    if (aba === 'estoque')    renderEstoque();
-    if (aba === 'pedidos')    carregarPedidos();
-    if (aba === 'caixa')      renderCaixaTab();
-    if (aba === 'relatorios' && !relData) carregarRelatorios('hoje');
-}
+        // Acções ao entrar em cada aba
+        if (aba === 'estoque')    renderEstoque();
+        if (aba === 'pedidos')    carregarPedidos();
+        if (aba === 'caixa')      renderCaixaTab();
+        if (aba === 'relatorios' && !relData) carregarRelatorios('hoje');
+    }
 
-// ── CARREGAR TUDO (init) ──────────────────────────────────────────
-async function carregarTudo() {
-    const [loja, keola, mbs] = await Promise.all([
-        sb('loja_produtos?select=*&ativo=eq.true&mostrar_pdv=eq.true&order=categoria,nome').catch(() => []),
-        sb('keola_menu?select=*&disponivel=eq.true&mostrar_pdv=eq.true&order=ordem.asc,nome.asc').catch(() => []),
-        sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(() => []),
-    ]);
+    // ── CARREGAR TUDO (init) ──────────────────────────────────────────
+    async function carregarTudo() {
+        const [loja, keola, mbs] = await Promise.all([
+            sb('loja_produtos?select=*&ativo=eq.true&mostrar_pdv=eq.true&order=categoria,nome').catch(() => []),
+            sb('keola_menu?select=*&disponivel=eq.true&mostrar_pdv=eq.true&order=ordem.asc,nome.asc').catch(() => []),
+            sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(() => []),
+        ]);
 
-    lojaProds = loja || [];
+        lojaProds = loja || [];
 
-    keolaProds = (keola || [])
-        .filter(k => k.tipo_item !== 'componente')
-        .map(k => ({
-            ...k,
-            _keola:            true,
-            stock:             k.tipo_item === 'kit' ? (k.stock_kits ?? 0) : (k.stock ?? 0),
-            controlar_estoque: k.controlar_estoque !== false,
-            venda_sem_estoque: k.venda_sem_estoque || false,
-            imagem_url:        k.imagem_url || k.foto_url || null,
-            sku:               k.sku || null,
-            codigo_barras:     null,
-        }));
+        keolaProds = (keola || [])
+            .filter(k => k.tipo_item !== 'componente')
+            .map(k => ({
+                ...k,
+                _keola:            true,
+                stock:             k.tipo_item === 'kit' ? (k.stock_kits ?? 0) : (k.stock ?? 0),
+                controlar_estoque: k.controlar_estoque !== false,
+                venda_sem_estoque: k.venda_sem_estoque || false,
+                imagem_url:        k.imagem_url || k.foto_url || null,
+                sku:               k.sku || null,
+                codigo_barras:     null,
+            }));
 
-    membros = mbs || [];
+        membros = mbs || [];
 
-    // Preenche select de clientes
-    const sel = document.getElementById('cliente-sel');
-    membros.forEach(m => {
-        const o = document.createElement('option');
-        o.value = m.id; o.textContent = m.nome;
-        sel.appendChild(o);
-    });
+        // Preenche select de clientes
+        const sel = document.getElementById('cliente-sel');
+        membros.forEach(m => {
+            const o = document.createElement('option');
+            o.value = m.id; o.textContent = m.nome;
+            sel.appendChild(o);
+        });
 
-    prodsAtivos = keolaProds;
-    renderCats();
-    filtrarProd();
-}
-
-// ── SOURCE (Keola / Loja) ─────────────────────────────────────────
-function setSource(src) {
-    sourceAtivo = src;
-    catAtiva    = '';
-    prodsAtivos = src === 'loja' ? lojaProds : keolaProds;
-    document.getElementById('src-loja').classList.toggle('active',  src === 'loja');
-    document.getElementById('src-keola').classList.toggle('active', src === 'keola');
-    renderCats();
-    filtrarProd();
-}
-
-// ── CATEGORIAS ────────────────────────────────────────────────────
-function renderCats() {
-    const cats  = [...new Set(prodsAtivos.map(p => p.categoria).filter(Boolean))].sort();
-    const strip = document.getElementById('cat-strip');
-    strip.innerHTML =
-        `<button class="cat-btn ${catAtiva === '' ? 'active' : ''}" onclick="setCat('')">Todos (${prodsAtivos.length})</button>`
-        + cats.map(c => {
-            const n = prodsAtivos.filter(p => p.categoria === c).length;
-            return `<button class="cat-btn ${catAtiva === c ? 'active' : ''}" onclick="setCat('${c.replace(/'/g,"\\'")}'">${c} (${n})</button>`;
-        }).join('');
-}
-function setCat(c) {
-    catAtiva = c;
-    renderCats();
-    filtrarProd();
-}
-
-// ── GRID DE PRODUTOS ──────────────────────────────────────────────
-function filtrarProd() {
-    const q = document.getElementById('prod-search').value.toLowerCase().trim();
-    let lista = [...prodsAtivos];
-    if (catAtiva) lista = lista.filter(p => p.categoria === catAtiva);
-    if (q)        lista = lista.filter(p =>
-        (p.nome          || '').toLowerCase().includes(q) ||
-        (p.sku           || '').toLowerCase().includes(q) ||
-        (p.codigo_barras || '').includes(q)
-    );
-    renderGrid(lista);
-}
-
-function onSearchKey(e) {
-    if (e.key !== 'Enter') return;
-    const q = e.target.value.trim();
-    if (!q) return;
-    const match = prodsAtivos.find(p => p.codigo_barras === q || p.sku === q);
-    if (match) {
-        addItem(match);
-        e.target.value = '';
+        prodsAtivos = keolaProds;
+        renderCats();
         filtrarProd();
     }
-}
 
-function renderGrid(lista) {
-    const grid = document.getElementById('prod-grid');
+    // ── SOURCE (Keola / Loja) ─────────────────────────────────────────
+    function setSource(src) {
+        sourceAtivo = src;
+        catAtiva    = '';
+        prodsAtivos = src === 'loja' ? lojaProds : keolaProds;
+        document.getElementById('src-loja').classList.toggle('active',  src === 'loja');
+        document.getElementById('src-keola').classList.toggle('active', src === 'keola');
+        renderCats();
+        filtrarProd();
+    }
 
-    if (!lista.length) {
-        grid.innerHTML = `
+    // ── CATEGORIAS ────────────────────────────────────────────────────
+    function renderCats() {
+        const cats  = [...new Set(prodsAtivos.map(p => p.categoria).filter(Boolean))].sort();
+        const strip = document.getElementById('cat-strip');
+        strip.innerHTML =
+            `<button class="cat-btn ${catAtiva === '' ? 'active' : ''}" onclick="setCat('')">Todos (${prodsAtivos.length})</button>`
+            + cats.map(c => {
+                const n = prodsAtivos.filter(p => p.categoria === c).length;
+                return `<button class="cat-btn ${catAtiva === c ? 'active' : ''}" onclick="setCat('${c.replace(/'/g,"\\'")}'">${c} (${n})</button>`;
+            }).join('');
+    }
+    function setCat(c) {
+        catAtiva = c;
+        renderCats();
+        filtrarProd();
+    }
+
+    // ── GRID DE PRODUTOS ──────────────────────────────────────────────
+    function filtrarProd() {
+        const q = document.getElementById('prod-search').value.toLowerCase().trim();
+        let lista = [...prodsAtivos];
+        if (catAtiva) lista = lista.filter(p => p.categoria === catAtiva);
+        if (q)        lista = lista.filter(p =>
+            (p.nome          || '').toLowerCase().includes(q) ||
+            (p.sku           || '').toLowerCase().includes(q) ||
+            (p.codigo_barras || '').includes(q)
+        );
+        renderGrid(lista);
+    }
+
+    function onSearchKey(e) {
+        if (e.key !== 'Enter') return;
+        const q = e.target.value.trim();
+        if (!q) return;
+        const match = prodsAtivos.find(p => p.codigo_barras === q || p.sku === q);
+        if (match) {
+            addItem(match);
+            e.target.value = '';
+            filtrarProd();
+        }
+    }
+
+    function renderGrid(lista) {
+        const grid = document.getElementById('prod-grid');
+
+        if (!lista.length) {
+            grid.innerHTML = `
             <div class="grid-empty">
                 <div class="grid-empty-icon">
                     <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1005,39 +1005,39 @@ function renderGrid(lista) {
                 </div>
                 <div>Nenhum produto encontrado</div>
             </div>`;
-        return;
-    }
+            return;
+        }
 
-    grid.innerHTML = lista.map(p => {
-        const stock  = p.stock ?? p.quantidade ?? null;
-        const ctrl   = p.controlar_estoque !== false;
-        const semEst = ctrl && stock !== null && stock <= 0 && !p.venda_sem_estoque;
-        const isLow  = ctrl && stock !== null && stock > 0 && stock <= (p.stock_minimo || 3);
-        const promo  = p.preco_promocional && Number(p.preco_promocional) < Number(p.preco);
-        const preco  = promo ? Number(p.preco_promocional) : Number(p.preco || 0);
+        grid.innerHTML = lista.map(p => {
+            const stock  = p.stock ?? p.quantidade ?? null;
+            const ctrl   = p.controlar_estoque !== false;
+            const semEst = ctrl && stock !== null && stock <= 0 && !p.venda_sem_estoque;
+            const isLow  = ctrl && stock !== null && stock > 0 && stock <= (p.stock_minimo || 3);
+            const promo  = p.preco_promocional && Number(p.preco_promocional) < Number(p.preco);
+            const preco  = promo ? Number(p.preco_promocional) : Number(p.preco || 0);
 
-        const stockBadge = ctrl && stock !== null
-            ? `<div class="pcard-stock-badge ${stock <= 0 ? 'zero' : isLow ? 'low' : ''}">
+            const stockBadge = ctrl && stock !== null
+                ? `<div class="pcard-stock-badge ${stock <= 0 ? 'zero' : isLow ? 'low' : ''}">
                    ${stock <= 0 ? 'Esgotado' : stock}
                </div>` : '';
 
-        const imgHtml = p.imagem_url
-            ? `<img src="${p.imagem_url}" alt="${p.nome}"
+            const imgHtml = p.imagem_url
+                ? `<img src="${p.imagem_url}" alt="${p.nome}"
                     onerror="this.parentElement.innerHTML='<div class=pcard-img-fake></div>'">`
-            : `<div class="pcard-img-fake">
+                : `<div class="pcard-img-fake">
                    <img src="assets/item_zion.png" alt="" onerror="this.style.display='none'">
                </div>`;
 
-        const stockInfo = ctrl && stock !== null
-            ? `<div class="pcard-stock ${stock <= 0 ? 'zero' : isLow ? 'low' : ''}">
+            const stockInfo = ctrl && stock !== null
+                ? `<div class="pcard-stock ${stock <= 0 ? 'zero' : isLow ? 'low' : ''}">
                    Estoque: ${stock <= 0 ? 'Esgotado' : stock + ' un.'}
                </div>` : '';
 
-        const clickFn = semEst
-            ? ''
-            : `addItem_id('${p.id}','${p._keola ? 'keola' : 'loja'}')`;
+            const clickFn = semEst
+                ? ''
+                : `addItem_id('${p.id}','${p._keola ? 'keola' : 'loja'}')`;
 
-        return `
+            return `
             <div class="pcard ${semEst ? 'esgotado' : ''}" onclick="${clickFn}">
                 <div class="pcard-img">
                     ${imgHtml}
@@ -1052,115 +1052,115 @@ function renderGrid(lista) {
                     <div class="pcard-preco${promo ? ' promo' : ''}">€ ${preco.toFixed(2)}</div>
                 </div>
             </div>`;
-    }).join('');
-}
-
-function addItem_id(id, src) {
-    const p = (src === 'keola' ? keolaProds : lojaProds).find(x => x.id === id);
-    if (p) addItem(p);
-}
-
-// ── TOAST ─────────────────────────────────────────────────────────
-let _toastTimer;
-function toast(msg, tipo = '') {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className   = `toast ${tipo} show`;
-    clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-// ── BADGE DO CAIXA NO HEADER ──────────────────────────────────────
-function renderCaixaBadge() {
-    const el = document.getElementById('caixa-badge');
-    if (!el) return;
-    if (caixaAtual) {
-        const hm = new Date(caixaAtual.data_abertura)
-            .toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-        el.textContent = `● Aberta ${hm}`;
-        el.className   = 'caixa-badge aberta';
-    } else {
-        el.textContent = '● Caixa Fechada';
-        el.className   = 'caixa-badge fechada';
+        }).join('');
     }
-}
 
-// ── CARREGAR SESSÃO DE CAIXA ACTIVA ──────────────────────────────
-async function carregarCaixaAtual() {
-    try {
-        const res = await sb('pdv_caixas?status=eq.aberta&order=data_abertura.desc&limit=1');
-        if (res && res.length > 0) {
-            caixaAtual     = res[0];
-            caixaRetiradas = await sb(
-                `pdv_retiradas?caixa_id=eq.${caixaAtual.id}&order=created_at.desc`
-            ).catch(() => []);
+    function addItem_id(id, src) {
+        const p = (src === 'keola' ? keolaProds : lojaProds).find(x => x.id === id);
+        if (p) addItem(p);
+    }
+
+    // ── TOAST ─────────────────────────────────────────────────────────
+    let _toastTimer;
+    function toast(msg, tipo = '') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className   = `toast ${tipo} show`;
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ── BADGE DO CAIXA NO HEADER ──────────────────────────────────────
+    function renderCaixaBadge() {
+        const el = document.getElementById('caixa-badge');
+        if (!el) return;
+        if (caixaAtual) {
+            const hm = new Date(caixaAtual.data_abertura)
+                .toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+            el.textContent = `● Aberta ${hm}`;
+            el.className   = 'caixa-badge aberta';
         } else {
+            el.textContent = '● Caixa Fechada';
+            el.className   = 'caixa-badge fechada';
+        }
+    }
+
+    // ── CARREGAR SESSÃO DE CAIXA ACTIVA ──────────────────────────────
+    async function carregarCaixaAtual() {
+        try {
+            const res = await sb('pdv_caixas?status=eq.aberta&order=data_abertura.desc&limit=1');
+            if (res && res.length > 0) {
+                caixaAtual     = res[0];
+                caixaRetiradas = await sb(
+                    `pdv_retiradas?caixa_id=eq.${caixaAtual.id}&order=created_at.desc`
+                ).catch(() => []);
+            } else {
+                caixaAtual = null; caixaRetiradas = [];
+            }
+        } catch {
             caixaAtual = null; caixaRetiradas = [];
         }
-    } catch {
-        caixaAtual = null; caixaRetiradas = [];
-    }
-    renderCaixaBadge();
-}
-
-// ── CONFIG: carregar form ─────────────────────────────────────────
-function carregarFormCfg() {
-    const campos = ['nome','morada','nif','telefone','email','website','operador','rodape','iban','bic','banco','titular'];
-    campos.forEach(f => {
-        const el = document.getElementById(`cfg-${f}`);
-        if (el) el.value = cfg[f] || '';
-    });
-    const pm = cfg.pagMethods || { dinheiro: true };
-    ['dinheiro','cartao','mbway','multibanco','transferencia'].forEach(k => {
-        const el = document.getElementById(`cfg-pag-${k}`);
-        if (el && !el.disabled) el.checked = !!pm[k];
-    });
-}
-
-function salvarCfg() {
-    const campos = ['nome','morada','nif','telefone','email','website','operador','rodape','iban','bic','banco','titular'];
-    campos.forEach(f => {
-        cfg[f] = document.getElementById(`cfg-${f}`)?.value?.trim() || '';
-    });
-    cfg.pagMethods = {};
-    ['dinheiro','cartao','mbway','multibanco','transferencia'].forEach(k => {
-        const el = document.getElementById(`cfg-pag-${k}`);
-        cfg.pagMethods[k] = el ? el.checked : false;
-    });
-    cfg.pagMethods.dinheiro = true; // sempre activo
-    saveCfgLocal();
-    document.getElementById('header-op').textContent = cfg.operador || '';
-    const msg = document.getElementById('cfg-msg');
-    msg.className   = 'cfg-msg ok';
-    msg.textContent = 'Configuração guardada com sucesso';
-    setTimeout(() => { msg.className = 'cfg-msg'; }, 3000);
-}
-
-// ── INIT ──────────────────────────────────────────────────────────
-async function init() {
-    loadCfg();
-    carregarFormCfg();
-
-    ZionAuth.protect({ tipo: 'membro' });
-    user = ZionAuth.getUser();
-
-    const op = cfg.operador || user?.nome?.split(' ')[0] || '';
-    document.getElementById('header-op').textContent = op;
-
-    if (user?.nome) {
-        document.getElementById('caixa-op').innerHTML =
-            `Operador: <strong>${user.nome.split(' ')[0]}</strong>`;
+        renderCaixaBadge();
     }
 
-    // Carregar sessão de caixa activa
-    await carregarCaixaAtual();
+    // ── CONFIG: carregar form ─────────────────────────────────────────
+    function carregarFormCfg() {
+        const campos = ['nome','morada','nif','telefone','email','website','operador','rodape','iban','bic','banco','titular'];
+        campos.forEach(f => {
+            const el = document.getElementById(`cfg-${f}`);
+            if (el) el.value = cfg[f] || '';
+        });
+        const pm = cfg.pagMethods || { dinheiro: true };
+        ['dinheiro','cartao','mbway','multibanco','transferencia'].forEach(k => {
+            const el = document.getElementById(`cfg-pag-${k}`);
+            if (el && !el.disabled) el.checked = !!pm[k];
+        });
+    }
 
-    // Carregar produtos e membros
-    try {
-        await carregarTudo();
-    } catch (e) {
-        console.error('Erro ao carregar:', e);
-        document.getElementById('prod-grid').innerHTML = `
+    function salvarCfg() {
+        const campos = ['nome','morada','nif','telefone','email','website','operador','rodape','iban','bic','banco','titular'];
+        campos.forEach(f => {
+            cfg[f] = document.getElementById(`cfg-${f}`)?.value?.trim() || '';
+        });
+        cfg.pagMethods = {};
+        ['dinheiro','cartao','mbway','multibanco','transferencia'].forEach(k => {
+            const el = document.getElementById(`cfg-pag-${k}`);
+            cfg.pagMethods[k] = el ? el.checked : false;
+        });
+        cfg.pagMethods.dinheiro = true; // sempre activo
+        saveCfgLocal();
+        document.getElementById('header-op').textContent = cfg.operador || '';
+        const msg = document.getElementById('cfg-msg');
+        msg.className   = 'cfg-msg ok';
+        msg.textContent = 'Configuração guardada com sucesso';
+        setTimeout(() => { msg.className = 'cfg-msg'; }, 3000);
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────────
+    async function init() {
+        loadCfg();
+        carregarFormCfg();
+
+        ZionAuth.protect({ tipo: 'membro' });
+        user = ZionAuth.getUser();
+
+        const op = cfg.operador || user?.nome?.split(' ')[0] || '';
+        document.getElementById('header-op').textContent = op;
+
+        if (user?.nome) {
+            document.getElementById('caixa-op').innerHTML =
+                `Operador: <strong>${user.nome.split(' ')[0]}</strong>`;
+        }
+
+        // Carregar sessão de caixa activa
+        await carregarCaixaAtual();
+
+        // Carregar produtos e membros
+        try {
+            await carregarTudo();
+        } catch (e) {
+            console.error('Erro ao carregar:', e);
+            document.getElementById('prod-grid').innerHTML = `
             <div class="grid-empty">
                 <div class="grid-empty-icon">
                     <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1171,59 +1171,59 @@ async function init() {
                 </div>
                 <div>Erro ao carregar produtos</div>
             </div>`;
+        }
+
+        document.getElementById('pdv-loading').style.display = 'none';
     }
 
-    document.getElementById('pdv-loading').style.display = 'none';
-}
-
-init();
+    init();
 </script>
 
 <script>
-// ══════════════════════════════════════════════════════════════════
-//  PDV — PARTE 3: Carrinho · Modal Pagamento · MBWay · Venda · Cupom
-// ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════
+    //  PDV — PARTE 3: Carrinho · Modal Pagamento · MBWay · Venda · Cupom
+    // ══════════════════════════════════════════════════════════════════
 
-// ── CARRINHO (painel direito) ─────────────────────────────────────
+    // ── CARRINHO (painel direito) ─────────────────────────────────────
 
-function addItem(p) {
-    const preco = (p.preco_promocional && Number(p.preco_promocional) < Number(p.preco))
-        ? Number(p.preco_promocional)
-        : Number(p.preco || 0);
+    function addItem(p) {
+        const preco = (p.preco_promocional && Number(p.preco_promocional) < Number(p.preco))
+            ? Number(p.preco_promocional)
+            : Number(p.preco || 0);
 
-    const ex = itens.find(i => i.prod.id === p.id);
-    if (ex) ex.qtd++;
-    else    itens.push({ prod: p, qtd: 1, preco });
+        const ex = itens.find(i => i.prod.id === p.id);
+        if (ex) ex.qtd++;
+        else    itens.push({ prod: p, qtd: 1, preco });
 
-    renderCaixa();
-    toast(`${p.nome} adicionado`);
-}
+        renderCaixa();
+        toast(`${p.nome} adicionado`);
+    }
 
-function mudarQtd(i, d) {
-    itens[i].qtd += d;
-    if (itens[i].qtd <= 0) itens.splice(i, 1);
-    renderCaixa();
-}
+    function mudarQtd(i, d) {
+        itens[i].qtd += d;
+        if (itens[i].qtd <= 0) itens.splice(i, 1);
+        renderCaixa();
+    }
 
-function remover(i) {
-    itens.splice(i, 1);
-    renderCaixa();
-}
+    function remover(i) {
+        itens.splice(i, 1);
+        renderCaixa();
+    }
 
-function limparCaixa() {
-    if (itens.length && !confirm('Limpar todos os itens da caixa?')) return;
-    itens = [];
-    document.getElementById('desc-inp').value = '';
-    renderCaixa();
-}
+    function limparCaixa() {
+        if (itens.length && !confirm('Limpar todos os itens da caixa?')) return;
+        itens = [];
+        document.getElementById('desc-inp').value = '';
+        renderCaixa();
+    }
 
-function renderCaixa() {
-    const area    = document.getElementById('itens-area');
-    const totWrap = document.getElementById('totais-wrap');
-    const btn     = document.getElementById('btn-fin');
+    function renderCaixa() {
+        const area    = document.getElementById('itens-area');
+        const totWrap = document.getElementById('totais-wrap');
+        const btn     = document.getElementById('btn-fin');
 
-    if (!itens.length) {
-        area.innerHTML = `
+        if (!itens.length) {
+            area.innerHTML = `
             <div class="caixa-vazia">
                 <div class="caixa-vazia-icon">
                     <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -1233,12 +1233,12 @@ function renderCaixa() {
                 </div>
                 <div>Selecciona produtos para adicionar</div>
             </div>`;
-        totWrap.style.display = 'none';
-        btn.disabled = true;
-        return;
-    }
+            totWrap.style.display = 'none';
+            btn.disabled = true;
+            return;
+        }
 
-    area.innerHTML = itens.map((it, i) => `
+        area.innerHTML = itens.map((it, i) => `
         <div class="item-row">
             <div class="item-left">
                 <div class="item-nome">${it.prod.nome}</div>
@@ -1264,66 +1264,66 @@ function renderCaixa() {
             </div>
         </div>`).join('');
 
-    totWrap.style.display = 'block';
-    btn.disabled = false;
-    calcTotais();
-}
-
-function calcTotais() {
-    const sub  = itens.reduce((s, i) => s + i.preco * i.qtd, 0);
-    const dv   = parseFloat(document.getElementById('desc-inp').value) || 0;
-    const desc = Math.min(descTipo === 'pct' ? sub * dv / 100 : dv, sub);
-
-    document.getElementById('sub-val').textContent   = `€ ${sub.toFixed(2)}`;
-    document.getElementById('total-val').textContent = `€ ${(sub - desc).toFixed(2)}`;
-
-    const rowDesc = document.getElementById('desc-row');
-    if (desc > 0) {
-        rowDesc.style.display = 'flex';
-        document.getElementById('desc-show').textContent = `- € ${desc.toFixed(2)}`;
-    } else {
-        rowDesc.style.display = 'none';
+        totWrap.style.display = 'block';
+        btn.disabled = false;
+        calcTotais();
     }
-}
 
-function getTotal() {
-    const sub = itens.reduce((s, i) => s + i.preco * i.qtd, 0);
-    const dv  = parseFloat(document.getElementById('desc-inp').value) || 0;
-    const desc = Math.min(descTipo === 'pct' ? sub * dv / 100 : dv, sub);
-    return Math.max(0, sub - desc);
-}
+    function calcTotais() {
+        const sub  = itens.reduce((s, i) => s + i.preco * i.qtd, 0);
+        const dv   = parseFloat(document.getElementById('desc-inp').value) || 0;
+        const desc = Math.min(descTipo === 'pct' ? sub * dv / 100 : dv, sub);
 
-function getDesconto() {
-    const sub = itens.reduce((s, i) => s + i.preco * i.qtd, 0);
-    const dv  = parseFloat(document.getElementById('desc-inp').value) || 0;
-    return Math.min(descTipo === 'pct' ? sub * dv / 100 : dv, sub);
-}
+        document.getElementById('sub-val').textContent   = `€ ${sub.toFixed(2)}`;
+        document.getElementById('total-val').textContent = `€ ${(sub - desc).toFixed(2)}`;
 
-function setDescTipo(t) {
-    descTipo = t;
-    document.getElementById('desc-pct').classList.toggle('active', t === 'pct');
-    document.getElementById('desc-eur').classList.toggle('active', t === 'eur');
-    calcTotais();
-}
+        const rowDesc = document.getElementById('desc-row');
+        if (desc > 0) {
+            rowDesc.style.display = 'flex';
+            document.getElementById('desc-show').textContent = `- € ${desc.toFixed(2)}`;
+        } else {
+            rowDesc.style.display = 'none';
+        }
+    }
 
-// ── MODAL PAGAMENTO ───────────────────────────────────────────────
+    function getTotal() {
+        const sub = itens.reduce((s, i) => s + i.preco * i.qtd, 0);
+        const dv  = parseFloat(document.getElementById('desc-inp').value) || 0;
+        const desc = Math.min(descTipo === 'pct' ? sub * dv / 100 : dv, sub);
+        return Math.max(0, sub - desc);
+    }
 
-function renderPagOpts() {
-    const methods = cfg.pagMethods || { dinheiro: true };
-    const OPTS = [
-        { key: 'dinheiro',      label: 'Dinheiro',      icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>' },
-        { key: 'cartao',        label: 'Cartão',        icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h2m4 0h4"/>' },
-        { key: 'mbway',         label: 'MB Way',        icon: '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>' },
-        { key: 'multibanco',    label: 'Multibanco',    icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="15" r="2"/>', disabled: true },
-        { key: 'transferencia', label: 'Transferência', icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
-    ];
+    function getDesconto() {
+        const sub = itens.reduce((s, i) => s + i.preco * i.qtd, 0);
+        const dv  = parseFloat(document.getElementById('desc-inp').value) || 0;
+        return Math.min(descTipo === 'pct' ? sub * dv / 100 : dv, sub);
+    }
 
-    const enabled = OPTS.filter(o => methods[o.key] || o.key === 'dinheiro');
-    const cols    = enabled.length <= 3 ? enabled.length : 3;
-    const grid    = document.getElementById('pag-grid-opts');
-    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    function setDescTipo(t) {
+        descTipo = t;
+        document.getElementById('desc-pct').classList.toggle('active', t === 'pct');
+        document.getElementById('desc-eur').classList.toggle('active', t === 'eur');
+        calcTotais();
+    }
 
-    grid.innerHTML = enabled.map(o => `
+    // ── MODAL PAGAMENTO ───────────────────────────────────────────────
+
+    function renderPagOpts() {
+        const methods = cfg.pagMethods || { dinheiro: true };
+        const OPTS = [
+            { key: 'dinheiro',      label: 'Dinheiro',      icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>' },
+            { key: 'cartao',        label: 'Cartão',        icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h2m4 0h4"/>' },
+            { key: 'mbway',         label: 'MB Way',        icon: '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>' },
+            { key: 'multibanco',    label: 'Multibanco',    icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="15" r="2"/>', disabled: true },
+            { key: 'transferencia', label: 'Transferência', icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+        ];
+
+        const enabled = OPTS.filter(o => methods[o.key] || o.key === 'dinheiro');
+        const cols    = enabled.length <= 3 ? enabled.length : 3;
+        const grid    = document.getElementById('pag-grid-opts');
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        grid.innerHTML = enabled.map(o => `
         <button class="pag-opt ${o.disabled ? 'disabled' : ''}" id="pag-${o.key}"
                 onclick="${o.disabled ? '' : `setPag('${o.key}')`}">
             <div class="pag-opt-icon">
@@ -1334,22 +1334,22 @@ function renderPagOpts() {
             <span class="pag-opt-lbl">${o.label}</span>
             ${o.disabled ? '<span class="pag-opt-soon">Em breve</span>' : ''}
         </button>`).join('');
-}
-
-function abrirModalPag() {
-    if (!itens.length) return;
-
-    // Caixa tem de estar aberta
-    if (!caixaAtual) {
-        toast('Abra o caixa antes de fazer vendas!', 'err');
-        setAba('caixa');
-        return;
     }
 
-    const total = getTotal();
+    function abrirModalPag() {
+        if (!itens.length) return;
 
-    // Lista de itens no modal
-    document.getElementById('modal-items-list').innerHTML = itens.map(i => `
+        // Caixa tem de estar aberta
+        if (!caixaAtual) {
+            toast('Abra o caixa antes de fazer vendas!', 'err');
+            setAba('caixa');
+            return;
+        }
+
+        const total = getTotal();
+
+        // Lista de itens no modal
+        document.getElementById('modal-items-list').innerHTML = itens.map(i => `
         <div class="modal-irow">
             <span class="modal-irow-nome">
                 ${i.prod.nome} × ${i.qtd}
@@ -1358,446 +1358,448 @@ function abrirModalPag() {
             <span class="modal-irow-val">€ ${(i.preco * i.qtd).toFixed(2)}</span>
         </div>`).join('');
 
-    document.getElementById('modal-total-num').textContent = `€ ${total.toFixed(2)}`;
+        document.getElementById('modal-total-num').textContent = `€ ${total.toFixed(2)}`;
 
-    // Reset campos
-    document.getElementById('recebido').value       = '';
-    document.getElementById('troco-res').textContent = '€ 0.00';
-    document.getElementById('cartao-auth').value    = '';
-    document.getElementById('mbway-pdv-tel').value  = '';
-    document.getElementById('transf-ref').value     = '';
-    document.getElementById('mbway-pdv-status').style.display = 'none';
-    mbwayPDVConfirmado = false;
-    mbwayPDVClearTimers();
+        // Reset campos
+        document.getElementById('recebido').value       = '';
+        document.getElementById('troco-res').textContent = '€ 0.00';
+        document.getElementById('cartao-auth').value    = '';
+        document.getElementById('mbway-pdv-tel').value  = '';
+        document.getElementById('transf-ref').value     = '';
+        document.getElementById('mbway-pdv-status').style.display = 'none';
+        mbwayPDVConfirmado = false;
+        mbwayPDVClearTimers();
 
-    // IBAN para transferência
-    const iban = cfg.iban || '';
-    document.getElementById('transf-iban-box').innerHTML = iban
-        ? `<div style="font-size:9px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Dados bancários</div>
+        // IBAN para transferência
+        const iban = cfg.iban || '';
+        document.getElementById('transf-iban-box').innerHTML = iban
+            ? `<div style="font-size:9px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Dados bancários</div>
            <div class="transf-iban-num">${iban}</div>
            <div class="transf-iban-sub">${[
-               cfg.banco   && 'Banco: '   + cfg.banco,
-               cfg.bic     && 'BIC: '     + cfg.bic,
-               cfg.titular && 'Titular: ' + cfg.titular,
-           ].filter(Boolean).join(' · ')}</div>`
-        : `<div style="font-size:11px;color:var(--text-faint)">Configure o IBAN nas Configurações do PDV</div>`;
+                cfg.banco   && 'Banco: '   + cfg.banco,
+                cfg.bic     && 'BIC: '     + cfg.bic,
+                cfg.titular && 'Titular: ' + cfg.titular,
+            ].filter(Boolean).join(' · ')}</div>`
+            : `<div style="font-size:11px;color:var(--text-faint)">Configure o IBAN nas Configurações do PDV</div>`;
 
-    renderPagOpts();
-    setPag('dinheiro');
-    document.getElementById('overlay-pag').classList.add('open');
-}
+        renderPagOpts();
+        setPag('dinheiro');
+        document.getElementById('overlay-pag').classList.add('open');
+    }
 
-function fecharModalPag() {
-    document.getElementById('overlay-pag').classList.remove('open');
-    mbwayPDVClearTimers();
-    mbwayPDVApagarTemp(); // apaga temp se operador cancelou
-}
+    function fecharModalPag() {
+        document.getElementById('overlay-pag').classList.remove('open');
+        mbwayPDVClearTimers();
+        mbwayPDVApagarTemp(); // apaga temp se operador cancelou
+    }
 
-function setPag(tipo) {
-    pagTipo = tipo;
+    function setPag(tipo) {
+        pagTipo = tipo;
 
-    // Highlight do botão seleccionado
-    document.querySelectorAll('.pag-opt').forEach(el => el.classList.remove('active'));
-    document.getElementById(`pag-${tipo}`)?.classList.add('active');
+        // Highlight do botão seleccionado
+        document.querySelectorAll('.pag-opt').forEach(el => el.classList.remove('active'));
+        document.getElementById(`pag-${tipo}`)?.classList.add('active');
 
-    // Esconde todos os painéis de detalhe
-    document.getElementById('troco-box').classList.remove('show');
-    ['cartao', 'mbway', 'multibanco', 'transferencia'].forEach(k =>
-        document.getElementById(`pag-det-${k}`)?.classList.remove('show')
-    );
+        // Esconde todos os painéis de detalhe
+        document.getElementById('troco-box').classList.remove('show');
+        ['cartao', 'mbway', 'multibanco', 'transferencia'].forEach(k =>
+            document.getElementById(`pag-det-${k}`)?.classList.remove('show')
+        );
 
-    // Mostra o painel correcto
-    if (tipo === 'dinheiro')      document.getElementById('troco-box').classList.add('show');
-    if (tipo === 'cartao')        document.getElementById('pag-det-cartao').classList.add('show');
-    if (tipo === 'mbway')         document.getElementById('pag-det-mbway').classList.add('show');
-    if (tipo === 'multibanco')    document.getElementById('pag-det-multibanco').classList.add('show');
-    if (tipo === 'transferencia') document.getElementById('pag-det-transferencia').classList.add('show');
+        // Mostra o painel correcto
+        if (tipo === 'dinheiro')      document.getElementById('troco-box').classList.add('show');
+        if (tipo === 'cartao')        document.getElementById('pag-det-cartao').classList.add('show');
+        if (tipo === 'mbway')         document.getElementById('pag-det-mbway').classList.add('show');
+        if (tipo === 'multibanco')    document.getElementById('pag-det-multibanco').classList.add('show');
+        if (tipo === 'transferencia') document.getElementById('pag-det-transferencia').classList.add('show');
 
-    // Se mudar de MBWay limpa o estado
-    if (tipo !== 'mbway') {
+        // Se mudar de MBWay limpa o estado
+        if (tipo !== 'mbway') {
+            mbwayPDVClearTimers();
+            mbwayPDVConfirmado = false;
+        }
+
+        validarConfirmar();
+    }
+
+    function validarConfirmar() {
+        const btn = document.getElementById('btn-confirmar');
+        if (!btn) return;
+        let ok = true;
+        if      (pagTipo === 'cartao')     ok = (document.getElementById('cartao-auth')?.value || '').trim().length > 0;
+        else if (pagTipo === 'mbway')      ok = mbwayPDVConfirmado;
+        else if (pagTipo === 'multibanco') ok = false;
+        btn.disabled = !ok;
+    }
+
+    function calcTroco() {
+        const rec = parseFloat(document.getElementById('recebido').value) || 0;
+        document.getElementById('troco-res').textContent = `€ ${Math.max(0, rec - getTotal()).toFixed(2)}`;
+    }
+
+    // ── MBWAY PDV ─────────────────────────────────────────────────────
+
+    function onMbwayPDVTelChange() {
         mbwayPDVClearTimers();
         mbwayPDVConfirmado = false;
+        document.getElementById('mbway-pdv-status').style.display = 'none';
+        document.getElementById('btn-mbway-pdv-confirm')?.classList.remove('confirmed');
+        validarConfirmar();
     }
 
-    validarConfirmar();
-}
+    function mbwayPDVClearTimers() {
+        if (mbwayPDVTimer)   { clearInterval(mbwayPDVTimer);   mbwayPDVTimer   = null; }
+        if (mbwayPDVPolling) { clearInterval(mbwayPDVPolling); mbwayPDVPolling = null; }
+    }
 
-function validarConfirmar() {
-    const btn = document.getElementById('btn-confirmar');
-    if (!btn) return;
-    let ok = true;
-    if      (pagTipo === 'cartao')     ok = (document.getElementById('cartao-auth')?.value || '').trim().length > 0;
-    else if (pagTipo === 'mbway')      ok = mbwayPDVConfirmado;
-    else if (pagTipo === 'multibanco') ok = false;
-    btn.disabled = !ok;
-}
+    async function mbwayPDVEnviar() {
+        const tel = (document.getElementById('mbway-pdv-tel').value || '').trim();
+        if (!tel) { toast('Introduza o número MB WAY do cliente', 'err'); return; }
 
-function calcTroco() {
-    const rec = parseFloat(document.getElementById('recebido').value) || 0;
-    document.getElementById('troco-res').textContent = `€ ${Math.max(0, rec - getTotal()).toFixed(2)}`;
-}
+        const btnEnviar = document.getElementById('btn-mbway-pdv-enviar');
+        btnEnviar.disabled    = true;
+        btnEnviar.textContent = '...';
 
-// ── MBWAY PDV ─────────────────────────────────────────────────────
+        const total = getTotal();
+        const fnUrl = SUPA_URL.split('/rest')[0] + '/functions/v1/mbway-iniciar';
 
-function onMbwayPDVTelChange() {
-    mbwayPDVClearTimers();
-    mbwayPDVConfirmado = false;
-    document.getElementById('mbway-pdv-status').style.display = 'none';
-    document.getElementById('btn-mbway-pdv-confirm')?.classList.remove('confirmed');
-    validarConfirmar();
-}
-
-function mbwayPDVClearTimers() {
-    if (mbwayPDVTimer)   { clearInterval(mbwayPDVTimer);   mbwayPDVTimer   = null; }
-    if (mbwayPDVPolling) { clearInterval(mbwayPDVPolling); mbwayPDVPolling = null; }
-}
-
-async function mbwayPDVEnviar() {
-    const tel = (document.getElementById('mbway-pdv-tel').value || '').trim();
-    if (!tel) { toast('Introduza o número MB WAY do cliente', 'err'); return; }
-
-    const btnEnviar = document.getElementById('btn-mbway-pdv-enviar');
-    btnEnviar.disabled    = true;
-    btnEnviar.textContent = '...';
-
-    const total = getTotal();
-    const fnUrl = SUPA_URL.split('/rest')[0] + '/functions/v1/mbway-iniciar';
-
-    try {
-        const r = await fetch(fnUrl, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-            body: JSON.stringify({
-                telemovel:          tel,
-                valor:              total.toFixed(2),
-                referencia:         'PDV' + Date.now().toString(36).toUpperCase().substring(0, 7),
-                descricao:          'Venda Zion Lisboa',
-                email:              '',
-                dizimo_ids:         [],
-                contas_receber_ids: [],
-            }),
-        });
-        const data = await r.json();
-        if (!data.success) throw new Error(data.error || 'Erro MB WAY');
-
-        // O callback do EuPago usa params.referencia (ex: "247834")
-        // para fazer .eq('referencia_eupago', referencia) em contas_receber
-        // Por isso guardamos data.reference (o número curto) em referencia_eupago
-        // data.referencia = número curto EuPago (ex: "247835")
-        // é este valor que o callback usa em .eq('referencia_eupago', referencia)
-        const refEupago = data.referencia || '';
-        const hoje      = new Date().toISOString().split('T')[0];
-        const hora      = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-
-        // Criar registo temp para o callback encontrar e o polling monitorizar
-        mbwayPDVContasReceberId = null;
         try {
-            const criadoRes = await sb('contas_receber', {
-                method: 'POST',
+            const r = await fetch(fnUrl, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
                 body: JSON.stringify({
-                    descricao:         `PDV MBWay · ${hora}`,
-                    tipo:              'pdv',
-                    valor_total:       Number(total.toFixed(2)),
-                    valor_recebido:    0,
-                    valor_pendente:    Number(total.toFixed(2)),
-                    data_emissao:      hoje,
-                    data_vencimento:   hoje,
-                    forma_pagamento:   'mbway',
-                    status:            'aguarda_pagamento',
-                    referencia_eupago: refEupago,
-                    observacoes:       `PDV_TEMP · ${tel}`,
+                    telemovel:          tel,
+                    valor:              total.toFixed(2),
+                    referencia:         'PDV' + Date.now().toString(36).toUpperCase().substring(0, 7),
+                    descricao:          'Venda Zion Lisboa',
+                    email:              '',
+                    dizimo_ids:         [],
+                    contas_receber_ids: [],
                 }),
             });
-            mbwayPDVContasReceberId = criadoRes?.[0]?.id || null;
-            console.log('Temp MBWay criado:', mbwayPDVContasReceberId, 'ref_eupago:', refEupago);
-        } catch (te) {
-            console.warn('Não foi possível criar registo temp MBWay:', te);
-        }
+            const data = await r.json();
+            if (!data.success) throw new Error(data.error || 'Erro MB WAY');
 
-        // Mostra o countdown e inicia polling
-        document.getElementById('mbway-pdv-status').style.display = 'block';
-        document.getElementById('btn-mbway-pdv-confirm').classList.remove('confirmed');
-        mbwayPDVConfirmado = false;
-        mbwayPDVIniciarCountdown();
-        if (mbwayPDVContasReceberId) mbwayPDVIniciarPolling();
-        toast('Notificação MB WAY enviada!', 'ok');
+            // O callback do EuPago usa params.referencia (ex: "247834")
+            // para fazer .eq('referencia_eupago', referencia) em contas_receber
+            // Por isso guardamos data.reference (o número curto) em referencia_eupago
+            // data.referencia = número curto EuPago (ex: "247835")
+            // é este valor que o callback usa em .eq('referencia_eupago', referencia)
+            const refEupago = data.referencia || '';
+            const hoje      = new Date().toISOString().split('T')[0];
+            const hora      = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
-    } catch (e) {
-        toast(e.message || 'Erro ao enviar MB WAY', 'err');
-    } finally {
-        btnEnviar.disabled    = false;
-        btnEnviar.textContent = 'Reenviar';
-    }
-}
-
-function mbwayPDVIniciarPolling() {
-    if (mbwayPDVPolling) clearInterval(mbwayPDVPolling);
-    if (!mbwayPDVContasReceberId) return;
-
-    mbwayPDVPolling = setInterval(async () => {
-        if (mbwayPDVConfirmado) { clearInterval(mbwayPDVPolling); mbwayPDVPolling = null; return; }
-        try {
-            const res = await sb(`contas_receber?id=eq.${mbwayPDVContasReceberId}&select=status`);
-            const st  = res?.[0]?.status;
-            if (st === 'confirmado' || st === 'recebido') {
-                clearInterval(mbwayPDVPolling);
-                mbwayPDVPolling = null;
-                mbwayPDVManualConfirm();
-                toast('MBWay confirmado automaticamente ✓', 'ok');
-            }
-        } catch { /* ignora erros de rede */ }
-    }, 3000);
-}
-
-function mbwayPDVApagarTemp() {
-    if (!mbwayPDVContasReceberId) return;
-    sb(`contas_receber?id=eq.${mbwayPDVContasReceberId}`, { method: 'DELETE' })
-        .catch(e => console.warn('Erro ao apagar temp MBWay:', e));
-    mbwayPDVContasReceberId = null;
-}
-
-function mbwayPDVIniciarCountdown() {
-    mbwayPDVSegsLeft = 300;
-    mbwayPDVClearTimers();
-
-    const progFill = document.getElementById('mbway-pdv-prog');
-    const msg      = document.getElementById('mbway-pdv-msg');
-
-    progFill.style.background = 'var(--primary)';
-    msg.style.color           = '';
-    msg.textContent           = 'Aguarda que o cliente aceite na app MB WAY e clica em confirmar';
-
-    renderMbwayPDVCountdown();
-
-    mbwayPDVTimer = setInterval(() => {
-        mbwayPDVSegsLeft--;
-        renderMbwayPDVCountdown();
-        if (mbwayPDVSegsLeft <= 0) {
-            mbwayPDVClearTimers();
-            msg.textContent = 'Tempo expirado. Reenvie a notificação.';
-        }
-    }, 1000);
-}
-
-function renderMbwayPDVCountdown() {
-    const m   = Math.floor(mbwayPDVSegsLeft / 60);
-    const s   = mbwayPDVSegsLeft % 60;
-    const pct = (mbwayPDVSegsLeft / 300) * 100;
-    document.getElementById('mbway-pdv-cd').textContent    = `${m}:${s < 10 ? '0' : ''}${s}`;
-    document.getElementById('mbway-pdv-prog').style.width  = pct + '%';
-}
-
-function mbwayPDVManualConfirm() {
-    mbwayPDVClearTimers();
-    mbwayPDVConfirmado = true;
-
-    const btn  = document.getElementById('btn-mbway-pdv-confirm');
-    const msg  = document.getElementById('mbway-pdv-msg');
-    const prog = document.getElementById('mbway-pdv-prog');
-
-    btn.textContent = '✓ Pagamento Confirmado';
-    btn.classList.add('confirmed');
-    msg.textContent           = 'Pagamento confirmado pelo operador';
-    msg.style.color           = 'var(--green)';
-    prog.style.width          = '100%';
-    prog.style.background     = 'var(--green)';
-    document.getElementById('mbway-pdv-cd').textContent = '✓';
-
-    validarConfirmar();
-}
-
-// ── MODAL NOME CLIENTE ────────────────────────────────────────────
-
-function pedirNomeCliente(callback) {
-    _nomeClienteCallback = callback;
-
-    // Se já tem cliente seleccionado no dropdown usa esse nome
-    const sel     = document.getElementById('cliente-sel');
-    const nomeSel = sel?.options[sel.selectedIndex]?.text || '';
-    if (sel?.value && !nomeSel.includes('sem identificação')) {
-        callback(nomeSel);
-        return;
-    }
-
-    document.getElementById('input-nome-cliente').value = '';
-    document.getElementById('overlay-nome').classList.add('open');
-    setTimeout(() => document.getElementById('input-nome-cliente').focus(), 100);
-}
-
-function confirmarNomeCliente(skip) {
-    document.getElementById('overlay-nome').classList.remove('open');
-    const nome = skip === 'skip'
-        ? 'Anónimo'
-        : (document.getElementById('input-nome-cliente').value.trim() || 'Anónimo');
-    if (_nomeClienteCallback) { _nomeClienteCallback(nome); _nomeClienteCallback = null; }
-}
-
-// ── CONFIRMAR VENDA ───────────────────────────────────────────────
-
-async function confirmarVenda() {
-    if (!caixaAtual) {
-        toast('Caixa não está aberta!', 'err');
-        fecharModalPag();
-        setAba('caixa');
-        return;
-    }
-
-    const total    = getTotal();
-    const desconto = getDesconto();
-    const clientId = document.getElementById('cliente-sel').value || null;
-    const operador = cfg.operador || user?.nome || '';
-    const btn      = document.getElementById('btn-confirmar');
-
-    const cartaoAuth = (document.getElementById('cartao-auth')?.value || '').trim();
-    const transfRef  = (document.getElementById('transf-ref')?.value  || '').trim();
-    const refPag     = pagTipo === 'cartao'        ? cartaoAuth
-                     : pagTipo === 'transferencia' ? transfRef
-                     : null;
-
-    // Guarda snapshot dos itens ANTES de pedir nome (o modal é async)
-    const itensCopy = itens.map(i => ({ ...i, prod: { ...i.prod } }));
-
-    pedirNomeCliente(async (nomeCliente) => {
-        btn.disabled    = true;
-        btn.textContent = 'A gravar...';
-
-        try {
-            // Número sequencial por dia
-            const hoje    = new Date().toISOString().split('T')[0];
-            const ultimos = await sb(
-                `pedidos?select=numero&data_pedido=eq.${hoje}&order=numero.desc&limit=1`
-            ).catch(() => []);
-            const numeroPedido = (ultimos?.[0]?.numero || 0) + 1;
-
-            const temKeola = itensCopy.some(i => i.prod._keola);
-            const temLoja  = itensCopy.some(i => !i.prod._keola);
-            const origem   = temKeola && temLoja ? 'misto' : temKeola ? 'keola' : 'loja';
-
-            // Criar pedido
-            const pedidoPayload = {
-                numero:          numeroPedido,
-                data_pedido:     hoje,
-                nome_cliente:    nomeCliente,
-                membro_id:       clientId,
-                origem,
-                status:          'pendente',
-                total:           Number(total.toFixed(2)),
-                desconto:        Number(desconto.toFixed(2)),
-                forma_pagamento: pagTipo,
-                operador,
-                caixa_id:        caixaAtual.id,
-            };
-            if (refPag) pedidoPayload.referencia_pagamento = refPag;
-
-            const pedidoRes = await sb('pedidos', {
-                method: 'POST',
-                body:   JSON.stringify(pedidoPayload),
-            });
-            const pedidoId = pedidoRes?.[0]?.id;
-
-            // Criar itens do pedido
-            for (const it of itensCopy) {
-                await sb('pedido_itens', {
+            // Criar registo temp para o callback encontrar e o polling monitorizar
+            mbwayPDVContasReceberId = null;
+            try {
+                const criadoRes = await sb('contas_receber', {
                     method: 'POST',
-                    body:   JSON.stringify({
-                        pedido_id:      pedidoId,
-                        produto_id:     it.prod.id,
-                        produto_nome:   it.prod.nome,
-                        origem:         it.prod._keola ? 'keola' : 'loja',
-                        quantidade:     it.qtd,
-                        preco_unitario: Number(it.preco.toFixed(2)),
+                    body: JSON.stringify({
+                        descricao:         `PDV MBWay · ${hora}`,
+                        tipo:              'pdv',
+                        valor_total:       Number(total.toFixed(2)),
+                        valor_recebido:    0,
+                        valor_pendente:    Number(total.toFixed(2)),
+                        data_emissao:      hoje,
+                        data_vencimento:   hoje,
+                        forma_pagamento:   'mbway',
+                        status:            'aguarda_pagamento',
+                        referencia_eupago: refEupago,
+                        observacoes:       `PDV_TEMP · ${tel}`,
                     }),
                 });
+                mbwayPDVContasReceberId = criadoRes?.[0]?.id || null;
+                console.log('Temp MBWay criado:', mbwayPDVContasReceberId, 'ref_eupago:', refEupago);
+            } catch (te) {
+                console.warn('Não foi possível criar registo temp MBWay:', te);
+                const errText = await te?.json?.().catch(() => te) || te;
+                console.warn('Temp MBWay erro:', JSON.stringify(errText));
             }
 
-            // Baixar estoque
-            for (const it of itensCopy) {
-                try {
-                    if (it.prod._keola && it.prod.controlar_estoque !== false) {
-                        const campo     = it.prod.tipo_item === 'kit' ? 'stock_kits' : 'stock';
-                        const novoStock = Math.max(0, (it.prod[campo] || 0) - it.qtd);
-                        await sb(`keola_menu?id=eq.${it.prod.id}`, {
-                            method: 'PATCH',
-                            body:   JSON.stringify({ [campo]: novoStock }),
-                        });
-                        // Actualiza cache local
-                        const kp = keolaProds.find(x => x.id === it.prod.id);
-                        if (kp) kp[campo] = novoStock;
-
-                    } else if (!it.prod._keola && it.prod.controlar_estoque !== false) {
-                        const campoQty  = it.prod.quantidade !== undefined ? 'quantidade' : 'stock';
-                        const novoStock = Math.max(0, (it.prod[campoQty] || 0) - it.qtd);
-                        await sb(`loja_produtos?id=eq.${it.prod.id}`, {
-                            method: 'PATCH',
-                            body:   JSON.stringify({ [campoQty]: novoStock }),
-                        });
-                        const lp = lojaProds.find(x => x.id === it.prod.id);
-                        if (lp) lp[campoQty] = novoStock;
-                    }
-                } catch (se) {
-                    console.warn('Erro ao baixar estoque de', it.prod.nome, se);
-                }
-            }
-
-            // Guarda snapshot para cupom
-            _cupomSnapshot = {
-                itensCopy,
-                total,
-                desconto,
-                nomeCliente,
-                pagTipo,
-                cartaoAuth,
-                operador,
-                numeroPedido,
-            };
-
-            fecharModalPag();
-            mbwayPDVApagarTemp(); // apaga temp MBWay após venda confirmada
-            gerarCupom(_cupomSnapshot);
-
-            // Limpa caixa
-            itens = [];
-            document.getElementById('desc-inp').value = '';
-            renderCaixa();
-
-            const pagShort = { dinheiro:'Dinheiro', cartao:'Cartão', mbway:'MB Way', transferencia:'Transf.' };
-            toast(`Pedido #${numeroPedido} — ${pagShort[pagTipo] || pagTipo} — ${nomeCliente}`, 'ok');
+            // Mostra o countdown e inicia polling
+            document.getElementById('mbway-pdv-status').style.display = 'block';
+            document.getElementById('btn-mbway-pdv-confirm').classList.remove('confirmed');
+            mbwayPDVConfirmado = false;
+            mbwayPDVIniciarCountdown();
+            if (mbwayPDVContasReceberId) mbwayPDVIniciarPolling();
+            toast('Notificação MB WAY enviada!', 'ok');
 
         } catch (e) {
-            toast('Erro ao gravar: ' + (e?.message || JSON.stringify(e)), 'err');
+            toast(e.message || 'Erro ao enviar MB WAY', 'err');
         } finally {
-            btn.disabled    = false;
-            btn.textContent = 'Confirmar';
+            btnEnviar.disabled    = false;
+            btnEnviar.textContent = 'Reenviar';
         }
-    });
-}
+    }
 
-// ── CUPOM ─────────────────────────────────────────────────────────
+    function mbwayPDVIniciarPolling() {
+        if (mbwayPDVPolling) clearInterval(mbwayPDVPolling);
+        if (!mbwayPDVContasReceberId) return;
 
-function gerarCupom(snap) {
-    // Se não passar snapshot usa dados actuais (para imprimir antes de confirmar)
-    const itensList     = snap?.itensCopy  || itens;
-    const total         = snap?.total      ?? getTotal();
-    const desconto      = snap?.desconto   ?? getDesconto();
-    const pTipo         = snap?.pagTipo    || pagTipo;
-    const nomeCliente   = snap?.nomeCliente || '';
-    const cartaoAuth    = snap?.cartaoAuth  || '';
-    const numeroPedido  = snap?.numeroPedido || '';
+        mbwayPDVPolling = setInterval(async () => {
+            if (mbwayPDVConfirmado) { clearInterval(mbwayPDVPolling); mbwayPDVPolling = null; return; }
+            try {
+                const res = await sb(`contas_receber?id=eq.${mbwayPDVContasReceberId}&select=status`);
+                const st  = res?.[0]?.status;
+                if (st === 'confirmado' || st === 'recebido') {
+                    clearInterval(mbwayPDVPolling);
+                    mbwayPDVPolling = null;
+                    mbwayPDVManualConfirm();
+                    toast('MBWay confirmado automaticamente ✓', 'ok');
+                }
+            } catch { /* ignora erros de rede */ }
+        }, 3000);
+    }
 
-    const sub   = itensList.reduce((s, i) => s + i.preco * i.qtd, 0);
-    const agora = new Date();
-    const dStr  = agora.toLocaleDateString('pt-PT') + ' '
-                + agora.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    function mbwayPDVApagarTemp() {
+        if (!mbwayPDVContasReceberId) return;
+        sb(`contas_receber?id=eq.${mbwayPDVContasReceberId}`, { method: 'DELETE' })
+            .catch(e => console.warn('Erro ao apagar temp MBWay:', e));
+        mbwayPDVContasReceberId = null;
+    }
 
-    const pagLabels = {
-        dinheiro:      'Dinheiro',
-        cartao:        'Cartão',
-        mbway:         'MB Way',
-        multibanco:    'Multibanco',
-        transferencia: 'Transferência',
-    };
+    function mbwayPDVIniciarCountdown() {
+        mbwayPDVSegsLeft = 300;
+        mbwayPDVClearTimers();
 
-    document.getElementById('cupom-print').innerHTML = `
+        const progFill = document.getElementById('mbway-pdv-prog');
+        const msg      = document.getElementById('mbway-pdv-msg');
+
+        progFill.style.background = 'var(--primary)';
+        msg.style.color           = '';
+        msg.textContent           = 'Aguarda que o cliente aceite na app MB WAY e clica em confirmar';
+
+        renderMbwayPDVCountdown();
+
+        mbwayPDVTimer = setInterval(() => {
+            mbwayPDVSegsLeft--;
+            renderMbwayPDVCountdown();
+            if (mbwayPDVSegsLeft <= 0) {
+                mbwayPDVClearTimers();
+                msg.textContent = 'Tempo expirado. Reenvie a notificação.';
+            }
+        }, 1000);
+    }
+
+    function renderMbwayPDVCountdown() {
+        const m   = Math.floor(mbwayPDVSegsLeft / 60);
+        const s   = mbwayPDVSegsLeft % 60;
+        const pct = (mbwayPDVSegsLeft / 300) * 100;
+        document.getElementById('mbway-pdv-cd').textContent    = `${m}:${s < 10 ? '0' : ''}${s}`;
+        document.getElementById('mbway-pdv-prog').style.width  = pct + '%';
+    }
+
+    function mbwayPDVManualConfirm() {
+        mbwayPDVClearTimers();
+        mbwayPDVConfirmado = true;
+
+        const btn  = document.getElementById('btn-mbway-pdv-confirm');
+        const msg  = document.getElementById('mbway-pdv-msg');
+        const prog = document.getElementById('mbway-pdv-prog');
+
+        btn.textContent = '✓ Pagamento Confirmado';
+        btn.classList.add('confirmed');
+        msg.textContent           = 'Pagamento confirmado pelo operador';
+        msg.style.color           = 'var(--green)';
+        prog.style.width          = '100%';
+        prog.style.background     = 'var(--green)';
+        document.getElementById('mbway-pdv-cd').textContent = '✓';
+
+        validarConfirmar();
+    }
+
+    // ── MODAL NOME CLIENTE ────────────────────────────────────────────
+
+    function pedirNomeCliente(callback) {
+        _nomeClienteCallback = callback;
+
+        // Se já tem cliente seleccionado no dropdown usa esse nome
+        const sel     = document.getElementById('cliente-sel');
+        const nomeSel = sel?.options[sel.selectedIndex]?.text || '';
+        if (sel?.value && !nomeSel.includes('sem identificação')) {
+            callback(nomeSel);
+            return;
+        }
+
+        document.getElementById('input-nome-cliente').value = '';
+        document.getElementById('overlay-nome').classList.add('open');
+        setTimeout(() => document.getElementById('input-nome-cliente').focus(), 100);
+    }
+
+    function confirmarNomeCliente(skip) {
+        document.getElementById('overlay-nome').classList.remove('open');
+        const nome = skip === 'skip'
+            ? 'Anónimo'
+            : (document.getElementById('input-nome-cliente').value.trim() || 'Anónimo');
+        if (_nomeClienteCallback) { _nomeClienteCallback(nome); _nomeClienteCallback = null; }
+    }
+
+    // ── CONFIRMAR VENDA ───────────────────────────────────────────────
+
+    async function confirmarVenda() {
+        if (!caixaAtual) {
+            toast('Caixa não está aberta!', 'err');
+            fecharModalPag();
+            setAba('caixa');
+            return;
+        }
+
+        const total    = getTotal();
+        const desconto = getDesconto();
+        const clientId = document.getElementById('cliente-sel').value || null;
+        const operador = cfg.operador || user?.nome || '';
+        const btn      = document.getElementById('btn-confirmar');
+
+        const cartaoAuth = (document.getElementById('cartao-auth')?.value || '').trim();
+        const transfRef  = (document.getElementById('transf-ref')?.value  || '').trim();
+        const refPag     = pagTipo === 'cartao'        ? cartaoAuth
+            : pagTipo === 'transferencia' ? transfRef
+                : null;
+
+        // Guarda snapshot dos itens ANTES de pedir nome (o modal é async)
+        const itensCopy = itens.map(i => ({ ...i, prod: { ...i.prod } }));
+
+        pedirNomeCliente(async (nomeCliente) => {
+            btn.disabled    = true;
+            btn.textContent = 'A gravar...';
+
+            try {
+                // Número sequencial por dia
+                const hoje    = new Date().toISOString().split('T')[0];
+                const ultimos = await sb(
+                    `pedidos?select=numero&data_pedido=eq.${hoje}&order=numero.desc&limit=1`
+                ).catch(() => []);
+                const numeroPedido = (ultimos?.[0]?.numero || 0) + 1;
+
+                const temKeola = itensCopy.some(i => i.prod._keola);
+                const temLoja  = itensCopy.some(i => !i.prod._keola);
+                const origem   = temKeola && temLoja ? 'misto' : temKeola ? 'keola' : 'loja';
+
+                // Criar pedido
+                const pedidoPayload = {
+                    numero:          numeroPedido,
+                    data_pedido:     hoje,
+                    nome_cliente:    nomeCliente,
+                    membro_id:       clientId,
+                    origem,
+                    status:          'pendente',
+                    total:           Number(total.toFixed(2)),
+                    desconto:        Number(desconto.toFixed(2)),
+                    forma_pagamento: pagTipo,
+                    operador,
+                    caixa_id:        caixaAtual.id,
+                };
+                if (refPag) pedidoPayload.referencia_pagamento = refPag;
+
+                const pedidoRes = await sb('pedidos', {
+                    method: 'POST',
+                    body:   JSON.stringify(pedidoPayload),
+                });
+                const pedidoId = pedidoRes?.[0]?.id;
+
+                // Criar itens do pedido
+                for (const it of itensCopy) {
+                    await sb('pedido_itens', {
+                        method: 'POST',
+                        body:   JSON.stringify({
+                            pedido_id:      pedidoId,
+                            produto_id:     it.prod.id,
+                            produto_nome:   it.prod.nome,
+                            origem:         it.prod._keola ? 'keola' : 'loja',
+                            quantidade:     it.qtd,
+                            preco_unitario: Number(it.preco.toFixed(2)),
+                        }),
+                    });
+                }
+
+                // Baixar estoque
+                for (const it of itensCopy) {
+                    try {
+                        if (it.prod._keola && it.prod.controlar_estoque !== false) {
+                            const campo     = it.prod.tipo_item === 'kit' ? 'stock_kits' : 'stock';
+                            const novoStock = Math.max(0, (it.prod[campo] || 0) - it.qtd);
+                            await sb(`keola_menu?id=eq.${it.prod.id}`, {
+                                method: 'PATCH',
+                                body:   JSON.stringify({ [campo]: novoStock }),
+                            });
+                            // Actualiza cache local
+                            const kp = keolaProds.find(x => x.id === it.prod.id);
+                            if (kp) kp[campo] = novoStock;
+
+                        } else if (!it.prod._keola && it.prod.controlar_estoque !== false) {
+                            const campoQty  = it.prod.quantidade !== undefined ? 'quantidade' : 'stock';
+                            const novoStock = Math.max(0, (it.prod[campoQty] || 0) - it.qtd);
+                            await sb(`loja_produtos?id=eq.${it.prod.id}`, {
+                                method: 'PATCH',
+                                body:   JSON.stringify({ [campoQty]: novoStock }),
+                            });
+                            const lp = lojaProds.find(x => x.id === it.prod.id);
+                            if (lp) lp[campoQty] = novoStock;
+                        }
+                    } catch (se) {
+                        console.warn('Erro ao baixar estoque de', it.prod.nome, se);
+                    }
+                }
+
+                // Guarda snapshot para cupom
+                _cupomSnapshot = {
+                    itensCopy,
+                    total,
+                    desconto,
+                    nomeCliente,
+                    pagTipo,
+                    cartaoAuth,
+                    operador,
+                    numeroPedido,
+                };
+
+                fecharModalPag();
+                mbwayPDVApagarTemp(); // apaga temp MBWay após venda confirmada
+                gerarCupom(_cupomSnapshot);
+
+                // Limpa caixa
+                itens = [];
+                document.getElementById('desc-inp').value = '';
+                renderCaixa();
+
+                const pagShort = { dinheiro:'Dinheiro', cartao:'Cartão', mbway:'MB Way', transferencia:'Transf.' };
+                toast(`Pedido #${numeroPedido} — ${pagShort[pagTipo] || pagTipo} — ${nomeCliente}`, 'ok');
+
+            } catch (e) {
+                toast('Erro ao gravar: ' + (e?.message || JSON.stringify(e)), 'err');
+            } finally {
+                btn.disabled    = false;
+                btn.textContent = 'Confirmar';
+            }
+        });
+    }
+
+    // ── CUPOM ─────────────────────────────────────────────────────────
+
+    function gerarCupom(snap) {
+        // Se não passar snapshot usa dados actuais (para imprimir antes de confirmar)
+        const itensList     = snap?.itensCopy  || itens;
+        const total         = snap?.total      ?? getTotal();
+        const desconto      = snap?.desconto   ?? getDesconto();
+        const pTipo         = snap?.pagTipo    || pagTipo;
+        const nomeCliente   = snap?.nomeCliente || '';
+        const cartaoAuth    = snap?.cartaoAuth  || '';
+        const numeroPedido  = snap?.numeroPedido || '';
+
+        const sub   = itensList.reduce((s, i) => s + i.preco * i.qtd, 0);
+        const agora = new Date();
+        const dStr  = agora.toLocaleDateString('pt-PT') + ' '
+            + agora.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+
+        const pagLabels = {
+            dinheiro:      'Dinheiro',
+            cartao:        'Cartão',
+            mbway:         'MB Way',
+            multibanco:    'Multibanco',
+            transferencia: 'Transferência',
+        };
+
+        document.getElementById('cupom-print').innerHTML = `
         <div class="cp-c cp-b" style="font-size:13px;letter-spacing:2px">${(cfg.nome || 'Zion Lisboa').toUpperCase()}</div>
         ${cfg.morada   ? `<div class="cp-c cp-sm">${cfg.morada}</div>`       : ''}
         ${cfg.nif      ? `<div class="cp-c cp-sm">NIF: ${cfg.nif}</div>`    : ''}
@@ -1839,31 +1841,31 @@ function gerarCupom(snap) {
         </div>
         ${cfg.website ? `<div class="cp-c cp-sm">${cfg.website}</div>` : ''}
         <div style="margin-top:6mm"></div>`;
-}
+    }
 
-function imprimirCupom() {
-    // Se ainda não gerou (clique em Imprimir antes de confirmar) gera agora
-    gerarCupom(null);
-    setTimeout(() => window.print(), 100);
-}
+    function imprimirCupom() {
+        // Se ainda não gerou (clique em Imprimir antes de confirmar) gera agora
+        gerarCupom(null);
+        setTimeout(() => window.print(), 100);
+    }
 </script>
 
 <script>
-// ══════════════════════════════════════════════════════════════════
-//  PDV — PARTE 4: Gestão de Caixa
-//  Abrir · Dashboard · Retiradas · Fechar · Contas a Receber
-// ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════
+    //  PDV — PARTE 4: Gestão de Caixa
+    //  Abrir · Dashboard · Retiradas · Fechar · Contas a Receber
+    // ══════════════════════════════════════════════════════════════════
 
-// ── RENDER ABA CAIXA ──────────────────────────────────────────────
+    // ── RENDER ABA CAIXA ──────────────────────────────────────────────
 
-async function renderCaixaTab() {
-    const container = document.getElementById('cx-container');
-    if (!container) return;
+    async function renderCaixaTab() {
+        const container = document.getElementById('cx-container');
+        if (!container) return;
 
-    if (!caixaAtual) {
-        // ── FORMULÁRIO DE ABERTURA ─────────────────────────────────
-        const op = cfg.operador || user?.nome?.split(' ')[0] || '';
-        container.innerHTML = `
+        if (!caixaAtual) {
+            // ── FORMULÁRIO DE ABERTURA ─────────────────────────────────
+            const op = cfg.operador || user?.nome?.split(' ')[0] || '';
+            container.innerHTML = `
             <div class="cx-card">
                 <div style="text-align:center;padding:10px 0 18px">
                     <div style="font-size:40px;margin-bottom:8px">🏪</div>
@@ -1886,37 +1888,37 @@ async function renderCaixaTab() {
                     ✦ Abrir Caixa
                 </button>
             </div>`;
-        return;
-    }
+            return;
+        }
 
-    // ── DASHBOARD DA SESSÃO ────────────────────────────────────────
-    // Busca os pedidos desta sessão em tempo real
-    let pedidosSessao = [];
-    try {
-        pedidosSessao = await sb(
-            `pedidos?caixa_id=eq.${caixaAtual.id}&status=neq.cancelado&select=*`
-        );
-    } catch { pedidosSessao = []; }
+        // ── DASHBOARD DA SESSÃO ────────────────────────────────────────
+        // Busca os pedidos desta sessão em tempo real
+        let pedidosSessao = [];
+        try {
+            pedidosSessao = await sb(
+                `pedidos?caixa_id=eq.${caixaAtual.id}&status=neq.cancelado&select=*`
+            );
+        } catch { pedidosSessao = []; }
 
-    // Totais por método
-    const totaisPag = {};
-    for (const p of pedidosSessao) {
-        const m = p.forma_pagamento || 'dinheiro';
-        totaisPag[m] = (totaisPag[m] || 0) + Number(p.total || 0);
-    }
-    const totalVendas    = Object.values(totaisPag).reduce((s, v) => s + v, 0);
-    const totalRetiradas = caixaRetiradas.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const dinheiroVendas = totaisPag['dinheiro'] || 0;
-    const esperadoCaixa  = Number(caixaAtual.valor_abertura || 0) + dinheiroVendas - totalRetiradas;
+        // Totais por método
+        const totaisPag = {};
+        for (const p of pedidosSessao) {
+            const m = p.forma_pagamento || 'dinheiro';
+            totaisPag[m] = (totaisPag[m] || 0) + Number(p.total || 0);
+        }
+        const totalVendas    = Object.values(totaisPag).reduce((s, v) => s + v, 0);
+        const totalRetiradas = caixaRetiradas.reduce((s, r) => s + Number(r.valor || 0), 0);
+        const dinheiroVendas = totaisPag['dinheiro'] || 0;
+        const esperadoCaixa  = Number(caixaAtual.valor_abertura || 0) + dinheiroVendas - totalRetiradas;
 
-    const horaAbertura = new Date(caixaAtual.data_abertura)
-        .toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-    const dataAbertura = new Date(caixaAtual.data_abertura)
-        .toLocaleDateString('pt-PT');
+        const horaAbertura = new Date(caixaAtual.data_abertura)
+            .toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+        const dataAbertura = new Date(caixaAtual.data_abertura)
+            .toLocaleDateString('pt-PT');
 
-    const methodsUsados = Object.entries(totaisPag).filter(([, v]) => v > 0);
+        const methodsUsados = Object.entries(totaisPag).filter(([, v]) => v > 0);
 
-    container.innerHTML = `
+        container.innerHTML = `
         <!-- Status -->
         <div class="cx-card">
             <div class="cx-status-row">
@@ -1990,8 +1992,8 @@ async function renderCaixaTab() {
                 <button class="btn-cx orange" onclick="abrirModalRetirada()">+ Nova Retirada</button>
             </div>
             ${caixaRetiradas.length === 0
-                ? `<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:12px 0">Sem retiradas nesta sessão</div>`
-                : caixaRetiradas.map(r => `
+            ? `<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:12px 0">Sem retiradas nesta sessão</div>`
+            : caixaRetiradas.map(r => `
                     <div class="cx-retirada-row">
                         <div class="cx-retirada-motivo">
                             <div>${r.motivo}</div>
@@ -1999,7 +2001,7 @@ async function renderCaixaTab() {
                         </div>
                         <div class="cx-retirada-val">- € ${Number(r.valor).toFixed(2)}</div>
                     </div>`).join('')
-            }
+        }
         </div>
 
         <!-- Fechar caixa -->
@@ -2013,93 +2015,93 @@ async function renderCaixaTab() {
                 🔒 Fechar Caixa e Lançar Contas a Receber
             </button>
         </div>`;
-}
-
-// ── ABRIR CAIXA ───────────────────────────────────────────────────
-
-async function abrirCaixa() {
-    const op     = document.getElementById('cx-op-input')?.value?.trim() || cfg.operador || '';
-    const troco  = parseFloat(document.getElementById('cx-troco-input')?.value) || 0;
-
-    if (!op) { toast('Introduz o nome do operador', 'err'); return; }
-
-    try {
-        const res = await sb('pdv_caixas', {
-            method: 'POST',
-            body:   JSON.stringify({
-                operador:       op,
-                valor_abertura: troco,
-                status:         'aberta',
-            }),
-        });
-        caixaAtual     = res?.[0];
-        caixaRetiradas = [];
-        renderCaixaBadge();
-        renderCaixaTab();
-        toast(`Caixa aberta · Fundo: € ${troco.toFixed(2)}`, 'ok');
-    } catch (e) {
-        toast('Erro ao abrir caixa: ' + (e?.message || JSON.stringify(e)), 'err');
-    }
-}
-
-// ── RETIRADAS ─────────────────────────────────────────────────────
-
-function abrirModalRetirada() {
-    document.getElementById('ret-valor').value  = '';
-    document.getElementById('ret-motivo').value = '';
-    document.getElementById('overlay-retirada').classList.add('open');
-    setTimeout(() => document.getElementById('ret-valor').focus(), 100);
-}
-
-async function confirmarRetirada() {
-    const valor  = parseFloat(document.getElementById('ret-valor').value)  || 0;
-    const motivo = document.getElementById('ret-motivo').value.trim();
-
-    if (valor <= 0)  { toast('Introduz um valor válido',  'err'); return; }
-    if (!motivo)     { toast('Introduz o motivo da retirada', 'err'); return; }
-    if (!caixaAtual) { toast('Nenhum caixa aberto', 'err'); return; }
-
-    try {
-        const res = await sb('pdv_retiradas', {
-            method: 'POST',
-            body:   JSON.stringify({
-                caixa_id: caixaAtual.id,
-                valor,
-                motivo,
-                operador: cfg.operador || user?.nome || '',
-            }),
-        });
-        caixaRetiradas.unshift(res?.[0]);
-        document.getElementById('overlay-retirada').classList.remove('open');
-        renderCaixaTab();
-        toast(`Retirada de € ${valor.toFixed(2)} registada`, 'ok');
-    } catch (e) {
-        toast('Erro ao registar retirada', 'err');
-    }
-}
-
-// ── MODAL FECHAR CAIXA ────────────────────────────────────────────
-
-async function abrirModalFecharCaixa(esperado, totalVendas, nPedidos) {
-    // Guarda dados para usar no executarFechoCaixa
-    _fechoCaixaDados = { esperado, totalVendas, nPedidos };
-
-    // Busca dados frescos dos pedidos desta sessão para o resumo
-    let pedidosSessao = [];
-    try {
-        pedidosSessao = await sb(
-            `pedidos?caixa_id=eq.${caixaAtual.id}&status=neq.cancelado&select=*`
-        );
-    } catch { pedidosSessao = []; }
-
-    const totaisPag = {};
-    for (const p of pedidosSessao) {
-        const m = p.forma_pagamento || 'dinheiro';
-        totaisPag[m] = (totaisPag[m] || 0) + Number(p.total || 0);
     }
 
-    const body = document.getElementById('fechar-caixa-body');
-    body.innerHTML = `
+    // ── ABRIR CAIXA ───────────────────────────────────────────────────
+
+    async function abrirCaixa() {
+        const op     = document.getElementById('cx-op-input')?.value?.trim() || cfg.operador || '';
+        const troco  = parseFloat(document.getElementById('cx-troco-input')?.value) || 0;
+
+        if (!op) { toast('Introduz o nome do operador', 'err'); return; }
+
+        try {
+            const res = await sb('pdv_caixas', {
+                method: 'POST',
+                body:   JSON.stringify({
+                    operador:       op,
+                    valor_abertura: troco,
+                    status:         'aberta',
+                }),
+            });
+            caixaAtual     = res?.[0];
+            caixaRetiradas = [];
+            renderCaixaBadge();
+            renderCaixaTab();
+            toast(`Caixa aberta · Fundo: € ${troco.toFixed(2)}`, 'ok');
+        } catch (e) {
+            toast('Erro ao abrir caixa: ' + (e?.message || JSON.stringify(e)), 'err');
+        }
+    }
+
+    // ── RETIRADAS ─────────────────────────────────────────────────────
+
+    function abrirModalRetirada() {
+        document.getElementById('ret-valor').value  = '';
+        document.getElementById('ret-motivo').value = '';
+        document.getElementById('overlay-retirada').classList.add('open');
+        setTimeout(() => document.getElementById('ret-valor').focus(), 100);
+    }
+
+    async function confirmarRetirada() {
+        const valor  = parseFloat(document.getElementById('ret-valor').value)  || 0;
+        const motivo = document.getElementById('ret-motivo').value.trim();
+
+        if (valor <= 0)  { toast('Introduz um valor válido',  'err'); return; }
+        if (!motivo)     { toast('Introduz o motivo da retirada', 'err'); return; }
+        if (!caixaAtual) { toast('Nenhum caixa aberto', 'err'); return; }
+
+        try {
+            const res = await sb('pdv_retiradas', {
+                method: 'POST',
+                body:   JSON.stringify({
+                    caixa_id: caixaAtual.id,
+                    valor,
+                    motivo,
+                    operador: cfg.operador || user?.nome || '',
+                }),
+            });
+            caixaRetiradas.unshift(res?.[0]);
+            document.getElementById('overlay-retirada').classList.remove('open');
+            renderCaixaTab();
+            toast(`Retirada de € ${valor.toFixed(2)} registada`, 'ok');
+        } catch (e) {
+            toast('Erro ao registar retirada', 'err');
+        }
+    }
+
+    // ── MODAL FECHAR CAIXA ────────────────────────────────────────────
+
+    async function abrirModalFecharCaixa(esperado, totalVendas, nPedidos) {
+        // Guarda dados para usar no executarFechoCaixa
+        _fechoCaixaDados = { esperado, totalVendas, nPedidos };
+
+        // Busca dados frescos dos pedidos desta sessão para o resumo
+        let pedidosSessao = [];
+        try {
+            pedidosSessao = await sb(
+                `pedidos?caixa_id=eq.${caixaAtual.id}&status=neq.cancelado&select=*`
+            );
+        } catch { pedidosSessao = []; }
+
+        const totaisPag = {};
+        for (const p of pedidosSessao) {
+            const m = p.forma_pagamento || 'dinheiro';
+            totaisPag[m] = (totaisPag[m] || 0) + Number(p.total || 0);
+        }
+
+        const body = document.getElementById('fechar-caixa-body');
+        body.innerHTML = `
         <!-- Resumo de vendas por método -->
         <div style="margin-bottom:16px">
             <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">
@@ -2109,8 +2111,8 @@ async function abrirModalFecharCaixa(esperado, totalVendas, nPedidos) {
                 <thead><tr><th>Método</th><th style="text-align:right">Pedidos</th><th style="text-align:right">Total</th></tr></thead>
                 <tbody>
                     ${Object.entries(totaisPag).length === 0
-                        ? `<tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:11px">Sem vendas nesta sessão</td></tr>`
-                        : Object.entries(totaisPag).map(([m, v]) => `
+            ? `<tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:11px">Sem vendas nesta sessão</td></tr>`
+            : Object.entries(totaisPag).map(([m, v]) => `
                             <tr>
                                 <td>${PAG_ICONS[m] || ''} ${PAG_LABEL[m] || m}</td>
                                 <td style="text-align:right;color:var(--text-faint)">
@@ -2120,7 +2122,7 @@ async function abrirModalFecharCaixa(esperado, totalVendas, nPedidos) {
                                     € ${v.toFixed(2)}
                                 </td>
                             </tr>`).join('')
-                    }
+        }
                     <tr style="background:var(--bg-panel)">
                         <td style="font-weight:700">Total</td>
                         <td style="text-align:right;font-weight:700">${nPedidos}</td>
@@ -2178,237 +2180,237 @@ async function abrirModalFecharCaixa(esperado, totalVendas, nPedidos) {
             </div>
         </div>`;
 
-    document.getElementById('overlay-fechar-caixa').classList.add('open');
-}
-
-function calcDiferenca(esperado) {
-    const contagem = parseFloat(document.getElementById('fc-contagem').value);
-    const row      = document.getElementById('fc-dif-row');
-    const val      = document.getElementById('fc-dif-val');
-    if (isNaN(contagem)) { row.style.display = 'none'; return; }
-    const dif = contagem - Number(esperado);
-    row.style.display    = 'flex';
-    val.textContent      = `${dif >= 0 ? '+' : ''}€ ${dif.toFixed(2)}`;
-    val.className        = dif === 0 ? 'fc-diferenca-ok' : dif < 0 ? 'fc-diferenca-err' : 'fc-diferenca-ok';
-}
-
-// ── EXECUTAR FECHO DE CAIXA ───────────────────────────────────────
-
-async function executarFechoCaixa() {
-    if (!caixaAtual) { toast('Nenhum caixa aberto', 'err'); return; }
-
-    const contagem  = parseFloat(document.getElementById('fc-contagem').value) || null;
-    const obs       = document.getElementById('fc-obs')?.value?.trim() || '';
-    const { totalVendas, nPedidos } = _fechoCaixaDados || {};
-    const operador  = caixaAtual.operador || cfg.operador || '';
-
-    const btn = document.getElementById('btn-confirmar-fecho');
-    btn.disabled    = true;
-    btn.textContent = 'A fechar...';
-
-    try {
-        // Buscar dados finais para o resumo
-        const pedidosFinal = await sb(
-            `pedidos?caixa_id=eq.${caixaAtual.id}&status=neq.cancelado&select=*`
-        ).catch(() => []);
-
-        const totaisPag = {};
-        for (const p of pedidosFinal) {
-            const m = p.forma_pagamento || 'dinheiro';
-            totaisPag[m] = (totaisPag[m] || 0) + Number(p.total || 0);
-        }
-
-        const totalRetiradas = caixaRetiradas.reduce((s, r) => s + Number(r.valor || 0), 0);
-        const totalFinal     = Object.values(totaisPag).reduce((s, v) => s + v, 0);
-
-        const resumo = {
-            total_vendas:    totalFinal,
-            n_pedidos:       pedidosFinal.length,
-            por_metodo:      totaisPag,
-            total_retiradas: totalRetiradas,
-            fundo_abertura:  Number(caixaAtual.valor_abertura || 0),
-            valor_contado:   contagem,
-        };
-
-        // Fechar a sessão
-        await sb(`pdv_caixas?id=eq.${caixaAtual.id}`, {
-            method: 'PATCH',
-            body:   JSON.stringify({
-                status:                   'fechada',
-                data_fechamento:          new Date().toISOString(),
-                valor_fechamento_contado: contagem,
-                observacoes:              obs || null,
-                resumo_json:              resumo,
-            }),
-        });
-
-        // Criar contas a receber (1 por método de pagamento activo)
-        const hoje     = new Date().toISOString().split('T')[0];
-        const hojeStr  = new Date().toLocaleDateString('pt-PT');
-        const caixaRef = 'PDV-' + caixaAtual.id.substring(0, 8).toUpperCase();
-
-        for (const [metodo, valor] of Object.entries(totaisPag)) {
-            if (valor <= 0) continue;
-
-            await sb('contas_receber', {
-                method: 'POST',
-                body:   JSON.stringify({
-                    descricao:         `PDV · ${PAG_LABEL[metodo] || metodo} · ${hojeStr}`,
-                    tipo:              'pdv',
-                    valor_total:       Number(valor.toFixed(2)),
-                    valor_recebido:    Number(valor.toFixed(2)),
-                    valor_pendente:    0,
-                    data_emissao:      hoje,
-                    data_vencimento:   hoje,
-                    data_recebimento:  hoje,
-                    data_pagamento:    hoje,
-                    forma_pagamento:   metodo,
-                    status:            'recebido',
-                    referencia:        caixaRef,
-                    observacoes:       `Fecho PDV · ${pedidosFinal.filter(p => p.forma_pagamento === metodo).length} pedidos · Op: ${operador}`,
-                }),
-            }).catch(e => console.warn('Erro ao criar conta a receber para', metodo, e));
-        }
-
-        // Reset estado
-        const caixaFechada = { ...caixaAtual };
-        caixaAtual     = null;
-        caixaRetiradas = [];
-
-        document.getElementById('overlay-fechar-caixa').classList.remove('open');
-        renderCaixaBadge();
-        renderCaixaTab();
-
-        toast(`Caixa fechada · ${pedidosFinal.length} pedidos · € ${totalFinal.toFixed(2)}`, 'ok');
-
-    } catch (e) {
-        toast('Erro ao fechar caixa: ' + (e?.message || JSON.stringify(e)), 'err');
-    } finally {
-        btn.disabled    = false;
-        btn.textContent = 'Fechar e Lançar';
+        document.getElementById('overlay-fechar-caixa').classList.add('open');
     }
-}
+
+    function calcDiferenca(esperado) {
+        const contagem = parseFloat(document.getElementById('fc-contagem').value);
+        const row      = document.getElementById('fc-dif-row');
+        const val      = document.getElementById('fc-dif-val');
+        if (isNaN(contagem)) { row.style.display = 'none'; return; }
+        const dif = contagem - Number(esperado);
+        row.style.display    = 'flex';
+        val.textContent      = `${dif >= 0 ? '+' : ''}€ ${dif.toFixed(2)}`;
+        val.className        = dif === 0 ? 'fc-diferenca-ok' : dif < 0 ? 'fc-diferenca-err' : 'fc-diferenca-ok';
+    }
+
+    // ── EXECUTAR FECHO DE CAIXA ───────────────────────────────────────
+
+    async function executarFechoCaixa() {
+        if (!caixaAtual) { toast('Nenhum caixa aberto', 'err'); return; }
+
+        const contagem  = parseFloat(document.getElementById('fc-contagem').value) || null;
+        const obs       = document.getElementById('fc-obs')?.value?.trim() || '';
+        const { totalVendas, nPedidos } = _fechoCaixaDados || {};
+        const operador  = caixaAtual.operador || cfg.operador || '';
+
+        const btn = document.getElementById('btn-confirmar-fecho');
+        btn.disabled    = true;
+        btn.textContent = 'A fechar...';
+
+        try {
+            // Buscar dados finais para o resumo
+            const pedidosFinal = await sb(
+                `pedidos?caixa_id=eq.${caixaAtual.id}&status=neq.cancelado&select=*`
+            ).catch(() => []);
+
+            const totaisPag = {};
+            for (const p of pedidosFinal) {
+                const m = p.forma_pagamento || 'dinheiro';
+                totaisPag[m] = (totaisPag[m] || 0) + Number(p.total || 0);
+            }
+
+            const totalRetiradas = caixaRetiradas.reduce((s, r) => s + Number(r.valor || 0), 0);
+            const totalFinal     = Object.values(totaisPag).reduce((s, v) => s + v, 0);
+
+            const resumo = {
+                total_vendas:    totalFinal,
+                n_pedidos:       pedidosFinal.length,
+                por_metodo:      totaisPag,
+                total_retiradas: totalRetiradas,
+                fundo_abertura:  Number(caixaAtual.valor_abertura || 0),
+                valor_contado:   contagem,
+            };
+
+            // Fechar a sessão
+            await sb(`pdv_caixas?id=eq.${caixaAtual.id}`, {
+                method: 'PATCH',
+                body:   JSON.stringify({
+                    status:                   'fechada',
+                    data_fechamento:          new Date().toISOString(),
+                    valor_fechamento_contado: contagem,
+                    observacoes:              obs || null,
+                    resumo_json:              resumo,
+                }),
+            });
+
+            // Criar contas a receber (1 por método de pagamento activo)
+            const hoje     = new Date().toISOString().split('T')[0];
+            const hojeStr  = new Date().toLocaleDateString('pt-PT');
+            const caixaRef = 'PDV-' + caixaAtual.id.substring(0, 8).toUpperCase();
+
+            for (const [metodo, valor] of Object.entries(totaisPag)) {
+                if (valor <= 0) continue;
+
+                await sb('contas_receber', {
+                    method: 'POST',
+                    body:   JSON.stringify({
+                        descricao:         `PDV · ${PAG_LABEL[metodo] || metodo} · ${hojeStr}`,
+                        tipo:              'pdv',
+                        valor_total:       Number(valor.toFixed(2)),
+                        valor_recebido:    Number(valor.toFixed(2)),
+                        valor_pendente:    0,
+                        data_emissao:      hoje,
+                        data_vencimento:   hoje,
+                        data_recebimento:  hoje,
+                        data_pagamento:    hoje,
+                        forma_pagamento:   metodo,
+                        status:            'recebido',
+                        referencia:        caixaRef,
+                        observacoes:       `Fecho PDV · ${pedidosFinal.filter(p => p.forma_pagamento === metodo).length} pedidos · Op: ${operador}`,
+                    }),
+                }).catch(e => console.warn('Erro ao criar conta a receber para', metodo, e));
+            }
+
+            // Reset estado
+            const caixaFechada = { ...caixaAtual };
+            caixaAtual     = null;
+            caixaRetiradas = [];
+
+            document.getElementById('overlay-fechar-caixa').classList.remove('open');
+            renderCaixaBadge();
+            renderCaixaTab();
+
+            toast(`Caixa fechada · ${pedidosFinal.length} pedidos · € ${totalFinal.toFixed(2)}`, 'ok');
+
+        } catch (e) {
+            toast('Erro ao fechar caixa: ' + (e?.message || JSON.stringify(e)), 'err');
+        } finally {
+            btn.disabled    = false;
+            btn.textContent = 'Fechar e Lançar';
+        }
+    }
 </script>
 
 <script>
-// ══════════════════════════════════════════════════════════════════
-//  PDV — PARTE 5: Relatórios · Estoque · Pedidos
-// ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════
+    //  PDV — PARTE 5: Relatórios · Estoque · Pedidos
+    // ══════════════════════════════════════════════════════════════════
 
-// ── RELATÓRIOS ────────────────────────────────────────────────────
+    // ── RELATÓRIOS ────────────────────────────────────────────────────
 
-function periodoParaDatas(periodo) {
-    const hoje = new Date();
-    const iso  = d => d.toISOString().split('T')[0];
-    switch (periodo) {
-        case 'hoje':
-            return { ini: iso(hoje), fim: iso(hoje) };
-        case 'ontem': {
-            const d = new Date(hoje); d.setDate(d.getDate() - 1);
-            return { ini: iso(d), fim: iso(d) };
+    function periodoParaDatas(periodo) {
+        const hoje = new Date();
+        const iso  = d => d.toISOString().split('T')[0];
+        switch (periodo) {
+            case 'hoje':
+                return { ini: iso(hoje), fim: iso(hoje) };
+            case 'ontem': {
+                const d = new Date(hoje); d.setDate(d.getDate() - 1);
+                return { ini: iso(d), fim: iso(d) };
+            }
+            case '7dias': {
+                const d = new Date(hoje); d.setDate(d.getDate() - 6);
+                return { ini: iso(d), fim: iso(hoje) };
+            }
+            case 'mes':
+                return { ini: `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-01`, fim: iso(hoje) };
+            case 'mes_passado': {
+                const d = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+                const f = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+                return { ini: iso(d), fim: iso(f) };
+            }
+            default:
+                return { ini: iso(hoje), fim: iso(hoje) };
         }
-        case '7dias': {
-            const d = new Date(hoje); d.setDate(d.getDate() - 6);
-            return { ini: iso(d), fim: iso(hoje) };
+    }
+
+    async function carregarRelatorios(periodo) {
+        relPeriodo = periodo || relPeriodo;
+
+        // Highlight botão de período
+        ['hoje','ontem','7dias','mes','mes_passado'].forEach(p => {
+            document.getElementById(`rbtn-${p}`)?.classList.toggle('active', p === relPeriodo);
+        });
+
+        const loading = document.getElementById('rel-loading');
+        const content = document.getElementById('rel-content');
+        loading.style.display  = 'flex';
+        content.style.display  = 'none';
+
+        const { ini, fim } = periodoParaDatas(relPeriodo);
+
+        try {
+            const [pedidos, itensTodos] = await Promise.all([
+                sb(`pedidos?data_pedido=gte.${ini}&data_pedido=lte.${fim}&status=neq.cancelado&select=*&order=data_pedido.asc,created_at.asc`),
+                sb(`pedido_itens?select=*`),
+            ]);
+
+            const ids      = new Set((pedidos || []).map(p => p.id));
+            const itensRel = (itensTodos || []).filter(i => ids.has(i.pedido_id));
+
+            relData = { pedidos: pedidos || [], itens: itensRel, ini, fim };
+        } catch (e) {
+            relData = { pedidos: [], itens: [], ini, fim };
+            toast('Erro ao carregar relatórios', 'err');
         }
-        case 'mes':
-            return { ini: `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-01`, fim: iso(hoje) };
-        case 'mes_passado': {
-            const d = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-            const f = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
-            return { ini: iso(d), fim: iso(f) };
+
+        loading.style.display = 'none';
+        content.style.display = 'block';
+        renderRelatorios();
+    }
+
+    function setRelSubTab(sub) {
+        relSubTab = sub;
+        document.getElementById('rsub-vendas')?.classList.toggle('active',  sub === 'vendas');
+        document.getElementById('rsub-estoque')?.classList.toggle('active', sub === 'estoque');
+        renderRelatorios();
+    }
+
+    function renderRelatorios() {
+        if (!relData) { carregarRelatorios(relPeriodo); return; }
+        if (relSubTab === 'estoque') { renderRelEstoque(); return; }
+
+        const { pedidos, itens, ini, fim } = relData;
+        const total  = pedidos.reduce((s, p) => s + Number(p.total || 0), 0);
+        const ticket = pedidos.length ? total / pedidos.length : 0;
+
+        // Totais por método
+        const porMetodo = {};
+        for (const p of pedidos) {
+            const m = p.forma_pagamento || 'dinheiro';
+            if (!porMetodo[m]) porMetodo[m] = { total: 0, count: 0 };
+            porMetodo[m].total += Number(p.total || 0);
+            porMetodo[m].count++;
         }
-        default:
-            return { ini: iso(hoje), fim: iso(hoje) };
-    }
-}
 
-async function carregarRelatorios(periodo) {
-    relPeriodo = periodo || relPeriodo;
+        // Top produtos (até 25)
+        const porProd = {};
+        for (const i of itens) {
+            const k = i.produto_nome || i.produto_id;
+            if (!porProd[k]) porProd[k] = { nome: i.produto_nome || k, qty: 0, total: 0 };
+            porProd[k].qty   += Number(i.quantidade || 1);
+            porProd[k].total += Number(i.preco_unitario || 0) * Number(i.quantidade || 1);
+        }
+        const topProd = Object.values(porProd).sort((a, b) => b.qty - a.qty).slice(0, 25);
 
-    // Highlight botão de período
-    ['hoje','ontem','7dias','mes','mes_passado'].forEach(p => {
-        document.getElementById(`rbtn-${p}`)?.classList.toggle('active', p === relPeriodo);
-    });
+        // Por dia (para gráfico)
+        const porDia = {};
+        for (const p of pedidos) {
+            const d = p.data_pedido;
+            if (!porDia[d]) porDia[d] = 0;
+            porDia[d] += Number(p.total || 0);
+        }
+        const diasOrdenados = Object.keys(porDia).sort();
+        const maxDia        = Math.max(...Object.values(porDia), 0.01);
+        const mostrarGraf   = diasOrdenados.length > 1;
 
-    const loading = document.getElementById('rel-loading');
-    const content = document.getElementById('rel-content');
-    loading.style.display  = 'flex';
-    content.style.display  = 'none';
+        const fmtDia = d => {
+            const [, m, dia] = d.split('-');
+            return `${dia}/${m}`;
+        };
 
-    const { ini, fim } = periodoParaDatas(relPeriodo);
-
-    try {
-        const [pedidos, itensTodos] = await Promise.all([
-            sb(`pedidos?data_pedido=gte.${ini}&data_pedido=lte.${fim}&status=neq.cancelado&select=*&order=data_pedido.asc,created_at.asc`),
-            sb(`pedido_itens?select=*`),
-        ]);
-
-        const ids      = new Set((pedidos || []).map(p => p.id));
-        const itensRel = (itensTodos || []).filter(i => ids.has(i.pedido_id));
-
-        relData = { pedidos: pedidos || [], itens: itensRel, ini, fim };
-    } catch (e) {
-        relData = { pedidos: [], itens: [], ini, fim };
-        toast('Erro ao carregar relatórios', 'err');
-    }
-
-    loading.style.display = 'none';
-    content.style.display = 'block';
-    renderRelatorios();
-}
-
-function setRelSubTab(sub) {
-    relSubTab = sub;
-    document.getElementById('rsub-vendas')?.classList.toggle('active',  sub === 'vendas');
-    document.getElementById('rsub-estoque')?.classList.toggle('active', sub === 'estoque');
-    renderRelatorios();
-}
-
-function renderRelatorios() {
-    if (!relData) { carregarRelatorios(relPeriodo); return; }
-    if (relSubTab === 'estoque') { renderRelEstoque(); return; }
-
-    const { pedidos, itens, ini, fim } = relData;
-    const total  = pedidos.reduce((s, p) => s + Number(p.total || 0), 0);
-    const ticket = pedidos.length ? total / pedidos.length : 0;
-
-    // Totais por método
-    const porMetodo = {};
-    for (const p of pedidos) {
-        const m = p.forma_pagamento || 'dinheiro';
-        if (!porMetodo[m]) porMetodo[m] = { total: 0, count: 0 };
-        porMetodo[m].total += Number(p.total || 0);
-        porMetodo[m].count++;
-    }
-
-    // Top produtos (até 25)
-    const porProd = {};
-    for (const i of itens) {
-        const k = i.produto_nome || i.produto_id;
-        if (!porProd[k]) porProd[k] = { nome: i.produto_nome || k, qty: 0, total: 0 };
-        porProd[k].qty   += Number(i.quantidade || 1);
-        porProd[k].total += Number(i.preco_unitario || 0) * Number(i.quantidade || 1);
-    }
-    const topProd = Object.values(porProd).sort((a, b) => b.qty - a.qty).slice(0, 25);
-
-    // Por dia (para gráfico)
-    const porDia = {};
-    for (const p of pedidos) {
-        const d = p.data_pedido;
-        if (!porDia[d]) porDia[d] = 0;
-        porDia[d] += Number(p.total || 0);
-    }
-    const diasOrdenados = Object.keys(porDia).sort();
-    const maxDia        = Math.max(...Object.values(porDia), 0.01);
-    const mostrarGraf   = diasOrdenados.length > 1;
-
-    const fmtDia = d => {
-        const [, m, dia] = d.split('-');
-        return `${dia}/${m}`;
-    };
-
-    document.getElementById('rel-content').innerHTML = `
+        document.getElementById('rel-content').innerHTML = `
         <!-- Cards -->
         <div class="rel-cards">
             <div class="rel-card">
@@ -2440,8 +2442,8 @@ function renderRelatorios() {
             <div class="rel-section-title">Vendas por Dia</div>
             <div class="rel-barchart">
                 ${diasOrdenados.map(d => {
-                    const pct = (porDia[d] / maxDia) * 100;
-                    return `
+            const pct = (porDia[d] / maxDia) * 100;
+            return `
                         <div class="rel-bar-col">
                             <span class="rel-bar-val">€${porDia[d].toFixed(0)}</span>
                             <div class="rel-bar-wrap">
@@ -2449,7 +2451,7 @@ function renderRelatorios() {
                             </div>
                             <span class="rel-bar-lbl">${fmtDia(d)}</span>
                         </div>`;
-                }).join('')}
+        }).join('')}
             </div>
         </div>` : ''}
 
@@ -2512,43 +2514,43 @@ function renderRelatorios() {
                 </tbody>
             </table>
         </div>`}`;
-}
-
-// ── RELATÓRIO — SUB-TAB ESTOQUE ───────────────────────────────────
-
-function renderRelEstoque() {
-    const { itens } = relData || { itens: [] };
-
-    // Qtd vendida por produto_id no período
-    const vendidos = {};
-    for (const i of itens) {
-        vendidos[i.produto_id] = (vendidos[i.produto_id] || 0) + Number(i.quantidade || 1);
     }
 
-    const todos   = [...lojaProds, ...keolaProds];
-    const comMov  = todos.filter(p => vendidos[p.id] !== undefined);
-    const semMov  = todos.filter(p => vendidos[p.id] === undefined);
-    const lista   = [...comMov, ...semMov];
+    // ── RELATÓRIO — SUB-TAB ESTOQUE ───────────────────────────────────
 
-    document.getElementById('rel-content').innerHTML = `
+    function renderRelEstoque() {
+        const { itens } = relData || { itens: [] };
+
+        // Qtd vendida por produto_id no período
+        const vendidos = {};
+        for (const i of itens) {
+            vendidos[i.produto_id] = (vendidos[i.produto_id] || 0) + Number(i.quantidade || 1);
+        }
+
+        const todos   = [...lojaProds, ...keolaProds];
+        const comMov  = todos.filter(p => vendidos[p.id] !== undefined);
+        const semMov  = todos.filter(p => vendidos[p.id] === undefined);
+        const lista   = [...comMov, ...semMov];
+
+        document.getElementById('rel-content').innerHTML = `
         <div class="rel-section">
             <div class="rel-section-title">Movimentação e Stock Actual</div>
             ${lista.length === 0
-                ? `<div class="rel-empty">Sem produtos carregados</div>`
-                : `<table class="rel-table">
+            ? `<div class="rel-empty">Sem produtos carregados</div>`
+            : `<table class="rel-table">
                     <thead>
                         <tr><th>Produto</th><th style="text-align:right">Vendidos</th><th style="text-align:right">Stock Actual</th><th>Estado</th></tr>
                     </thead>
                     <tbody>
                         ${lista.map(p => {
-                            const vendQty  = vendidos[p.id] || 0;
-                            const stock    = p.stock ?? p.quantidade ?? null;
-                            const ctrl     = p.controlar_estoque !== false;
-                            const isLow    = ctrl && stock !== null && stock > 0 && stock <= (p.stock_minimo || 3);
-                            const isZero   = ctrl && stock !== null && stock <= 0;
-                            const estCls   = isZero ? 'zero' : isLow ? 'low' : stock === null ? 'none' : 'ok';
-                            const estLabel = isZero ? 'Esgotado' : isLow ? 'Stock baixo' : stock === null ? 'Sem controlo' : 'Ok';
-                            return `
+                const vendQty  = vendidos[p.id] || 0;
+                const stock    = p.stock ?? p.quantidade ?? null;
+                const ctrl     = p.controlar_estoque !== false;
+                const isLow    = ctrl && stock !== null && stock > 0 && stock <= (p.stock_minimo || 3);
+                const isZero   = ctrl && stock !== null && stock <= 0;
+                const estCls   = isZero ? 'zero' : isLow ? 'low' : stock === null ? 'none' : 'ok';
+                const estLabel = isZero ? 'Esgotado' : isLow ? 'Stock baixo' : stock === null ? 'Sem controlo' : 'Ok';
+                return `
                                 <tr>
                                     <td>
                                         <div style="font-size:12px;font-weight:600">${p.nome}</div>
@@ -2559,61 +2561,61 @@ function renderRelEstoque() {
                                         class="est-qty ${estCls}">${stock !== null ? stock : '∞'}</td>
                                     <td><span class="est-badge ${estCls}">${estLabel}</span></td>
                                 </tr>`;
-                        }).join('')}
+            }).join('')}
                     </tbody>
                 </table>`}
         </div>`;
-}
-
-// ── ABA ESTOQUE ───────────────────────────────────────────────────
-
-function setEstSrc(src) {
-    estSrc = src;
-    document.getElementById('esrc-loja')?.classList.toggle('active',  src === 'loja');
-    document.getElementById('esrc-keola')?.classList.toggle('active', src === 'keola');
-    renderEstoque();
-}
-
-function renderEstoque() {
-    const q      = (document.getElementById('est-search')?.value || '').toLowerCase().trim();
-    const filtro = document.getElementById('est-filtro')?.value || '';
-    const lista  = estSrc === 'loja' ? lojaProds : keolaProds;
-
-    let filtrada = [...lista];
-    if (q) filtrada = filtrada.filter(p =>
-        (p.nome      || '').toLowerCase().includes(q) ||
-        (p.sku       || '').toLowerCase().includes(q) ||
-        (p.categoria || '').toLowerCase().includes(q)
-    );
-    if (filtro) {
-        filtrada = filtrada.filter(p => {
-            const stock = p.stock ?? p.quantidade ?? null;
-            const ctrl  = p.controlar_estoque !== false;
-            if (!ctrl || stock === null) return filtro === '';
-            if (filtro === 'zero') return stock <= 0;
-            if (filtro === 'low')  return stock > 0 && stock <= (p.stock_minimo || 3);
-            if (filtro === 'ok')   return stock > (p.stock_minimo || 3);
-            return true;
-        });
     }
 
-    const tbody = document.getElementById('est-tbody');
-    if (!filtrada.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-faint)">Nenhum produto encontrado</td></tr>`;
-        return;
+    // ── ABA ESTOQUE ───────────────────────────────────────────────────
+
+    function setEstSrc(src) {
+        estSrc = src;
+        document.getElementById('esrc-loja')?.classList.toggle('active',  src === 'loja');
+        document.getElementById('esrc-keola')?.classList.toggle('active', src === 'keola');
+        renderEstoque();
     }
 
-    tbody.innerHTML = filtrada.map(p => {
-        const stock  = p.stock ?? p.quantidade ?? null;
-        const ctrl   = p.controlar_estoque !== false;
-        const isLow  = ctrl && stock !== null && stock > 0 && stock <= (p.stock_minimo || 3);
-        const isZero = ctrl && stock !== null && stock <= 0;
-        const estCls = isZero ? 'zero' : isLow ? 'low' : stock === null ? '' : 'ok';
-        const badge  = isZero ? 'Esgotado' : isLow ? 'Stock baixo' : stock === null ? 'Sem controlo' : 'Em stock';
-        const preco  = p.preco_promocional && Number(p.preco_promocional) < Number(p.preco)
-            ? Number(p.preco_promocional) : Number(p.preco || 0);
+    function renderEstoque() {
+        const q      = (document.getElementById('est-search')?.value || '').toLowerCase().trim();
+        const filtro = document.getElementById('est-filtro')?.value || '';
+        const lista  = estSrc === 'loja' ? lojaProds : keolaProds;
 
-        return `
+        let filtrada = [...lista];
+        if (q) filtrada = filtrada.filter(p =>
+            (p.nome      || '').toLowerCase().includes(q) ||
+            (p.sku       || '').toLowerCase().includes(q) ||
+            (p.categoria || '').toLowerCase().includes(q)
+        );
+        if (filtro) {
+            filtrada = filtrada.filter(p => {
+                const stock = p.stock ?? p.quantidade ?? null;
+                const ctrl  = p.controlar_estoque !== false;
+                if (!ctrl || stock === null) return filtro === '';
+                if (filtro === 'zero') return stock <= 0;
+                if (filtro === 'low')  return stock > 0 && stock <= (p.stock_minimo || 3);
+                if (filtro === 'ok')   return stock > (p.stock_minimo || 3);
+                return true;
+            });
+        }
+
+        const tbody = document.getElementById('est-tbody');
+        if (!filtrada.length) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-faint)">Nenhum produto encontrado</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = filtrada.map(p => {
+            const stock  = p.stock ?? p.quantidade ?? null;
+            const ctrl   = p.controlar_estoque !== false;
+            const isLow  = ctrl && stock !== null && stock > 0 && stock <= (p.stock_minimo || 3);
+            const isZero = ctrl && stock !== null && stock <= 0;
+            const estCls = isZero ? 'zero' : isLow ? 'low' : stock === null ? '' : 'ok';
+            const badge  = isZero ? 'Esgotado' : isLow ? 'Stock baixo' : stock === null ? 'Sem controlo' : 'Em stock';
+            const preco  = p.preco_promocional && Number(p.preco_promocional) < Number(p.preco)
+                ? Number(p.preco_promocional) : Number(p.preco || 0);
+
+            return `
             <tr>
                 <td>
                     <span class="est-nome">${p.nome}</span>
@@ -2624,14 +2626,14 @@ function renderEstoque() {
                 <td class="est-qty ${estCls}">${stock !== null ? stock : '∞'}</td>
                 <td><span class="est-badge ${estCls || 'none'}">${badge}</span></td>
             </tr>`;
-    }).join('');
-}
+        }).join('');
+    }
 
-// ── ABA PEDIDOS ───────────────────────────────────────────────────
+    // ── ABA PEDIDOS ───────────────────────────────────────────────────
 
-async function carregarPedidos() {
-    const el = document.getElementById('aba-pedidos');
-    el.innerHTML = `
+    async function carregarPedidos() {
+        const el = document.getElementById('aba-pedidos');
+        el.innerHTML = `
         <div class="pedidos-toolbar">
             <div class="src-toggle">
                 <button class="src-btn active" id="pfiltro-ativos"     onclick="setPedidosFiltro('ativos')">Activos</button>
@@ -2648,54 +2650,54 @@ async function carregarPedidos() {
             </div>
         </div>`;
 
-    const hoje = new Date().toISOString().split('T')[0];
-    try {
-        pedidosData = await sb(
-            `pedidos?data_pedido=eq.${hoje}&order=numero.desc&select=*`
-        );
-    } catch { pedidosData = []; }
+        const hoje = new Date().toISOString().split('T')[0];
+        try {
+            pedidosData = await sb(
+                `pedidos?data_pedido=eq.${hoje}&order=numero.desc&select=*`
+            );
+        } catch { pedidosData = []; }
 
-    renderPedidos();
-}
+        renderPedidos();
+    }
 
-function setPedidosFiltro(f) {
-    pedidosFiltro = f;
-    ['ativos','hoje','pendente','cancelados'].forEach(k => {
-        document.getElementById(`pfiltro-${k}`)?.classList.toggle('active', k === f);
-    });
-    renderPedidos();
-}
+    function setPedidosFiltro(f) {
+        pedidosFiltro = f;
+        ['ativos','hoje','pendente','cancelados'].forEach(k => {
+            document.getElementById(`pfiltro-${k}`)?.classList.toggle('active', k === f);
+        });
+        renderPedidos();
+    }
 
-function renderPedidos() {
-    let lista = [...(pedidosData || [])];
-    if      (pedidosFiltro === 'ativos')     lista = lista.filter(p => !['entregue','cancelado'].includes(p.status));
-    else if (pedidosFiltro === 'pendente')   lista = lista.filter(p => p.status === 'pendente');
-    else if (pedidosFiltro === 'cancelados') lista = lista.filter(p => p.status === 'cancelado');
+    function renderPedidos() {
+        let lista = [...(pedidosData || [])];
+        if      (pedidosFiltro === 'ativos')     lista = lista.filter(p => !['entregue','cancelado'].includes(p.status));
+        else if (pedidosFiltro === 'pendente')   lista = lista.filter(p => p.status === 'pendente');
+        else if (pedidosFiltro === 'cancelados') lista = lista.filter(p => p.status === 'cancelado');
 
-    // Stats
-    const todos     = pedidosData || [];
-    const totalDia  = todos.filter(p => p.status !== 'cancelado').reduce((s, p) => s + Number(p.total || 0), 0);
-    const statsEl   = document.getElementById('pedidos-stats');
-    if (statsEl) statsEl.innerHTML = `
+        // Stats
+        const todos     = pedidosData || [];
+        const totalDia  = todos.filter(p => p.status !== 'cancelado').reduce((s, p) => s + Number(p.total || 0), 0);
+        const statsEl   = document.getElementById('pedidos-stats');
+        if (statsEl) statsEl.innerHTML = `
         <div class="pstat"><div class="pstat-num">${todos.filter(p => !['entregue','cancelado'].includes(p.status)).length}</div><div class="pstat-lbl">Activos</div></div>
         <div class="pstat"><div class="pstat-num">${todos.filter(p => p.status === 'pendente').length}</div><div class="pstat-lbl">Pendentes</div></div>
         <div class="pstat"><div class="pstat-num" style="color:var(--green)">${todos.filter(p => p.status === 'pronto').length}</div><div class="pstat-lbl">Prontos</div></div>
         <div class="pstat"><div class="pstat-num" style="color:var(--primary-dark)">€${totalDia.toFixed(0)}</div><div class="pstat-lbl">Total Hoje</div></div>`;
 
-    const listEl = document.getElementById('pedidos-list');
-    if (!listEl) return;
+        const listEl = document.getElementById('pedidos-list');
+        if (!listEl) return;
 
-    if (!lista.length) {
-        listEl.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-faint);font-size:13px">Sem pedidos neste filtro</div>`;
-        return;
-    }
+        if (!lista.length) {
+            listEl.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-faint);font-size:13px">Sem pedidos neste filtro</div>`;
+            return;
+        }
 
-    listEl.innerHTML = lista.map(p => {
-        const info  = STATUS_INFO[p.status] || { label: p.status, emoji: '?' };
-        const hora  = p.created_at ? new Date(p.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
-        const acoes = buildPedidoAcoes(p);
+        listEl.innerHTML = lista.map(p => {
+            const info  = STATUS_INFO[p.status] || { label: p.status, emoji: '?' };
+            const hora  = p.created_at ? new Date(p.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
+            const acoes = buildPedidoAcoes(p);
 
-        return `
+            return `
             <div class="pcard-pedido ${p.status}" id="pcard-${p.id}">
                 <div class="ped-header">
                     <div class="ped-num">#${String(p.numero || '').padStart(2,'0')}</div>
@@ -2713,79 +2715,79 @@ function renderPedidos() {
                     <span class="ped-total">€ ${Number(p.total || 0).toFixed(2)}</span>
                 </div>
             </div>`;
-    }).join('');
+        }).join('');
 
-    // Carrega itens de cada pedido
-    lista.forEach(p => carregarItensPedido(p.id));
-}
-
-function buildPedidoAcoes(p) {
-    const btns = [];
-    if (p.status === 'pendente')
-        btns.push(`<button class="ped-btn orange" onclick="mudarStatusPedido('${p.id}','em_preparacao')">🍳 Preparar</button>`);
-    if (p.status === 'em_preparacao')
-        btns.push(`<button class="ped-btn green"  onclick="mudarStatusPedido('${p.id}','pronto')">✅ Pronto</button>`);
-    if (p.status === 'pronto')
-        btns.push(`<button class="ped-btn"        onclick="mudarStatusPedido('${p.id}','entregue')">📦 Entregue</button>`);
-    if (!['cancelado','entregue'].includes(p.status))
-        btns.push(`<button class="ped-btn red"    onclick="cancelarPedido('${p.id}')">✕ Cancelar</button>`);
-    btns.push(`<button class="ped-btn" onclick="imprimirPedido('${p.id}')">🖨</button>`);
-    return btns.join('');
-}
-
-async function carregarItensPedido(pedidoId) {
-    const el = document.getElementById(`ped-itens-${pedidoId}`);
-    if (!el) return;
-    try {
-        const itensP = await sb(`pedido_itens?pedido_id=eq.${pedidoId}&select=*`);
-        el.innerHTML = (itensP || []).map(i =>
-            `<span>• ${i.quantidade}× ${i.produto_nome || '?'}</span>`
-        ).join('  ');
-    } catch {
-        el.textContent = '—';
+        // Carrega itens de cada pedido
+        lista.forEach(p => carregarItensPedido(p.id));
     }
-}
 
-async function mudarStatusPedido(id, novoStatus) {
-    try {
-        await sb(`pedidos?id=eq.${id}`, {
-            method: 'PATCH',
-            body:   JSON.stringify({ status: novoStatus }),
-        });
-        const idx = pedidosData.findIndex(p => p.id === id);
-        if (idx !== -1) pedidosData[idx].status = novoStatus;
-        renderPedidos();
-        toast(`Pedido ${STATUS_INFO[novoStatus]?.label || novoStatus}`, 'ok');
-    } catch {
-        toast('Erro ao actualizar pedido', 'err');
+    function buildPedidoAcoes(p) {
+        const btns = [];
+        if (p.status === 'pendente')
+            btns.push(`<button class="ped-btn orange" onclick="mudarStatusPedido('${p.id}','em_preparacao')">🍳 Preparar</button>`);
+        if (p.status === 'em_preparacao')
+            btns.push(`<button class="ped-btn green"  onclick="mudarStatusPedido('${p.id}','pronto')">✅ Pronto</button>`);
+        if (p.status === 'pronto')
+            btns.push(`<button class="ped-btn"        onclick="mudarStatusPedido('${p.id}','entregue')">📦 Entregue</button>`);
+        if (!['cancelado','entregue'].includes(p.status))
+            btns.push(`<button class="ped-btn red"    onclick="cancelarPedido('${p.id}')">✕ Cancelar</button>`);
+        btns.push(`<button class="ped-btn" onclick="imprimirPedido('${p.id}')">🖨</button>`);
+        return btns.join('');
     }
-}
 
-async function cancelarPedido(id) {
-    if (!confirm('Cancelar este pedido?')) return;
-    await mudarStatusPedido(id, 'cancelado');
-}
+    async function carregarItensPedido(pedidoId) {
+        const el = document.getElementById(`ped-itens-${pedidoId}`);
+        if (!el) return;
+        try {
+            const itensP = await sb(`pedido_itens?pedido_id=eq.${pedidoId}&select=*`);
+            el.innerHTML = (itensP || []).map(i =>
+                `<span>• ${i.quantidade}× ${i.produto_nome || '?'}</span>`
+            ).join('  ');
+        } catch {
+            el.textContent = '—';
+        }
+    }
 
-async function imprimirPedido(id) {
-    const ped    = pedidosData.find(p => p.id === id);
-    if (!ped) return;
-    let itensP = [];
-    try { itensP = await sb(`pedido_itens?pedido_id=eq.${id}&select=*`); }
-    catch { itensP = []; }
+    async function mudarStatusPedido(id, novoStatus) {
+        try {
+            await sb(`pedidos?id=eq.${id}`, {
+                method: 'PATCH',
+                body:   JSON.stringify({ status: novoStatus }),
+            });
+            const idx = pedidosData.findIndex(p => p.id === id);
+            if (idx !== -1) pedidosData[idx].status = novoStatus;
+            renderPedidos();
+            toast(`Pedido ${STATUS_INFO[novoStatus]?.label || novoStatus}`, 'ok');
+        } catch {
+            toast('Erro ao actualizar pedido', 'err');
+        }
+    }
 
-    const snap = {
-        itensCopy:     itensP.map(i => ({ prod: { nome: i.produto_nome }, qtd: i.quantidade, preco: i.preco_unitario })),
-        total:         Number(ped.total),
-        desconto:      Number(ped.desconto || 0),
-        nomeCliente:   ped.nome_cliente || 'Anónimo',
-        pagTipo:       ped.forma_pagamento,
-        cartaoAuth:    ped.referencia_pagamento || '',
-        operador:      ped.operador || '',
-        numeroPedido:  ped.numero,
-    };
-    gerarCupom(snap);
-    setTimeout(() => window.print(), 100);
-}
+    async function cancelarPedido(id) {
+        if (!confirm('Cancelar este pedido?')) return;
+        await mudarStatusPedido(id, 'cancelado');
+    }
+
+    async function imprimirPedido(id) {
+        const ped    = pedidosData.find(p => p.id === id);
+        if (!ped) return;
+        let itensP = [];
+        try { itensP = await sb(`pedido_itens?pedido_id=eq.${id}&select=*`); }
+        catch { itensP = []; }
+
+        const snap = {
+            itensCopy:     itensP.map(i => ({ prod: { nome: i.produto_nome }, qtd: i.quantidade, preco: i.preco_unitario })),
+            total:         Number(ped.total),
+            desconto:      Number(ped.desconto || 0),
+            nomeCliente:   ped.nome_cliente || 'Anónimo',
+            pagTipo:       ped.forma_pagamento,
+            cartaoAuth:    ped.referencia_pagamento || '',
+            operador:      ped.operador || '',
+            numeroPedido:  ped.numero,
+        };
+        gerarCupom(snap);
+        setTimeout(() => window.print(), 100);
+    }
 </script>
 
 </body>

@@ -288,8 +288,6 @@
                     <div id="det-applepay-ui"></div>
                 </div>
                 <!-- Multibanco detail -->
-                <div class="pay-detail" id="det-multibanco"><p style="font-size:12px;color:var(--text-muted)">Pagamento via referencia Multibanco estara disponivel em breve.</p></div>
-                <!-- Multibanco detail -->
                 <div class="pay-detail" id="det-multibanco" style="display:none">
                     <div id="det-multibanco-ui" style="padding:4px 0">
                         <p style="text-align:center;font-size:12px;color:var(--text-faint)">Clica em "Gerar Referencia Multibanco" para obteres os dados de pagamento.</p>
@@ -496,15 +494,15 @@
                 if(!SB_URL||!SB_KEY) return Promise.resolve();
                 var mid=membroId||authUser.id;
                 return sbReq('dizimos','POST',{ membro_id:mid,membro_nome:nome,data_oferta:today,tipo_oferta:t.key,valor:v,observacoes:obsVal,forma_pagamento:pagamento,status:'pendente',referencia:ref })
-                .then(function(dzRows){
-                    return sbReq('contas_receber','POST',{ tipo:'dizimo',membro_id:mid,membro_nome:nome,descricao:t.label+' — '+nome,referencia:ref,valor_total:v,valor_recebido:0,data_emissao:today,data_vencimento:today,forma_pagamento:pagamento,status:'pendente',observacoes:obsVal })
-                    .then(function(crRows){
-                        if(dzRows&&crRows&&dzRows[0]&&crRows[0]){
-                            dizimoIdsGravados.push(dzRows[0].id); crIdsGravados.push(crRows[0].id);
-                            return sbReq('dizimos?id=eq.'+dzRows[0].id,'PATCH',{ contas_receber_id:crRows[0].id }).catch(function(){});
-                        }
-                    });
-                }).catch(function(e){ console.error('Erro insert '+t.key+':',e.message); });
+                    .then(function(dzRows){
+                        return sbReq('contas_receber','POST',{ tipo:'dizimo',membro_id:mid,membro_nome:nome,descricao:t.label+' — '+nome,referencia:ref,valor_total:v,valor_recebido:0,data_emissao:today,data_vencimento:today,forma_pagamento:pagamento,status:'pendente',observacoes:obsVal })
+                            .then(function(crRows){
+                                if(dzRows&&crRows&&dzRows[0]&&crRows[0]){
+                                    dizimoIdsGravados.push(dzRows[0].id); crIdsGravados.push(crRows[0].id);
+                                    return sbReq('dizimos?id=eq.'+dzRows[0].id,'PATCH',{ contas_receber_id:crRows[0].id }).catch(function(){});
+                                }
+                            });
+                    }).catch(function(e){ console.error('Erro insert '+t.key+':',e.message); });
             });
         });
 
@@ -518,11 +516,11 @@
             if(pagamento==='mbway'){
                 btn.disabled=false; btn.textContent='Confirmar e Registar Oferta';
                 mbwayIniciar(total,ref,dizimoIdsGravados,crIdsGravados)
-                .then(function(data){
-                    if(data.referencia&&dizimoIdsGravados.length>0) sbReq('dizimos?id=in.('+dizimoIdsGravados.join(',')+')', 'PATCH',{ eupago_referencia:data.referencia,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
-                    if(data.referencia&&crIdsGravados.length>0) sbReq('contas_receber?id=in.('+crIdsGravados.join(',')+')', 'PATCH',{ referencia_eupago:data.referencia,status:'aguarda_pagamento' }).catch(function(){});
-                    showToast('Notificacao MB WAY enviada!','ok');
-                }).catch(function(e){ showToast(e.message||'Erro ao enviar MB WAY','error'); });
+                    .then(function(data){
+                        if(data.referencia&&dizimoIdsGravados.length>0) sbReq('dizimos?id=in.('+dizimoIdsGravados.join(',')+')', 'PATCH',{ eupago_referencia:data.referencia,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
+                        if(data.referencia&&crIdsGravados.length>0) sbReq('contas_receber?id=in.('+crIdsGravados.join(',')+')', 'PATCH',{ referencia_eupago:data.referencia,status:'aguarda_pagamento' }).catch(function(){});
+                        showToast('Notificacao MB WAY enviada!','ok');
+                    }).catch(function(e){ showToast(e.message||'Erro ao enviar MB WAY','error'); });
                 return;
             }
             if(pagamento==='cartao'||pagamento==='applepay'||pagamento==='multibanco'){
@@ -562,39 +560,39 @@
             headers:{'Content-Type':'application/json','apikey':SB_KEY},
             body:JSON.stringify({ tipo:tipo,valor:totalValor.toFixed(2),referencia:referencia,email:email||'',telefone:tel||'',descricao:'Oferta Zion Lisboa',dizimo_ids:urlPayDizimoIds,contas_receber_ids:urlPayCrIds })
         })
-        .then(function(r){ return r.json(); })
-        .then(function(data){
-            if(!data.success||!data.paymentUrl) throw new Error(data.error||'Sem URL de pagamento');
-            var refEupago=data.referencia||referencia; urlPayReferencia=refEupago;
-            if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
-            if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});
-            var uiEl=document.getElementById(uiId);
-            // Cartao/ApplePay: abre automaticamente (sem precisar de 2º clique)
-            if(tipo!=='multibanco' && data.paymentUrl){
-                window.open(data.paymentUrl,'_blank');
-            }
-            if(tipo==='multibanco'){
-                // Mostrar Entidade + Referencia ATM
-                var ent=data.entidade||'--'; var ref=data.referencia||'--';
-                uiEl.innerHTML='<div class="mb-ref-card">'+
-                    '<div class="mb-ref-row"><span class="mb-ref-label">Entidade</span><span class="mb-ref-value">'+ent+'</span></div>'+
-                    '<div class="mb-ref-row"><span class="mb-ref-label">Referencia</span><span class="mb-ref-value mb-ref-big">'+ref+'</span></div>'+
-                    '<div class="mb-ref-row"><span class="mb-ref-label">Valor</span><span class="mb-ref-value">'+totalValor.toFixed(2)+' €</span></div>'+
-                    '<p class="mb-ref-hint">Paga no Multibanco ou Homebanking.<br>Esta pagina actualiza automaticamente quando o pagamento for confirmado.</p>'+
-                    '</div>';
-            } else {
-                var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
-                uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><a class="pay-open-btn" href="'+data.paymentUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</a><div class="url-pay-poll" style="margin-top:12px"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
-            }
-            if(urlPayPollTimer) clearInterval(urlPayPollTimer);
-            urlPayPollTimer=setInterval(function(){ urlPayVerificarEstado(refEupago); },5000);
-            showToast('Pagina de pagamento aberta!','ok');
-        }).catch(function(e){
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if(!data.success||!data.paymentUrl) throw new Error(data.error||'Sem URL de pagamento');
+                var refEupago=data.referencia||referencia; urlPayReferencia=refEupago;
+                if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
+                if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});
+                var uiEl=document.getElementById(uiId);
+                // Cartao/ApplePay: abre automaticamente (sem precisar de 2º clique)
+                if(tipo!=='multibanco' && data.paymentUrl){
+                    window.open(data.paymentUrl,'_blank');
+                }
+                if(tipo==='multibanco'){
+                    // Mostrar Entidade + Referencia ATM
+                    var ent=data.entidade||'--'; var ref=data.referencia||'--';
+                    uiEl.innerHTML='<div class="mb-ref-card">'+
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Entidade</span><span class="mb-ref-value">'+ent+'</span></div>'+
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Referencia</span><span class="mb-ref-value mb-ref-big">'+ref+'</span></div>'+
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Valor</span><span class="mb-ref-value">'+totalValor.toFixed(2)+' €</span></div>'+
+                        '<p class="mb-ref-hint">Paga no Multibanco ou Homebanking.<br>Esta pagina actualiza automaticamente quando o pagamento for confirmado.</p>'+
+                        '</div>';
+                } else {
+                    var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
+                    uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><a class="pay-open-btn" href="'+data.paymentUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</a><div class="url-pay-poll" style="margin-top:12px"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
+                }
+                if(urlPayPollTimer) clearInterval(urlPayPollTimer);
+                urlPayPollTimer=setInterval(function(){ urlPayVerificarEstado(refEupago); },5000);
+                showToast('Pagina de pagamento aberta!','ok');
+            }).catch(function(e){
             document.getElementById(uiId).innerHTML='<p style="color:#c0392b;font-size:12px;text-align:center">'+(e.message||'Erro ao preparar pagamento')+'</p>';
             showToast(e.message||'Erro ao preparar pagamento','error');
         });
     }
-    
+
     function urlPayVerificarEstado(refEupago){
         if(!refEupago||!SB_URL||!SB_KEY) return;
         sbReq('dizimos?select=status&eupago_referencia=eq.'+refEupago+'&limit=1','GET').then(function(rows){
@@ -680,7 +678,7 @@
         mbwayDizimoIds=dizimoIds||[]; mbwayCrIds=crIds||[];
         var fnUrl=SB_URL.split('/rest')[0]+'/functions/v1/mbway-iniciar';
         return fetch(fnUrl,{ method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY}, body:JSON.stringify({ telemovel:tel,valor:totalValor.toFixed(2),referencia:referencia,descricao:'Oferta Zion Lisboa',email:authUser.email||'',dizimo_ids:mbwayDizimoIds,contas_receber_ids:mbwayCrIds }) })
-        .then(function(r){ return r.json(); }).then(function(data){ if(!data.success) throw new Error(data.error||'Erro MB WAY'); mbwayTransacao=data.id_transacao; mbwayReferencia=data.referencia; mbwayIniciarCountdown(); return data; });
+            .then(function(r){ return r.json(); }).then(function(data){ if(!data.success) throw new Error(data.error||'Erro MB WAY'); mbwayTransacao=data.id_transacao; mbwayReferencia=data.referencia; mbwayIniciarCountdown(); return data; });
     }
 
     function mbwayIniciarCountdown(){

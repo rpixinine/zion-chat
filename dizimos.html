@@ -1022,7 +1022,21 @@
                 btn.disabled    = false;
                 btn.textContent = 'Confirmar e Registar Oferta';
                 mbwayIniciar(total, ref, dizimoIdsGravados, crIdsGravados)
-                    .then(function() {
+                    .then(function(data) {
+                        // Grava eupago_referencia directamente do frontend — mais fiavel
+                        if (data.referencia && dizimoIdsGravados.length > 0) {
+                            sbReq('dizimos?id=in.(' + dizimoIdsGravados.join(',') + ')', 'PATCH', {
+                                eupago_referencia:   data.referencia,
+                                eupago_id_transacao: data.id_transacao,
+                                status:              'aguarda_pagamento'
+                            }).catch(function(){});
+                        }
+                        if (data.referencia && crIdsGravados.length > 0) {
+                            sbReq('contas_receber?id=in.(' + crIdsGravados.join(',') + ')', 'PATCH', {
+                                referencia_eupago: data.referencia,
+                                status:            'aguarda_pagamento'
+                            }).catch(function(){});
+                        }
                         showToast('Notificacao MB WAY enviada!', 'ok');
                     })
                     .catch(function(e) {

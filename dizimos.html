@@ -564,7 +564,8 @@
         })
         .then(function(r){ return r.json(); })
         .then(function(data){
-            if(!data.success||!data.paymentUrl) throw new Error(data.error||'Sem URL de pagamento');
+            if(!data.success) throw new Error(data.error||'Erro ao gerar pagamento');
+            if(tipo!=='multibanco'&&!data.paymentUrl) throw new Error('Sem URL de pagamento');
             var refEupago=data.referencia||referencia; urlPayReferencia=refEupago;
             if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
             if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});

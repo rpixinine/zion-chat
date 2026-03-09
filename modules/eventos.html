@@ -276,7 +276,6 @@ async function evCancelar(id){
 async function evExcluir(id){
     const ev=evEventos.find(e=>e.id===id);if(!ev)return;
     if(!confirm(`Excluir permanentemente "${ev.titulo}"?\n\nEsta acao nao pode ser desfeita. As presenças associadas tambem serao removidas.`))return;
-    // Remove presenças primeiro (FK constraint)
     await _sb(`evento_presencas?evento_id=eq.${id}`,{method:'DELETE'}).catch(()=>{});
     await _sb(`eventos?id=eq.${id}`,{method:'DELETE'});
     evAtivo=null;evView='info';
@@ -345,9 +344,20 @@ function _evQRFallback(canvas,text){
 }
 
 // ── PRESENCAS ──────────────────────────────────────────────────────────
+
+// FIX 1: setter exposto para o oninput do campo de pesquisa de participantes
+// (o oninput inline não consegue acessar variáveis dentro do IIFE)
+function evSetPresSearch(v){ evPresSearchQ=v; evRenderPresencas(); }
+
 async function evVerPresencas(id){
     evView='presencas';evAtivo=evEventos.find(e=>e.id===id)||evAtivo;
     evPresencas=await _sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url)&evento_id=eq.${id}&order=created_at`)||[];
+
+    // FIX 2: carrega membros on-demand se ainda não estiver disponível globalmente
+    if(!window.membros?.length){
+        window.membros = await _sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]) || [];
+    }
+
     const mIds=evPresencas.map(p=>p.membro_id).filter(Boolean);evLidMin={};
     if(mIds.length){const vs=await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`)||[];vs.forEach(v=>{if(!evLidMin[v.membro_id])evLidMin[v.membro_id]=[];evLidMin[v.membro_id].push({papel:v.papel,nome:v.ministerios?.nome||'—',tipo:v.ministerios?.tipo||'—'});});}
     evRenderPresencas();
@@ -366,7 +376,7 @@ function evRenderPresencas(){
         <button class="ev-btn" onclick="evView='info';evRenderDetalhe()">← Voltar</button>
         ${emC?`<button class="ev-btn qr" onclick="evMostrarQR('${ev.id}')">QR Code</button>`:''}
         ${ev.status==='concluido'?`<button class="ev-btn danger" onclick="evGerarPDF('${ev.id}')">PDF</button>`:''}
-        <input style="flex:1;min-width:120px;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;outline:none" placeholder="Pesquisar participante..." value="${evPresSearchQ}" oninput="evPresSearchQ=this.value;evRenderPresencas()">
+        <input style="flex:1;min-width:120px;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;outline:none" placeholder="Pesquisar participante..." value="${evPresSearchQ}" oninput="evSetPresSearch(this.value)">
         ${emC?`<button class="ev-btn success" onclick="evFinalizarEntradas()">Finalizar Pendentes</button>`:''}
     </div>
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
@@ -381,6 +391,7 @@ function evRenderPresencas(){
         </div>
     </div>`;
 
+    // FIX 3: select de adicionar agora usa window.membros já garantido acima
     if(emC){html+=`<div class="ev-pres-add"><div class="ev-pres-add-title">Adicionar manualmente</div><div class="ev-pres-add-row"><select class="form-select" id="ev-add-mb" style="flex:1;font-size:12px"><option value="">Seleciona membro...</option>${mDisp.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select><button class="ev-btn primary" onclick="evAddParticipante()">Adicionar</button></div></div>`;}
 
     if(!lista.length){html+=`<div style="text-align:center;padding:30px;font-size:13px;color:var(--text-faint)">Nenhum participante encontrado.</div>`;}
@@ -419,10 +430,16 @@ async function evMarcarPres(presId,st){
     evRenderPresencas();
 }
 async function evAddParticipante(){
-    const sel=document.getElementById('ev-add-mb'),memId=sel?.value;if(!memId)return;
+    const sel=document.getElementById('ev-add-mb'),memId=sel?.value;if(!memId){alert('Seleciona um membro.');return;}
     if(evPresencas.find(p=>p.membro_id===memId)){alert('Membro ja na lista.');return;}
-    await _sb('evento_presencas',{method:'POST',body:JSON.stringify([{evento_id:evAtivo.id,membro_id:memId,status:'pendente'}])});
-    await evVerPresencas(evAtivo.id);
+    const btn=sel.nextElementSibling;if(btn){btn.disabled=true;btn.textContent='A adicionar...';}
+    try{
+        await _sb('evento_presencas',{method:'POST',body:JSON.stringify([{evento_id:evAtivo.id,membro_id:memId,status:'pendente'}])});
+        await evVerPresencas(evAtivo.id);
+    }catch(err){
+        alert('Erro ao adicionar: '+(err?.message||JSON.stringify(err)));
+        if(btn){btn.disabled=false;btn.textContent='Adicionar';}
+    }
 }
 async function evFinalizarEntradas(){
     if(!evAtivo)return;if(!confirm('Pendentes serao marcados como faltaram.'))return;
@@ -484,13 +501,11 @@ async function evGerarPDF(evId){
     const nP=pres.filter(p=>p.status==='presente'),nF=pres.filter(p=>p.status==='faltou'),nM=pres.filter(p=>p.status==='faltou_motivo'),tot=pres.length;
     const dE=ev.data_inicio?new Date(ev.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 
-    // ── helpers row ────────────────────────────────────────────────────────
     const rowM=p=>{
         const ms=(mMap[p.membro_id]||[]).map(m=>`[${m.tipoLabel}] ${m.nome}${m.papel?' · '+m.papel:''}`).join(' | ');
         return`<tr><td>${p.membros?.nome||'—'}</td><td style="font-size:11px;color:#555">${ms||'—'}</td><td style="font-size:11px;color:#c07000">${p.motivo||'—'}</td></tr>`;
     };
 
-    // ── gráfico pizza SVG ──────────────────────────────────────────────────
     const _pizza=(dados,total,r,cx,cy)=>{
         if(!total) return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#eee"/>`;
         let paths='',start=-Math.PI/2;
@@ -502,16 +517,13 @@ async function evGerarPDF(evId){
             paths+=`<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${a>Math.PI?1:0},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${d.c}" opacity="0.9"/>`;
             start=en;
         });
-        // anel central
         paths+=`<circle cx="${cx}" cy="${cy}" r="${Math.round(r*.42)}" fill="white"/>`;
         paths+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">${total}</text>`;
         paths+=`<text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="8" fill="#999">TOTAL</text>`;
         return paths;
     };
 
-    // ── gráfico barras horizontais ─────────────────────────────────────────
     const _barras=(items,maxW)=>{
-        // items: [{label, pres, falt, mot, total}]
         const H=22,gap=6,pad=4;
         const svgH=items.length*(H+gap)+pad*2;
         let rects='';
@@ -534,8 +546,6 @@ async function evGerarPDF(evId){
         return`<svg width="${maxW+80}" height="${svgH}" viewBox="-75 0 ${maxW+80} ${svgH}" style="max-width:100%">${rects}</svg>`;
     };
 
-    // ── separar por tipo ───────────────────────────────────────────────────
-    // Tipos a separar: 'ae' (area de extensao), 'presbitero'/'presbiterio', 'ministerio', outros
     const _TIPOS={
         ae:{label:'Areas de Extensao (AE)',tipos:['ae','area_extensao','area extensao']},
         presbitero:{label:'Presbiterio',tipos:['presbitero','presbiterio','presbytery']},
@@ -549,7 +559,6 @@ async function evGerarPDF(evId){
         return 'outro';
     };
 
-    // Calcular stats por area (independente do tipo)
     const porArea={};
     pres.forEach(p=>{
         const mins=mMap[p.membro_id];
@@ -572,27 +581,23 @@ async function evGerarPDF(evId){
         }
     });
 
-    // Calcular stats por tipo
     const porTipo={ae:{pres:0,falt:0,mot:0,total:0},presbitero:{pres:0,falt:0,mot:0,total:0},ministerio:{pres:0,falt:0,mot:0,total:0},outro:{pres:0,falt:0,mot:0,total:0}};
     Object.values(porArea).forEach(a=>{
         const t=porTipo[a.tipo]||porTipo.outro;
         t.pres+=a.pres;t.falt+=a.falt;t.mot+=a.mot;t.total+=a.total;
     });
 
-    // Agrupar areas por tipo (para gráficos)
     const areasPorTipo={};
     Object.values(porArea).forEach(a=>{
         if(!areasPorTipo[a.tipo])areasPorTipo[a.tipo]=[];
         areasPorTipo[a.tipo].push(a);
     });
 
-    // ── Construir HTML do PDF ──────────────────────────────────────────────
     const gDados=[{v:nP.length,c:'#2e7d32',l:'Presentes'},{v:nM.length,c:'#e65100',l:'Com Motivo'},{v:nF.length,c:'#c62828',l:'Faltaram'}];
     const pizzaGeral=`<svg width="160" height="160" viewBox="0 0 160 160">${_pizza(gDados,tot,65,80,80)}</svg>`;
 
     const legendaGeral=gDados.map(d=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:4px"><div style="width:12px;height:12px;border-radius:50%;background:${d.c};flex-shrink:0"></div>${d.l}: <strong>${d.v}</strong> (${tot>0?Math.round(d.v/tot*100):0}%)</div>`).join('');
 
-    // Gráfico por tipo de área
     const tipoItems=Object.entries(_TIPOS).map(([k,v])=>{
         const t=porTipo[k]||{pres:0,falt:0,mot:0,total:0};
         return{label:v.label.replace(' (AE)',''),pres:t.pres,falt:t.falt,mot:t.mot,total:t.total};
@@ -600,7 +605,6 @@ async function evGerarPDF(evId){
 
     const barrasTypes=tipoItems.length>0?_barras(tipoItems,300):'<p style="color:#999;font-size:12px">Sem dados de areas para exibir.</p>';
 
-    // Secções por tipo de área
     let secoesTipo='';
     for(const [tipoKey,tipoInfo] of Object.entries(_TIPOS)){
         const areas=(areasPorTipo[tipoKey]||[]).sort((a,b)=>b.total-a.total);
@@ -698,7 +702,6 @@ ${nF.length?`<h2>Faltaram (${nF.length})</h2>
     const w=window.open('','_blank');w.document.write(htm);w.document.close();
 }
 
-// helper label tipo para o PDF
 function _pdfTipoLabel(tipo){
     const t=(tipo||'').toLowerCase();
     if(t.includes('ae')||t.includes('extensao'))return'AE';
@@ -792,7 +795,7 @@ function evRemoverTipo(idx){const lista=getTipos();if(!confirm(`Remover "${lista
 function evMoverTipo(idx,dir){const lista=getTipos(),n=idx+dir;if(n<0||n>=lista.length)return;[lista[idx],lista[n]]=[lista[n],lista[idx]];saveTipos(lista);evRenderSideTipos();evSelTipo(n);evTipoIdx=n;}
 
 // ── EXPOR ──────────────────────────────────────────────────────────────
-Object.assign(window,{evSetTab,evFiltrar,evToggleSt,evSelEvento,evAbrirForm,evSalvar,evIniciar,evConcluir,evCancelar,evExcluir,evMostrarQR,evCopiarURL,evDownloadQR,evVerPresencas,evRenderPresencas,evMarcarPres,evAddParticipante,evFinalizarEntradas,evAbrirMotivo,evGuardarMotivo,evGerarPDF,_pdfTipoLabel,evRenderSideTipos,evSelTipo,evAbrirFormTipo,evSalvarTipo,evRemoverTipo,evMoverTipo});
+Object.assign(window,{evSetTab,evFiltrar,evToggleSt,evSelEvento,evAbrirForm,evSalvar,evIniciar,evConcluir,evCancelar,evExcluir,evMostrarQR,evCopiarURL,evDownloadQR,evVerPresencas,evRenderPresencas,evSetPresSearch,evMarcarPres,evAddParticipante,evFinalizarEntradas,evAbrirMotivo,evGuardarMotivo,evGerarPDF,_pdfTipoLabel,evRenderSideTipos,evSelTipo,evAbrirFormTipo,evSalvarTipo,evRemoverTipo,evMoverTipo});
 
 evInit();
 })();

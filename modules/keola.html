@@ -1,0 +1,1026 @@
+<style>
+    /* ── KEOLA MODULE ─────────────────────────────────────────────────────── */
+    #kl-root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+    .kl-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+    .kl-search {
+        flex: 1;
+        min-width: 140px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 7px 14px;
+        font-size: 12px;
+        font-family: var(--font-body);
+        color: var(--text-main);
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .kl-search:focus { border-color: var(--primary); }
+    .kl-filter-sel {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 7px 12px;
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        cursor: pointer;
+        outline: none;
+    }
+    .kl-filter-sel:focus { border-color: var(--primary); }
+    .kl-filter-btn {
+        padding: 7px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .kl-filter-btn:hover, .kl-filter-btn.active {
+        border-color: var(--primary);
+        color: var(--primary-dark);
+        background: var(--primary-faint);
+    }
+    .kl-btn-new {
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .kl-btn-new:hover { background: var(--primary-dark); }
+
+    .kl-stats-bar {
+        display: flex;
+        gap: 8px;
+        padding: 8px 16px;
+        flex-shrink: 0;
+        overflow-x: auto;
+    }
+    .kl-stat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 16px;
+        text-align: center;
+        min-width: 90px;
+        flex-shrink: 0;
+    }
+    .kl-stat-num {
+        font-family: var(--font-title);
+        font-size: 20px;
+        font-weight: 700;
+    }
+    .kl-stat-label {
+        font-size: 9px;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 2px;
+    }
+
+    .kl-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 16px 24px;
+    }
+
+    .kl-section {
+        margin-bottom: 20px;
+    }
+    .kl-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 4px 8px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .kl-section-title {
+        font-family: var(--font-title);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .kl-section-badge {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-size: 9px;
+        color: var(--text-faint);
+    }
+    .kl-section-chevron {
+        font-size: 10px;
+        color: var(--text-faint);
+        transition: transform 0.2s;
+    }
+    .kl-section.collapsed .kl-section-chevron { transform: rotate(-90deg); }
+    .kl-section.collapsed .kl-grid { display: none; }
+
+    .kl-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 10px;
+    }
+
+    .kl-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: border-color 0.15s, transform 0.15s;
+        cursor: pointer;
+        animation: fadeUp 0.25s ease both;
+    }
+    .kl-card:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .kl-card.inativo { opacity: 0.45; }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .kl-card-img {
+        width: 100%;
+        height: 110px;
+        object-fit: cover;
+        background: var(--primary-faint);
+        flex-shrink: 0;
+        display: block;
+    }
+    .kl-card-img-placeholder {
+        width: 100%;
+        height: 110px;
+        background: var(--primary-faint);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .kl-card-img-placeholder img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.6;
+    }
+    .kl-card-body {
+        padding: 10px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .kl-card-nome {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.3;
+    }
+    .kl-card-cat {
+        font-size: 10px;
+        color: var(--text-faint);
+    }
+    .kl-card-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-top: 2px;
+    }
+    .kl-card-preco {
+        font-family: var(--font-title);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-top: auto;
+    }
+    .kl-card-stock {
+        font-size: 10px;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .kl-stock-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .kl-card-actions {
+        display: flex;
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .kl-card-btn {
+        flex: 1;
+        padding: 7px 4px;
+        border: none;
+        background: none;
+        font-size: 10px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        border-right: 1px solid var(--border);
+    }
+    .kl-card-btn:last-child { border-right: none; }
+    .kl-card-btn:hover { background: var(--primary-faint); color: var(--primary-dark); }
+    .kl-card-btn.danger:hover { background: rgba(220,50,47,0.08); color: var(--red); }
+
+    .kl-empty {
+        text-align: center;
+        padding: 30px;
+        color: var(--text-faint);
+        font-size: 13px;
+        grid-column: 1/-1;
+    }
+
+    /* Kit panel */
+    .kl-kit-panel {
+        background: var(--bg-input);
+        border: 1px solid var(--primary);
+        border-radius: 10px;
+        padding: 14px;
+        margin: 8px 0;
+    }
+    .kl-kit-title {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--primary-dark);
+        margin-bottom: 10px;
+    }
+    .kl-kit-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+    .kl-kit-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        border-radius: 7px;
+        padding: 7px 10px;
+        margin-bottom: 3px;
+        font-size: 12px;
+    }
+    .kl-kit-item span { flex: 1; }
+    .kl-kit-item-val { color: var(--primary-dark); font-weight: 700; }
+    .kl-kit-remove {
+        color: var(--red);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 2px 6px;
+    }
+
+    /* Stock indicator bar */
+    .kl-stock-bar {
+        height: 3px;
+        background: var(--bg-input);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 3px;
+    }
+    .kl-stock-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.4s ease;
+    }
+</style>
+
+<div id="kl-root">
+    <!-- Toolbar -->
+    <div class="kl-toolbar">
+        <input class="kl-search" id="kl-search" placeholder="Pesquisar item..." oninput="kl_onSearch()">
+        <select class="kl-filter-sel" id="kl-f-tipo" onchange="kl_render()">
+            <option value="">Todos os tipos</option>
+            <option value="venda">Itens de Venda</option>
+            <option value="kit">Kits / Pratos</option>
+            <option value="componente">Componentes</option>
+        </select>
+        <select class="kl-filter-sel" id="kl-f-cat" onchange="kl_render()">
+            <option value="">Todas as categorias</option>
+            <option value="almoco">Refeições</option>
+            <option value="bebidas">Bebidas Frescas</option>
+            <option value="sumos">Bebidas Quentes</option>
+            <option value="snacks">Salgados</option>
+            <option value="sobremesas">Doces</option>
+            <option value="outro">Outros</option>
+        </select>
+        <button class="kl-filter-btn" id="kl-f-inativo" onclick="kl_toggleInativo()">Inativos</button>
+        <button class="kl-btn-new" onclick="kl_abrirForm(null)">+ Novo Item</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="kl-stats-bar" id="kl-stats"></div>
+
+    <!-- Scrollable content -->
+    <div class="kl-scroll" id="kl-scroll">
+        <div class="loading"><div class="spin"></div>A carregar...</div>
+    </div>
+</div>
+
+<script>
+    (function() {
+// ─── STATE ────────────────────────────────────────────────────────────────────
+        let kl_data         = [];
+        let kl_inativo      = false;
+        let kl_kitCache     = {}; // kit_id -> componentes
+        let kl_kitItensTemp = [];
+        let kl_collapsed    = {}; // section key -> bool
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+        async function kl_init() {
+            kl_data = await sb('keola_menu?select=*&order=categoria,nome') || [];
+            await kl_loadKitCache();
+            kl_render();
+        }
+        window.kl_init = kl_init;
+
+        async function kl_loadKitCache() {
+            const comps = await sb('keola_kit_componentes?select=*,keola_menu!keola_kit_componentes_componente_id_fkey(id,nome,stock,unidade,preco_custo)').catch(() => []);
+            kl_kitCache = {};
+            (comps || []).forEach(c => {
+                if (!kl_kitCache[c.kit_id]) kl_kitCache[c.kit_id] = [];
+                kl_kitCache[c.kit_id].push({
+                    ...c,
+                    stock:   c.keola_menu?.stock       || 0,
+                    nome:    c.keola_menu?.nome         || '—',
+                    unidade: c.keola_menu?.unidade      || 'un',
+                    custo:   c.keola_menu?.preco_custo  || 0,
+                });
+            });
+        }
+
+// ─── SEARCH DEBOUNCE ──────────────────────────────────────────────────────────
+        let kl_searchTimer = null;
+        function kl_onSearch() {
+            clearTimeout(kl_searchTimer);
+            kl_searchTimer = setTimeout(kl_render, 180);
+        }
+
+        function kl_toggleInativo() {
+            kl_inativo = !kl_inativo;
+            const btn = document.getElementById('kl-f-inativo');
+            if (btn) btn.classList.toggle('active', kl_inativo);
+            kl_render();
+        }
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+        function kl_render() {
+            const q      = (document.getElementById('kl-search')?.value || '').toLowerCase();
+            const fTipo  = document.getElementById('kl-f-tipo')?.value  || '';
+            const fCat   = document.getElementById('kl-f-cat')?.value   || '';
+
+            let lista = [...kl_data];
+            if (!kl_inativo) lista = lista.filter(r => r.disponivel !== false);
+            else             lista = lista.filter(r => r.disponivel === false);
+            if (fTipo) lista = lista.filter(r => r.tipo_item === fTipo);
+            if (fCat)  lista = lista.filter(r => r.categoria === fCat);
+            if (q)     lista = lista.filter(r => (r.nome || '').toLowerCase().includes(q) || (r.descricao || '').toLowerCase().includes(q));
+
+            // Stats
+            const allAtivos = kl_data.filter(r => r.disponivel !== false);
+            kl_renderStats(allAtivos);
+
+            // Group by tipo_item
+            const sections = [
+                { key: 'kit',        emoji: '🍽',  label: 'Kits / Pratos',    items: lista.filter(r => r.tipo_item === 'kit') },
+                { key: 'venda',      emoji: '🛒',  label: 'Itens de Venda',   items: lista.filter(r => r.tipo_item === 'venda' || !r.tipo_item) },
+                { key: 'componente', emoji: '🧩',  label: 'Componentes',      items: lista.filter(r => r.tipo_item === 'componente') },
+            ].filter(s => s.items.length > 0 || !fTipo);
+
+            const scroll = document.getElementById('kl-scroll');
+            if (!scroll) return;
+
+            if (!lista.length) {
+                scroll.innerHTML = `<div class="kl-empty">Nenhum item encontrado.<br><small style="opacity:0.6">Tenta ajustar os filtros.</small></div>`;
+                return;
+            }
+
+            let html = '';
+            sections.forEach(sec => {
+                if (!sec.items.length) return;
+                const collapsed = kl_collapsed[sec.key];
+                html += `
+        <div class="kl-section ${collapsed ? 'collapsed' : ''}" id="kl-sec-${sec.key}">
+            <div class="kl-section-head" onclick="kl_toggleSection('${sec.key}')">
+                <div class="kl-section-title">
+                    <span>${sec.emoji} ${sec.label}</span>
+                    <span class="kl-section-badge">${sec.items.length}</span>
+                </div>
+                <span class="kl-section-chevron">▼</span>
+            </div>
+            <div class="kl-grid">`;
+                sec.items.forEach((r, i) => {
+                    html += kl_buildCard(r, i);
+                });
+                if (!sec.items.length) {
+                    html += `<div class="kl-empty">Sem itens nesta categoria.</div>`;
+                }
+                html += `</div></div>`;
+            });
+
+            scroll.innerHTML = html;
+        }
+
+        function kl_toggleSection(key) {
+            kl_collapsed[key] = !kl_collapsed[key];
+            const sec = document.getElementById('kl-sec-' + key);
+            if (sec) sec.classList.toggle('collapsed', kl_collapsed[key]);
+        }
+
+        function kl_renderStats(lista) {
+            const el = document.getElementById('kl-stats');
+            if (!el) return;
+            const kits    = lista.filter(r => r.tipo_item === 'kit').length;
+            const vendas  = lista.filter(r => r.tipo_item === 'venda' || !r.tipo_item).length;
+            const comps   = lista.filter(r => r.tipo_item === 'componente').length;
+            const baixo   = lista.filter(r => r.controlar_estoque && r.stock != null && r.stock_minimo != null && r.stock <= r.stock_minimo && r.stock_minimo > 0).length;
+            el.innerHTML = `
+        <div class="kl-stat"><div class="kl-stat-num" style="color:var(--primary-dark)">${lista.length}</div><div class="kl-stat-label">Total</div></div>
+        <div class="kl-stat"><div class="kl-stat-num" style="color:#e65100">${kits}</div><div class="kl-stat-label">Kits</div></div>
+        <div class="kl-stat"><div class="kl-stat-num" style="color:var(--green)">${vendas}</div><div class="kl-stat-label">Vendas</div></div>
+        <div class="kl-stat"><div class="kl-stat-num" style="color:var(--text-muted)">${comps}</div><div class="kl-stat-label">Componentes</div></div>
+        ${baixo ? `<div class="kl-stat" style="border-color:var(--red)"><div class="kl-stat-num" style="color:var(--red)">${baixo}</div><div class="kl-stat-label">⚠ Stock Baixo</div></div>` : ''}
+    `;
+        }
+
+        const KL_CAT_LABEL = { almoco:'Refeições', bebidas:'Beb. Frescas', sumos:'Beb. Quentes', snacks:'Salgados', sobremesas:'Doces', outro:'Outros' };
+        const KL_TIPO_LABEL = { componente:'Componente', venda:'Venda', kit:'Kit' };
+        const KL_TIPO_COR   = { componente:'badge-gray', venda:'badge-green', kit:'badge-primary' };
+        const KL_COMIDA_LABEL = {
+            carne:'🥩 Carne', peixe:'🐟 Peixe', frango:'🍗 Frango', sopa:'🍵 Sopa',
+            massa:'🍝 Massa', vegetariano:'🥗 Vegetariano', vegan:'🌱 Vegan',
+            sem_gluten:'🌾 Sem Glúten', sobremesa:'🍰 Sobremesa', bebida:'☕ Bebida',
+            prato_do_dia:'⭐ Prato do Dia', petisco:'🫙 Petisco', outro:'Outro',
+        };
+
+        function kl_buildCard(r, idx) {
+            const ativo    = r.disponivel !== false;
+            const tipoCls  = KL_TIPO_COR[r.tipo_item] || 'badge-gray';
+            const tipoLbl  = KL_TIPO_LABEL[r.tipo_item] || r.tipo_item || '—';
+            const catLbl   = KL_CAT_LABEL[r.categoria] || r.categoria || '';
+            const comidaLbl= KL_COMIDA_LABEL[r.tipo_comida] || '';
+
+            // Image
+            let imgHtml;
+            if (r.imagem_url) {
+                imgHtml = `<img class="kl-card-img" src="${r.imagem_url}" alt="${r.nome || ''}"
+            onerror="this.style.display='none';this.nextSibling.style.display='flex'">
+            <div class="kl-card-img-placeholder" style="display:none">
+                <img src="assets/item_zion.jpg" onerror="this.src='assets/item_zion.png'">
+            </div>`;
+            } else {
+                imgHtml = `<div class="kl-card-img-placeholder">
+            <img src="assets/item_zion.jpg" onerror="this.src='assets/item_zion.png'">
+        </div>`;
+            }
+
+            // Stock indicator
+            let stockHtml = '';
+            if (r.tipo_item !== 'kit' && r.controlar_estoque !== false && r.stock != null) {
+                const max    = Math.max(r.stock_minimo * 3 || 30, r.stock, 1);
+                const pct    = Math.min(100, Math.round(r.stock / max * 100));
+                const cor    = r.stock <= (r.stock_minimo || 0) ? '#c62828' : r.stock <= (r.stock_minimo || 0) * 2 ? '#e65100' : '#2e7d32';
+                stockHtml = `
+            <div class="kl-card-stock">
+                <div class="kl-stock-dot" style="background:${cor}"></div>
+                <span>${r.stock} ${r.unidade || 'un'}${r.stock_minimo ? ` · mín ${r.stock_minimo}` : ''}</span>
+            </div>
+            <div class="kl-stock-bar"><div class="kl-stock-bar-fill" style="width:${pct}%;background:${cor}"></div></div>`;
+            } else if (r.tipo_item === 'kit') {
+                const maxKits = kl_calcMaxKits(r.id);
+                const cor     = maxKits === 0 ? '#c62828' : maxKits < 5 ? '#e65100' : '#2e7d32';
+                stockHtml = `<div class="kl-card-stock"><div class="kl-stock-dot" style="background:${cor}"></div><span>Possível montar: <strong>${maxKits}</strong></span></div>`;
+            }
+
+            // Preço
+            const precoHtml = r.tipo_item !== 'componente' && r.preco
+                ? `<div class="kl-card-preco">€${Number(r.preco).toFixed(2)}</div>` : '';
+
+            // Badges
+            let badges = `<span class="badge ${tipoCls}">${tipoLbl}</span>`;
+            if (r.especial_hoje) badges += `<span class="badge badge-primary">⭐ Especial</span>`;
+            if (!r.mostrar_pdv)  badges += `<span class="badge badge-gray">Oculto PDV</span>`;
+            if (r.stock != null && r.stock_minimo != null && r.stock <= r.stock_minimo && r.stock_minimo > 0)
+                badges += `<span class="badge badge-red">⚠ Stock baixo</span>`;
+
+            const toggleTxt = ativo ? 'Inativar' : 'Ativar';
+            const kitBtn    = r.tipo_item === 'kit' ? `<button class="kl-card-btn" onclick="event.stopPropagation();kl_abrirMontar('${r.id}','${(r.nome||'').replace(/'/g,"\\'")}')">🍽 Montar</button>` : '';
+
+            return `
+    <div class="kl-card ${ativo ? '' : 'inativo'}" style="animation-delay:${Math.min(idx, 20) * 0.02}s" onclick="kl_abrirForm('${r.id}')">
+        ${imgHtml}
+        <div class="kl-card-body">
+            <div class="kl-card-nome">${r.nome || '—'}</div>
+            ${catLbl ? `<div class="kl-card-cat">${catLbl}${comidaLbl ? ' · ' + comidaLbl : ''}</div>` : ''}
+            <div class="kl-card-badges">${badges}</div>
+            ${precoHtml}
+            ${stockHtml}
+        </div>
+        <div class="kl-card-actions">
+            <button class="kl-card-btn" onclick="event.stopPropagation();kl_abrirForm('${r.id}')">Editar</button>
+            <button class="kl-card-btn" onclick="event.stopPropagation();kl_duplicar('${r.id}')">Duplicar</button>
+            ${kitBtn}
+            <button class="kl-card-btn danger" onclick="event.stopPropagation();kl_toggleAtivo('${r.id}',${ativo})">${toggleTxt}</button>
+        </div>
+    </div>`;
+        }
+
+        function kl_calcMaxKits(kitId) {
+            const comps = kl_kitCache[kitId];
+            if (!comps || !comps.length) return 0;
+            let max = Infinity;
+            comps.forEach(c => {
+                if (c.quantidade > 0) max = Math.min(max, Math.floor(c.stock / c.quantidade));
+            });
+            return max === Infinity ? 0 : max;
+        }
+
+// ─── TOGGLE ATIVO ─────────────────────────────────────────────────────────────
+        async function kl_toggleAtivo(id, ativoAtual) {
+            await sb(`keola_menu?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ disponivel: !ativoAtual }) });
+            kl_data = await sb('keola_menu?select=*&order=categoria,nome') || [];
+            kl_render();
+        }
+
+// ─── DUPLICAR ─────────────────────────────────────────────────────────────────
+        async function kl_duplicar(id) {
+            const orig = kl_data.find(r => r.id === id);
+            if (!orig) return;
+            const { id: _id, created_at, updated_at, ...body } = orig;
+            body.nome = `${orig.nome} (cópia)`;
+            body.disponivel = false; // começa inativo
+            try {
+                const res = await sb('keola_menu', { method: 'POST', body: JSON.stringify(body) });
+                const novoId = res?.[0]?.id;
+                // Duplicar componentes se kit
+                if (orig.tipo_item === 'kit' && novoId && kl_kitCache[id]) {
+                    for (const c of kl_kitCache[id]) {
+                        await sb('keola_kit_componentes', {
+                            method: 'POST',
+                            body: JSON.stringify({ kit_id: novoId, componente_id: c.componente_id, quantidade: c.quantidade, unidade: c.unidade }),
+                        });
+                    }
+                }
+                kl_data = await sb('keola_menu?select=*&order=categoria,nome') || [];
+                await kl_loadKitCache();
+                kl_render();
+                // Abrir form do duplicado para editar
+                setTimeout(() => kl_abrirForm(novoId), 200);
+            } catch(e) { alert('Erro ao duplicar: ' + (e?.message || JSON.stringify(e))); }
+        }
+
+// ─── FORM ─────────────────────────────────────────────────────────────────────
+        async function kl_abrirForm(id) {
+            const r = id ? kl_data.find(x => x.id === id) : null;
+            const isNovo = !r;
+
+            // Carregar componentes do kit se edição
+            kl_kitItensTemp = [];
+            if (id && r?.tipo_item === 'kit') {
+                kl_kitItensTemp = (kl_kitCache[id] || []).map(c => ({
+                    componente_id: c.componente_id,
+                    nome:          c.nome,
+                    quantidade:    c.quantidade,
+                    unidade:       c.unidade,
+                }));
+            }
+
+            document.getElementById('drawer-title').textContent = isNovo ? 'Novo Item Keola' : `Editar — ${r.nome}`;
+            document.getElementById('drawer-body').innerHTML    = kl_buildForm(r);
+            document.getElementById('overlay').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            // Listeners
+            setTimeout(() => {
+                const selTipo = document.getElementById('kf_tipo_item');
+                if (selTipo) {
+                    kl_ajustarCamposTipo(selTipo.value);
+                    selTipo.addEventListener('change', () => {
+                        kl_ajustarCamposTipo(selTipo.value);
+                        kl_renderKitPanel(selTipo.value);
+                    });
+                    kl_renderKitPanel(selTipo.value);
+                }
+            }, 30);
+        }
+
+        function kl_buildForm(r) {
+            const fv = (k, d = '') => r?.[k] ?? d;
+            // Defaults para novo item
+            const defaultTipo     = r ? (r.tipo_item || 'venda')   : 'venda';
+            const defaultUnidade  = r ? (r.unidade || 'un')        : 'un';
+            const defaultStockMin = r ? (r.stock_minimo ?? 10)     : 10;
+            const defaultMostrarPdv = r ? (r.mostrar_pdv !== false) : true;
+            const defaultDisponivel = r ? (r.disponivel !== false)  : true;
+
+            const catOpts = [
+                ['almoco','Refeições'], ['bebidas','Bebidas Frescas'], ['sumos','Bebidas Quentes'],
+                ['snacks','Salgados'], ['sobremesas','Doces'], ['outro','Outros'],
+            ].map(([v,l]) => `<option value="${v}" ${fv('categoria') === v ? 'selected' : ''}>${l}</option>`).join('');
+
+            const tipoComidaOpts = [
+                ['','— Nenhum —'], ['carne','🥩 Carne'], ['frango','🍗 Frango'], ['peixe','🐟 Peixe'],
+                ['sopa','🍵 Sopa'], ['massa','🍝 Massa'], ['petisco','🫙 Petisco'],
+                ['prato_do_dia','⭐ Prato do Dia'], ['vegetariano','🥗 Vegetariano'],
+                ['vegan','🌱 Vegan'], ['sem_gluten','🌾 Sem Glúten'], ['sobremesa','🍰 Sobremesa'],
+                ['bebida','☕ Bebida'], ['outro','Outro'],
+            ].map(([v,l]) => `<option value="${v}" ${fv('tipo_comida') === v ? 'selected' : ''}>${l}</option>`).join('');
+
+            const tipoItemOpts = [
+                ['venda','Item de Venda (produto final)'],
+                ['kit','Kit / Prato (montado com componentes)'],
+                ['componente','Componente (ingrediente / matéria-prima)'],
+            ].map(([v,l]) => `<option value="${v}" ${defaultTipo === v ? 'selected' : ''}>${l}</option>`).join('');
+
+            const unidadeOpts = [
+                ['un','Unidade (un)'], ['g','Gramas (g)'], ['kg','Quilograma (kg)'],
+                ['ml','Mililitro (ml)'], ['l','Litro (l)'],
+            ].map(([v,l]) => `<option value="${v}" ${defaultUnidade === v ? 'selected' : ''}>${l}</option>`).join('');
+
+            const imgHtml = buildImageUpload ? buildImageUpload('imagem_url', 'Foto do Produto', fv('imagem_url'), 'imagens') : `
+        <div class="form-group form-full">
+            <label class="form-label">URL da Imagem</label>
+            <input class="form-input" id="f_imagem_url" type="text" value="${fv('imagem_url')}" placeholder="https://...">
+        </div>`;
+
+            return `<div class="form-grid">
+    <div class="msg-form" id="form-msg"></div>
+
+    <div class="form-section-title">Identificação</div>
+    <div class="form-group form-full">
+        <label class="form-label">Nome *</label>
+        <input class="form-input" id="kf_nome" type="text" value="${fv('nome')}" placeholder="Ex: Bitoque, Café Duplo...">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Tipo de Item</label>
+        <select class="form-select" id="kf_tipo_item">${tipoItemOpts}</select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select class="form-select" id="kf_categoria">${catOpts}</select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Tipo de Comida</label>
+        <select class="form-select" id="kf_tipo_comida">${tipoComidaOpts}</select>
+    </div>
+    <div class="form-group form-full">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-textarea" id="kf_descricao" placeholder="Breve descrição...">${fv('descricao')}</textarea>
+    </div>
+    <div class="form-group form-full">
+        <label class="form-label">Alérgenos</label>
+        <input class="form-input" id="kf_alergenos" type="text" value="${fv('alergenos')}" placeholder="Glúten, Lactose, Soja...">
+    </div>
+
+    <div class="form-section-title">Preços</div>
+    <div class="form-group" id="kf-g-preco">
+        <label class="form-label">Preço de Venda (€)</label>
+        <input class="form-input" id="kf_preco" type="number" step="0.01" placeholder="0.00" value="${fv('preco')}">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Custo Unitário (€)</label>
+        <input class="form-input" id="kf_preco_custo" type="number" step="0.0001" placeholder="0.0000" value="${fv('preco_custo')}">
+    </div>
+    <div class="form-group">
+        <label class="form-label">IVA (%)</label>
+        <input class="form-input" id="kf_iva_pct" type="number" step="1" placeholder="13" value="${fv('iva_pct', 13)}">
+    </div>
+
+    <div class="form-section-title">Stock</div>
+    <div class="form-group">
+        <label class="form-label">Unidade de Stock</label>
+        <select class="form-select" id="kf_unidade">${unidadeOpts}</select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Stock Actual</label>
+        <input class="form-input" id="kf_stock" type="number" step="0.001" placeholder="0" value="${fv('stock', 0)}">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Stock Mínimo (alerta)</label>
+        <input class="form-input" id="kf_stock_minimo" type="number" step="1" placeholder="10" value="${defaultStockMin}">
+    </div>
+    <div class="form-group">
+        <label class="form-toggle"><input type="checkbox" id="kf_controlar_estoque" ${fv('controlar_estoque', true) !== false ? 'checked' : ''}><span>Controlar Estoque</span></label>
+    </div>
+    <div class="form-group">
+        <label class="form-toggle"><input type="checkbox" id="kf_venda_sem_estoque" ${fv('venda_sem_estoque') ? 'checked' : ''}><span>Vender sem Estoque</span></label>
+    </div>
+
+    <div class="form-section-title">Menu & Visibilidade</div>
+    <div class="form-group">
+        <label class="form-label">Ordem no Menu</label>
+        <input class="form-input" id="kf_ordem" type="number" placeholder="1" value="${fv('ordem', 1)}">
+    </div>
+    <div class="form-group">
+        <label class="form-toggle"><input type="checkbox" id="kf_mostrar_pdv" ${defaultMostrarPdv ? 'checked' : ''}><span>Mostrar no PDV</span></label>
+    </div>
+    <div class="form-group">
+        <label class="form-toggle"><input type="checkbox" id="kf_disponivel" ${defaultDisponivel ? 'checked' : ''}><span>Disponível</span></label>
+    </div>
+    <div class="form-group">
+        <label class="form-toggle"><input type="checkbox" id="kf_especial_hoje" ${fv('especial_hoje') ? 'checked' : ''}><span>Especial Hoje</span></label>
+    </div>
+
+    <div class="form-section-title">Imagem</div>
+    ${imgHtml}
+
+    <div id="kl-kit-panel-wrap" style="grid-column:1/-1"></div>
+
+    <div class="form-actions">
+        <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+        <button class="btn-save" id="kf-btn-save" onclick="kl_salvar('${r?.id || ''}')">Guardar</button>
+    </div>
+</div>`;
+        }
+
+        function kl_ajustarCamposTipo(tipo) {
+            const gPreco = document.getElementById('kf-g-preco');
+            if (gPreco) gPreco.style.display = tipo === 'componente' ? 'none' : '';
+            const gMostrarPdv = [...document.querySelectorAll('#drawer-body .form-group')].find(g =>
+                g.querySelector('input#kf_mostrar_pdv'));
+            if (gMostrarPdv) gMostrarPdv.style.display = tipo === 'componente' ? 'none' : '';
+        }
+
+// ─── KIT PANEL ────────────────────────────────────────────────────────────────
+        function kl_renderKitPanel(tipo) {
+            const wrap = document.getElementById('kl-kit-panel-wrap');
+            if (!wrap) return;
+            if (tipo !== 'kit') { wrap.innerHTML = ''; return; }
+
+            const componentes = kl_data.filter(r => r.tipo_item === 'componente' && r.disponivel !== false);
+            const compOpts = componentes.map(c =>
+                `<option value="${c.id}" data-nome="${(c.nome || '').replace(/"/g, '&quot;')}" data-unidade="${c.unidade || 'un'}">
+            ${c.nome} (Stock: ${c.stock || 0} ${c.unidade || 'un'})
+        </option>`
+            ).join('');
+
+            wrap.innerHTML = `
+    <div class="kl-kit-panel">
+        <div class="kl-kit-title">🧩 Componentes necessários para 1 unidade deste prato</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:10px">
+            Define quais os ingredientes e a quantidade necessária para montar 1 prato.
+        </div>
+        <div class="kl-kit-row">
+            <select class="form-select" id="kc-sel" style="flex:2;min-width:150px">
+                <option value="">Seleciona componente...</option>${compOpts}
+            </select>
+            <input class="form-input" id="kc-qty" type="number" value="1" step="0.001" min="0.001" placeholder="Qtd" style="width:80px">
+            <input class="form-input" id="kc-unit" type="text" placeholder="Un." style="width:65px" readonly>
+            <button class="btn-sub-add" onclick="kl_addComponente()">+ Add</button>
+        </div>
+        <div id="kl-kit-lista"></div>
+    </div>`;
+
+            document.getElementById('kc-sel')?.addEventListener('change', function() {
+                const opt = this.options[this.selectedIndex];
+                const el  = document.getElementById('kc-unit');
+                if (el) el.value = opt?.dataset?.unidade || 'un';
+            });
+
+            kl_renderComponentesList();
+        }
+
+        function kl_addComponente() {
+            const sel    = document.getElementById('kc-sel');
+            const opt    = sel?.options[sel.selectedIndex];
+            const qty    = parseFloat(document.getElementById('kc-qty')?.value || 0);
+            const unit   = document.getElementById('kc-unit')?.value || 'un';
+            const compId = sel?.value;
+            if (!compId) { alert('Seleciona um componente.'); return; }
+            if (qty <= 0) { alert('Quantidade deve ser > 0.'); return; }
+            if (kl_kitItensTemp.find(c => c.componente_id === compId)) { alert('Componente já adicionado.'); return; }
+            kl_kitItensTemp.push({ componente_id: compId, nome: opt?.dataset?.nome || '—', quantidade: qty, unidade: unit });
+            sel.value = ''; document.getElementById('kc-qty').value = '1'; document.getElementById('kc-unit').value = '';
+            kl_renderComponentesList();
+        }
+
+        function kl_removerComponente(idx) {
+            kl_kitItensTemp.splice(idx, 1);
+            kl_renderComponentesList();
+        }
+        window.kl_removerComponente = kl_removerComponente;
+
+        function kl_renderComponentesList() {
+            const el = document.getElementById('kl-kit-lista');
+            if (!el) return;
+            if (!kl_kitItensTemp.length) {
+                el.innerHTML = '<div style="font-size:11px;color:var(--text-faint);padding:4px 0">Nenhum componente definido ainda.</div>';
+                return;
+            }
+            el.innerHTML = kl_kitItensTemp.map((c, i) => `
+    <div class="kl-kit-item">
+        <span>${c.nome}</span>
+        <span class="kl-kit-item-val">${c.quantidade} ${c.unidade}</span>
+        <button class="kl-kit-remove" onclick="kl_removerComponente(${i})">✕</button>
+    </div>`).join('');
+        }
+
+// ─── GUARDAR ──────────────────────────────────────────────────────────────────
+        async function kl_salvar(id) {
+            const get = k => { const el = document.getElementById('kf_' + k); return el ? (el.value || null) : null; };
+            const chk = k => { const el = document.getElementById('kf_' + k); return el ? el.checked : false; };
+            const imgEl = document.getElementById('f_imagem_url');
+
+            const nome = get('nome');
+            if (!nome) { showFormMsg('Nome obrigatório.', 'error'); return; }
+
+            const body = {
+                nome,
+                tipo_item:         get('tipo_item'),
+                categoria:         get('categoria'),
+                tipo_comida:       get('tipo_comida'),
+                descricao:         get('descricao'),
+                alergenos:         get('alergenos'),
+                preco:             get('preco')      ? parseFloat(get('preco'))      : null,
+                preco_custo:       get('preco_custo')? parseFloat(get('preco_custo')): null,
+                iva_pct:           get('iva_pct')    ? parseFloat(get('iva_pct'))    : null,
+                unidade:           get('unidade'),
+                stock:             get('stock') != null ? parseFloat(get('stock')) : null,
+                stock_minimo:      get('stock_minimo') ? parseFloat(get('stock_minimo')) : null,
+                controlar_estoque: chk('controlar_estoque'),
+                venda_sem_estoque: chk('venda_sem_estoque'),
+                ordem:             get('ordem') ? parseInt(get('ordem')) : null,
+                mostrar_pdv:       chk('mostrar_pdv'),
+                disponivel:        chk('disponivel'),
+                especial_hoje:     chk('especial_hoje'),
+                imagem_url:        imgEl ? imgEl.value || null : get('imagem_url'),
+                updated_at:        new Date().toISOString(),
+            };
+
+            const btn = document.getElementById('kf-btn-save');
+            if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+            try {
+                let savedId = id;
+                if (!id) {
+                    const res = await sb('keola_menu', { method: 'POST', body: JSON.stringify(body) });
+                    savedId = res?.[0]?.id;
+                } else {
+                    await sb(`keola_menu?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+                }
+                if (!savedId) throw new Error('Sem ID retornado.');
+
+                // Guardar componentes do kit
+                if (body.tipo_item === 'kit') {
+                    await sb(`keola_kit_componentes?kit_id=eq.${savedId}`, { method: 'DELETE' }).catch(() => {});
+                    for (const c of kl_kitItensTemp) {
+                        await sb('keola_kit_componentes', {
+                            method: 'POST',
+                            body: JSON.stringify({ kit_id: savedId, componente_id: c.componente_id, quantidade: c.quantidade, unidade: c.unidade }),
+                        });
+                    }
+                }
+
+                showFormMsg('✓ Guardado! A reabrir para continuar...', 'success');
+                kl_data = await sb('keola_menu?select=*&order=categoria,nome') || [];
+                await kl_loadKitCache();
+                kl_render();
+
+                // Reabrir o form com os dados atualizados (para continuar editando)
+                setTimeout(() => {
+                    kl_abrirForm(savedId);
+                }, 800);
+
+            } catch(e) {
+                showFormMsg('Erro: ' + (e?.message || e?.details || JSON.stringify(e)), 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+            }
+        }
+        window.kl_salvar = kl_salvar;
+
+// ─── MONTAR KIT ───────────────────────────────────────────────────────────────
+        function kl_abrirMontar(kitId, kitNome) {
+            const comps   = kl_kitCache[kitId] || [];
+            const maxKits = kl_calcMaxKits(kitId);
+
+            const linhas = comps.map(c => {
+                const possivel = c.quantidade > 0 ? Math.floor(c.stock / c.quantidade) : '∞';
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-card);border-radius:6px;margin-bottom:3px;font-size:12px">
+            <span>${c.nome}</span>
+            <span style="color:var(--text-faint)">
+                ${c.quantidade} ${c.unidade} × prato · Stock: <strong>${c.stock}</strong>
+                · Possível: <strong style="color:${possivel < 5 ? 'var(--red)' : 'var(--green)'}">${possivel}</strong>
+            </span>
+        </div>`;
+            }).join('');
+
+            document.getElementById('drawer-title').textContent = `Montar: ${kitNome}`;
+            document.getElementById('drawer-body').innerHTML = `<div class="form-grid">
+    <div class="msg-form" id="form-msg"></div>
+    <div class="form-section-title">Componentes por prato</div>
+    <div class="form-full">${linhas || '<div style="color:var(--text-faint);font-size:12px">Nenhum componente configurado.</div>'}</div>
+    <div class="form-section-title" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center">
+        <span>Quantos pratos montar?</span>
+        <span style="font-size:11px;color:var(--${maxKits > 0 ? 'green' : 'red'})">Máximo: <strong>${maxKits}</strong></span>
+    </div>
+    <div class="form-group form-full">
+        <input class="form-input" id="mk_qty" type="number" min="1" max="${maxKits}" value="${Math.min(1, maxKits)}"
+            style="font-size:22px;text-align:center;height:64px;font-family:var(--font-title)">
+    </div>
+    <div class="form-actions">
+        <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+        <button class="btn-save" id="btn-save" onclick="kl_executarMontagem('${kitId}','${kitNome.replace(/'/g, "\\'")}',${maxKits})" ${maxKits <= 0 ? 'disabled' : ''}>
+            🍽 Confirmar Montagem
+        </button>
+    </div></div>`;
+            document.getElementById('overlay').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        window.kl_abrirMontar = kl_abrirMontar;
+
+        async function kl_executarMontagem(kitId, kitNome, maxKits) {
+            const qty = parseInt(document.getElementById('mk_qty')?.value || 0);
+            if (!qty || qty <= 0) { showFormMsg('Quantidade inválida.', 'error'); return; }
+            if (qty > maxKits) { showFormMsg(`Máximo possível: ${maxKits} pratos.`, 'error'); return; }
+            const btn = document.getElementById('btn-save');
+            btn.disabled = true; btn.textContent = 'A montar...';
+            const comps = kl_kitCache[kitId] || [];
+            const consumidos = [];
+            try {
+                for (const c of comps) {
+                    const consumo   = c.quantidade * qty;
+                    const novoStock = Math.max(0, c.stock - consumo);
+                    await sb(`keola_menu?id=eq.${c.componente_id}`, { method: 'PATCH', body: JSON.stringify({ stock: novoStock }) });
+                    consumidos.push({ id: c.componente_id, nome: c.nome, consumido: consumo, stock_depois: novoStock });
+                    c.stock = novoStock;
+                }
+                const kitItem   = kl_data.find(r => r.id === kitId);
+                const kitStockAntes  = kitItem?.stock_kits || 0;
+                const kitStockDepois = kitStockAntes + qty;
+                await sb(`keola_menu?id=eq.${kitId}`, { method: 'PATCH', body: JSON.stringify({ stock_kits: kitStockDepois }) });
+                // Log
+                await sb('keola_montagens', {
+                    method: 'POST',
+                    body: JSON.stringify({ kit_id: kitId, kit_nome: kitNome, quantidade: qty,
+                        stock_antes: kitStockAntes, stock_depois: kitStockDepois,
+                        componentes_consumidos: consumidos, operador: currentUser?.nome || null }),
+                }).catch(() => {});
+
+                showFormMsg(`✓ ${qty} prato(s) montado(s)!`, 'success');
+                kl_data = await sb('keola_menu?select=*&order=categoria,nome') || [];
+                await kl_loadKitCache();
+                setTimeout(() => { closeDrawer(); kl_render(); }, 900);
+            } catch(e) {
+                showFormMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
+                btn.disabled = false; btn.textContent = '🍽 Confirmar Montagem';
+            }
+        }
+        window.kl_executarMontagem = kl_executarMontagem;
+
+// ─── EXPOSE GLOBALS ───────────────────────────────────────────────────────────
+        window.kl_abrirForm    = kl_abrirForm;
+        window.kl_duplicar     = kl_duplicar;
+        window.kl_toggleAtivo  = kl_toggleAtivo;
+        window.kl_toggleSection= kl_toggleSection;
+        window.kl_onSearch     = kl_onSearch;
+        window.kl_toggleInativo= kl_toggleInativo;
+        window.kl_addComponente= kl_addComponente;
+        window.kl_renderKitPanel = kl_renderKitPanel;
+
+// ─── START ────────────────────────────────────────────────────────────────────
+        kl_init();
+    })();
+</script>

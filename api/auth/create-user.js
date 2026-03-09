@@ -1,6 +1,6 @@
 // api/auth/create-user.js
 // Cria utilizador diretamente na tabela usuarios (bcrypt + JWT — sem Supabase Auth)
-// Chamado pelo painel de admin
+// Chamado pelo painel de admin para criacao de um user
 
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";

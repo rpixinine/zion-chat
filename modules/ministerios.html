@@ -863,6 +863,7 @@
 
     async function min_salvarMin() {
         const nome = document.getElementById('min-f-nome').value.trim();
+        const slug = document.getElementById('min-f-nome').value.trim();
         const tipo = document.getElementById('min-f-tipo').value || null;
         const descricao = document.getElementById('min-f-desc').value.trim() || null;
         const ativo = document.getElementById('min-f-ativo').checked;
@@ -877,10 +878,10 @@
                 // Editar existente
                 await min_sb(`ministerios?id=eq.${min_formEditId}`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ nome, tipo, descricao, ativo })
+                    body: JSON.stringify({ slug, nome, tipo, descricao, ativo })
                 });
                 const idx = min_mins.findIndex(m => m.id === min_formEditId);
-                if (idx >= 0) Object.assign(min_mins[idx], { nome, tipo, descricao, ativo });
+                if (idx >= 0) Object.assign(min_mins[idx], { slug, nome, tipo, descricao, ativo });
                 min_t('Ministério actualizado');
                 // Actualizar nome no cabeçalho se estiver aberto
                 if (min_minAtivo?.id === min_formEditId) {
@@ -890,7 +891,7 @@
                 // Criar novo
                 const res = await min_sb('ministerios', {
                     method: 'POST',
-                    body: JSON.stringify({ nome, tipo, descricao, ativo: true })
+                    body: JSON.stringify({ slug, nome, tipo, descricao, ativo: true })
                 });
                 const novo = Array.isArray(res) ? res[0] : res;
                 if (novo) min_mins.push(novo);

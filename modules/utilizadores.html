@@ -503,6 +503,8 @@
 
 // ── Arrancar ─────────────────────────────────────────────────────────────────
         async function ut_init() {
+            ut_injectModalPassword(); // ← adiciona esta linha
+
             try {
                 ut_dados = await sb('usuarios?select=*&order=nome') || [];
             } catch (e) {
@@ -657,6 +659,10 @@
                 '</button>' +
                 '<button class="ut-btn-cancel" onclick="ut_fechar()">Cancelar</button>' +
                 '<button class="ut-btn-save" id="ut-btn-save" onclick="ut_guardar(\'' + u.id + '\')">Guardar Alteracoes</button>' +
+                '</div>' +
+                '<div class="ut-section-title">Dados do Utilizador' +
+                '<button class="ut-btn-tudo clr" onclick="ut_pwAbrir(\'' + u.id + '\')" style="font-size:9px;padding:3px 10px">' +
+                'Alterar Password</button>' +
                 '</div>' +
                 '</div>';
         }
@@ -896,6 +902,103 @@
             } catch (e) {
                 ut_showMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
                 if (btn) { btn.disabled = false; btn.textContent = id ? 'Guardar Alteracoes' : 'Criar Utilizador'; }
+            }
+        };
+
+        // ── Modal alterar password ────────────────────────────────────────────────────
+// Adiciona este HTML ao body uma vez (chama em ut_init)
+        function ut_injectModalPassword() {
+            if (document.getElementById('ut-pw-modal')) return;
+            var modal = document.createElement('div');
+            modal.id = 'ut-pw-modal';
+            modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
+            modal.innerHTML = [
+                '<div style="width:100%;max-width:380px;background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2)">',
+                '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">',
+                '<span style="font-family:var(--font-title);font-size:11px;letter-spacing:1px;color:var(--primary-dark)">ALTERAR PASSWORD</span>',
+                '<button onclick="ut_pwFechar()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text-faint);display:flex;align-items:center;justify-content:center">✕</button>',
+                '</div>',
+                '<div style="padding:18px 18px 20px">',
+                '<div class="ut-msg" id="ut-pw-msg"></div>',
+                '<div class="ut-field" style="margin-bottom:10px">',
+                '<label class="ut-label">Nova Password</label>',
+                '<input class="ut-input" id="ut-pw-nova" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">',
+                '</div>',
+                '<div class="ut-field" style="margin-bottom:16px">',
+                '<label class="ut-label">Confirmar Password</label>',
+                '<input class="ut-input" id="ut-pw-confirmar" type="password" placeholder="Repete a nova password"',
+                ' onkeydown="if(event.key===\'Enter\') ut_pwGuardar()">',
+                '</div>',
+                '<div style="display:flex;gap:8px;justify-content:flex-end">',
+                '<button class="ut-btn-cancel" onclick="ut_pwFechar()">Cancelar</button>',
+                '<button class="ut-btn-save" id="ut-pw-btn-save" onclick="ut_pwGuardar()">Alterar Password</button>',
+                '</div>',
+                '</div>',
+                '</div>'
+            ].join('');
+
+            // Fecha ao clicar fora
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) ut_pwFechar();
+            });
+            document.body.appendChild(modal);
+        }
+
+// Abre o modal — guarda o id do utilizador em contexto
+        var ut_pw_target_id = null;
+
+        window.ut_pwAbrir = function(id) {
+            ut_pw_target_id = id;
+            var modal = document.getElementById('ut-pw-modal');
+            if (!modal) return;
+            // Limpa campos
+            document.getElementById('ut-pw-nova').value = '';
+            document.getElementById('ut-pw-confirmar').value = '';
+            var msg = document.getElementById('ut-pw-msg');
+            if (msg) msg.className = 'ut-msg';
+            var btn = document.getElementById('ut-pw-btn-save');
+            if (btn) { btn.disabled = false; btn.textContent = 'Alterar Password'; }
+            modal.style.display = 'flex';
+            setTimeout(function() { document.getElementById('ut-pw-nova').focus(); }, 100);
+        };
+
+        window.ut_pwFechar = function() {
+            var modal = document.getElementById('ut-pw-modal');
+            if (modal) modal.style.display = 'none';
+            ut_pw_target_id = null;
+        };
+
+        window.ut_pwGuardar = async function() {
+            var nova      = document.getElementById('ut-pw-nova').value;
+            var confirmar = document.getElementById('ut-pw-confirmar').value;
+            var msg       = document.getElementById('ut-pw-msg');
+            var btn       = document.getElementById('ut-pw-btn-save');
+
+            var showErr = function(txt) {
+                if (msg) { msg.textContent = txt; msg.className = 'ut-msg error'; }
+            };
+
+            if (!nova || nova.length < 6) return showErr('Password deve ter pelo menos 6 caracteres.');
+            if (nova !== confirmar)       return showErr('As passwords não coincidem.');
+            if (!ut_pw_target_id)         return showErr('Utilizador não identificado.');
+
+            if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+            try {
+                await sb('usuarios?id=eq.' + ut_pw_target_id, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        password_hash: btoa(nova),
+                        updated_at: new Date().toISOString()
+                    })
+                });
+
+                if (msg) { msg.textContent = 'Password alterada com sucesso!'; msg.className = 'ut-msg success'; }
+                setTimeout(function() { ut_pwFechar(); }, 1500);
+
+            } catch(e) {
+                showErr('Erro: ' + (e?.message || JSON.stringify(e)));
+                if (btn) { btn.disabled = false; btn.textContent = 'Alterar Password'; }
             }
         };
 

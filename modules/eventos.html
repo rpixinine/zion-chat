@@ -345,41 +345,49 @@ function _evQRFallback(canvas,text){
 
 // ── PRESENCAS ──────────────────────────────────────────────────────────
 
-// FIX 1: setter exposto para o oninput do campo de pesquisa de participantes
-// (o oninput inline não consegue acessar variáveis dentro do IIFE)
-function evSetPresSearch(v){ evPresSearchQ=v; evRenderPresencas(); }
+// ── Pesquisa: atualiza só a variável e redesenha APENAS o corpo da lista
+// Não recria o painel inteiro — preserva foco e cursor do input
+function evSetPresSearch(v){ evPresSearchQ=v; evRenderPresBody(); }
 
 async function evVerPresencas(id){
-    evView='presencas';evAtivo=evEventos.find(e=>e.id===id)||evAtivo;
+    evView='presencas'; evAtivo=evEventos.find(e=>e.id===id)||evAtivo;
     evPresencas=await _sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url)&evento_id=eq.${id}&order=created_at`)||[];
 
-    // FIX 2: carrega membros on-demand se ainda não estiver disponível globalmente
+    // Garante window.membros carregado para o select de adicionar
     if(!window.membros?.length){
         window.membros = await _sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]) || [];
     }
 
-    const mIds=evPresencas.map(p=>p.membro_id).filter(Boolean);evLidMin={};
-    if(mIds.length){const vs=await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`)||[];vs.forEach(v=>{if(!evLidMin[v.membro_id])evLidMin[v.membro_id]=[];evLidMin[v.membro_id].push({papel:v.papel,nome:v.ministerios?.nome||'—',tipo:v.ministerios?.tipo||'—'});});}
-    evRenderPresencas();
+    const mIds=evPresencas.map(p=>p.membro_id).filter(Boolean); evLidMin={};
+    if(mIds.length){
+        const vs=await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`)||[];
+        vs.forEach(v=>{if(!evLidMin[v.membro_id])evLidMin[v.membro_id]=[];evLidMin[v.membro_id].push({papel:v.papel,nome:v.ministerios?.nome||'—',tipo:v.ministerios?.tipo||'—'});});
+    }
+    evRenderPresencas(); // render completo apenas na carga inicial
 }
 
+// Render COMPLETO — monta cabeçalho fixo + container #ev-pres-body
+// Chamado apenas na carga, após adicionar membro, após marcar presença
 function evRenderPresencas(){
-    const ev=evAtivo;if(!ev)return;
-    const emC=ev.status==='em_curso',q=evPresSearchQ.toLowerCase();
-    let lista=[...evPresencas];if(q)lista=lista.filter(p=>(p.membros?.nome||'').toLowerCase().includes(q));
-    const nP=evPresencas.filter(p=>p.status==='presente').length,nF=evPresencas.filter(p=>p.status==='faltou').length,nM=evPresencas.filter(p=>p.status==='faltou_motivo').length,nPend=evPresencas.filter(p=>p.status==='pendente').length,tot=evPresencas.length;
+    const ev=evAtivo; if(!ev)return;
+    const emC=ev.status==='em_curso';
+    const nP=evPresencas.filter(p=>p.status==='presente').length,
+          nF=evPresencas.filter(p=>p.status==='faltou').length,
+          nM=evPresencas.filter(p=>p.status==='faltou_motivo').length,
+          nPend=evPresencas.filter(p=>p.status==='pendente').length,
+          tot=evPresencas.length;
     const jaAdd=new Set(evPresencas.map(p=>p.membro_id));
     const mDisp=(window.membros||[]).filter(m=>!jaAdd.has(m.id));
 
-    let html=`<div style="animation:fadeIn .2s ease">
+    let html=`<div id="ev-pres-wrap" style="animation:fadeIn .2s ease">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <button class="ev-btn" onclick="evView='info';evRenderDetalhe()">← Voltar</button>
+        <button class="ev-btn" onclick="evPresSearchQ='';evView='info';evRenderDetalhe()">← Voltar</button>
         ${emC?`<button class="ev-btn qr" onclick="evMostrarQR('${ev.id}')">QR Code</button>`:''}
         ${ev.status==='concluido'?`<button class="ev-btn danger" onclick="evGerarPDF('${ev.id}')">PDF</button>`:''}
-        <input style="flex:1;min-width:120px;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;outline:none" placeholder="Pesquisar participante..." value="${evPresSearchQ}" oninput="evSetPresSearch(this.value)">
+        <input id="ev-pres-search-input" style="flex:1;min-width:120px;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;outline:none" placeholder="Pesquisar participante..." value="${evPresSearchQ}" oninput="evSetPresSearch(this.value)">
         ${emC?`<button class="ev-btn success" onclick="evFinalizarEntradas()">Finalizar Pendentes</button>`:''}
     </div>
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+    <div id="ev-pres-stats" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
         <div style="font-size:15px;font-weight:700;margin-bottom:6px">${ev.titulo}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
             <span class="badge ${(ST[ev.status]||ST.aberto).cls}">${(ST[ev.status]||ST.aberto).label}</span>
@@ -389,45 +397,96 @@ function evRenderPresencas(){
             ${nPend?`<span class="badge badge-gray">Pendentes: ${nPend}</span>`:''}
             <span class="badge badge-gray">Total: ${tot}</span>
         </div>
+    </div>
+    ${emC?`<div class="ev-pres-add"><div class="ev-pres-add-title">Adicionar manualmente</div><div class="ev-pres-add-row"><select class="form-select" id="ev-add-mb" style="flex:1;font-size:12px"><option value="">Seleciona membro...</option>${mDisp.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select><button class="ev-btn primary" onclick="evAddParticipante()">Adicionar</button></div></div>`:''}
+    <div id="ev-pres-body"></div>
     </div>`;
 
-    // FIX 3: select de adicionar agora usa window.membros já garantido acima
-    if(emC){html+=`<div class="ev-pres-add"><div class="ev-pres-add-title">Adicionar manualmente</div><div class="ev-pres-add-row"><select class="form-select" id="ev-add-mb" style="flex:1;font-size:12px"><option value="">Seleciona membro...</option>${mDisp.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select><button class="ev-btn primary" onclick="evAddParticipante()">Adicionar</button></div></div>`;}
+    document.getElementById('ev-panel-inner').innerHTML=html;
+    evRenderPresBody(); // preenche o corpo da lista
+}
 
-    if(!lista.length){html+=`<div style="text-align:center;padding:30px;font-size:13px;color:var(--text-faint)">Nenhum participante encontrado.</div>`;}
-    else{
-        const gs=[{key:'presente',label:'Presentes',items:lista.filter(p=>p.status==='presente')},{key:'pendente',label:'Pendentes',items:lista.filter(p=>p.status==='pendente')},{key:'faltou_motivo',label:'Faltaram com Motivo',items:lista.filter(p=>p.status==='faltou_motivo')},{key:'faltou',label:'Faltaram',items:lista.filter(p=>p.status==='faltou')}].filter(g=>g.items.length);
+// Render PARCIAL — só atualiza #ev-pres-body, não toca no input nem no cabeçalho
+// Chamado pela pesquisa (evSetPresSearch) para não perder o foco do input
+function evRenderPresBody(){
+    const ev=evAtivo; if(!ev)return;
+    const container=document.getElementById('ev-pres-body');
+    if(!container){evRenderPresencas();return;} // fallback: se container sumiu, refaz tudo
+
+    const emC=ev.status==='em_curso';
+    const q=evPresSearchQ.toLowerCase();
+    let lista=[...evPresencas];
+    if(q) lista=lista.filter(p=>(p.membros?.nome||'').toLowerCase().includes(q));
+
+    let html='';
+    if(!lista.length){
+        html=`<div style="text-align:center;padding:30px;font-size:13px;color:var(--text-faint)">${q?'Nenhum resultado para "'+q+'"':'Nenhum participante.'}</div>`;
+    } else {
+        const gs=[
+            {key:'presente',    label:'Presentes',           items:lista.filter(p=>p.status==='presente')},
+            {key:'pendente',    label:'Pendentes',            items:lista.filter(p=>p.status==='pendente')},
+            {key:'faltou_motivo',label:'Faltaram com Motivo', items:lista.filter(p=>p.status==='faltou_motivo')},
+            {key:'faltou',      label:'Faltaram',             items:lista.filter(p=>p.status==='faltou')}
+        ].filter(g=>g.items.length);
+
         gs.forEach((g,gi)=>{
             html+=`<div class="ev-grupo-label" style="${gi===0?'margin-top:0;border-top:none':''}">${g.label} (${g.items.length})</div>`;
             g.items.forEach((p,pi)=>{
-                const nome=p.membros?.nome||'—',stC={presente:'var(--green)',faltou:'var(--red)',faltou_motivo:'#e65100',pendente:'var(--border)'}[p.status]||'var(--border)';
+                const nome=p.membros?.nome||'—';
+                const stC={presente:'var(--green)',faltou:'var(--red)',faltou_motivo:'#e65100',pendente:'var(--border)'}[p.status]||'var(--border)';
                 const mins=evLidMin[p.membro_id]||[];
                 const mH=mins.map(m=>`<span class="badge badge-gray" style="font-size:8px">${m.tipo==='ministerio'?'MIN':'AE'} · ${m.nome}${m.papel?' · '+m.papel:''}</span>`).join('');
                 const fH=p.membros?.foto_url?`<img src="${p.membros.foto_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:nome[0]||'?';
                 let btns='';
                 if(emC){
-                    if(p.status!=='presente')btns+=`<button class="ev-btn success" style="font-size:9px;padding:4px 8px" onclick="evMarcarPres('${p.id}','presente')">Presente</button>`;
-                    if(p.status!=='faltou')btns+=`<button class="ev-btn danger" style="font-size:9px;padding:4px 8px" onclick="evMarcarPres('${p.id}','faltou')">Faltou</button>`;
-                    if(p.status!=='faltou_motivo')btns+=`<button class="ev-btn" style="font-size:9px;padding:4px 8px" onclick="evAbrirMotivo('${p.id}','${nome.replace(/'/g,"\\'")}')">Motivo</button>`;
-                    if(p.status!=='pendente')btns+=`<button class="ev-btn" style="font-size:9px;padding:4px 8px" title="Desfazer" onclick="evMarcarPres('${p.id}','pendente')">↩</button>`;
+                    if(p.status!=='presente')     btns+=`<button class="ev-btn success" style="font-size:9px;padding:4px 8px" onclick="evMarcarPres('${p.id}','presente')">Presente</button>`;
+                    if(p.status!=='faltou')        btns+=`<button class="ev-btn danger"  style="font-size:9px;padding:4px 8px" onclick="evMarcarPres('${p.id}','faltou')">Faltou</button>`;
+                    if(p.status!=='faltou_motivo') btns+=`<button class="ev-btn"         style="font-size:9px;padding:4px 8px" onclick="evAbrirMotivo('${p.id}','${nome.replace(/'/g,"\\'")}')">Motivo</button>`;
+                    if(p.status!=='pendente')      btns+=`<button class="ev-btn"         style="font-size:9px;padding:4px 8px" title="Desfazer" onclick="evMarcarPres('${p.id}','pendente')">↩</button>`;
                 }
                 let zapBtn='';
-                if(p.membros?.telefone){const tel=p.membros.telefone.replace(/\D/g,''),dE=evAtivo?.data_inicio?new Date(evAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'',msg=encodeURIComponent(`Ola ${p.membros.nome?.split(' ')[0]}! Confirmas presenca na ${evAtivo?.titulo||'reuniao'} ${dE}?`);zapBtn=`<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" style="font-size:10px;color:#25D366;text-decoration:none;padding:2px 5px;border-radius:5px;border:1px solid rgba(37,211,102,.3)">Zap</a>`;}
-                html+=`<div class="ev-pres-row" style="animation:fadeIn .12s ease both;animation-delay:${Math.min(pi,15)*.015}s"><div class="ev-pres-foto" style="border:2px solid ${stC}">${fH}</div><div class="ev-pres-info"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="ev-pres-nome">${nome}</span>${zapBtn}</div><div class="ev-pres-areas">${mH||'<span style="font-size:10px;color:var(--text-faint)">Sem areas</span>'}</div>${p.motivo?`<div style="font-size:11px;color:#e65100;margin-top:2px">Motivo: ${p.motivo}</div>`:''}</div><div class="ev-pres-btns">${btns}</div></div>`;
+                if(p.membros?.telefone){
+                    const tel=p.membros.telefone.replace(/\D/g,'');
+                    const dE=evAtivo?.data_inicio?new Date(evAtivo.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'';
+                    const msg=encodeURIComponent(`Ola ${p.membros.nome?.split(' ')[0]}! Confirmas presenca na ${evAtivo?.titulo||'reuniao'} ${dE}?`);
+                    zapBtn=`<a href="https://api.whatsapp.com/send?phone=${tel}&text=${msg}" target="_blank" rel="noopener" style="font-size:10px;color:#25D366;text-decoration:none;padding:2px 5px;border-radius:5px;border:1px solid rgba(37,211,102,.3)">Zap</a>`;
+                }
+                html+=`<div class="ev-pres-row" style="animation:fadeIn .12s ease both;animation-delay:${Math.min(pi,15)*.015}s">
+                    <div class="ev-pres-foto" style="border:2px solid ${stC}">${fH}</div>
+                    <div class="ev-pres-info">
+                        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="ev-pres-nome">${nome}</span>${zapBtn}</div>
+                        <div class="ev-pres-areas">${mH||'<span style="font-size:10px;color:var(--text-faint)">Sem areas</span>'}</div>
+                        ${p.motivo?`<div style="font-size:11px;color:#e65100;margin-top:2px">Motivo: ${p.motivo}</div>`:''}
+                    </div>
+                    <div class="ev-pres-btns">${btns}</div>
+                </div>`;
             });
         });
     }
 
-    if(ev.status!=='aberto'){html+='<div style="height:1px;background:var(--border);margin:16px 0 12px"></div>';html+=evRenderResumo(evPresencas,evLidMin);}
-    html+='</div>';
-    document.getElementById('ev-panel-inner').innerHTML=html;
+    // Resumo só aparece quando não há filtro de pesquisa activo
+    if(!q && ev.status!=='aberto'){
+        html+='<div style="height:1px;background:var(--border);margin:16px 0 12px"></div>';
+        html+=evRenderResumo(evPresencas,evLidMin);
+    }
+
+    container.innerHTML=html;
 }
 
 async function evMarcarPres(presId,st){
     const p={status:st,registado_em:new Date().toISOString()};if(st==='pendente')p.motivo='';
     await _sb(`evento_presencas?id=eq.${presId}`,{method:'PATCH',body:JSON.stringify(p)});
     const i=evPresencas.findIndex(x=>x.id===presId);if(i>=0){evPresencas[i].status=st;if(st==='pendente')evPresencas[i].motivo='';}
-    evRenderPresencas();
+    // Atualiza contador do cabeçalho sem recriar o painel inteiro
+    const nP=evPresencas.filter(q=>q.status==='presente').length,
+          nF=evPresencas.filter(q=>q.status==='faltou').length,
+          nM=evPresencas.filter(q=>q.status==='faltou_motivo').length,
+          nPend=evPresencas.filter(q=>q.status==='pendente').length,
+          tot=evPresencas.length;
+    const ev=evAtivo;
+    const statsEl=document.getElementById('ev-pres-stats');
+    if(statsEl&&ev){statsEl.innerHTML=`<div style="font-size:15px;font-weight:700;margin-bottom:6px">${ev.titulo}</div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge ${(ST[ev.status]||ST.aberto).cls}">${(ST[ev.status]||ST.aberto).label}</span><span class="badge badge-green">Presentes: ${nP}</span><span class="badge badge-red">Faltaram: ${nF+nM}</span>${nM?`<span class="badge badge-primary">Com motivo: ${nM}</span>`:''}${nPend?`<span class="badge badge-gray">Pendentes: ${nPend}</span>`:''}<span class="badge badge-gray">Total: ${tot}</span></div>`;}
+    evRenderPresBody();
 }
 async function evAddParticipante(){
     const sel=document.getElementById('ev-add-mb'),memId=sel?.value;if(!memId){alert('Seleciona um membro.');return;}
@@ -444,7 +503,7 @@ async function evAddParticipante(){
 async function evFinalizarEntradas(){
     if(!evAtivo)return;if(!confirm('Pendentes serao marcados como faltaram.'))return;
     await _sb(`evento_presencas?evento_id=eq.${evAtivo.id}&status=eq.pendente`,{method:'PATCH',body:JSON.stringify({status:'faltou'})});
-    evPresencas.forEach(p=>{if(p.status==='pendente')p.status='faltou';});evRenderPresencas();
+    evPresencas.forEach(p=>{if(p.status==='pendente')p.status='faltou';});evRenderPresBody();
 }
 function evAbrirMotivo(presId,nome){
     _motivoId=presId;
@@ -456,7 +515,7 @@ async function evGuardarMotivo(){
     const m=document.getElementById('ev-mot-txt')?.value?.trim();if(!m){alert('Escreve o motivo.');return;}
     await _sb(`evento_presencas?id=eq.${_motivoId}`,{method:'PATCH',body:JSON.stringify({status:'faltou_motivo',motivo:m,registado_em:new Date().toISOString()})});
     const i=evPresencas.findIndex(p=>p.id===_motivoId);if(i>=0){evPresencas[i].status='faltou_motivo';evPresencas[i].motivo=m;}
-    closeDrawer();evRenderPresencas();
+    closeDrawer();evRenderPresBody();
 }
 
 // ── RESUMO GRAFICOS ─────────────────────────────────────────────────────
@@ -795,7 +854,7 @@ function evRemoverTipo(idx){const lista=getTipos();if(!confirm(`Remover "${lista
 function evMoverTipo(idx,dir){const lista=getTipos(),n=idx+dir;if(n<0||n>=lista.length)return;[lista[idx],lista[n]]=[lista[n],lista[idx]];saveTipos(lista);evRenderSideTipos();evSelTipo(n);evTipoIdx=n;}
 
 // ── EXPOR ──────────────────────────────────────────────────────────────
-Object.assign(window,{evSetTab,evFiltrar,evToggleSt,evSelEvento,evAbrirForm,evSalvar,evIniciar,evConcluir,evCancelar,evExcluir,evMostrarQR,evCopiarURL,evDownloadQR,evVerPresencas,evRenderPresencas,evSetPresSearch,evMarcarPres,evAddParticipante,evFinalizarEntradas,evAbrirMotivo,evGuardarMotivo,evGerarPDF,_pdfTipoLabel,evRenderSideTipos,evSelTipo,evAbrirFormTipo,evSalvarTipo,evRemoverTipo,evMoverTipo});
+Object.assign(window,{evSetTab,evFiltrar,evToggleSt,evSelEvento,evAbrirForm,evSalvar,evIniciar,evConcluir,evCancelar,evExcluir,evMostrarQR,evCopiarURL,evDownloadQR,evVerPresencas,evRenderPresencas,evRenderPresBody,evSetPresSearch,evMarcarPres,evAddParticipante,evFinalizarEntradas,evAbrirMotivo,evGuardarMotivo,evGerarPDF,_pdfTipoLabel,evRenderSideTipos,evSelTipo,evAbrirFormTipo,evSalvarTipo,evRemoverTipo,evMoverTipo});
 
 evInit();
 })();

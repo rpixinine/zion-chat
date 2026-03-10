@@ -206,6 +206,7 @@
                     <option value="">-- Seleciona --</option>
                     <option value="masculino">Masculino</option>
                     <option value="feminino">Feminino</option>
+                    <option value="outro">Outro</option>
                 </select>
             </div>
         </div>
@@ -230,7 +231,21 @@
             <div class="min-chips" id="min-chips"></div>
             <div class="min-add-row">
                 <select class="form-select" id="min-sel" style="font-size:13px"><option value="">Seleciona ministerio/area...</option></select>
-                <input type="text" class="form-input" id="min-papel" placeholder="Papel" style="max-width:100px;font-size:13px">
+                <select class="form-select" id="min-papel" style="max-width:160px;font-size:13px">
+                    <option value="">— Função —</option>
+                    <option value="Auxiliar">Auxiliar</option>
+                    <option value="Co-liderArea">Co-líder de Área</option>
+                    <option value="Co-liderMinisterio">Co-líder de Ministério</option>
+                    <option value="Coordenação">Coordenação</option>
+                    <option value="Core">Core</option>
+                    <option value="LiderArea">Líder de Área</option>
+                    <option value="LiderEquipa">Líder de Equipa / Escala</option>
+                    <option value="LiderLink">Líder de Link</option>
+                    <option value="Lider">Líder de Ministério</option>
+                    <option value="LiderPilar">Líder de Pilar</option>
+                    <option value="Office">Office</option>
+                    <option value="Presbitério">Presbitério</option>
+                </select>
                 <button class="btn-secondary" style="width:auto;padding:10px 14px;margin:0" onclick="pAddMin()">+</button>
             </div>
         </div>
@@ -248,27 +263,15 @@
 
         <div class="form-section" style="padding-top:0">Confirmar Presença</div>
         <div id="msg-presenca" class="msg"></div>
-        <button class="btn-primary" id="btn-presenca" onclick="pMarcar('presente')">Estou Presente</button>
-
-        <!-- Faltei -->
-        <div style="text-align:center;margin:12px 0 6px;font-size:12px;color:var(--text-faint)">— ou —</div>
-        <div style="background:rgba(198,40,40,.05);border:1px solid rgba(198,40,40,.2);border-radius:var(--r);padding:14px;">
-            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--red);margin-bottom:10px;text-transform:uppercase">Nao Estou Presente</div>
-            <div class="form-group" style="margin-bottom:10px">
-                <label class="form-label">Motivo da falta (opcional)</label>
-                <textarea class="form-textarea" id="p_motivo_falta" placeholder="Ex: Viagem, doença, trabalho..." style="min-height:70px;font-size:13px"></textarea>
-            </div>
-            <button class="btn-secondary" id="btn-faltei" onclick="pMarcar('faltou')" style="margin-top:0;border-color:rgba(198,40,40,.4);color:var(--red)">Registar Falta</button>
-        </div>
-
-        <button class="btn-secondary" onclick="pVoltar()" style="margin-top:10px">← Voltar</button>
+        <button class="btn-primary" id="btn-presenca" onclick="pMarcar()">Marcar a Minha Presença</button>
+        <button class="btn-secondary" onclick="pVoltar()">← Voltar</button>
     </div>
 
     <!-- STEP 3: Confirmado -->
     <div id="step-confirmado" class="step">
         <div class="confirmado fade-in">
-            <div class="conf-icon" id="conf-icon">✓</div>
-            <div class="conf-title" id="conf-title">Presença Confirmada</div>
+            <div class="conf-icon">✓</div>
+            <div class="conf-title">Presença Confirmada</div>
             <div class="conf-sub" id="conf-msg"></div>
             <button class="btn-secondary" style="margin-top:22px;width:auto;padding:10px 22px" onclick="pVoltar()">Registar outra pessoa</button>
         </div>
@@ -278,282 +281,260 @@
 <div class="footer">Zion Lisboa · Sistema de Gestao</div>
 
 <script>
-(function(){
+    (function(){
 
-const SUPA_URL = window.SUPABASE_URL||'';
-const SUPA_KEY = window.SUPABASE_ANON_KEY||'';
+        const SUPA_URL = window.SUPABASE_URL||'';
+        const SUPA_KEY = window.SUPABASE_ANON_KEY||'';
 
 // Campos permitidos (whitelist rígida)
-const PERMITIDOS = ['email','telefone','nif','genero','rua','numero','complemento','cidade','codigo_postal','zona','historia','foto_url'];
-const PROIBIDOS  = ['e_lider','e_presbitero','e_voluntario','e_admin','professor','e_lider_link','e_lider_area','e_lider_pilar','tipo','ativo','nome','data_entrada','link_id'];
+        const PERMITIDOS = ['email','telefone','nif','genero','rua','numero','complemento','cidade','codigo_postal','zona','historia','foto_url'];
+        const PROIBIDOS  = ['e_lider','e_presbitero','e_voluntario','e_admin','professor','e_lider_link','e_lider_area','e_lider_pilar','tipo','ativo','nome','data_entrada','link_id'];
 
-let _evento=null, _participantes=[], _membroSel=null, _presencaSel=null, _ministerios=[], _memMins=[], _fotoBlob=null;
+        let _evento=null, _participantes=[], _membroSel=null, _presencaSel=null, _ministerios=[], _memMins=[], _fotoBlob=null;
 
-async function sb(path,opts={}){
-    const r=await fetch(`${SUPA_URL}/rest/v1/${path}`,{...opts,headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'application/json',Prefer:'return=representation',...opts.headers}});
-    if(!r.ok){const e=await r.json().catch(()=>{});throw e;}
-    const t=await r.text();return t?JSON.parse(t):[];
-}
+        async function sb(path,opts={}){
+            const r=await fetch(`${SUPA_URL}/rest/v1/${path}`,{...opts,headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'application/json',Prefer:'return=representation',...opts.headers}});
+            if(!r.ok){const e=await r.json().catch(()=>{});throw e;}
+            const t=await r.text();return t?JSON.parse(t):[];
+        }
 
 // ── INIT ───────────────────────────────────────────────────────────────
-async function init(){
-    const params=new URLSearchParams(window.location.search);
-    const evId=params.get('e'),token=params.get('t');
-    if(!evId||!token) return fatal('Link incompleto. Usa o QR Code do evento.');
-    try{
-        const evs=await sb(`eventos?id=eq.${evId}&select=*`);
-        _evento=evs?.[0];
-        if(!_evento) return fatal('Evento nao encontrado.');
-        if(_evento.qr_token!==token) return fatal('Token invalido. Usa o QR Code oficial do evento.');
-        if(_evento.status!=='em_curso') return fatal(`Este evento esta ${_evento.status==='concluido'?'concluido':'nao iniciado ou cancelado'}. As presencas so podem ser registadas durante o evento.`);
+        async function init(){
+            const params=new URLSearchParams(window.location.search);
+            const evId=params.get('e'),token=params.get('t');
+            if(!evId||!token) return fatal('Link incompleto. Usa o QR Code do evento.');
+            try{
+                const evs=await sb(`eventos?id=eq.${evId}&select=*`);
+                _evento=evs?.[0];
+                if(!_evento) return fatal('Evento nao encontrado.');
+                if(_evento.qr_token!==token) return fatal('Token invalido. Usa o QR Code oficial do evento.');
+                if(_evento.status!=='em_curso') return fatal(`Este evento esta ${_evento.status==='concluido'?'concluido':'nao iniciado ou cancelado'}. As presencas so podem ser registadas durante o evento.`);
 
-        _participantes=await sb(`evento_presencas?select=*,membros(id,nome,foto_url,genero,e_lider,e_presbitero,e_voluntario,professor,email,telefone,nif,rua,numero,complemento,cidade,codigo_postal,zona,historia)&evento_id=eq.${evId}`)||[];
-        _ministerios=await sb('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome').catch(()=>[]);
+                _participantes=await sb(`evento_presencas?select=*,membros(id,nome,foto_url,genero,e_lider,e_presbitero,e_voluntario,professor,email,telefone,nif,rua,numero,complemento,cidade,codigo_postal,zona,historia)&evento_id=eq.${evId}`)||[];
+                _ministerios=await sb('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome').catch(()=>[]);
 
-        // Card evento
-        document.getElementById('ev-titulo').textContent=_evento.titulo||'—';
-        const dI=_evento.data_inicio?new Date(_evento.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'—';
-        document.getElementById('ev-sub').textContent=dI+(_evento.local?' · '+_evento.local:'');
-        document.getElementById('ev-badges').innerHTML=`<span class="badge badge-green">Em Curso</span>${_evento.tipo?`<span class="badge badge-gray">${_evento.tipo}</span>`:''}`;
-        document.getElementById('ev-card').style.display='block';
+                // Card evento
+                document.getElementById('ev-titulo').textContent=_evento.titulo||'—';
+                const dI=_evento.data_inicio?new Date(_evento.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'—';
+                document.getElementById('ev-sub').textContent=dI+(_evento.local?' · '+_evento.local:'');
+                document.getElementById('ev-badges').innerHTML=`<span class="badge badge-green">Em Curso</span>${_evento.tipo?`<span class="badge badge-gray">${_evento.tipo}</span>`:''}`;
+                document.getElementById('ev-card').style.display='block';
 
-        mostrar('pesquisa');
-    }catch(e){fatal('Erro ao carregar. Tenta novamente ou pede ajuda a um responsavel.');console.error(e);}
-}
+                mostrar('pesquisa');
+            }catch(e){fatal('Erro ao carregar. Tenta novamente ou pede ajuda a um responsavel.');console.error(e);}
+        }
 
-function fatal(msg){
-    document.getElementById('view-loading').style.display='none';
-    document.getElementById('ev-card').style.display='none';
-    document.getElementById('erro-msg').textContent=msg;
-    document.getElementById('view-erro').style.display='block';
-    ['pesquisa','perfil','confirmado'].forEach(s=>document.getElementById('step-'+s).style.display='none');
-}
+        function fatal(msg){
+            document.getElementById('view-loading').style.display='none';
+            document.getElementById('ev-card').style.display='none';
+            document.getElementById('erro-msg').textContent=msg;
+            document.getElementById('view-erro').style.display='block';
+            ['pesquisa','perfil','confirmado'].forEach(s=>document.getElementById('step-'+s).style.display='none');
+        }
 
-function mostrar(step){
-    document.getElementById('view-loading').style.display='none';
-    document.getElementById('view-erro').style.display='none';
-    ['pesquisa','perfil','confirmado'].forEach(s=>document.getElementById('step-'+s).classList.remove('active'));
-    const el=document.getElementById('step-'+step);if(el)el.classList.add('active');
-    if(step==='pesquisa'){
-        limparMsg('pesquisa');
-        document.getElementById('search-input').value='';
-        document.getElementById('results-wrap').innerHTML='';
-        document.getElementById('hint-pesquisa').style.display='block';
-        setTimeout(()=>document.getElementById('search-input').focus(),80);
-    }
-}
+        function mostrar(step){
+            document.getElementById('view-loading').style.display='none';
+            document.getElementById('view-erro').style.display='none';
+            ['pesquisa','perfil','confirmado'].forEach(s=>document.getElementById('step-'+s).classList.remove('active'));
+            const el=document.getElementById('step-'+step);if(el)el.classList.add('active');
+            if(step==='pesquisa'){
+                limparMsg('pesquisa');
+                document.getElementById('search-input').value='';
+                document.getElementById('results-wrap').innerHTML='';
+                document.getElementById('hint-pesquisa').style.display='block';
+                setTimeout(()=>document.getElementById('search-input').focus(),80);
+            }
+        }
 
-function setMsg(id,tipo,txt){const el=document.getElementById('msg-'+id);if(el){el.textContent=txt;el.className='msg show '+tipo;}}
-function limparMsg(id){const el=document.getElementById('msg-'+id);if(el){el.textContent='';el.className='msg';}}
+        function setMsg(id,tipo,txt){const el=document.getElementById('msg-'+id);if(el){el.textContent=txt;el.className='msg show '+tipo;}}
+        function limparMsg(id){const el=document.getElementById('msg-'+id);if(el){el.textContent='';el.className='msg';}}
 
 // ── PESQUISA ───────────────────────────────────────────────────────────
-let _st=null;
-function pSearch(val){
-    clearTimeout(_st);
-    const q=val.trim().toLowerCase();
-    const hint=document.getElementById('hint-pesquisa'),res=document.getElementById('results-wrap');
-    limparMsg('pesquisa');
-    if(q.length<2){res.innerHTML='';hint.style.display='block';return;}
-    hint.style.display='none';
-    _st=setTimeout(()=>{
-        const found=_participantes.filter(p=>(p.membros?.nome||'').toLowerCase().includes(q));
-        if(!found.length){res.innerHTML=`<div style="text-align:center;padding:22px;font-size:13px;color:var(--text-faint)">Nenhum participante encontrado com esse nome.</div>`;return;}
-        res.innerHTML=found.map(p=>{
-            const m=p.membros,nome=m?.nome||'—';
-            const bs=[];if(m?.e_lider)bs.push('Lider');if(m?.e_presbitero)bs.push('Presbitero');if(m?.e_voluntario)bs.push('Voluntario');
-            const stL={presente:'Presente',faltou:'Faltou',faltou_motivo:'Faltou c/ motivo',pendente:'Pendente'}[p.status]||'';
-            const fotoH=m?.foto_url?`<img src="${m.foto_url}" onerror="this.parentElement.innerHTML='${(nome||'?')[0]}'" alt="${nome}">`:(nome[0]||'?');
-            return`<div class="result-item fade-in" onclick="pSelecionar('${p.id}')">
+        let _st=null;
+        function pSearch(val){
+            clearTimeout(_st);
+            const q=val.trim().toLowerCase();
+            const hint=document.getElementById('hint-pesquisa'),res=document.getElementById('results-wrap');
+            limparMsg('pesquisa');
+            if(q.length<2){res.innerHTML='';hint.style.display='block';return;}
+            hint.style.display='none';
+            _st=setTimeout(()=>{
+                const found=_participantes.filter(p=>(p.membros?.nome||'').toLowerCase().includes(q));
+                if(!found.length){res.innerHTML=`<div style="text-align:center;padding:22px;font-size:13px;color:var(--text-faint)">Nenhum participante encontrado com esse nome.</div>`;return;}
+                res.innerHTML=found.map(p=>{
+                    const m=p.membros,nome=m?.nome||'—';
+                    const bs=[];if(m?.e_lider)bs.push('Lider');if(m?.e_presbitero)bs.push('Presbitero');if(m?.e_voluntario)bs.push('Voluntario');
+                    const stL={presente:'Presente',faltou:'Faltou',faltou_motivo:'Faltou c/ motivo',pendente:'Pendente'}[p.status]||'';
+                    const fotoH=m?.foto_url?`<img src="${m.foto_url}" onerror="this.parentElement.innerHTML='${(nome||'?')[0]}'" alt="${nome}">`:(nome[0]||'?');
+                    return`<div class="result-item fade-in" onclick="pSelecionar('${p.id}')">
                 <div class="result-foto">${fotoH}</div>
                 <div><div class="result-nome">${nome}</div><div class="result-sub">${bs.length?bs.join(' · '):'Membro'}${stL?' · '+stL:''}</div></div>
                 ${p.status==='presente'?'<span class="badge badge-green" style="margin-left:auto">Presente</span>':''}
             </div>`;
-        }).join('');
-    },200);
-}
+                }).join('');
+            },200);
+        }
 
 // ── SELECIONAR ──────────────────────────────────────────────────────────
-async function pSelecionar(presId){
-    _presencaSel=_participantes.find(p=>p.id===presId);if(!_presencaSel)return;
-    _membroSel=_presencaSel.membros;if(!_membroSel)return;
-    if(_presencaSel.status==='presente'){setMsg('pesquisa','success',`${_membroSel.nome}, a tua presenca ja foi registada!`);return;}
+        async function pSelecionar(presId){
+            _presencaSel=_participantes.find(p=>p.id===presId);if(!_presencaSel)return;
+            _membroSel=_presencaSel.membros;if(!_membroSel)return;
+            if(_presencaSel.status==='presente'){setMsg('pesquisa','success',`${_membroSel.nome}, a tua presenca ja foi registada!`);return;}
 
-    // Carregar ministerios do membro
-    try{
-        const ms=await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${_membroSel.id}&ativo=eq.true`).catch(()=>[]);
-        _memMins=ms.map(m=>({id:m.id,ministerio_id:m.ministerio_id,nome:m.ministerios?.nome||'—',tipo:m.ministerios?.tipo||'—',papel:m.papel||''}));
-    }catch{_memMins=[];}
+            // Carregar ministerios do membro
+            try{
+                const ms=await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${_membroSel.id}&ativo=eq.true`).catch(()=>[]);
+                _memMins=ms.map(m=>({id:m.id,ministerio_id:m.ministerio_id,nome:m.ministerios?.nome||'—',tipo:m.ministerios?.tipo||'—',papel:m.papel||''}));
+            }catch{_memMins=[];}
 
-    preencherPerfil();
-    renderMinChips();
-    renderMinSel();
-    mostrar('perfil');
-}
+            preencherPerfil();
+            renderMinChips();
+            renderMinSel();
+            mostrar('perfil');
+        }
 
-function preencherPerfil(){
-    const m=_membroSel;
-    // Foto
-    const fi=document.getElementById('perfil-foto-ico');
-    if(m.foto_url){fi.innerHTML=`<img src="${m.foto_url}" alt="${m.nome}" onerror="this.innerHTML='${(m.nome||'?')[0]}'">`;} else fi.textContent=(m.nome||'?')[0];
-    // Prévia da foto no form
-    const prev=document.getElementById('foto-preview');
-    if(m.foto_url){prev.src=m.foto_url;prev.style.display='';document.getElementById('foto-placeholder').style.display='none';}
-    else{prev.style.display='none';document.getElementById('foto-placeholder').style.display='';}
-    document.getElementById('foto-url-input').value=m.foto_url||'';
-    // Nome e badges
-    document.getElementById('perfil-nome').textContent=m.nome||'—';
-    const bs=[];
-    if(m.e_lider)      bs.push('<span class="badge badge-primary">Lider</span>');
-    if(m.e_presbitero) bs.push('<span class="badge badge-primary">Presbitero</span>');
-    if(m.e_voluntario) bs.push('<span class="badge badge-green">Voluntario</span>');
-    if(m.professor)    bs.push('<span class="badge badge-green">Professor</span>');
-    document.getElementById('perfil-badges').innerHTML=bs.join('');
-    // Campos
-    const sv=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
-    sv('p_email',m.email);sv('p_telefone',m.telefone);sv('p_nif',m.nif);sv('p_genero',m.genero);
-    sv('p_rua',m.rua);sv('p_numero',m.numero);sv('p_complemento',m.complemento);
-    sv('p_cidade',m.cidade);sv('p_codigo_postal',m.codigo_postal);sv('p_zona',m.zona);sv('p_historia',m.historia);
-    // Reset
-    limparMsg('perfil');limparMsg('presenca');_fotoBlob=null;
-    document.getElementById('btn-presenca').disabled=false;
-    document.getElementById('btn-presenca').textContent='Marcar a Minha Presença';
-}
+        function preencherPerfil(){
+            const m=_membroSel;
+            // Foto
+            const fi=document.getElementById('perfil-foto-ico');
+            if(m.foto_url){fi.innerHTML=`<img src="${m.foto_url}" alt="${m.nome}" onerror="this.innerHTML='${(m.nome||'?')[0]}'">`;} else fi.textContent=(m.nome||'?')[0];
+            // Prévia da foto no form
+            const prev=document.getElementById('foto-preview');
+            if(m.foto_url){prev.src=m.foto_url;prev.style.display='';document.getElementById('foto-placeholder').style.display='none';}
+            else{prev.style.display='none';document.getElementById('foto-placeholder').style.display='';}
+            document.getElementById('foto-url-input').value=m.foto_url||'';
+            // Nome e badges
+            document.getElementById('perfil-nome').textContent=m.nome||'—';
+            const bs=[];
+            if(m.e_lider)      bs.push('<span class="badge badge-primary">Lider</span>');
+            if(m.e_presbitero) bs.push('<span class="badge badge-primary">Presbitero</span>');
+            if(m.e_voluntario) bs.push('<span class="badge badge-green">Voluntario</span>');
+            if(m.professor)    bs.push('<span class="badge badge-green">Professor</span>');
+            document.getElementById('perfil-badges').innerHTML=bs.join('');
+            // Campos
+            const sv=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+            sv('p_email',m.email);sv('p_telefone',m.telefone);sv('p_nif',m.nif);sv('p_genero',m.genero);
+            sv('p_rua',m.rua);sv('p_numero',m.numero);sv('p_complemento',m.complemento);
+            sv('p_cidade',m.cidade);sv('p_codigo_postal',m.codigo_postal);sv('p_zona',m.zona);sv('p_historia',m.historia);
+            // Reset
+            limparMsg('perfil');limparMsg('presenca');_fotoBlob=null;
+            document.getElementById('btn-presenca').disabled=false;
+            document.getElementById('btn-presenca').textContent='Marcar a Minha Presença';
+        }
 
 // ── FOTO ────────────────────────────────────────────────────────────────
-async function pHandleFoto(input){
-    const file=input.files?.[0];if(!file)return;
-    _fotoBlob=await resizeFoto(file);
-    const url=URL.createObjectURL(_fotoBlob);
-    document.getElementById('foto-preview').src=url;
-    document.getElementById('foto-preview').style.display='';
-    document.getElementById('foto-placeholder').style.display='none';
-}
-function pPreviewURL(url){
-    if(!url)return;
-    const img=document.getElementById('foto-preview');
-    img.src=url;img.style.display='';
-    document.getElementById('foto-placeholder').style.display='none';
-}
-async function resizeFoto(file){
-    return new Promise(res=>{
-        const img=new Image();img.onload=()=>{
-            const s=Math.min(800,img.width,img.height),ratio=s/Math.min(img.width,img.height);
-            const c=document.createElement('canvas');c.width=Math.round(img.width*ratio);c.height=Math.round(img.height*ratio);
-            c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-            c.toBlob(b=>res(b),'image/jpeg',.82);
-        };img.src=URL.createObjectURL(file);
-    });
-}
-async function uploadFoto(){
-    if(!_fotoBlob&&!document.getElementById('foto-url-input').value) return _membroSel.foto_url||null;
-    const urlManual=document.getElementById('foto-url-input').value?.trim();
-    if(urlManual&&!_fotoBlob) return urlManual;
-    if(!_fotoBlob) return _membroSel.foto_url||null;
-    // Upload para Supabase Storage
-    try{
-        const fname=`membros/${_membroSel.id}_${Date.now()}.jpg`;
-        const r=await fetch(`${SUPA_URL}/storage/v1/object/imagens/${fname}`,{method:'POST',headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'image/jpeg','Cache-Control':'3600',Upsert:'true'},body:_fotoBlob});
-        if(!r.ok) throw await r.json();
-        return `${SUPA_URL}/storage/v1/object/public/imagens/${fname}`;
-    }catch(e){console.error('Upload foto falhou',e);return _membroSel.foto_url||null;}
-}
+        async function pHandleFoto(input){
+            const file=input.files?.[0];if(!file)return;
+            _fotoBlob=await resizeFoto(file);
+            const url=URL.createObjectURL(_fotoBlob);
+            document.getElementById('foto-preview').src=url;
+            document.getElementById('foto-preview').style.display='';
+            document.getElementById('foto-placeholder').style.display='none';
+        }
+        function pPreviewURL(url){
+            if(!url)return;
+            const img=document.getElementById('foto-preview');
+            img.src=url;img.style.display='';
+            document.getElementById('foto-placeholder').style.display='none';
+        }
+        async function resizeFoto(file){
+            return new Promise(res=>{
+                const img=new Image();img.onload=()=>{
+                    const s=Math.min(800,img.width,img.height),ratio=s/Math.min(img.width,img.height);
+                    const c=document.createElement('canvas');c.width=Math.round(img.width*ratio);c.height=Math.round(img.height*ratio);
+                    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+                    c.toBlob(b=>res(b),'image/jpeg',.82);
+                };img.src=URL.createObjectURL(file);
+            });
+        }
+        async function uploadFoto(){
+            if(!_fotoBlob&&!document.getElementById('foto-url-input').value) return _membroSel.foto_url||null;
+            const urlManual=document.getElementById('foto-url-input').value?.trim();
+            if(urlManual&&!_fotoBlob) return urlManual;
+            if(!_fotoBlob) return _membroSel.foto_url||null;
+            // Upload para Supabase Storage
+            try{
+                const fname=`membros/${_membroSel.id}_${Date.now()}.jpg`;
+                const r=await fetch(`${SUPA_URL}/storage/v1/object/imagens/${fname}`,{method:'POST',headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'image/jpeg','Cache-Control':'3600',Upsert:'true'},body:_fotoBlob});
+                if(!r.ok) throw await r.json();
+                return `${SUPA_URL}/storage/v1/object/public/imagens/${fname}`;
+            }catch(e){console.error('Upload foto falhou',e);return _membroSel.foto_url||null;}
+        }
 
 // ── MINISTERIOS ─────────────────────────────────────────────────────────
-function renderMinChips(){
-    const el=document.getElementById('min-chips');if(!el)return;
-    if(!_memMins.length){el.innerHTML='<span style="font-size:12px;color:var(--text-faint)">Sem areas associadas</span>';return;}
-    el.innerHTML=_memMins.map((m,i)=>`<span class="min-chip">${m.tipo==='ministerio'?'MIN':'AE'} · ${m.nome}${m.papel?' · '+m.papel:''}<button class="min-chip-remove" onclick="pRemMin(${i})">×</button></span>`).join('');
-}
-function renderMinSel(){
-    const sel=document.getElementById('min-sel');if(!sel)return;
-    const j=new Set(_memMins.map(m=>m.ministerio_id));
-    sel.innerHTML='<option value="">Seleciona ministerio/area...</option>'+_ministerios.filter(m=>!j.has(m.id)).map(m=>`<option value="${m.id}">[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}</option>`).join('');
-}
-async function pAddMin(){
-    const sel=document.getElementById('min-sel'),minId=sel?.value,papel=document.getElementById('min-papel')?.value?.trim()||null;
-    if(!minId)return;const min=_ministerios.find(m=>m.id===minId);if(!min)return;
-    try{await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:_membroSel.id,ministerio_id:minId,papel,ativo:true})});
-        _memMins.push({ministerio_id:minId,nome:min.nome,tipo:min.tipo,papel:papel||''});
-        renderMinChips();renderMinSel();document.getElementById('min-papel').value='';
-    }catch(e){setMsg('perfil','error','Erro ao adicionar area.');}
-}
-async function pRemMin(idx){
-    const item=_memMins[idx];if(!item)return;
-    if(item.id){try{await sb(`membro_ministerios?id=eq.${item.id}`,{method:'PATCH',body:JSON.stringify({ativo:false})});}catch{}}
-    _memMins.splice(idx,1);renderMinChips();renderMinSel();
-}
+        function renderMinChips(){
+            const el=document.getElementById('min-chips');if(!el)return;
+            if(!_memMins.length){el.innerHTML='<span style="font-size:12px;color:var(--text-faint)">Sem areas associadas</span>';return;}
+            el.innerHTML=_memMins.map((m,i)=>`<span class="min-chip">${m.tipo==='ministerio'?'MIN':'AE'} · ${m.nome}${m.papel?' · '+m.papel:''}<button class="min-chip-remove" onclick="pRemMin(${i})">×</button></span>`).join('');
+        }
+        function renderMinSel(){
+            const sel=document.getElementById('min-sel');if(!sel)return;
+            const j=new Set(_memMins.map(m=>m.ministerio_id));
+            sel.innerHTML='<option value="">Seleciona ministerio/area...</option>'+_ministerios.filter(m=>!j.has(m.id)).map(m=>`<option value="${m.id}">[${m.tipo==='ministerio'?'MIN':'AE'}] ${m.nome}</option>`).join('');
+        }
+        async function pAddMin(){
+            const sel=document.getElementById('min-sel'),minId=sel?.value;
+            const papelSel=document.getElementById('min-papel');
+            const papel=papelSel?.value||null;
+            if(!minId)return;
+            const min=_ministerios.find(m=>m.id===minId);if(!min)return;
+            try{
+                await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:_membroSel.id,ministerio_id:minId,papel,ativo:true})});
+                _memMins.push({ministerio_id:minId,nome:min.nome,tipo:min.tipo,papel:papel||''});
+                renderMinChips();renderMinSel();
+                papelSel.value='';
+            }catch(e){setMsg('perfil','error','Erro ao adicionar area.');}
+        }
+        async function pRemMin(idx){
+            const item=_memMins[idx];if(!item)return;
+            if(item.id){try{await sb(`membro_ministerios?id=eq.${item.id}`,{method:'PATCH',body:JSON.stringify({ativo:false})});}catch{}}
+            _memMins.splice(idx,1);renderMinChips();renderMinSel();
+        }
 
 // ── GUARDAR ──────────────────────────────────────────────────────────────
-async function pGuardar(){
-    const btn=document.getElementById('btn-guardar');btn.disabled=true;btn.textContent='A guardar...';
-    limparMsg('perfil');
-    const gv=id=>{const el=document.getElementById(id);return el?el.value?.trim()||null:null;};
-    // Montar body só com campos permitidos
-    const body={};
-    PERMITIDOS.filter(c=>c!=='foto_url').forEach(c=>{const v=gv('p_'+c);if(v!==null)body[c]=v;});
-    // Foto
-    const fotoUrl=await uploadFoto();if(fotoUrl!==null)body.foto_url=fotoUrl;
-    // Garantia extra anti-injection
-    PROIBIDOS.forEach(c=>delete body[c]);
-    const ilegal=Object.keys(body).filter(c=>PROIBIDOS.includes(c));
-    if(ilegal.length){setMsg('perfil','error','Erro de seguranca: campos nao permitidos.');btn.disabled=false;btn.textContent='Guardar alteracoes';return;}
-    try{
-        await sb(`membros?id=eq.${_membroSel.id}`,{method:'PATCH',body:JSON.stringify(body)});
-        Object.assign(_membroSel,body);
-        // Actualizar foto no header
-        if(body.foto_url){
-            const fi=document.getElementById('perfil-foto-ico');
-            fi.innerHTML=`<img src="${body.foto_url}" alt="${_membroSel.nome}" onerror="this.parentElement.textContent='${(_membroSel.nome||'?')[0]}'">`;
+        async function pGuardar(){
+            const btn=document.getElementById('btn-guardar');btn.disabled=true;btn.textContent='A guardar...';
+            limparMsg('perfil');
+            const gv=id=>{const el=document.getElementById(id);return el?el.value?.trim()||null:null;};
+            // Montar body só com campos permitidos
+            const body={};
+            PERMITIDOS.filter(c=>c!=='foto_url').forEach(c=>{const v=gv('p_'+c);if(v!==null)body[c]=v;});
+            // Foto
+            const fotoUrl=await uploadFoto();if(fotoUrl!==null)body.foto_url=fotoUrl;
+            // Garantia extra anti-injection
+            PROIBIDOS.forEach(c=>delete body[c]);
+            const ilegal=Object.keys(body).filter(c=>PROIBIDOS.includes(c));
+            if(ilegal.length){setMsg('perfil','error','Erro de seguranca: campos nao permitidos.');btn.disabled=false;btn.textContent='Guardar alteracoes';return;}
+            try{
+                await sb(`membros?id=eq.${_membroSel.id}`,{method:'PATCH',body:JSON.stringify(body)});
+                Object.assign(_membroSel,body);
+                // Actualizar foto no header
+                if(body.foto_url){
+                    const fi=document.getElementById('perfil-foto-ico');
+                    fi.innerHTML=`<img src="${body.foto_url}" alt="${_membroSel.nome}" onerror="this.parentElement.textContent='${(_membroSel.nome||'?')[0]}'">`;
+                }
+                setMsg('perfil','success','Dados actualizados!');
+            }catch(e){setMsg('perfil','error','Erro ao guardar. Tenta novamente.');console.error(e);}
+            btn.disabled=false;btn.textContent='Guardar alteracoes';
         }
-        setMsg('perfil','success','Dados actualizados!');
-    }catch(e){setMsg('perfil','error','Erro ao guardar. Tenta novamente.');console.error(e);}
-    btn.disabled=false;btn.textContent='Guardar alteracoes';
-}
 
 // ── PRESENÇA ──────────────────────────────────────────────────────────────
-async function pMarcar(tipo){
-    const isPresente = tipo === 'presente';
-    const motivo = document.getElementById('p_motivo_falta')?.value?.trim() || '';
-    const status = isPresente ? 'presente' : (motivo ? 'faltou_motivo' : 'faltou');
-
-    const btnP=document.getElementById('btn-presenca'),btnF=document.getElementById('btn-faltei');
-    if(isPresente){btnP.disabled=true;btnP.textContent='A registar...';}
-    else{btnF.disabled=true;btnF.textContent='A registar...';}
-    limparMsg('presenca');
-
-    try{
-        const patch={status,registado_em:new Date().toISOString()};
-        if(motivo) patch.motivo=motivo;
-        await sb(`evento_presencas?id=eq.${_presencaSel.id}`,{method:'PATCH',body:JSON.stringify(patch)});
-        const idx=_participantes.findIndex(p=>p.id===_presencaSel.id);
-        if(idx>=0){_participantes[idx].status=status;if(motivo)_participantes[idx].motivo=motivo;}
-
-        // Feedback visual diferenciado
-        const icon=document.getElementById('conf-icon'),title=document.getElementById('conf-title');
-        if(isPresente){
-            icon.textContent='✓';icon.style.borderColor='#2e7d32';icon.style.background='rgba(46,125,50,.1)';
-            title.style.color='var(--green)';title.textContent='Presença Confirmada';
-            document.getElementById('conf-msg').innerHTML=`<strong>${_membroSel.nome}</strong>, a tua presenca em <strong>${_evento.titulo}</strong> foi registada com sucesso!`;
-        } else {
-            icon.textContent='—';icon.style.borderColor='var(--red)';icon.style.background='rgba(198,40,40,.08)';
-            title.style.color='var(--red)';title.textContent='Falta Registada';
-            document.getElementById('conf-msg').innerHTML=`<strong>${_membroSel.nome}</strong>, a tua falta foi registada${motivo?` com o motivo: <em>"${motivo}"</em>`:''}. Ficas em falta na proxima!`;
+        async function pMarcar(){
+            const btn=document.getElementById('btn-presenca');btn.disabled=true;btn.textContent='A registar...';limparMsg('presenca');
+            try{
+                await sb(`evento_presencas?id=eq.${_presencaSel.id}`,{method:'PATCH',body:JSON.stringify({status:'presente',registado_em:new Date().toISOString()})});
+                const idx=_participantes.findIndex(p=>p.id===_presencaSel.id);if(idx>=0)_participantes[idx].status='presente';
+                document.getElementById('conf-msg').innerHTML=`<strong>${_membroSel.nome}</strong>, a tua presenca em <strong>${_evento.titulo}</strong> foi registada com sucesso!`;
+                mostrar('confirmado');
+            }catch(e){setMsg('presenca','error','Erro ao registar presenca. Pede ajuda a um responsavel.');btn.disabled=false;btn.textContent='Marcar a Minha Presença';console.error(e);}
         }
-        mostrar('confirmado');
-    }catch(e){
-        setMsg('presenca','error','Erro ao registar. Pede ajuda a um responsavel.');
-        btnP.disabled=false;btnP.textContent='Estou Presente';
-        if(btnF){btnF.disabled=false;btnF.textContent='Registar Falta';}
-        console.error(e);
-    }
-}
 
-function pVoltar(){_membroSel=null;_presencaSel=null;_memMins=[];_fotoBlob=null;mostrar('pesquisa');}
+        function pVoltar(){_membroSel=null;_presencaSel=null;_memMins=[];_fotoBlob=null;mostrar('pesquisa');}
 
-window.pSearch=pSearch;window.pSelecionar=pSelecionar;window.pHandleFoto=pHandleFoto;window.pPreviewURL=pPreviewURL;window.pAddMin=pAddMin;window.pRemMin=pRemMin;window.pGuardar=pGuardar;window.pMarcar=pMarcar;window.pVoltar=pVoltar;
+        window.pSearch=pSearch;window.pSelecionar=pSelecionar;window.pHandleFoto=pHandleFoto;window.pPreviewURL=pPreviewURL;window.pAddMin=pAddMin;window.pRemMin=pRemMin;window.pGuardar=pGuardar;window.pMarcar=pMarcar;window.pVoltar=pVoltar;
 
-init();
-})();
+        init();
+    })();
 </script>
 </body>
 </html>

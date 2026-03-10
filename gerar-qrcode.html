@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de QR Code — Zion Lisboa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --cream: #F9F5EE;
+            --parchment: #EDE8DF;
+            --gold: #B8975A;
+            --gold-light: #D4B483;
+            --gold-dark: #8B6E3C;
+            --charcoal: #1C1C1E;
+            --ink: #2D2D2F;
+            --muted: #7A7470;
+            --border: #D9D0C4;
+            --white: #FFFFFF;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--cream);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        /* ── TOP BAR ── */
+        header {
+            background: var(--charcoal);
+            padding: 18px 40px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 2px solid var(--gold);
+        }
+        header .cross {
+            font-size: 22px;
+            color: var(--gold);
+            letter-spacing: 1px;
+        }
+        header h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 400;
+            font-size: 22px;
+            color: var(--cream);
+            letter-spacing: 2px;
+        }
+        header span {
+            font-size: 11px;
+            color: var(--gold-light);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-left: auto;
+            font-weight: 300;
+        }
+
+        /* ── LAYOUT ── */
+        .workspace {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 0;
+            min-height: calc(100vh - 62px);
+        }
+
+        /* ── FORM PANEL ── */
+        .form-panel {
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            padding: 36px 32px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .panel-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--charcoal);
+            letter-spacing: 1px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .panel-title small {
+            display: block;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        label {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        label .req { color: var(--gold); margin-left: 2px; }
+
+        input[type="text"],
+        input[type="url"],
+        textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: var(--ink);
+            background: var(--cream);
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+            resize: none;
+        }
+        input:focus, textarea:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(184,151,90,.12);
+            background: var(--white);
+        }
+
+        textarea { min-height: 90px; line-height: 1.6; }
+
+        /* Image upload */
+        .img-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .2s;
+            position: relative;
+            overflow: hidden;
+            background: var(--cream);
+        }
+        .img-upload-area:hover {
+            border-color: var(--gold);
+            background: #fdf9f4;
+        }
+        .img-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+        .img-upload-area .upload-icon { font-size: 28px; margin-bottom: 8px; }
+        .img-upload-area p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .img-upload-area p strong { color: var(--gold-dark); }
+        .img-preview {
+            display: none;
+            margin-top: 12px;
+            position: relative;
+        }
+        .img-preview img {
+            max-width: 100%;
+            max-height: 120px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            object-fit: contain;
+        }
+        .img-preview .remove-img {
+            position: absolute;
+            top: 4px; right: 4px;
+            background: rgba(28,28,30,.7);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 24px; height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .2s;
+        }
+        .img-preview .remove-img:hover { background: #c0392b; }
+
+        /* QR size */
+        .size-row {
+            display: flex;
+            gap: 8px;
+        }
+        .size-btn {
+            flex: 1;
+            padding: 9px;
+            border: 1px solid var(--border);
+            background: var(--cream);
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            text-align: center;
+            transition: all .2s;
+            color: var(--ink);
+        }
+        .size-btn.active, .size-btn:hover {
+            border-color: var(--gold);
+            background: var(--charcoal);
+            color: var(--cream);
+        }
+
+        /* Generate button */
+        .btn-generate {
+            width: 100%;
+            padding: 15px;
+            background: var(--charcoal);
+            color: var(--gold-light);
+            border: none;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all .25s;
+            border: 1px solid transparent;
+        }
+        .btn-generate:hover {
+            background: var(--gold-dark);
+            color: var(--cream);
+            border-color: var(--gold);
+        }
+        .btn-generate:active { transform: scale(.98); }
+
+        /* ── PREVIEW PANEL ── */
+        .preview-panel {
+            background: var(--parchment);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 48px 40px;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .preview-label {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+            align-self: flex-start;
+        }
+
+        /* ── QR CARD ── */
+        .qr-card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 40px rgba(28,28,30,.10), 0 1px 4px rgba(184,151,90,.15);
+            width: 100%;
+            max-width: 460px;
+            overflow: hidden;
+            transition: all .3s;
+        }
+
+        .card-header {
+            background: var(--charcoal);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid var(--gold);
+        }
+        .card-header .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--gold);
+            opacity: .7;
+        }
+        .card-header .dot:nth-child(2) { background: var(--gold-light); opacity: .5; }
+        .card-header .dot:nth-child(3) { background: var(--gold-dark); opacity: .4; }
+
+        .card-body {
+            padding: 36px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        /* Logo image */
+        .card-logo {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .card-logo img {
+            max-width: 120px;
+            max-height: 80px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        .card-logo.visible { display: block; }
+
+        /* Title */
+        .card-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--charcoal);
+            text-align: center;
+            letter-spacing: .5px;
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+        .card-title.empty { color: #ccc; font-style: italic; font-weight: 300; font-size: 20px; }
+
+        /* Gold divider */
+        .card-divider {
+            width: 48px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            margin: 14px auto;
+            border-radius: 2px;
+        }
+
+        /* Message */
+        .card-message {
+            font-size: 14px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.7;
+            margin-bottom: 28px;
+            max-width: 340px;
+            font-weight: 300;
+        }
+        .card-message.empty { color: #ddd; font-style: italic; }
+
+        /* QR area */
+        .card-qr {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--cream);
+            margin-bottom: 24px;
+            min-width: 180px;
+            min-height: 180px;
+            position: relative;
+        }
+        .card-qr canvas, .card-qr img { border-radius: 4px; }
+
+        .qr-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: var(--border);
+        }
+        .qr-placeholder .ph-icon { font-size: 56px; opacity: .5; }
+        .qr-placeholder p { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+
+        /* Footer */
+        .card-footer-area {
+            width: 100%;
+            padding: 16px 40px 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+        .card-footer-text {
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
+
+        /* Action buttons */
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 460px;
+        }
+        .btn-action {
+            flex: 1;
+            padding: 11px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all .2s;
+            color: var(--ink);
+        }
+        .btn-action:hover { border-color: var(--gold); color: var(--gold-dark); }
+        .btn-action.primary {
+            background: var(--gold-dark);
+            border-color: var(--gold-dark);
+            color: var(--white);
+        }
+        .btn-action.primary:hover { background: var(--charcoal); border-color: var(--charcoal); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 28px; right: 28px;
+            background: var(--charcoal);
+            color: var(--gold-light);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            letter-spacing: 1px;
+            border-left: 3px solid var(--gold);
+            box-shadow: 0 4px 20px rgba(0,0,0,.2);
+            opacity: 0;
+            transform: translateY(12px);
+            transition: all .3s;
+            pointer-events: none;
+            z-index: 999;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        /* Print styles */
+        @media print {
+            header, .form-panel, .preview-label, .action-bar { display: none !important; }
+            .workspace { display: block; }
+            .preview-panel { padding: 0; background: white; }
+            .qr-card { box-shadow: none; border: 1px solid #ddd; max-width: 100%; }
+        }
+
+        @media (max-width: 900px) {
+            .workspace { grid-template-columns: 1fr; }
+            .form-panel { border-right: none; border-bottom: 1px solid var(--border); }
+            header h1 { font-size: 18px; }
+            header span { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <span class="cross">✝</span>
+    <h1>Gerador de QR Code</h1>
+    <span>Zion Lisboa</span>
+</header>
+
+<div class="workspace">
+
+    <!-- ── FORM PANEL ── -->
+    <aside class="form-panel">
+        <div class="panel-title">
+            <small>Configuração</small>
+            Criar QR Code
+        </div>
+
+        <!-- Link -->
+        <div class="field">
+            <label>Link / URL <span class="req">*</span></label>
+            <input type="url" id="inp-url" placeholder="https://exemplo.com/processo" />
+        </div>
+
+        <!-- Image -->
+        <div class="field">
+            <label>Imagem (logótipo / banner)</label>
+            <div class="img-upload-area" id="upload-area">
+                <input type="file" id="inp-image" accept="image/*" />
+                <div class="upload-icon">🖼️</div>
+                <p><strong>Clique para selecionar</strong> ou arraste aqui<br>PNG, JPG, SVG · Máx. 2 MB</p>
+            </div>
+            <div class="img-preview" id="img-preview">
+                <img id="img-thumb" src="" alt="Preview" />
+                <button class="remove-img" id="btn-remove-img" title="Remover imagem">✕</button>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <div class="field">
+            <label>Título do cartão</label>
+            <input type="text" id="inp-title" placeholder="Ex: Processo de Admissão" maxlength="80" />
+        </div>
+
+        <!-- Message -->
+        <div class="field">
+            <label>Mensagem / Descrição</label>
+            <textarea id="inp-message" placeholder="Descreva brevemente o processo ou instruções para o utilizador..."></textarea>
+        </div>
+
+        <!-- Footer -->
+        <div class="field">
+            <label>Rodapé</label>
+            <input type="text" id="inp-footer" value="© 2026 Zion Lisboa" placeholder="© 2026 Zion Lisboa" maxlength="80" />
+        </div>
+
+        <!-- QR Size -->
+        <div class="field">
+            <label>Tamanho do QR Code</label>
+            <div class="size-row">
+                <button class="size-btn" data-size="128">Pequeno</button>
+                <button class="size-btn active" data-size="180">Médio</button>
+                <button class="size-btn" data-size="240">Grande</button>
+            </div>
+        </div>
+
+        <button class="btn-generate" id="btn-generate">⚡ Gerar QR Code</button>
+    </aside>
+
+    <!-- ── PREVIEW PANEL ── -->
+    <main class="preview-panel">
+        <p class="preview-label">Pré-visualização do cartão</p>
+
+        <div class="qr-card" id="qr-card">
+            <div class="card-header">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+
+            <div class="card-body">
+                <div class="card-logo" id="card-logo">
+                    <img id="card-logo-img" src="" alt="Logo" />
+                </div>
+
+                <div class="card-title empty" id="card-title">Título do processo</div>
+                <div class="card-divider"></div>
+                <div class="card-message empty" id="card-message">A mensagem descritiva aparecerá aqui…</div>
+
+                <div class="card-qr" id="card-qr">
+                    <div class="qr-placeholder" id="qr-placeholder">
+                        <span class="ph-icon">⬛</span>
+                        <p>QR Code</p>
+                    </div>
+                    <div id="qr-output" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card-footer-area">
+                <p class="card-footer-text" id="card-footer">© 2026 Zion Lisboa</p>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-action" id="btn-copy-link">🔗 Copiar Link</button>
+            <button class="btn-action" id="btn-print">🖨️ Imprimir</button>
+            <button class="btn-action primary" id="btn-download">⬇ Guardar PNG</button>
+        </div>
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    // ── State ──
+    let qrInstance = null;
+    let logoDataUrl = null;
+    let selectedSize = 180;
+
+    // ── Live preview listeners ──
+    document.getElementById('inp-title').addEventListener('input', e => {
+        const el = document.getElementById('card-title');
+        if (e.target.value.trim()) {
+            el.textContent = e.target.value;
+            el.classList.remove('empty');
+        } else {
+            el.textContent = 'Título do processo';
+            el.classList.add('empty');
+        }
+    });
+
+    document.getElementById('inp-message').addEventListener('input', e => {
+        const el = document.getElementById('card-message');
+        if (e.target.value.trim()) {
+            el.textContent = e.target.value;
+            el.classList.remove('empty');
+        } else {
+            el.textContent = 'A mensagem descritiva aparecerá aqui…';
+            el.classList.add('empty');
+        }
+    });
+
+    document.getElementById('inp-footer').addEventListener('input', e => {
+        document.getElementById('card-footer').textContent = e.target.value || '© 2026 Zion Lisboa';
+    });
+
+    // ── Image upload ──
+    document.getElementById('inp-image').addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            logoDataUrl = e.target.result;
+            document.getElementById('img-thumb').src = logoDataUrl;
+            document.getElementById('img-preview').style.display = 'block';
+            document.getElementById('card-logo-img').src = logoDataUrl;
+            document.getElementById('card-logo').classList.add('visible');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('btn-remove-img').addEventListener('click', () => {
+        logoDataUrl = null;
+        document.getElementById('img-thumb').src = '';
+        document.getElementById('img-preview').style.display = 'none';
+        document.getElementById('card-logo').classList.remove('visible');
+        document.getElementById('inp-image').value = '';
+    });
+
+    // ── Size selector ──
+    document.querySelectorAll('.size-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedSize = parseInt(this.dataset.size);
+        });
+    });
+
+    // ── Generate ──
+    document.getElementById('btn-generate').addEventListener('click', () => {
+        const url = document.getElementById('inp-url').value.trim();
+        if (!url) { showToast('⚠️ Insere um link válido antes de gerar!'); return; }
+
+        // Update card fields
+        const title = document.getElementById('inp-title').value.trim();
+        const msg   = document.getElementById('inp-message').value.trim();
+        const footer = document.getElementById('inp-footer').value.trim();
+
+        const titleEl = document.getElementById('card-title');
+        titleEl.textContent = title || 'Título do processo';
+        title ? titleEl.classList.remove('empty') : titleEl.classList.add('empty');
+
+        const msgEl = document.getElementById('card-message');
+        msgEl.textContent = msg || 'A mensagem descritiva aparecerá aqui…';
+        msg ? msgEl.classList.remove('empty') : msgEl.classList.add('empty');
+
+        document.getElementById('card-footer').textContent = footer || '© 2026 Zion Lisboa';
+
+        // Build QR
+        const container = document.getElementById('qr-output');
+        container.innerHTML = '';
+        document.getElementById('qr-placeholder').style.display = 'none';
+        container.style.display = 'block';
+
+        qrInstance = new QRCode(container, {
+            text: url,
+            width: selectedSize,
+            height: selectedSize,
+            colorDark: '#1C1C1E',
+            colorLight: '#F9F5EE',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        showToast('✅ QR Code gerado com sucesso!');
+    });
+
+    // ── Copy link ──
+    document.getElementById('btn-copy-link').addEventListener('click', () => {
+        const url = document.getElementById('inp-url').value.trim();
+        if (!url) { showToast('⚠️ Nenhum link para copiar!'); return; }
+        navigator.clipboard.writeText(url).then(() => showToast('🔗 Link copiado!'));
+    });
+
+    // ── Print ──
+    document.getElementById('btn-print').addEventListener('click', () => window.print());
+
+    // ── Download PNG ──
+    document.getElementById('btn-download').addEventListener('click', () => {
+        const qrCanvas = document.querySelector('#qr-output canvas');
+        if (!qrCanvas) { showToast('⚠️ Gera o QR Code primeiro!'); return; }
+
+        const title   = document.getElementById('inp-title').value.trim() || 'QR Code';
+        const message = document.getElementById('inp-message').value.trim();
+        const footer  = document.getElementById('inp-footer').value.trim() || '© 2026 Zion Lisboa';
+
+        const padding   = 36;
+        const cardW     = qrCanvas.width + padding * 2;
+        const titleH    = title ? 52 : 0;
+        const msgH      = message ? (Math.ceil(message.length / 40) * 22 + 24) : 0;
+        const logoH     = logoDataUrl ? 100 : 0;
+        const footerH   = 44;
+        const cardH     = logoH + titleH + (title && message ? 20 : 0) + msgH + qrCanvas.height + padding * 2 + footerH + 24;
+
+        const cvs = document.createElement('canvas');
+        cvs.width  = cardW;
+        cvs.height = cardH;
+        const ctx = cvs.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#FFFFFF';
+        roundRect(ctx, 0, 0, cardW, cardH, 12);
+        ctx.fill();
+
+        // Top bar
+        ctx.fillStyle = '#1C1C1E';
+        roundRect(ctx, 0, 0, cardW, 36, { tl: 12, tr: 12, bl: 0, br: 0 });
+        ctx.fill();
+
+        // Gold line
+        ctx.fillStyle = '#B8975A';
+        ctx.fillRect(0, 36, cardW, 3);
+
+        let y = 39 + padding;
+
+        // Logo
+        if (logoDataUrl) {
+            const logo = new Image();
+            logo.onload = () => drawRest(ctx, cvs, logo, qrCanvas, y, cardW, cardH, padding, title, titleH, message, msgH, footer, footerH);
+            logo.src = logoDataUrl;
+        } else {
+            drawRest(ctx, cvs, null, qrCanvas, y, cardW, cardH, padding, title, titleH, message, msgH, footer, footerH);
+        }
+    });
+
+    function drawRest(ctx, cvs, logo, qrCanvas, y, cardW, cardH, padding, title, titleH, message, msgH, footer, footerH) {
+        if (logo) {
+            const lw = Math.min(120, logo.width);
+            const lh = (logo.height / logo.width) * lw;
+            ctx.drawImage(logo, (cardW - lw) / 2, y, lw, lh);
+            y += lh + 18;
+        }
+
+        if (title) {
+            ctx.fillStyle = '#1C1C1E';
+            ctx.font = 'bold 22px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(title, cardW / 2, y + 28);
+            y += 44;
+            // Divider
+            const grd = ctx.createLinearGradient(cardW/2 - 30, 0, cardW/2 + 30, 0);
+            grd.addColorStop(0, 'transparent');
+            grd.addColorStop(.5, '#B8975A');
+            grd.addColorStop(1, 'transparent');
+            ctx.strokeStyle = grd;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cardW/2 - 30, y); ctx.lineTo(cardW/2 + 30, y);
+            ctx.stroke();
+            y += 18;
+        }
+
+        if (message) {
+            ctx.fillStyle = '#7A7470';
+            ctx.font = '13px "DM Sans", sans-serif';
+            ctx.textAlign = 'center';
+            const words = message.split(' ');
+            let line = '', lines = [];
+            const maxW = cardW - padding * 2 - 20;
+            words.forEach(w => {
+                const test = line + w + ' ';
+                if (ctx.measureText(test).width > maxW && line) { lines.push(line.trim()); line = w + ' '; }
+                else { line = test; }
+            });
+            if (line) lines.push(line.trim());
+            lines.forEach((l, i) => { ctx.fillText(l, cardW/2, y + 18 + i * 22); });
+            y += lines.length * 22 + 24;
+        }
+
+        // QR
+        ctx.drawImage(qrCanvas, (cardW - qrCanvas.width) / 2, y);
+        y += qrCanvas.height + 20;
+
+        // Footer line
+        ctx.strokeStyle = '#D9D0C4';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding, y); ctx.lineTo(cardW - padding, y);
+        ctx.stroke();
+        y += 16;
+
+        ctx.fillStyle = '#7A7470';
+        ctx.font = '11px "DM Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(footer, cardW/2, y + 14);
+
+        const a = document.createElement('a');
+        a.download = 'qrcode-zion.png';
+        a.href = cvs.toDataURL('image/png');
+        a.click();
+        showToast('📥 Imagem guardada!');
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+        const rs = typeof r === 'number' ? { tl: r, tr: r, bl: r, br: r } : r;
+        ctx.beginPath();
+        ctx.moveTo(x + rs.tl, y);
+        ctx.lineTo(x + w - rs.tr, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + rs.tr);
+        ctx.lineTo(x + w, y + h - rs.br);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - rs.br, y + h);
+        ctx.lineTo(x + rs.bl, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - rs.bl);
+        ctx.lineTo(x, y + rs.tl);
+        ctx.quadraticCurveTo(x, y, x + rs.tl, y);
+        ctx.closePath();
+    }
+
+    // ── Toast ──
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2800);
+    }
+</script>
+</body>
+</html>

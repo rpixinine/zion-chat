@@ -68,6 +68,9 @@
         .form-select{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);font-family:var(--font-body);font-size:14px;color:var(--text-main);outline:none;}
         .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
+        .form-input.invalid,.form-select.invalid{border-color:var(--red) !important;background:rgba(198,40,40,.03);}
+        .form-label.required::after{content:' *';color:var(--red);}border:2px dashed var(--border);border-radius:10px;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:border-color .2s;}
+
         .foto-box{width:100%;height:160px;border:2px dashed var(--border);border-radius:10px;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:border-color .2s;}
         .foto-box:hover{border-color:var(--primary);}
         .foto-box img{width:100%;height:100%;object-fit:cover;}
@@ -719,10 +722,52 @@
             }catch(e){console.error('Upload foto falhou',e);return _membroSel.foto_url||null;}
         }
 
+        // ── VALIDACAO ─────────────────────────────────────────────────────────────
+        const OBRIGATORIOS=[
+            {id:'p_email',      label:'Email'},
+            {id:'p_telefone',   label:'Telefone'},
+            {id:'p_data_nascimento', label:'Data de Nascimento'},
+            {id:'p_genero',     label:'Genero'},
+            {id:'p_genero',     label:'Genero'},
+            {id:'p_genero',     label:'Genero'},
+            {id:'p_genero',     label:'Genero'},
+            {id:'p_genero',     label:'Genero'},
+            {id:'p_genero',     label:'Genero'},
+            {id:'p_genero',     label:'Genero'},
+            {id:'p_genero',     label:'Genero'},
+
+        ];
+        function validar(){
+            // limpar erros anteriores
+            OBRIGATORIOS.forEach(f=>{
+                const el=document.getElementById(f.id);
+                if(el)el.classList.remove('invalid');
+            });
+            const em_falta=[];
+            let primeiro=null;
+            OBRIGATORIOS.forEach(f=>{
+                const el=document.getElementById(f.id);
+                if(!el)return;
+                if(!el.value?.trim()){
+                    el.classList.add('invalid');
+                    em_falta.push(f.label);
+                    if(!primeiro)primeiro=el;
+                }
+            });
+            if(em_falta.length){
+                setMsg('perfil','error','Campos obrigatorios em falta: '+em_falta.join(', ')+'.');
+                if(primeiro){primeiro.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>primeiro.focus(),400);}
+                return false;
+            }
+            return true;
+        }
+
         // ── GUARDAR ──────────────────────────────────────────────────────────────
         async function pGuardar(){
-            const btn=document.getElementById('btn-guardar');btn.disabled=true;btn.textContent='A guardar...';
+            const btn=document.getElementById('btn-guardar');
             limparMsg('perfil');
+            if(!validar())return;
+            btn.disabled=true;btn.textContent='A guardar......';
 
             const gv=id=>{const el=document.getElementById(id);return el?el.value?.trim()||null:null;};
             const body={};
@@ -763,7 +808,7 @@
                     if(idx>=0)_membros[idx].foto_url=body.foto_url;
                 }
 
-                document.getElementById('conf-msg').innerHTML=`Os dados de <strong>${_membroSel.nome}</strong> foram actualizados com sucesso!`;
+                document.getElementById('conf-msg').innerHTML=`Os dados de <strong>${_membroSel.nome}</strong> foram atualizados com sucesso!`;
                 mostrar('confirmado');
                 window.scrollTo(0,0);
             }catch(e){
@@ -778,6 +823,12 @@
             _filhosToAdd=[];_filhosToRemove=[];_conjugePending=undefined;_linkPending=undefined;
             mostrar('pesquisa');
         }
+
+        // Limpar borda vermelha ao corrigir campo obrigatorio
+        OBRIGATORIOS.forEach(f=>{
+            const el=document.getElementById(f.id);
+            if(el){el.addEventListener('input',()=>el.classList.remove('invalid'));el.addEventListener('change',()=>el.classList.remove('invalid'));}
+        });
 
         window.pSearch=pSearch;window.pSelecionar=pSelecionar;
         window.pHandleFoto=pHandleFoto;window.pPreviewURL=pPreviewURL;

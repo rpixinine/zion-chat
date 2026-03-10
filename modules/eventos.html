@@ -669,11 +669,6 @@ async function evGerarPDF(evId){
     const nP=pres.filter(p=>p.status==='presente'),nF=pres.filter(p=>p.status==='faltou'),nM=pres.filter(p=>p.status==='faltou_motivo'),tot=pres.length;
     const dE=ev.data_inicio?new Date(ev.data_inicio).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 
-    const rowM=p=>{
-        const ms=(mMap[p.membro_id]||[]).map(m=>`[${m.tipoLabel}] ${m.nome}${m.papel?' · '+m.papel:''}`).join(' | ');
-        return`<tr><td>${p.membros?.nome||'—'}</td><td style="font-size:11px;color:#555">${ms||'—'}</td><td style="font-size:11px;color:#c07000">${p.motivo||'—'}</td></tr>`;
-    };
-
     const _pizza=(dados,total,r,cx,cy)=>{
         if(!total) return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#eee"/>`;
         let paths='',start=-Math.PI/2;
@@ -689,29 +684,6 @@ async function evGerarPDF(evId){
         paths+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">${total}</text>`;
         paths+=`<text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="8" fill="#999">TOTAL</text>`;
         return paths;
-    };
-
-    const _barras=(items,maxW)=>{
-        const H=22,gap=6,pad=4;
-        const svgH=items.length*(H+gap)+pad*2;
-        let rects='';
-        items.forEach((it,i)=>{
-            const y=pad+i*(H+gap);
-            const pPres=it.total>0?it.pres/it.total:0;
-            const pFalt=it.total>0?it.falt/it.total:0;
-            const pMot =it.total>0?it.mot/it.total:0;
-            const wPres=Math.round(pPres*maxW),wFalt=Math.round(pFalt*maxW),wMot=Math.round(pMot*maxW);
-            const pct=Math.round(pPres*100);
-            const cor=pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828';
-            rects+=`<rect x="0" y="${y}" width="${maxW}" height="${H}" rx="4" fill="#f5f5f5"/>`;
-            if(wPres>0) rects+=`<rect x="0" y="${y}" width="${wPres}" height="${H}" rx="4" fill="#2e7d32" opacity=".85"/>`;
-            if(wMot>0)  rects+=`<rect x="${wPres}" y="${y}" width="${wMot}" height="${H}" rx="0" fill="#e65100" opacity=".8"/>`;
-            if(wFalt>0) rects+=`<rect x="${wPres+wMot}" y="${y}" width="${wFalt}" height="${H}" rx="0" fill="#c62828" opacity=".7"/>`;
-            const lblX=maxW+6;
-            rects+=`<text x="${lblX}" y="${y+H/2+4}" font-size="10" fill="${cor}" font-weight="bold">${pct}%</text>`;
-            rects+=`<text x="-4" y="${y+H/2+4}" font-size="10" fill="#333" text-anchor="end">${it.label.length>22?it.label.slice(0,22)+'…':it.label}</text>`;
-        });
-        return`<svg width="${maxW+80}" height="${svgH}" viewBox="-75 0 ${maxW+80} ${svgH}" style="max-width:100%">${rects}</svg>`;
     };
 
     // ── Definicao dos 3 pilares ────────────────────────────────────────────

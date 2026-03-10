@@ -808,36 +808,86 @@ async function evGerarPDF(evId){
         const tv=porTipo[tDef.key];
         if(!tv?.total)continue;
         const areas=(areasPorTipo[tDef.key]||[]).sort((a,b)=>b.total-a.total);
-        const pctT=tv.total>0?Math.round(tv.pres/tv.total*100):0;
-        const corT=pctT>=80?'#2e7d32':pctT>=50?'#e65100':'#c62828';
+
+        // ── Listas de pessoas únicas nesta área (source of truth para contagens)
         const membrosArea=pres.filter(p=>mMap[p.membro_id]?.some(m=>_pdfClassificar(m.tipo)===tDef.key));
-        const presArea=membrosArea.filter(p=>p.status==='presente');
-        const motArea=membrosArea.filter(p=>p.status==='faltou_motivo');
-        const faltArea=membrosArea.filter(p=>p.status==='faltou');
-        const rowArea=p=>{
-            const nA=(mMap[p.membro_id]||[]).filter(m=>_pdfClassificar(m.tipo)===tDef.key).map(m=>m.nome+(m.papel?' · '+m.papel:'')).join(', ');
-            return`<tr><td>${p.membros?.nome||'—'}</td><td style="font-size:11px;color:#555">${nA||'—'}</td><td style="text-align:center;font-size:11px;color:#1565c0;font-weight:600">${_hora(p.registado_em)}</td><td style="font-size:11px;color:#e65100">${p.motivo||'—'}</td></tr>`;
+        const presArea =membrosArea.filter(p=>p.status==='presente');
+        const motArea  =membrosArea.filter(p=>p.status==='faltou_motivo');
+        const faltArea =membrosArea.filter(p=>p.status==='faltou');
+
+        // ── Stats baseados em pessoas únicas (corrige divergência com porArea)
+        const totArea=membrosArea.length;
+        const nPresArea=presArea.length, nMotArea=motArea.length, nFaltArea=faltArea.length;
+        const pctT=totArea>0?Math.round(nPresArea/totArea*100):0;
+        const corT=pctT>=80?'#2e7d32':pctT>=50?'#e65100':'#c62828';
+
+        // ── Agrupamento por papel (sub-grupo) ──────────────────────────────
+        // Para cada pessoa, pega o papel dela nesta área (pode ter mais de um vínculo → pega o primeiro)
+        const _papelDaPessoa=p=>{
+            const mins=(mMap[p.membro_id]||[]).filter(m=>_pdfClassificar(m.tipo)===tDef.key);
+            // Retorna "NomeArea · Papel" ou só o papel se quiser agrupar só por papel
+            return mins.map(m=>(m.papel||'').trim()||'Sem papel definido').join(' / ');
         };
+        const _subAreaDaPessoa=p=>{
+            const mins=(mMap[p.membro_id]||[]).filter(m=>_pdfClassificar(m.tipo)===tDef.key);
+            return mins.map(m=>m.nome+(m.papel?' · '+m.papel:'')).join(', ');
+        };
+
+        // Agrupa lista de pessoas por papel, preservando a ordem de inserção
+        const _agruparPorPapel=lista=>{
+            const grupos={};
+            lista.forEach(p=>{
+                const papel=_papelDaPessoa(p)||'Sem papel definido';
+                if(!grupos[papel])grupos[papel]=[];
+                grupos[papel].push(p);
+            });
+            // Ordena grupos por tamanho desc
+            return Object.entries(grupos).sort((a,b)=>b[1].length-a[1].length);
+        };
+
+        const rowArea=p=>`<tr>
+            <td>${p.membros?.nome||'—'}</td>
+            <td style="font-size:11px;color:#555">${_subAreaDaPessoa(p)||'—'}</td>
+            <td style="text-align:center;font-size:11px;color:#1565c0;font-weight:600">${_hora(p.registado_em)}</td>
+            <td style="font-size:11px;color:#e65100">${p.motivo||'—'}</td>
+        </tr>`;
+
+        // Renderiza tabela agrupada por papel
+        const _tabelaAgrupada=(lista,thExtra,corTitulo,icone)=>{
+            if(!lista.length)return'';
+            const grupos=_agruparPorPapel(lista);
+            let html=`<h3 style="color:${corTitulo};border-bottom-color:${corTitulo}33">${icone} ${lista.length===nPresArea&&icone==='✓'?'Presentes':icone==='⚠'?'Com Motivo':'Faltaram'} — ${lista.length}</h3>`;
+            grupos.forEach(([papel,pessoas])=>{
+                const pctG=lista.length>0?Math.round(pessoas.length/lista.length*100):0;
+                html+=`<div style="margin:10px 0 4px;display:flex;align-items:center;gap:8px">
+                    <span style="font-size:10px;font-weight:700;color:${corTitulo};text-transform:uppercase;letter-spacing:1px;background:${corTitulo}15;padding:2px 8px;border-radius:10px">${papel}</span>
+                    <span style="font-size:10px;color:#aaa">${pessoas.length} pessoa${pessoas.length!==1?'s':''} &middot; ${pctG}% deste grupo</span>
+                </div>
+                <table style="margin-bottom:8px">
+                    <thead><tr><th>Nome</th><th>Sub-área</th><th style="width:70px;text-align:center">${thExtra}</th><th>${icone==='⚠'?'Motivo':'—'}</th></tr></thead>
+                    <tbody>${pessoas.map(rowArea).join('')}</tbody>
+                </table>`;
+            });
+            return html;
+        };
+
         secoesTipo+=`
 <div style="page-break-before:always;padding-top:8px">
     <div style="border-left:6px solid ${tDef.cor};padding-left:16px;margin-bottom:20px">
         <div style="font-size:10px;color:${tDef.cor};letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">Detalhe por Área</div>
         <h2 style="color:${tDef.cor};border-bottom:2px solid ${tDef.cor};margin:0 0 16px;font-size:18px;text-transform:none;letter-spacing:0;padding-bottom:6px">${tDef.label}</h2>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
-            <div class="scard" style="border-top-color:${tDef.cor}"><div style="font-size:26px;font-weight:800;color:${tDef.cor}">${tv.pres}</div><div class="sl">Presentes</div></div>
-            <div class="scard"><div style="font-size:26px;font-weight:800;color:#c62828">${tv.falt}</div><div class="sl">Faltaram</div></div>
-            <div class="scard"><div style="font-size:26px;font-weight:800;color:#e65100">${tv.mot}</div><div class="sl">Com Motivo</div></div>
-            <div class="scard"><div style="font-size:26px;font-weight:800;color:#555">${tv.total}</div><div class="sl">Total</div></div>
+            <div class="scard" style="border-top-color:${tDef.cor}"><div style="font-size:26px;font-weight:800;color:${tDef.cor}">${nPresArea}</div><div class="sl">Presentes</div></div>
+            <div class="scard"><div style="font-size:26px;font-weight:800;color:#c62828">${nFaltArea}</div><div class="sl">Faltaram</div></div>
+            <div class="scard"><div style="font-size:26px;font-weight:800;color:#e65100">${nMotArea}</div><div class="sl">Com Motivo</div></div>
+            <div class="scard"><div style="font-size:26px;font-weight:800;color:#555">${totArea}</div><div class="sl">Total</div></div>
             <div class="scard" style="border-top-color:${corT}"><div style="font-size:26px;font-weight:800;color:${corT}">${pctT}%</div><div class="sl">Taxa</div></div>
         </div>
         <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Taxa por sub-área</div>
         ${_barrasHTML(areas.map(a=>({label:a.label,pres:a.pres,falt:a.falt,mot:a.mot,total:a.total})))}
-        ${presArea.length?`<h3 style="color:#2e7d32;border-bottom-color:#c8e8c8">✓ Presentes — ${presArea.length}</h3>
-        <table><thead><tr><th>Nome</th><th>Sub-área</th><th style="width:70px;text-align:center">Chegada</th><th>Obs.</th></tr></thead><tbody>${presArea.map(rowArea).join('')}</tbody></table>`:''}
-        ${motArea.length?`<h3 style="color:#e65100;border-bottom-color:#ffe0cc">⚠ Com Motivo — ${motArea.length}</h3>
-        <table><thead><tr><th>Nome</th><th>Sub-área</th><th style="width:70px;text-align:center">Registo</th><th>Motivo</th></tr></thead><tbody>${motArea.map(rowArea).join('')}</tbody></table>`:''}
-        ${faltArea.length?`<h3 style="color:#c62828;border-bottom-color:#ffd0d0">✗ Faltaram — ${faltArea.length}</h3>
-        <table><thead><tr><th>Nome</th><th>Sub-área</th><th style="width:70px;text-align:center">—</th><th>—</th></tr></thead><tbody>${faltArea.map(rowArea).join('')}</tbody></table>`:''}
+        ${_tabelaAgrupada(presArea,'Chegada','#2e7d32','✓')}
+        ${_tabelaAgrupada(motArea,'Registo','#e65100','⚠')}
+        ${_tabelaAgrupada(faltArea,'—','#c62828','✗')}
     </div>
 </div>`;
     }

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Relógio de Oração</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #02161e;
+            --card: rgba(255,255,255,0.06);
+            --card-strong: rgba(255,255,255,0.1);
+            --border: rgba(255,255,255,0.16);
+            --text: #ffffff;
+            --muted: rgba(255,255,255,0.74);
+            --accent: #d8c3a5;
+            --font: 'Montserrat', sans-serif;
+            --radius: 18px;
+            --shadow: 0 14px 32px rgba(0,0,0,0.28);
+            --tap: 48px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                    radial-gradient(circle at top, rgba(255,255,255,0.05), transparent 40%),
+                    linear-gradient(to bottom, rgba(255,255,255,0.02), transparent 30%);
+            z-index: 0;
+        }
+
+        header {
+            position: relative;
+            min-height: 36vh;
+            background-image: url('https://storage2.snappages.site/2CD49G/assets/images/11060006_2160x976_2500.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            padding: calc(env(safe-area-inset-top, 0px) + 1.5rem) 1rem 1.25rem;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+        }
+
+        .gradient {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 170px;
+            background: linear-gradient(to bottom, rgba(2, 22, 30, 0), rgba(2, 22, 30, 1));
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        h1 {
+            font-size: 1.95rem;
+            font-weight: 600;
+            line-height: 1.12;
+            margin-bottom: 0.7rem;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.45;
+            max-width: 31rem;
+            margin: 0 auto 0.95rem;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            border: 1px solid rgba(255,255,255,0.26);
+            border-radius: 999px;
+            padding: 0.65rem 1rem;
+            font-size: 0.84rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            backdrop-filter: blur(6px);
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 980px);
+            margin: 0 auto;
+            padding: 1rem 0.9rem calc(2rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .intro-card,
+        .group-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+        }
+
+        .intro-card {
+            padding: 0.95rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .intro-card p {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        .search-row {
+            margin: 0 0 0.9rem;
+        }
+
+        .search-input {
+            width: 100%;
+            min-height: var(--tap);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            padding: 0.9rem 1rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255,255,255,0.45);
+        }
+
+        .groups-list {
+            display: grid;
+            gap: 0.8rem;
+        }
+
+        .group-card {
+            padding: 0.9rem;
+        }
+
+        .group-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.7rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .group-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            background: var(--card-strong);
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+            font-weight: 700;
+            flex: 0 0 auto;
+        }
+
+        .group-time {
+            font-size: 1rem;
+            font-weight: 600;
+            line-height: 1.25;
+            margin-bottom: 0.25rem;
+        }
+
+        .group-name {
+            font-size: 0.86rem;
+            color: var(--muted);
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .group-actions {
+            display: grid;
+            gap: 0.5rem;
+            margin-top: 0.85rem;
+        }
+
+        .action-btn {
+            width: 100%;
+            min-height: var(--tap);
+            border-radius: 13px;
+            border: 0;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: transform 0.16s ease, opacity 0.16s ease;
+            padding: 0.85rem 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .action-btn:hover,
+        .action-btn:focus-visible {
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            color: #1f1913;
+        }
+
+        .empty-state {
+            padding: 1rem;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.5;
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        @media (max-width: 420px) {
+            main {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+
+            h1 {
+                font-size: 1.74rem;
+            }
+
+            .subtitle {
+                font-size: 0.88rem;
+            }
+
+            .group-top {
+                gap: 0.55rem;
+            }
+
+            .group-number {
+                min-width: 34px;
+                height: 34px;
+                font-size: 0.76rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            header {
+                min-height: 48vh;
+                padding-bottom: 1.8rem;
+            }
+
+            h1 {
+                font-size: 3rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            main {
+                padding-top: 1.5rem;
+            }
+
+            .intro-card,
+            .group-card {
+                padding: 1.2rem;
+            }
+
+            .groups-list {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="overlay"></div>
+    <div class="gradient"></div>
+    <div class="hero-content">
+        <h1>Relógio de Oração</h1>
+        <p class="subtitle">Escolha o seu turno abaixo e entre diretamente no grupo de WhatsApp correspondente.</p>
+        <div class="hero-badge">40 dias em Sião • VDS'26</div>
+    </div>
+</header>
+
+<main>
+
+    <div class="search-row">
+        <input class="search-input" id="searchInput" type="text" placeholder="Pesquisar horário, ex.: 14:00 ou 21:30" />
+    </div>
+
+    <section class="groups-list" id="groupsList"></section>
+</main>
+
+<script>
+    const prayerGroups = [
+        { id: 1, time: '09:00 às 09:30', name: "09:00 as 09:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/H9ktQlXx745IiTgiczeLNO' },
+        { id: 2, time: '09:30 às 10:00', name: "09:30 as 10:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/JpfE0cGZkOOCtDl2NXkpDI' },
+        { id: 3, time: '10:00 às 10:30', name: "10:00 as 10:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/JyKDjDtFEWa80pjA51SYgL' },
+        { id: 4, time: '10:30 às 11:00', name: "10:30 as 11:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/EtPbmorCjK5CPUHk0lsUm9' },
+        { id: 5, time: '11:00 às 11:30', name: "11:00 as 11:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/IB5zrXVzpSK6KIOIP9BVaY' },
+        { id: 6, time: '11:30 às 12:00', name: "11:30 as 12:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/Ly5ICCQGOJWATkIIv65kZZ' },
+        { id: 7, time: '12:00 às 12:30', name: "12:00 as 12:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/BY8P2CqNgRu66FjJeYrLg0' },
+        { id: 8, time: '12:30 às 13:00', name: "12:30 as 13:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/CEfyDf2zvNI6wmv0slH2rc' },
+        { id: 9, time: '13:00 às 13:30', name: "13:00 as 13:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/B50vrd1YuKH5y8hhxJ92aH' },
+        { id: 10, time: '13:30 às 14:00', name: "13:30 as 14:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/Il7vvIItUnh6Yu9gRQ2VRy' },
+        { id: 11, time: '14:00 às 14:30', name: "14:00 as 14:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/GPBE0tq01eQEVZ32YUQi8T' },
+        { id: 12, time: '14:30 às 15:00', name: "14:30 as 15:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/LlA8C7IDUCQGOCc4UsFNwy' },
+        { id: 13, time: '15:00 às 15:30', name: "15:00 as 15:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/CQ6kt0GtpnH6Orxq5Ri9pB' },
+        { id: 14, time: '15:30 às 16:00', name: "15:30 as 16:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/KwJLj2pDXaZCSxwCmlKoyy' },
+        { id: 15, time: '16:00 às 16:30', name: "16:00 as 16:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/F7vGvkjs6Pq7sRDgkfyiyM' },
+        { id: 16, time: '16:30 às 17:00', name: "16:30 as 17:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/FGLRGCxuH37EBtANsOX8xg' },
+        { id: 17, time: '17:00 às 17:30', name: "17:00 as 17:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/IXAtEzCtM2NEf3a4HIVKNX' },
+        { id: 18, time: '17:30 às 18:00', name: "17:30 as 18:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/I6THLzZC9e27zIvU3yDAve' },
+        { id: 19, time: '21:00 às 21:30', name: "21:00 as 21:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/H4T7V26J1idIVpOhDsnRQD' },
+        { id: 20, time: '21:30 às 22:00', name: "21:30 as 22:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/JBH4Rf86q1M5Tan16r4HwF' },
+        { id: 21, time: '22:00 às 22:30', name: "22:00 as 22:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/Gix1EGRICQQ5byn8uUkXzK' },
+        { id: 22, time: '22:30 às 23:00', name: "22:30 as 23:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/KzeBTos3xaDEUPGJV5xCSf' },
+        { id: 23, time: '23:00 às 23:30', name: "23:00 as 23:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/DN3fzVZch3JBt53sqnw2uH' },
+        { id: 24, time: '23:30 às 00:00', name: "23:30 as 00:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/K1YPUbzBTod90uX2aqYABQ' },
+        { id: 25, time: '00:00 às 00:30', name: "00:00 as 00:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/JBCUj26P2TrBd7f11PZrTy' },
+        { id: 26, time: '00:30 às 01:00', name: "00:30 as 01:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/ENzdtalJAeqBc7DgWjAHEH' },
+        { id: 27, time: '01:00 às 01:30', name: "01:00 as 01:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/GclPoe4CbWSDP2N5XCPD4L' },
+        { id: 28, time: '01:30 às 02:00', name: "01:30 as 02:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/J1S2WakcG2GGn3h9dsJUxU' },
+        { id: 29, time: '02:00 às 02:30', name: "02:00 as 02:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/FH8X6ADaTRRCTaj67nrCEM' },
+        { id: 30, time: '02:30 às 03:00', name: "02:30 as 03:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/I2WBW1aXGBpD6O1Xe8kIjs' },
+        { id: 31, time: '03:00 às 03:30', name: "03:00 as 03:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/CncXmQv0vQYENZOh1j3hk0' },
+        { id: 32, time: '03:30 às 04:00', name: "03:30 as 04:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/Fq1YNYUhhkoJio8XJym9JV' },
+        { id: 33, time: '04:00 às 04:30', name: "04:00 as 04:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/HHu0wsDPCjjDfekKUivTOS' },
+        { id: 34, time: '04:30 às 05:00', name: "04:30 as 05:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/Jnxz1RwmT0zJvINCZ12gnT' },
+        { id: 35, time: '05:00 às 05:30', name: "05:00 as 05:30 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/LlGvorJ7E8m7o17h51LU0i' },
+        { id: 36, time: '05:30 às 06:00', name: "05:30 as 06:00 | 40 dias em Sião - VDS'26", link: 'https://chat.whatsapp.com/DO1FaHJJbL1EbnnYuaKCal' }
+    ];
+
+    const groupsList = document.getElementById('groupsList');
+    const searchInput = document.getElementById('searchInput');
+
+    function buildGroupCard(group) {
+        const card = document.createElement('article');
+        card.className = 'group-card';
+
+        card.innerHTML = `
+        <div class="group-top">
+          <div class="group-number">${group.id}</div>
+          <div>
+            <div class="group-time">${group.time}</div>
+            <div class="group-name">${group.name}</div>
+          </div>
+        </div>
+        <div class="group-actions">
+          <a class="action-btn primary" href="${group.link}" target="_blank" rel="noopener noreferrer">Entrar no grupo deste turno</a>
+        </div>
+      `;
+
+
+
+        return card;
+    }
+
+    function renderGroups(filter = '') {
+        const normalizedFilter = filter.trim().toLowerCase();
+        const filteredGroups = prayerGroups.filter(group => {
+            const haystack = `${group.id} ${group.time} ${group.name}`.toLowerCase();
+            return haystack.includes(normalizedFilter);
+        });
+
+        groupsList.innerHTML = '';
+
+        if (!filteredGroups.length) {
+            groupsList.innerHTML = '<div class="empty-state">Nenhum turno encontrado para esta pesquisa.</div>';
+            return;
+        }
+
+        filteredGroups.forEach(group => {
+            groupsList.appendChild(buildGroupCard(group));
+        });
+    }
+
+    searchInput.addEventListener('input', (event) => {
+        renderGroups(event.target.value);
+    });
+
+    renderGroups();
+</script>
+</body>
+</html>

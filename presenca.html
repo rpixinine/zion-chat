@@ -289,22 +289,26 @@
 
         <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
 
-        <!-- PRESENÇA — bloqueada se campos obrigatórios em falta -->
-        <div class="form-section" style="padding-top:0">Confirmar Presença</div>
-        <div id="presenca-gate" class="presenca-gate">
-            ⚠️ Preenche todos os campos obrigatórios (*) antes de registar a presença.
+        <!-- Aviso visível enquanto a secção de presença está escondida -->
+        <div id="aviso-guardar" class="presenca-gate" style="display:none">
+            ⚠️ Preenche e guarda os campos obrigatórios (*) para poder registar a presença.
         </div>
-        <div id="msg-presenca" class="msg"></div>
-        <button class="btn-primary" id="btn-presenca" onclick="pMarcar('presente')" disabled>Estou Presente</button>
 
-        <div style="text-align:center;margin:12px 0 6px;font-size:12px;color:var(--text-faint)">— ou —</div>
-        <div style="background:rgba(198,40,40,.05);border:1px solid rgba(198,40,40,.2);border-radius:var(--r);padding:14px;">
-            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--red);margin-bottom:10px;text-transform:uppercase">Nao Estou Presente</div>
-            <div class="form-group" style="margin-bottom:10px">
-                <label class="form-label">Motivo da falta (opcional)</label>
-                <textarea class="form-textarea" id="p_motivo_falta" placeholder="Ex: Viagem, doença, trabalho..." style="min-height:70px;font-size:13px"></textarea>
+        <!-- PRESENÇA — só aparece depois de guardar (ou se dados já completos) -->
+        <div id="secao-presenca" style="display:none">
+            <div class="form-section" style="padding-top:0">Confirmar Presença</div>
+            <div id="msg-presenca" class="msg"></div>
+            <button class="btn-primary" id="btn-presenca" onclick="pMarcar('presente')">Estou Presente</button>
+
+            <div style="text-align:center;margin:12px 0 6px;font-size:12px;color:var(--text-faint)">— ou —</div>
+            <div style="background:rgba(198,40,40,.05);border:1px solid rgba(198,40,40,.2);border-radius:var(--r);padding:14px;">
+                <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--red);margin-bottom:10px;text-transform:uppercase">Nao Estou Presente</div>
+                <div class="form-group" style="margin-bottom:10px">
+                    <label class="form-label">Motivo da falta (opcional)</label>
+                    <textarea class="form-textarea" id="p_motivo_falta" placeholder="Ex: Viagem, doença, trabalho..." style="min-height:70px;font-size:13px"></textarea>
+                </div>
+                <button class="btn-secondary" id="btn-faltei" onclick="pMarcar('faltou')" style="margin-top:0;border-color:rgba(198,40,40,.4);color:var(--red)">Registar Falta</button>
             </div>
-            <button class="btn-secondary" id="btn-faltei" onclick="pMarcar('faltou')" style="margin-top:0;border-color:rgba(198,40,40,.4);color:var(--red)" disabled>Registar Falta</button>
         </div>
 
         <button class="btn-secondary" onclick="pVoltar()" style="margin-top:10px">← Voltar</button>
@@ -489,7 +493,9 @@
         document.getElementById('p_motivo_falta').value='';
 
         aplicarMascaras();
-        verificarGate();
+        // Se já tem todos os dados → mostra presença imediatamente
+        // Se não → esconde e só aparece depois de guardar
+        mostrarSecaoPresenca(dadosCompletos());
     }
 
     // ── MASCARAS ─────────────────────────────────────────────────────────────
@@ -518,41 +524,29 @@
             el.value=mascarar(el.dataset.real);
             el.dataset.masked='1';
         }
-        verificarGate();
     }
     CAMPOS_MASCARA.forEach(id=>{
         const el=document.getElementById(id);
         if(!el) return;
         el.addEventListener('focus',()=>revelarCampo(el));
         el.addEventListener('blur', ()=>voltarMascara(el));
-        el.addEventListener('input',()=>{el.classList.remove('invalid');verificarGate();});
-        el.addEventListener('change',()=>{el.classList.remove('invalid');verificarGate();});
+        el.addEventListener('input',()=>el.classList.remove('invalid'));
+        el.addEventListener('change',()=>el.classList.remove('invalid'));
     });
 
-    // ── GATE DE PRESENÇA ──────────────────────────────────────────────────────
+    // ── SECÇÃO DE PRESENÇA — mostrar/esconder ────────────────────────────────
     function getVal(id){
         const el=document.getElementById(id);
         if(!el) return '';
         return ((el.dataset.masked==='1'&&el.dataset.real)?el.dataset.real:el.value)?.trim()||'';
     }
-    function verificarGate(){
-        const tudo=OBRIGATORIOS.every(f=>getVal(f.id));
-        const gate=document.getElementById('presenca-gate');
-        const btnP=document.getElementById('btn-presenca');
-        const btnF=document.getElementById('btn-faltei');
-        gate.classList.toggle('show',!tudo);
-        btnP.disabled=!tudo;
-        btnF.disabled=!tudo;
+    function dadosCompletos(){
+        return OBRIGATORIOS.every(f=>getVal(f.id));
     }
-
-    // Ligar verificarGate a todos os campos obrigatórios não mascarados
-    OBRIGATORIOS.forEach(f=>{
-        if(CAMPOS_MASCARA.includes(f.id)) return; // já tem listener
-        const el=document.getElementById(f.id);
-        if(!el) return;
-        el.addEventListener('input',()=>{el.classList.remove('invalid');verificarGate();});
-        el.addEventListener('change',()=>{el.classList.remove('invalid');verificarGate();});
-    });
+    function mostrarSecaoPresenca(sim){
+        document.getElementById('secao-presenca').style.display = sim ? 'block' : 'none';
+        document.getElementById('aviso-guardar').style.display  = sim ? 'none'  : 'block';
+    }
 
     // ── FOTO ────────────────────────────────────────────────────────────────
     async function pHandleFoto(input){
@@ -638,16 +632,16 @@
                 const fi=document.getElementById('perfil-foto-ico');
                 fi.innerHTML=`<img src="${body.foto_url}" alt="${_membroSel.nome}" onerror="this.parentElement.textContent='${(_membroSel.nome||'?')[0]}'">`;
             }
-            setMsg('perfil','success','Dados actualizados!');
+            setMsg('perfil','success','Dados actualizados! Podes agora registar a tua presença.');
+            mostrarSecaoPresenca(true);
+            // Scroll suave para a secção de presença
+            setTimeout(()=>document.getElementById('secao-presenca').scrollIntoView({behavior:'smooth',block:'start'}),200);
         }catch(e){setMsg('perfil','error','Erro ao guardar. Tenta novamente.');console.error(e);}
         btn.disabled=false;btn.textContent='Guardar alteracoes';
     }
 
     // ── PRESENÇA ──────────────────────────────────────────────────────────────
     async function pMarcar(tipo){
-        // Double-check gate
-        if(!OBRIGATORIOS.every(f=>getVal(f.id))){verificarGate();return;}
-
         const isPresente=tipo==='presente';
         const motivo=document.getElementById('p_motivo_falta')?.value?.trim()||'';
         const status=isPresente?'presente':(motivo?'faltou_motivo':'faltou');
@@ -678,7 +672,6 @@
             mostrar('confirmado');
         }catch(e){
             setMsg('presenca','error','Erro ao registar. Pede ajuda a um responsavel.');
-            verificarGate(); // restaura estado correcto dos botões
             console.error(e);
         }
     }

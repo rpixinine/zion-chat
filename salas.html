@@ -370,29 +370,54 @@
         .submit-btn:hover    { filter: brightness(1.08); }
         .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* ── Banner nav ──────────────────────────────────── */
-        .banner-nav {
-            position: absolute; bottom: 10px; left: 0; right: 0;
-            display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+        /* ── Hero banner ─────────────────────────────────── */
+        .banner {
+            min-height: 28vh !important;
+            background-image: url('assets/zion-predios.avif') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            align-items: flex-end !important;
+            justify-content: space-between !important;
+            display: flex !important;
+            padding: 0 14px 14px !important;
+            overflow: hidden !important;
         }
+        .banner img,
+        .banner-fallback { display: none !important; }
+
+        .banner-overlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.50);
+        }
+        .banner-gradient {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, rgba(2,22,30,0), rgba(2,22,30,1));
+        }
+
+        /* ── Nav pills (dark style) ──────────────────────── */
         .back-btn {
+            position: relative; z-index: 2;
             display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
-            border-radius: var(--radius-full); padding: 5px 14px;
+            background: rgba(2,22,30,0.65);
+            border: 1px solid rgba(216,195,165,0.35);
+            border-radius: 999px;
+            padding: 6px 14px;
             font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
-            color: var(--primary-dark); text-decoration: none;
-            backdrop-filter: blur(8px); box-shadow: var(--shadow-sm); transition: all 0.2s;
+            color: var(--primary); text-decoration: none;
+            backdrop-filter: blur(8px);
+            transition: all 0.2s;
         }
-        .back-btn:hover { background: #fff; border-color: var(--primary-light); }
+        .back-btn:hover { background: rgba(216,195,165,0.12); border-color: var(--primary-light); color: var(--primary-light); }
+
         .page-badge {
+            position: relative; z-index: 2;
             font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
             color: var(--primary); text-transform: uppercase;
-            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
-            border-radius: var(--radius-full); padding: 5px 14px; backdrop-filter: blur(8px);
-        }
-        .banner-overlay {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 55px;
-            background: linear-gradient(to top, rgba(255,255,255,0.97), transparent);
+            background: rgba(2,22,30,0.65);
+            border: 1px solid rgba(216,195,165,0.35);
+            border-radius: 999px; padding: 6px 14px;
+            backdrop-filter: blur(8px);
         }
 
         @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
@@ -403,17 +428,10 @@
 <div class="page-wrapper">
 
     <div class="banner">
-        <img src="banner zion.jpg" alt="Zion Lisboa"
-             onerror="this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
-        <div class="banner-fallback">
-            <div class="banner-title">ZION</div>
-            <div class="banner-sub">Lisboa · Portugal</div>
-        </div>
         <div class="banner-overlay"></div>
-        <div class="banner-nav">
-            <a href="index.html" class="back-btn">← Início</a>
-            <span class="page-badge">Salas</span>
-        </div>
+        <div class="banner-gradient"></div>
+        <a href="index" class="back-btn">← Início</a>
+        <span class="page-badge">Membros</span>
     </div>
 
     <div class="gold-line"></div>
@@ -515,87 +533,87 @@
 </div>
 
 <script>
-// ── AUTH ───────────────────────────────────────────────────
-ZionAuth.protect();
-const currentUser = ZionAuth.getUser();
+    // ── AUTH ───────────────────────────────────────────────────
+    ZionAuth.protect();
+    const currentUser = ZionAuth.getUser();
 
-// ── CONFIG ─────────────────────────────────────────────────
-const SUPA_URL = window.SUPABASE_URL      || '';
-const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+    // ── CONFIG ─────────────────────────────────────────────────
+    const SUPA_URL = window.SUPABASE_URL      || '';
+    const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
-// ── PERMISSÕES (preenchidas após carregar membro) ──────────
-// canView      — todos os autenticados (qualquer tipo)
-// canAgendar   — membro_id existe + e_lider = true
-// canAprovar   — e_presbitero = true OR e_admin = true
-// canVerRejeitados — canAprovar OR solicitante_id === currentUser.id
+    // ── PERMISSÕES (preenchidas após carregar membro) ──────────
+    // canView      — todos os autenticados (qualquer tipo)
+    // canAgendar   — membro_id existe + e_lider = true
+    // canAprovar   — e_presbitero = true OR e_admin = true
+    // canVerRejeitados — canAprovar OR solicitante_id === currentUser.id
 
-let perms = {
-    canAgendar:  false,
-    canAprovar:  false,
-};
+    let perms = {
+        canAgendar:  false,
+        canAprovar:  false,
+    };
 
-// ── STATE ──────────────────────────────────────────────────
-let salas = [], agendSemana = [], salaAtiva = null, abaAtiva = 'salas';
-let semanaOffset = 0;
-let diaAtivo = null;
+    // ── STATE ──────────────────────────────────────────────────
+    let salas = [], agendSemana = [], salaAtiva = null, abaAtiva = 'salas';
+    let semanaOffset = 0;
+    let diaAtivo = null;
 
-// ── SUPABASE ───────────────────────────────────────────────
-async function sb(path, opts = {}) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-        ...opts,
-        headers: {
-            'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
-            'Content-Type': 'application/json', 'Prefer': 'return=representation',
-            ...opts.headers
-        }
-    });
-    if (!r.ok) { const e = await r.json().catch(()=>({})); throw { status: r.status, ...e }; }
-    return r.json();
-}
-
-// ── INIT ───────────────────────────────────────────────────
-async function init() {
-    // 1. Busca campos de permissão da tabela membros (se tiver membro_id)
-    if (currentUser.membro_id) {
-        try {
-            const rows = await sb(`membros?id=eq.${currentUser.membro_id}&select=e_lider,e_presbitero,e_admin`);
-            if (rows && rows.length) {
-                const m = rows[0];
-                perms.canAgendar = !!m.e_lider;
-                perms.canAprovar = !!(m.e_presbitero || m.e_admin);
+    // ── SUPABASE ───────────────────────────────────────────────
+    async function sb(path, opts = {}) {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+            ...opts,
+            headers: {
+                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+                'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                ...opts.headers
             }
+        });
+        if (!r.ok) { const e = await r.json().catch(()=>({})); throw { status: r.status, ...e }; }
+        return r.json();
+    }
+
+    // ── INIT ───────────────────────────────────────────────────
+    async function init() {
+        // 1. Busca campos de permissão da tabela membros (se tiver membro_id)
+        if (currentUser.membro_id) {
+            try {
+                const rows = await sb(`membros?id=eq.${currentUser.membro_id}&select=e_lider,e_presbitero,e_admin`);
+                if (rows && rows.length) {
+                    const m = rows[0];
+                    perms.canAgendar = !!m.e_lider;
+                    perms.canAprovar = !!(m.e_presbitero || m.e_admin);
+                }
+            } catch(e) {
+                console.warn('Não foi possível carregar permissões de membro:', e);
+            }
+        }
+
+        renderUserCard();
+
+        try {
+            salas = await sb('salas?select=*&ativo=eq.true&order=espaco,nome');
+            await carregarAgendaSemana();
+            preencherHoras();
+            renderSalas();
         } catch(e) {
-            console.warn('Não foi possível carregar permissões de membro:', e);
+            document.getElementById('main-content').innerHTML =
+                '<div class="loading">Erro ao carregar. Verifica a configuração Supabase.</div>';
         }
     }
 
-    renderUserCard();
+    // ── USER CARD ──────────────────────────────────────────────
+    function renderUserCard() {
+        const initials = (currentUser.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
-    try {
-        salas = await sb('salas?select=*&ativo=eq.true&order=espaco,nome');
-        await carregarAgendaSemana();
-        preencherHoras();
-        renderSalas();
-    } catch(e) {
-        document.getElementById('main-content').innerHTML =
-            '<div class="loading">Erro ao carregar. Verifica a configuração Supabase.</div>';
-    }
-}
+        let tipoLabel = 'Visitante';
+        let tipoClass = 'tipo-visitante';
+        if (perms.canAprovar)  { tipoLabel = 'Presbítero / Admin'; tipoClass = 'tipo-admin'; }
+        else if (perms.canAgendar) { tipoLabel = 'Líder'; tipoClass = 'tipo-lider'; }
+        else if (currentUser.tipo === 'membro') { tipoLabel = 'Membro'; tipoClass = 'tipo-membro'; }
 
-// ── USER CARD ──────────────────────────────────────────────
-function renderUserCard() {
-    const initials = (currentUser.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-
-    let tipoLabel = 'Visitante';
-    let tipoClass = 'tipo-visitante';
-    if (perms.canAprovar)  { tipoLabel = 'Presbítero / Admin'; tipoClass = 'tipo-admin'; }
-    else if (perms.canAgendar) { tipoLabel = 'Líder'; tipoClass = 'tipo-lider'; }
-    else if (currentUser.tipo === 'membro') { tipoLabel = 'Membro'; tipoClass = 'tipo-membro'; }
-
-    const content = document.getElementById('main-content');
-    const card = document.createElement('div');
-    card.className = 'user-card';
-    card.innerHTML = `
+        const content = document.getElementById('main-content');
+        const card = document.createElement('div');
+        card.className = 'user-card';
+        card.innerHTML = `
         <div class="user-avatar">${initials}</div>
         <div class="user-info">
             <div class="user-name">${currentUser.nome}</div>
@@ -605,105 +623,105 @@ function renderUserCard() {
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Sair
         </button>`;
-    content.insertBefore(card, content.firstChild);
+        content.insertBefore(card, content.firstChild);
 
-    // Aviso se não pode agendar
-    if (!perms.canAgendar) {
-        const aviso = document.createElement('div');
-        aviso.className = 'aviso-banner';
-        aviso.innerHTML = `
+        // Aviso se não pode agendar
+        if (!perms.canAgendar) {
+            const aviso = document.createElement('div');
+            aviso.className = 'aviso-banner';
+            aviso.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <div class="aviso-banner-txt">
                 <strong>Agendamento — Apenas Líderes</strong>
                 Podes consultar a agenda de ocupação. O agendamento de salas está disponível apenas para membros com perfil de líder.
             </div>`;
-        content.insertBefore(aviso, content.children[1]);
+            content.insertBefore(aviso, content.children[1]);
+        }
     }
-}
 
-// ── HELPERS ────────────────────────────────────────────────
-function toDateStr(d) { return d.toISOString().split('T')[0]; }
+    // ── HELPERS ────────────────────────────────────────────────
+    function toDateStr(d) { return d.toISOString().split('T')[0]; }
 
-function getSegundaFeira(offset = 0) {
-    const hoje = new Date();
-    const diff = hoje.getDay() === 0 ? -6 : 1 - hoje.getDay();
-    const segunda = new Date(hoje);
-    segunda.setDate(hoje.getDate() + diff + (offset * 7));
-    segunda.setHours(0,0,0,0);
-    return segunda;
-}
+    function getSegundaFeira(offset = 0) {
+        const hoje = new Date();
+        const diff = hoje.getDay() === 0 ? -6 : 1 - hoje.getDay();
+        const segunda = new Date(hoje);
+        segunda.setDate(hoje.getDate() + diff + (offset * 7));
+        segunda.setHours(0,0,0,0);
+        return segunda;
+    }
 
-function getDiasSemana(offset = 0) {
-    const segunda = getSegundaFeira(offset);
-    return Array.from({length: 7}, (_, i) => {
-        const d = new Date(segunda);
-        d.setDate(segunda.getDate() + i);
-        return d;
-    });
-}
+    function getDiasSemana(offset = 0) {
+        const segunda = getSegundaFeira(offset);
+        return Array.from({length: 7}, (_, i) => {
+            const d = new Date(segunda);
+            d.setDate(segunda.getDate() + i);
+            return d;
+        });
+    }
 
-function tagsHtml(s) {
-    const SVG = {
-        som:  `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`,
-        luz:  `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
-        proj: `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>`,
-        chair:`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M4 17v4M20 17v4M4 17l-2-7h20l-2 7M9 17V9a3 3 0 0 1 6 0v8"/></svg>`,
-    };
-    const t = [];
-    if (s.tem_som)        t.push(`<span class="sala-tag">${SVG.som} Som</span>`);
-    if (s.tem_iluminacao) t.push(`<span class="sala-tag">${SVG.luz} Luz</span>`);
-    if (s.tem_projecao)   t.push(`<span class="sala-tag">${SVG.proj} Projeção</span>`);
-    if (s.tem_mesas || s.tem_cadeiras) t.push(`<span class="sala-tag">${SVG.chair} ${s.tem_mesas?'Mesas':'Cadeiras'}</span>`);
-    return t.join('');
-}
+    function tagsHtml(s) {
+        const SVG = {
+            som:  `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`,
+            luz:  `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+            proj: `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>`,
+            chair:`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M4 17v4M20 17v4M4 17l-2-7h20l-2 7M9 17V9a3 3 0 0 1 6 0v8"/></svg>`,
+        };
+        const t = [];
+        if (s.tem_som)        t.push(`<span class="sala-tag">${SVG.som} Som</span>`);
+        if (s.tem_iluminacao) t.push(`<span class="sala-tag">${SVG.luz} Luz</span>`);
+        if (s.tem_projecao)   t.push(`<span class="sala-tag">${SVG.proj} Projeção</span>`);
+        if (s.tem_mesas || s.tem_cadeiras) t.push(`<span class="sala-tag">${SVG.chair} ${s.tem_mesas?'Mesas':'Cadeiras'}</span>`);
+        return t.join('');
+    }
 
-function isOcupada(id) {
-    const agora = new Date();
-    const hoje  = toDateStr(agora);
-    return agendSemana.some(a =>
-        a.sala_id === id &&
-        a.data_inicio.startsWith(hoje) &&
-        agora >= new Date(a.data_inicio) &&
-        agora <= new Date(a.data_fim)
-    );
-}
+    function isOcupada(id) {
+        const agora = new Date();
+        const hoje  = toDateStr(agora);
+        return agendSemana.some(a =>
+            a.sala_id === id &&
+            a.data_inicio.startsWith(hoje) &&
+            agora >= new Date(a.data_inicio) &&
+            agora <= new Date(a.data_fim)
+        );
+    }
 
-// ── CARREGAR AGENDA DA SEMANA ──────────────────────────────
-async function carregarAgendaSemana() {
-    const dias  = getDiasSemana(semanaOffset);
-    const ini   = toDateStr(dias[0]);
-    const fim   = toDateStr(dias[6]);
-    const raw   = await sb(`sala_agendamentos?select=*&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`);
-    agendSemana = Array.isArray(raw) ? raw : [];
-}
+    // ── CARREGAR AGENDA DA SEMANA ──────────────────────────────
+    async function carregarAgendaSemana() {
+        const dias  = getDiasSemana(semanaOffset);
+        const ini   = toDateStr(dias[0]);
+        const fim   = toDateStr(dias[6]);
+        const raw   = await sb(`sala_agendamentos?select=*&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`);
+        agendSemana = Array.isArray(raw) ? raw : [];
+    }
 
-// ── RENDER SALAS ───────────────────────────────────────────
-function renderSalas() {
-    const grupos = {};
-    (Array.isArray(salas)?salas:[]).forEach(s => {
-        const e = s.espaco || 'Outros';
-        if (!grupos[e]) grupos[e] = [];
-        grupos[e].push(s);
-    });
+    // ── RENDER SALAS ───────────────────────────────────────────
+    function renderSalas() {
+        const grupos = {};
+        (Array.isArray(salas)?salas:[]).forEach(s => {
+            const e = s.espaco || 'Outros';
+            if (!grupos[e]) grupos[e] = [];
+            grupos[e].push(s);
+        });
 
-    let html = '<div class="section-label">Salas disponíveis para agendamento</div>';
+        let html = '<div class="section-label">Salas disponíveis para agendamento</div>';
 
-    Object.entries(grupos).forEach(([esp, list]) => {
-        html += `<div class="espaco-title">${esp}</div><div class="salas-grid">`;
-        list.forEach((s, i) => {
-            const oc  = isOcupada(s.id);
-            const cap = s.capacidade ? `${s.capacidade} pessoas` : 'Capacidade a definir';
+        Object.entries(grupos).forEach(([esp, list]) => {
+            html += `<div class="espaco-title">${esp}</div><div class="salas-grid">`;
+            list.forEach((s, i) => {
+                const oc  = isOcupada(s.id);
+                const cap = s.capacidade ? `${s.capacidade} pessoas` : 'Capacidade a definir';
 
-            let btnHtml;
-            if (oc) {
-                btnHtml = `<button class="sala-btn" disabled>Ocupada agora</button>`;
-            } else if (!perms.canAgendar) {
-                btnHtml = `<button class="sala-btn bloqueado" disabled>Só Líderes</button>`;
-            } else {
-                btnHtml = `<button class="sala-btn" onclick="abrirModal('${s.id}')">Agendar</button>`;
-            }
+                let btnHtml;
+                if (oc) {
+                    btnHtml = `<button class="sala-btn" disabled>Ocupada agora</button>`;
+                } else if (!perms.canAgendar) {
+                    btnHtml = `<button class="sala-btn bloqueado" disabled>Só Líderes</button>`;
+                } else {
+                    btnHtml = `<button class="sala-btn" onclick="abrirModal('${s.id}')">Agendar</button>`;
+                }
 
-            html += `
+                html += `
             <div class="sala-card${oc?' ocupada':''}" style="animation-delay:${i*0.05}s">
                 ${s.foto_url
                     ? `<img class="sala-foto" src="${s.foto_url}" alt="${s.nome}" loading="lazy">`
@@ -718,45 +736,45 @@ function renderSalas() {
                     ${btnHtml}
                 </div>
             </div>`;
+            });
+            html += '</div>';
         });
-        html += '</div>';
-    });
 
-    document.getElementById('main-content').innerHTML = html;
-    renderUserCard(); // re-insere user card no topo
-}
+        document.getElementById('main-content').innerHTML = html;
+        renderUserCard(); // re-insere user card no topo
+    }
 
-// ── RENDER AGENDA ──────────────────────────────────────────
-async function renderAgenda() {
-    const dias    = getDiasSemana(semanaOffset);
-    const hoje    = toDateStr(new Date());
-    const mesIni  = dias[0].toLocaleDateString('pt-PT', {day:'numeric',month:'short'});
-    const mesFim  = dias[6].toLocaleDateString('pt-PT', {day:'numeric',month:'short',year:'numeric'});
-    const nomes   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    // ── RENDER AGENDA ──────────────────────────────────────────
+    async function renderAgenda() {
+        const dias    = getDiasSemana(semanaOffset);
+        const hoje    = toDateStr(new Date());
+        const mesIni  = dias[0].toLocaleDateString('pt-PT', {day:'numeric',month:'short'});
+        const mesFim  = dias[6].toLocaleDateString('pt-PT', {day:'numeric',month:'short',year:'numeric'});
+        const nomes   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
-    if (!diaAtivo) diaAtivo = hoje;
+        if (!diaAtivo) diaAtivo = hoje;
 
-    const contPorDia = {};
-    agendSemana.forEach(a => {
-        const d = a.data_inicio.split('T')[0];
-        contPorDia[d] = (contPorDia[d]||0) + 1;
-    });
+        const contPorDia = {};
+        agendSemana.forEach(a => {
+            const d = a.data_inicio.split('T')[0];
+            contPorDia[d] = (contPorDia[d]||0) + 1;
+        });
 
-    let pillsHtml = '';
-    dias.forEach(d => {
-        const ds      = toDateStr(d);
-        const isHoje  = ds === hoje;
-        const isAtivo = ds === diaAtivo;
-        const temAg   = contPorDia[ds] > 0;
-        pillsHtml += `
+        let pillsHtml = '';
+        dias.forEach(d => {
+            const ds      = toDateStr(d);
+            const isHoje  = ds === hoje;
+            const isAtivo = ds === diaAtivo;
+            const temAg   = contPorDia[ds] > 0;
+            pillsHtml += `
         <div class="day-pill ${isAtivo?'active':''} ${isHoje&&!isAtivo?'hoje':''}" onclick="selecionarDia('${ds}')">
             <div class="day-pill-nome">${nomes[d.getDay()]}</div>
             <div class="day-pill-num">${d.getDate()}</div>
             <div class="day-pill-dot ${temAg?'tem':''}"></div>
         </div>`;
-    });
+        });
 
-    document.getElementById('main-content').innerHTML = `
+        document.getElementById('main-content').innerHTML = `
     <div class="agenda-header">
         <button class="date-nav-btn" onclick="mudarSemana(-1)">‹</button>
         <div class="agenda-week-label">${mesIni} — ${mesFim}</div>
@@ -768,52 +786,52 @@ async function renderAgenda() {
         <div class="loading"><div class="spin"></div>A carregar...</div>
     </div>`;
 
-    renderAgendaDia(diaAtivo);
-}
-
-function renderAgendaDia(ds) {
-    const el = document.getElementById('agenda-list');
-    if (!el) return;
-
-    const agendDia = agendSemana.filter(a => a.data_inicio.startsWith(ds));
-
-    // Filtra rejeitados conforme permissões:
-    // canAprovar vê tudo; outros só vêem os seus próprios rejeitados
-    const visiveis = agendDia.filter(a => {
-        if (a.status !== 'recusado') return true; // aprovado/pendente — todos vêem
-        if (perms.canAprovar) return true;          // admin/presbítero — vê tudo
-        return a.solicitante_id === currentUser.id; // só o próprio vê o seu rejeitado
-    });
-
-    if (!visiveis.length) {
-        el.innerHTML = '<div class="empty"><div class="empty-txt">Sem agendamentos visíveis para este dia.</div></div>';
-        return;
+        renderAgendaDia(diaAtivo);
     }
 
-    // Agrupa por espaço
-    const grupos = {};
-    visiveis.forEach(a => {
-        const s = salas.find(x => x.id === a.sala_id);
-        const e = s?.espaco || 'Outros';
-        if (!grupos[e]) grupos[e] = [];
-        grupos[e].push({...a, sala: s});
-    });
+    function renderAgendaDia(ds) {
+        const el = document.getElementById('agenda-list');
+        if (!el) return;
 
-    let html = '';
-    Object.entries(grupos).forEach(([esp, items]) => {
-        html += `<div class="agenda-day-title">${esp}</div>`;
-        items.forEach((a, i) => {
-            const ini = new Date(a.data_inicio);
-            const fim = new Date(a.data_fim);
-            const hi  = ini.toLocaleTimeString('pt-PT', {hour:'2-digit',minute:'2-digit'});
-            const hf  = fim.toLocaleTimeString('pt-PT', {hour:'2-digit',minute:'2-digit'});
+        const agendDia = agendSemana.filter(a => a.data_inicio.startsWith(ds));
 
-            // Motivo da recusa — só visível para canAprovar ou para o próprio
-            const podeVerMotivo = perms.canAprovar || a.solicitante_id === currentUser.id;
-            const motivoHtml = (a.status === 'recusado' && a.motivo_recusa && podeVerMotivo)
-                ? `<div class="a-motivo">${a.motivo_recusa}</div>` : '';
+        // Filtra rejeitados conforme permissões:
+        // canAprovar vê tudo; outros só vêem os seus próprios rejeitados
+        const visiveis = agendDia.filter(a => {
+            if (a.status !== 'recusado') return true; // aprovado/pendente — todos vêem
+            if (perms.canAprovar) return true;          // admin/presbítero — vê tudo
+            return a.solicitante_id === currentUser.id; // só o próprio vê o seu rejeitado
+        });
 
-            html += `
+        if (!visiveis.length) {
+            el.innerHTML = '<div class="empty"><div class="empty-txt">Sem agendamentos visíveis para este dia.</div></div>';
+            return;
+        }
+
+        // Agrupa por espaço
+        const grupos = {};
+        visiveis.forEach(a => {
+            const s = salas.find(x => x.id === a.sala_id);
+            const e = s?.espaco || 'Outros';
+            if (!grupos[e]) grupos[e] = [];
+            grupos[e].push({...a, sala: s});
+        });
+
+        let html = '';
+        Object.entries(grupos).forEach(([esp, items]) => {
+            html += `<div class="agenda-day-title">${esp}</div>`;
+            items.forEach((a, i) => {
+                const ini = new Date(a.data_inicio);
+                const fim = new Date(a.data_fim);
+                const hi  = ini.toLocaleTimeString('pt-PT', {hour:'2-digit',minute:'2-digit'});
+                const hf  = fim.toLocaleTimeString('pt-PT', {hour:'2-digit',minute:'2-digit'});
+
+                // Motivo da recusa — só visível para canAprovar ou para o próprio
+                const podeVerMotivo = perms.canAprovar || a.solicitante_id === currentUser.id;
+                const motivoHtml = (a.status === 'recusado' && a.motivo_recusa && podeVerMotivo)
+                    ? `<div class="a-motivo">${a.motivo_recusa}</div>` : '';
+
+                html += `
             <div class="agenda-item" style="animation-delay:${i*0.04}s">
                 <div class="a-dot ${a.status}"></div>
                 <div class="a-info">
@@ -825,166 +843,166 @@ function renderAgendaDia(ds) {
                 </div>
                 <span class="a-badge ${a.status}">${a.status}</span>
             </div>`;
+            });
         });
-    });
-    el.innerHTML = html;
-}
-
-function selecionarDia(ds) {
-    diaAtivo = ds;
-    document.querySelectorAll('.day-pill').forEach(p => {
-        p.classList.toggle('active', p.getAttribute('onclick')?.includes(ds));
-    });
-    renderAgendaDia(ds);
-}
-
-async function mudarSemana(dir) {
-    semanaOffset += dir;
-    diaAtivo = null;
-    await carregarAgendaSemana();
-    renderAgenda();
-}
-
-function irParaHoje() {
-    semanaOffset = 0;
-    diaAtivo = toDateStr(new Date());
-    carregarAgendaSemana().then(() => renderAgenda());
-}
-
-// ── TABS ───────────────────────────────────────────────────
-function switchTab(tab) {
-    abaAtiva = tab;
-    document.querySelectorAll('.tab-btn').forEach((b, i) =>
-        b.classList.toggle('active', (i===0&&tab==='salas') || (i===1&&tab==='agenda')));
-    if (tab === 'salas') renderSalas();
-    else renderAgenda();
-}
-
-// ── MODAL ──────────────────────────────────────────────────
-function abrirModal(id) {
-    if (!perms.canAgendar) return;
-    salaAtiva = salas.find(s => s.id === id);
-    if (!salaAtiva) return;
-
-    document.getElementById('modal-title').textContent = `Agendar — ${salaAtiva.nome}`;
-    document.getElementById('m-nome').textContent = salaAtiva.nome;
-    document.getElementById('m-esp').textContent  = salaAtiva.espaco || '';
-    document.getElementById('m-tags').innerHTML   = tagsHtml(salaAtiva);
-
-    const foto = document.getElementById('m-foto');
-    const ph   = document.getElementById('m-foto-ph');
-    if (salaAtiva.foto_url) { foto.src = salaAtiva.foto_url; foto.style.display = ''; ph.style.display = 'none'; }
-    else { foto.style.display = 'none'; ph.style.display = ''; }
-
-    const hoje = toDateStr(new Date());
-    document.getElementById('f-data').min   = hoje;
-    document.getElementById('f-data').value = hoje;
-    document.getElementById('f-nome').value  = currentUser.nome  || '';
-    document.getElementById('f-email').value = currentUser.email || '';
-    document.getElementById('f-tel').value   = '';
-    document.getElementById('f-motivo').value = '';
-    document.getElementById('f-aviso').checked = false;
-    document.getElementById('conflito-box').style.display = 'none';
-    document.getElementById('m-msg').className = 'msg-box';
-    document.getElementById('submit-btn').disabled = false;
-    document.getElementById('submit-btn').textContent = 'Enviar Pedido de Agendamento';
-
-    document.getElementById('overlay').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeModal()    { document.getElementById('overlay').classList.add('hidden'); document.body.style.overflow = ''; salaAtiva = null; }
-function closeOutside(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
-
-// ── HORÁRIOS ───────────────────────────────────────────────
-function preencherHoras() {
-    const si = document.getElementById('f-ini');
-    const sf = document.getElementById('f-fim');
-    si.innerHTML = '<option value="">Início</option>';
-    sf.innerHTML = '<option value="">Fim</option>';
-    for (let h = 6; h <= 23; h++) {
-        const t = `${String(h).padStart(2,'0')}:00`;
-        si.add(new Option(t, t));
-        sf.add(new Option(t, t));
+        el.innerHTML = html;
     }
-    sf.add(new Option('00:00','00:00'));
-}
 
-// ── VERIFICAR CONFLITO ─────────────────────────────────────
-async function checkConflito() {
-    if (!salaAtiva) return;
-    const data = document.getElementById('f-data').value;
-    const ini  = document.getElementById('f-ini').value;
-    const fim  = document.getElementById('f-fim').value;
-    const box  = document.getElementById('conflito-box');
-    if (!data || !ini || !fim) { box.style.display = 'none'; return; }
-    try {
-        const c = await sb(`sala_agendamentos?sala_id=eq.${salaAtiva.id}&status=in.(aprovado,pendente)&data_inicio=lt.${data}T${fim}:00&data_fim=gt.${data}T${ini}:00`);
-        box.style.display = (c && c.length > 0) ? 'block' : 'none';
-    } catch(e) { box.style.display = 'none'; }
-}
-
-// ── SUBMETER ───────────────────────────────────────────────
-async function submeter() {
-    const nome  = document.getElementById('f-nome').value.trim();
-    const tel   = document.getElementById('f-tel').value.trim();
-    const email = document.getElementById('f-email').value.trim();
-    const data  = document.getElementById('f-data').value;
-    const ini   = document.getElementById('f-ini').value;
-    const fim   = document.getElementById('f-fim').value;
-    const mot   = document.getElementById('f-motivo').value.trim();
-    const aviso = document.getElementById('f-aviso').checked;
-
-    if (!nome)      return msg('Nome obrigatório.','error');
-    if (!email)     return msg('Email obrigatório.','error');
-    if (!data)      return msg('Data obrigatória.','error');
-    if (!ini||!fim) return msg('Horário obrigatório.','error');
-    if (fim <= ini) return msg('Hora de fim deve ser depois do início.','error');
-    if (!aviso)     return msg('Confirma que entregas a sala limpa e organizada.','error');
-    if (document.getElementById('conflito-box').style.display === 'block')
-        return msg('Existe conflito de horário. Escolhe outro.','error');
-
-    const btn = document.getElementById('submit-btn');
-    btn.disabled = true; btn.textContent = 'A enviar...';
-
-    try {
-        await sb('sala_agendamentos', {
-            method: 'POST',
-            body: JSON.stringify({
-                sala_id:           salaAtiva.id,
-                solicitante_id:    currentUser.id,
-                solicitante_nome:  nome,
-                solicitante_tel:   tel,
-                solicitante_email: email,
-                titulo:            mot || `Pedido de ${nome}`,
-                descricao:         mot,
-                data_inicio:       `${data}T${ini}:00`,
-                data_fim:          `${data}T${fim}:00`,
-                status:            'pendente',
-                aviso_lido:        true,
-            })
+    function selecionarDia(ds) {
+        diaAtivo = ds;
+        document.querySelectorAll('.day-pill').forEach(p => {
+            p.classList.toggle('active', p.getAttribute('onclick')?.includes(ds));
         });
-        msg('Pedido enviado! Aguarda aprovação.','success');
-        btn.textContent = 'Pedido Enviado';
+        renderAgendaDia(ds);
+    }
+
+    async function mudarSemana(dir) {
+        semanaOffset += dir;
+        diaAtivo = null;
         await carregarAgendaSemana();
-        setTimeout(() => { closeModal(); renderSalas(); }, 2500);
-    } catch(e) {
-        const detalhe = e.message || e.details || e.hint || JSON.stringify(e);
-        msg(`Erro ao enviar: ${detalhe}`, 'error');
-        btn.disabled = false;
-        btn.textContent = 'Enviar Pedido de Agendamento';
+        renderAgenda();
     }
-}
 
-function msg(txt, tipo) {
-    const el = document.getElementById('m-msg');
-    el.textContent = txt; el.className = `msg-box ${tipo}`;
-    el.scrollIntoView({behavior:'smooth', block:'nearest'});
-}
+    function irParaHoje() {
+        semanaOffset = 0;
+        diaAtivo = toDateStr(new Date());
+        carregarAgendaSemana().then(() => renderAgenda());
+    }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    // ── TABS ───────────────────────────────────────────────────
+    function switchTab(tab) {
+        abaAtiva = tab;
+        document.querySelectorAll('.tab-btn').forEach((b, i) =>
+            b.classList.toggle('active', (i===0&&tab==='salas') || (i===1&&tab==='agenda')));
+        if (tab === 'salas') renderSalas();
+        else renderAgenda();
+    }
 
-init();
+    // ── MODAL ──────────────────────────────────────────────────
+    function abrirModal(id) {
+        if (!perms.canAgendar) return;
+        salaAtiva = salas.find(s => s.id === id);
+        if (!salaAtiva) return;
+
+        document.getElementById('modal-title').textContent = `Agendar — ${salaAtiva.nome}`;
+        document.getElementById('m-nome').textContent = salaAtiva.nome;
+        document.getElementById('m-esp').textContent  = salaAtiva.espaco || '';
+        document.getElementById('m-tags').innerHTML   = tagsHtml(salaAtiva);
+
+        const foto = document.getElementById('m-foto');
+        const ph   = document.getElementById('m-foto-ph');
+        if (salaAtiva.foto_url) { foto.src = salaAtiva.foto_url; foto.style.display = ''; ph.style.display = 'none'; }
+        else { foto.style.display = 'none'; ph.style.display = ''; }
+
+        const hoje = toDateStr(new Date());
+        document.getElementById('f-data').min   = hoje;
+        document.getElementById('f-data').value = hoje;
+        document.getElementById('f-nome').value  = currentUser.nome  || '';
+        document.getElementById('f-email').value = currentUser.email || '';
+        document.getElementById('f-tel').value   = '';
+        document.getElementById('f-motivo').value = '';
+        document.getElementById('f-aviso').checked = false;
+        document.getElementById('conflito-box').style.display = 'none';
+        document.getElementById('m-msg').className = 'msg-box';
+        document.getElementById('submit-btn').disabled = false;
+        document.getElementById('submit-btn').textContent = 'Enviar Pedido de Agendamento';
+
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal()    { document.getElementById('overlay').classList.add('hidden'); document.body.style.overflow = ''; salaAtiva = null; }
+    function closeOutside(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+    // ── HORÁRIOS ───────────────────────────────────────────────
+    function preencherHoras() {
+        const si = document.getElementById('f-ini');
+        const sf = document.getElementById('f-fim');
+        si.innerHTML = '<option value="">Início</option>';
+        sf.innerHTML = '<option value="">Fim</option>';
+        for (let h = 6; h <= 23; h++) {
+            const t = `${String(h).padStart(2,'0')}:00`;
+            si.add(new Option(t, t));
+            sf.add(new Option(t, t));
+        }
+        sf.add(new Option('00:00','00:00'));
+    }
+
+    // ── VERIFICAR CONFLITO ─────────────────────────────────────
+    async function checkConflito() {
+        if (!salaAtiva) return;
+        const data = document.getElementById('f-data').value;
+        const ini  = document.getElementById('f-ini').value;
+        const fim  = document.getElementById('f-fim').value;
+        const box  = document.getElementById('conflito-box');
+        if (!data || !ini || !fim) { box.style.display = 'none'; return; }
+        try {
+            const c = await sb(`sala_agendamentos?sala_id=eq.${salaAtiva.id}&status=in.(aprovado,pendente)&data_inicio=lt.${data}T${fim}:00&data_fim=gt.${data}T${ini}:00`);
+            box.style.display = (c && c.length > 0) ? 'block' : 'none';
+        } catch(e) { box.style.display = 'none'; }
+    }
+
+    // ── SUBMETER ───────────────────────────────────────────────
+    async function submeter() {
+        const nome  = document.getElementById('f-nome').value.trim();
+        const tel   = document.getElementById('f-tel').value.trim();
+        const email = document.getElementById('f-email').value.trim();
+        const data  = document.getElementById('f-data').value;
+        const ini   = document.getElementById('f-ini').value;
+        const fim   = document.getElementById('f-fim').value;
+        const mot   = document.getElementById('f-motivo').value.trim();
+        const aviso = document.getElementById('f-aviso').checked;
+
+        if (!nome)      return msg('Nome obrigatório.','error');
+        if (!email)     return msg('Email obrigatório.','error');
+        if (!data)      return msg('Data obrigatória.','error');
+        if (!ini||!fim) return msg('Horário obrigatório.','error');
+        if (fim <= ini) return msg('Hora de fim deve ser depois do início.','error');
+        if (!aviso)     return msg('Confirma que entregas a sala limpa e organizada.','error');
+        if (document.getElementById('conflito-box').style.display === 'block')
+            return msg('Existe conflito de horário. Escolhe outro.','error');
+
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true; btn.textContent = 'A enviar...';
+
+        try {
+            await sb('sala_agendamentos', {
+                method: 'POST',
+                body: JSON.stringify({
+                    sala_id:           salaAtiva.id,
+                    solicitante_id:    currentUser.id,
+                    solicitante_nome:  nome,
+                    solicitante_tel:   tel,
+                    solicitante_email: email,
+                    titulo:            mot || `Pedido de ${nome}`,
+                    descricao:         mot,
+                    data_inicio:       `${data}T${ini}:00`,
+                    data_fim:          `${data}T${fim}:00`,
+                    status:            'pendente',
+                    aviso_lido:        true,
+                })
+            });
+            msg('Pedido enviado! Aguarda aprovação.','success');
+            btn.textContent = 'Pedido Enviado';
+            await carregarAgendaSemana();
+            setTimeout(() => { closeModal(); renderSalas(); }, 2500);
+        } catch(e) {
+            const detalhe = e.message || e.details || e.hint || JSON.stringify(e);
+            msg(`Erro ao enviar: ${detalhe}`, 'error');
+            btn.disabled = false;
+            btn.textContent = 'Enviar Pedido de Agendamento';
+        }
+    }
+
+    function msg(txt, tipo) {
+        const el = document.getElementById('m-msg');
+        el.textContent = txt; el.className = `msg-box ${tipo}`;
+        el.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    init();
 </script>
 </body>
 </html>

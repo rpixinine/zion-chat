@@ -3,316 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Aprovações — Zion Church Lisboa</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Zion Lisboa</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
     <style>
-        /* ── Hero banner ─────────────────────────────────── */
+        /* ── Sobrescreve o banner do base.css ─────────────── */
         .banner {
-            min-height: 28vh !important;
-            background-image: url('assets/zion-somos.avif') !important;
+            min-height: 42vh !important;
+            background-image: url('assets/zion-alto.avif') !important;
             background-size: cover !important;
             background-position: center !important;
             align-items: flex-end !important;
-            justify-content: space-between !important;
+            justify-content: center !important;
             display: flex !important;
-            padding: 0 14px 14px !important;
+            padding: calc(env(safe-area-inset-top, 0px) + 1.5rem) 1rem 1.4rem !important;
             overflow: hidden !important;
         }
-        .banner img,
+
+        /* Remove a imagem original do banner */
+        .banner img { display: none !important; }
         .banner-fallback { display: none !important; }
 
+        /* Overlay escuro */
         .banner-overlay {
-            position: absolute; inset: 0;
-            background: rgba(0,0,0,0.50);
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.48);
         }
+
+        /* Gradiente suave para baixo (fusão com o bg-page) */
         .banner-gradient {
-            position: absolute; left: 0; right: 0; bottom: 0;
-            height: 120px;
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 180px;
             background: linear-gradient(to bottom, rgba(2,22,30,0), rgba(2,22,30,1));
         }
 
-        /* ── Nav pills (dark style) ──────────────────────── */
-        .back-btn {
-            position: relative; z-index: 2;
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(2,22,30,0.65);
-            border: 1px solid rgba(216,195,165,0.35);
+        /* Conteúdo centrado sobre o hero */
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .hero-title {
+            font-family: var(--font-title);
+            font-size: 2.4rem;
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #ffffff;
+            margin-bottom: 0.8rem;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 38px;
+            border: 1px solid rgba(255,255,255,0.26);
             border-radius: 999px;
-            padding: 6px 14px;
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
-            color: var(--primary); text-decoration: none;
-            backdrop-filter: blur(8px);
-            transition: all 0.2s;
+            padding: 0.55rem 1.1rem;
+            font-family: var(--font-title);
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--primary);
+            backdrop-filter: blur(6px);
         }
-        .back-btn:hover { background: rgba(216,195,165,0.12); border-color: var(--primary-light); color: var(--primary-light); }
 
-        .page-badge {
-            position: relative; z-index: 2;
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
-            color: var(--primary); text-transform: uppercase;
-            background: rgba(2,22,30,0.65);
-            border: 1px solid rgba(216,195,165,0.35);
-            border-radius: 999px; padding: 6px 14px;
-            backdrop-filter: blur(8px);
+        /* ── Auth bar ──────────────────────────────────────── */
+        .auth-bar {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 20;
         }
-        .content {
-            flex: 1; overflow-y: auto; background: var(--bg-input);
-        }
-        .content::-webkit-scrollbar { width: 4px; }
-        .content::-webkit-scrollbar-thumb { background: rgba(0,144,152,0.25); border-radius: 2px; }
 
-        /* ── User bar ─────────────────────────────────────── */
-        .user-bar {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 16px;
-            background: linear-gradient(135deg, var(--primary-faint), rgba(0,144,152,0.01));
-            border-bottom: 1px solid var(--border); flex-shrink: 0;
+        /* ── Main content ──────────────────────────────────── */
+        .main-content {
+            padding: 20px 20px 24px;
         }
-        .user-bar-avatar {
-            width: 34px; height: 34px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
-            display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-title); font-size: 12px; color: #fff; font-weight: 700; flex-shrink: 0;
-        }
-        .user-bar-info { flex: 1; }
-        .user-bar-nome { font-family: var(--font-title); font-size: 12px; color: var(--primary-dark); }
-        .user-bar-tipo { font-size: 10px; color: var(--text-faint); }
-        .logout-btn {
-            display: flex; align-items: center; gap: 5px; padding: 5px 10px;
-            border-radius: var(--radius-sm); border: 1px solid rgba(220,80,60,0.3);
-            background: rgba(220,80,60,0.06); color: var(--red);
-            font-family: var(--font-title); font-size: 9px; letter-spacing: 1px; cursor: pointer;
-            flex-shrink: 0; transition: all 0.2s;
-        }
-        .logout-btn:hover { background: rgba(220,80,60,0.12); }
-
-        /* ── Tabs ─────────────────────────────────────────── */
-        .tab-bar {
-            display: flex; background: var(--bg-input);
-            border-bottom: 1px solid var(--border); flex-shrink: 0;
-        }
-        .tab-btn {
-            flex: 1; padding: 11px; font-family: var(--font-title); font-size: 9px;
-            letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint);
-            background: none; border: none; border-bottom: 2px solid transparent;
-            cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-        }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .tab-badge {
-            background: var(--orange, #e65100); color: #fff; border-radius: var(--radius-full);
-            font-size: 9px; padding: 1px 6px; font-family: var(--font-body); font-weight: 700;
-        }
-        .tab-badge.green { background: var(--green); }
-
-        /* ── Stats ───────────────────────────────────────── */
-        .stats-bar { display: flex; gap: 8px; padding: 12px 16px 4px; }
-        .stat-pill {
-            flex: 1; background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius-md); padding: 9px; text-align: center;
-        }
-        .stat-num { font-family: var(--font-title); font-size: 18px; font-weight: 700; color: var(--primary-dark); }
-        .stat-num.orange { color: var(--orange, #e65100); }
-        .stat-num.green  { color: var(--green); }
-        .stat-label { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
 
         .section-label {
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 3px;
-            text-transform: uppercase; color: var(--text-faint); padding: 12px 16px 6px;
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            text-align: center;
+            margin-bottom: 16px;
+            padding-top: 4px;
         }
 
-        /* ── Pedido card ──────────────────────────────────── */
-        .pedidos-list { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 16px; }
-        .pedido-card {
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius-md); overflow: hidden;
-            animation: fadeUp 0.3s ease both;
+        /* ── Grid de botões ────────────────────────────────── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
         }
-        .pedido-header { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px 10px; }
-        .pedido-sala-foto {
-            width: 56px; height: 42px; border-radius: var(--radius-sm);
-            background: var(--primary-faint); display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; overflow: hidden;
-        }
-        .pedido-sala-foto img { width: 56px; height: 42px; object-fit: cover; display: block; }
-        .pedido-sala-foto svg { width: 20px; height: 20px; color: var(--primary-light); }
-        .pedido-info { flex: 1; min-width: 0; }
-        .pedido-sala-nome { font-family: var(--font-title); font-size: 12px; font-weight: 600; color: var(--primary-dark); margin-bottom: 2px; }
-        .pedido-sala-esp  { font-size: 11px; color: var(--text-faint); }
 
-        .pedido-status-badge {
-            padding: 3px 9px; border-radius: var(--radius-full);
-            font-family: var(--font-title); font-size: 8px; letter-spacing: 1px;
-            text-transform: uppercase; flex-shrink: 0;
+        @media (min-width: 600px) {
+            .hero-title { font-size: 3rem; }
+            .grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
         }
-        .sb-pendente { background: rgba(230,81,0,0.08);  color: var(--orange,#e65100); border: 1px solid rgba(230,81,0,0.25); }
-        .sb-aprovado { background: rgba(46,125,50,0.08); color: var(--green);           border: 1px solid rgba(46,125,50,0.25); }
-        .sb-recusado { background: rgba(192,57,43,0.08); color: var(--red);             border: 1px solid rgba(192,57,43,0.25); }
 
-        /* ── Detalhe do pedido ────────────────────────────── */
-        .pedido-details {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0;
-            border-top: 1px solid var(--border); background: var(--bg-input);
+        @media (min-width: 900px) {
+            .banner { min-height: 52vh !important; }
+            .hero-title { font-size: 3.8rem; }
+            .grid { grid-template-columns: repeat(5, 1fr); gap: 14px; }
+            .main-content { padding: 24px 28px 28px; }
         }
-        .pedido-detail-cell {
-            padding: 8px 14px; border-bottom: 1px solid rgba(0,144,152,0.07);
-        }
-        .pedido-detail-cell:nth-child(odd) { border-right: 1px solid rgba(0,144,152,0.07); }
-        .pedido-detail-full { grid-column: 1 / -1; }
-        .pd-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); font-family: var(--font-title); margin-bottom: 2px; }
-        .pd-value { font-size: 12px; color: var(--text-main); }
 
-        /* ── Ações ────────────────────────────────────────── */
-        .pedido-actions { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
-        .btn-aprovar {
-            flex: 1; padding: 9px; border-radius: var(--radius-sm); border: none;
-            background: linear-gradient(135deg, var(--green), #43a047); color: #fff;
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+        @media (max-width: 360px) {
+            .hero-title { font-size: 1.9rem; }
+            .grid { grid-template-columns: repeat(2, 1fr); }
         }
-        .btn-aprovar:hover    { filter: brightness(1.08); }
-        .btn-aprovar:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-rejeitar {
-            flex: 1; padding: 9px; border-radius: var(--radius-sm);
-            border: 1px solid rgba(192,57,43,0.25); background: rgba(192,57,43,0.06); color: var(--red);
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
-        }
-        .btn-rejeitar:hover    { background: rgba(192,57,43,0.12); }
-        .btn-rejeitar:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* ── Reabrir (pedidos rejeitados dentro de 24h) ───── */
-        .btn-reabrir {
-            width: 100%; padding: 9px; border-radius: var(--radius-sm);
-            border: 1px solid var(--border); background: var(--primary-faint); color: var(--primary-dark);
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+        /* ── Drawer auth ───────────────────────────────────── */
+        .drawer-auth {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
         }
-        .btn-reabrir:hover    { background: rgba(0,144,152,0.15); border-color: var(--primary-light); }
-        .btn-reabrir:disabled { opacity: 0.5; cursor: not-allowed; }
-        .reabrir-wrap { padding: 10px 14px; border-top: 1px solid var(--border); }
-        .reabrir-prazo { font-size: 10px; color: var(--text-faint); text-align: center; margin-top: 5px; font-family: var(--font-title); letter-spacing: 0.5px; }
 
-        /* ── Done overlay ────────────────────────────────── */
-        .pedido-done {
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 10px 14px; border-top: 1px solid var(--border);
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1px;
-        }
-        .pedido-done.aprovado { color: var(--green); background: rgba(46,125,50,0.06); }
-        .pedido-done.recusado { color: var(--red);   background: rgba(192,57,43,0.06); }
+        .drawer-group { margin-top: 4px; }
 
-        /* ── Acesso negado ────────────────────────────────── */
-        .acesso-negado {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            flex: 1; padding: 32px; text-align: center;
+        .drawer-group-label {
+            font-family: var(--font-title);
+            font-size: 8px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            padding: 10px 16px 4px;
         }
-        .acesso-negado-icon  { margin-bottom: 14px; opacity: 0.5; }
-        .acesso-negado-icon svg { width: 48px; height: 48px; color: var(--primary-light); }
-        .acesso-negado-title { font-family: var(--font-title); font-size: 16px; color: var(--primary-dark); margin-bottom: 8px; }
-        .acesso-negado-txt   { font-size: 13px; color: var(--text-faint); line-height: 1.6; }
-
-        /* ── Modal recusa ─────────────────────────────────── */
-        .overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.52); z-index: 200;
-            display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(4px); animation: fadeIn 0.2s ease; padding: 20px;
-        }
-        .overlay.hidden { display: none; }
-        .modal {
-            width: 100%; max-width: 440px; background: var(--bg-card);
-            border-radius: var(--radius-md); overflow: hidden;
-            animation: scaleIn 0.25s ease; box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,0.2));
-        }
-        .modal-head {
-            padding: 14px 18px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .modal-head-title { font-family: var(--font-title); font-size: 13px; color: var(--red); }
-        .modal-x {
-            width: 26px; height: 26px; border-radius: 50%;
-            border: 1px solid var(--border); background: none;
-            color: var(--text-faint); font-size: 14px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .modal-x:hover { border-color: var(--red); color: var(--red); }
-        .modal-body { padding: 16px 18px; }
-        .modal-info {
-            background: rgba(192,57,43,0.06); border: 1px solid rgba(192,57,43,0.25);
-            border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 14px;
-            font-size: 12px; color: var(--red); line-height: 1.5;
-        }
-        .modal-label {
-            font-family: var(--font-title); font-size: 9px; letter-spacing: 2px;
-            text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; display: block;
-        }
-        .modal-textarea {
-            width: 100%; background: var(--bg-input); border: 1px solid var(--border);
-            border-radius: var(--radius-sm); padding: 10px 12px;
-            font-family: var(--font-body); font-size: 13px; color: var(--text-main);
-            outline: none; resize: none; height: 90px; line-height: 1.5; transition: border-color 0.2s;
-        }
-        .modal-textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(192,57,43,0.1); }
-        .modal-textarea::placeholder { color: var(--text-faint); }
-        .modal-footer { display: flex; gap: 8px; margin-top: 14px; }
-        .btn-cancel {
-            flex: 1; padding: 10px; border-radius: var(--radius-sm);
-            border: 1px solid var(--border); background: none;
-            color: var(--text-muted); font-family: var(--font-title); font-size: 10px; letter-spacing: 1px; cursor: pointer;
-        }
-        .btn-confirm-rejeitar {
-            flex: 2; padding: 10px; border-radius: var(--radius-sm);
-            border: none; background: linear-gradient(135deg, var(--red), #e74c3c); color: #fff;
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px; cursor: pointer; transition: all 0.2s;
-        }
-        .btn-confirm-rejeitar:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95) } to { opacity: 1; transform: scale(1) } }
     </style>
 </head>
 <body>
 <div class="page-wrapper">
 
+    <!-- ═══ BANNER / HERO ══════════════════════════════════════ -->
     <div class="banner">
+        <!-- Camadas visuais -->
         <div class="banner-overlay"></div>
         <div class="banner-gradient"></div>
-        <a href="index" class="back-btn">← Início</a>
-        <span class="page-badge">Aprovações</span>
+
+        <!-- Hamburger (esquerda) -->
+        <button class="hamburger" id="hamburger" onclick="toggleDrawer()" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+
+        <!-- Auth bar (direita) -->
+        <div class="auth-bar" id="auth-bar"></div>
+
+        <!-- Título + badge -->
+        <div class="hero-content">
+            <div class="hero-title">Zion Lisboa</div>
+            <div class="hero-badge">Lisboa · Portugal · Desde 2020</div>
+        </div>
+    </div>
+
+    <!-- Overlay + Drawer lateral -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+    <div class="drawer-nav-panel" id="drawer">
+        <div class="drawer-header">
+            <div class="drawer-title-panel">Zion Lisboa</div>
+            <div class="drawer-sub-panel">Menu de Navegação</div>
+        </div>
+        <div class="drawer-gold-line"></div>
+
+        <div class="drawer-auth" id="drawer-auth"></div>
+
+        <nav class="drawer-nav">
+            <div class="drawer-group">
+                <div class="drawer-group-label">Igreja</div>
+                <a href="zion" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">ZI</div>Sobre Zion Lisboa</a>
+                <a href="ministerios" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">MI</div>Nossos Ministérios</a>
+                <a href="links" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">LK</div>Nossos LINKs</a>
+                <a href="localizacao" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">LO</div>Nossa Localização</a>
+            </div>
+
+            <div class="drawer-group">
+                <div class="drawer-group-label">Escola</div>
+                <a href="zao" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">ZA</div>Cursos ZAO</a>
+            </div>
+
+            <div class="drawer-group">
+                <div class="drawer-group-label">Pessoas</div>
+                <a href="membros" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">ME</div>Membros</a>
+<!--                <a href="visitantes" class="drawer-item" onclick="closeDrawer()">-->
+<!--                    <div class="drawer-icon">VI</div>Visitantes</a>-->
+            </div>
+
+            <div class="drawer-group">
+                <div class="drawer-group-label">Agendamentos</div>
+                <a href="salas" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">SA</div>Agendar Salas</a>
+                <a href="aprovacoes" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">AS</div>Aprovação de Agendamento</a>
+            </div>
+
+            <div class="drawer-group">
+                <div class="drawer-group-label">Administração</div>
+                <a href="dizimos" class="drawer-item" onclick="closeDrawer()">
+                    <div class="drawer-icon">DZ</div>Dízimos e Ofertas</a>
+            </div>
+        </nav>
+
+        <div class="drawer-footer">
+            <div class="drawer-footer-links">
+                <a class="drawer-footer-link" href="https://zionchurch.org.br/" target="_blank">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Site
+                </a>
+                <a class="drawer-footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    Instagram
+                </a>
+            </div>
+        </div>
     </div>
 
     <div class="gold-line"></div>
-    <div class="user-bar" id="user-bar"></div>
 
-    <div class="tab-bar" id="tab-bar" style="display:none">
-        <button class="tab-btn active" onclick="switchTab('pendente')" id="tab-pendente">
-            Pendentes <span class="tab-badge" id="badge-pendente">0</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('aprovado')" id="tab-aprovado">
-            Aprovados <span class="tab-badge green" id="badge-aprovado">0</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('recusado')" id="tab-recusado">
-            Recusados
-        </button>
+    <!-- ═══ MAIN ════════════════════════════════════════════════ -->
+    <div class="content">
+        <div class="main-content">
+            <p class="section-label">O que procuras?</p>
+            <div class="grid" id="mainGrid">
+
+                <a href="zion" class="btn-icon">
+                    <div class="icon-wrap ic-gold"></div>
+                    <span class="label">Sobre a Zion</span>
+                </a>
+
+                <a href="https://app.zionlisboa.pt/public_links" class="btn-icon">
+                    <div class="icon-wrap ic-blue"></div>
+                    <span class="label">Links</span>
+                </a>
+
+                <a href="ministerios" class="btn-icon">
+                    <div class="icon-wrap ic-blue"></div>
+                    <span class="label">Nossos Ministérios</span>
+                </a>
+
+                <a href="localizacao" class="btn-icon">
+                    <div class="icon-wrap ic-red"></div>
+                    <span class="label">Localização Zion</span>
+                </a>
+
+                <a href="salas" class="btn-icon">
+                    <div class="icon-wrap ic-red"></div>
+                    <span class="label">Agendar Salas</span>
+                </a>
+
+                <a href="keola" class="btn-icon">
+                    <div class="icon-wrap ic-brown"></div>
+                    <span class="label">Cardápio Keola</span>
+                </a>
+
+                <a href="zao" class="btn-icon">
+                    <div class="icon-wrap ic-purple"></div>
+                    <span class="label">Cursos ZAO</span>
+                </a>
+
+                <a href="https://portal.zionlisboa.pt/relogio-oracao" class="btn-icon">
+                    <div class="icon-wrap ic-green"></div>
+                    <span class="label">Relógio de Oração</span>
+                </a>
+
+                <a href="https://portal.zionlisboa.pt/sala-oracao" class="btn-icon">
+                    <div class="icon-wrap ic-green"></div>
+                    <span class="label">Sala de Oração</span>
+                </a>
+
+                <a href="chat" class="btn-icon">
+                    <div class="icon-wrap ic-gold"></div>
+                    <span class="label">Assistente Virtual</span>
+                </a>
+
+            </div>
+        </div>
     </div>
 
-    <div class="content" id="main-content">
-        <div class="loading"><div class="spin"></div>A verificar acesso...</div>
-    </div>
-
+    <!-- ═══ FOOTER ══════════════════════════════════════════════ -->
     <div class="footer">
         <div class="footer-links">
-            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <a class="footer-link" href="https://zionchurch.org.br/" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Site Global
+            </a>
+            <a class="footer-link" href="https://zionlisboa.pt/" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 Site Oficial
             </a>
-            <a class="footer-link" href="https://www.instagram.com/zionlisboa/" target="_blank">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                 @ZionLisboa
             </a>
         </div>
@@ -322,413 +324,95 @@
             <div class="footer-address">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
         </div>
     </div>
-</div>
 
-<!-- Modal de rejeição -->
-<div class="overlay hidden" id="overlay" onclick="closeModalOutside(event)">
-    <div class="modal">
-        <div class="modal-head">
-            <div class="modal-head-title">Rejeitar Pedido</div>
-            <button class="modal-x" onclick="closeModal()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="modal-info" id="modal-info"></div>
-            <label class="modal-label">Motivo da recusa (opcional)</label>
-            <textarea class="modal-textarea" id="motivo-recusa"
-                      placeholder="Ex: Sala já reservada para este período, conflito com evento da igreja..."></textarea>
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-                <button class="btn-confirm-rejeitar" id="btn-confirm-rej" onclick="confirmarRejeicao()">Confirmar Rejeição</button>
-            </div>
-        </div>
-    </div>
-</div>
+</div><!-- /page-wrapper -->
 
 <script>
-    ZionAuth.protect();
-    const currentUser = ZionAuth.getUser();
-    const SUPA_URL    = window.SUPABASE_URL      || '';
-    const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
-
-    let salas        = {};
-    let agendamentos = [];
-    let abaAtiva     = 'pendente';
-    let pedidoParaRejeitar = null;
-
-    // ── SUPABASE ───────────────────────────────────────────────
-    async function sb(path, opts = {}) {
-        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-            ...opts,
-            headers: {
-                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
-                'Content-Type': 'application/json', 'Prefer': 'return=representation',
-                ...opts.headers
-            }
-        });
-        if (!r.ok) { const e = await r.json().catch(()=>({})); throw e; }
-        return r.json();
+    // ── DRAWER ────────────────────────────────────────────────
+    function toggleDrawer() {
+        const open = document.getElementById('drawer').classList.toggle('open');
+        document.getElementById('drawerOverlay').classList.toggle('open', open);
+        document.getElementById('hamburger').classList.toggle('open', open);
     }
 
-    // ── INIT ───────────────────────────────────────────────────
-    async function init() {
-        renderUserBar();
-
-        // Verifica acesso via membro_id (mais seguro que email)
-        let temAcesso = false;
-        if (currentUser.membro_id) {
-            try {
-                const rows = await sb(`membros?id=eq.${currentUser.membro_id}&select=e_admin,e_presbitero&ativo=eq.true`);
-                const m = rows?.[0];
-                temAcesso = !!(m?.e_admin || m?.e_presbitero);
-            } catch(e) { /* sem acesso */ }
-        }
-
-        if (!temAcesso) {
-            document.getElementById('main-content').innerHTML = `
-        <div class="acesso-negado">
-            <div class="acesso-negado-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-            </div>
-            <div class="acesso-negado-title">Acesso Restrito</div>
-            <div class="acesso-negado-txt">Esta área é exclusiva para Presbíteros e Administradores.<br>Fala com a liderança da igreja para mais informações.</div>
-        </div>`;
-            return;
-        }
-
-        document.getElementById('tab-bar').style.display = 'flex';
-
-        const [salasData, agendData] = await Promise.all([
-            sb('salas?select=id,nome,espaco,foto_url&ativo=eq.true'),
-            sb('sala_agendamentos?select=*&order=data_inicio.asc'),
-        ]);
-
-        if (Array.isArray(salasData)) salasData.forEach(s => salas[s.id] = s);
-        agendamentos = Array.isArray(agendData) ? agendData : [];
-
-        atualizarBadges();
-        renderAba('pendente');
+    function closeDrawer() {
+        document.getElementById('drawer').classList.remove('open');
+        document.getElementById('drawerOverlay').classList.remove('open');
+        document.getElementById('hamburger').classList.remove('open');
     }
 
-    // ── USER BAR ───────────────────────────────────────────────
-    function renderUserBar() {
-        const ini = (currentUser.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-        document.getElementById('user-bar').innerHTML = `
-    <div class="user-bar-avatar">${ini}</div>
-    <div class="user-bar-info">
-        <div class="user-bar-nome">${currentUser.nome}</div>
-        <div class="user-bar-tipo">Presbítero / Administrador</div>
-    </div>
-    <button class="logout-btn" onclick="ZionAuth.logout()">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-        Sair
-    </button>`;
-    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeDrawer();
+    });
 
-    // ── BADGES ─────────────────────────────────────────────────
-    function atualizarBadges() {
-        document.getElementById('badge-pendente').textContent = agendamentos.filter(a=>a.status==='pendente').length;
-        document.getElementById('badge-aprovado').textContent = agendamentos.filter(a=>a.status==='aprovado').length;
-    }
+    // ── Iniciais nos ícones do grid ───────────────────────────
+    document.querySelectorAll('.btn-icon').forEach(btn => {
+        const label = btn.querySelector('.label').innerText.replace(/\n/g, ' ').trim();
+        const words = label.split(' ').filter(w => w.length > 2);
+        const initials = words.length === 1
+            ? words[0].substring(0, 2)
+            : words[0][0] + words[1][0];
+        btn.querySelector('.icon-wrap').textContent = initials.toUpperCase();
+    });
 
-    // ── TABS ───────────────────────────────────────────────────
-    function switchTab(tab) {
-        abaAtiva = tab;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`tab-${tab}`).classList.add('active');
-        renderAba(tab);
-    }
+    // ── AUTH ──────────────────────────────────────────────────
+    function renderAuth() {
+        const user = ZionAuth.getUser();
+        const authBar    = document.getElementById('auth-bar');
+        const drawerAuth = document.getElementById('drawer-auth');
+        const tipoLabel  = { visitante: 'Visitante', membro: 'Membro', admin: 'Administrador' };
 
-    // ── HELPER: pode reabrir? ──────────────────────────────────
-    // Regra: pedido rejeitado, e faltam mais de 24h para o horário marcado
-    function podeReabrir(agend) {
-        if (agend.status !== 'recusado') return false;
-        const inicio = new Date(agend.data_inicio);
-        const agora  = new Date();
-        const diffHoras = (inicio - agora) / (1000 * 60 * 60);
-        return diffHoras > 24;
-    }
+        if (user) {
+            const initials   = (user.nome || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+            const firstName  = (user.nome || 'Utilizador').split(' ')[0];
 
-    function tempoParaReabrir(agend) {
-        const inicio = new Date(agend.data_inicio);
-        const limite = new Date(inicio.getTime() - 24 * 60 * 60 * 1000); // 24h antes
-        const agora  = new Date();
-        const diffMs = limite - agora;
-        if (diffMs <= 0) return null;
-        const h = Math.floor(diffMs / (1000 * 60 * 60));
-        const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        if (h >= 48) return `${Math.floor(h/24)}d para expirar`;
-        if (h > 0)   return `${h}h ${m}min para expirar`;
-        return `${m}min para expirar`;
-    }
+            authBar.innerHTML = `
+                <div class="auth-user">
+                    <div class="auth-avatar">${initials}</div>
+                    <span class="auth-name">${firstName}</span>
+                </div>
+                <button class="auth-logout" onclick="ZionAuth.logout()">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sair
+                </button>`;
 
-    // ── RENDER ABA ─────────────────────────────────────────────
-    function renderAba(status) {
-        const lista = agendamentos.filter(a => a.status === status);
-        const total = agendamentos.length;
-        const pend  = agendamentos.filter(a=>a.status==='pendente').length;
-        const aprov = agendamentos.filter(a=>a.status==='aprovado').length;
-
-        const SVG_HOUSE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
-
-        let html = `
-    <div class="stats-bar">
-        <div class="stat-pill"><div class="stat-num">${total}</div><div class="stat-label">Total</div></div>
-        <div class="stat-pill"><div class="stat-num orange">${pend}</div><div class="stat-label">Pendentes</div></div>
-        <div class="stat-pill"><div class="stat-num green">${aprov}</div><div class="stat-label">Aprovados</div></div>
-    </div>`;
-
-        if (!lista.length) {
-            const msgs = {
-                pendente: 'Sem pedidos pendentes.',
-                aprovado: 'Nenhum agendamento aprovado.',
-                recusado: 'Nenhum pedido recusado.',
-            };
-            html += `<div class="empty"><div class="empty-txt">${msgs[status]}</div></div>`;
-            document.getElementById('main-content').innerHTML = html;
-            return;
-        }
-
-        const labels = { pendente:'Aguardam aprovação', aprovado:'Aprovados', recusado:'Recusados' };
-        html += `<div class="section-label">${labels[status]} · ${lista.length}</div>`;
-        html += '<div class="pedidos-list">';
-
-        lista.forEach((a, i) => {
-            const sala    = salas[a.sala_id] || {};
-            const ini     = new Date(a.data_inicio);
-            const fim     = new Date(a.data_fim);
-            const dataFmt = ini.toLocaleDateString('pt-PT',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
-            const hIni    = ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-            const hFim    = fim.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-            const sbClass = {pendente:'sb-pendente',aprovado:'sb-aprovado',recusado:'sb-recusado'}[a.status];
-
-            const fotoHtml = sala.foto_url
-                ? `<div class="pedido-sala-foto"><img src="${sala.foto_url}" alt="${sala.nome}"></div>`
-                : `<div class="pedido-sala-foto">${SVG_HOUSE}</div>`;
-
-            // ── Secção de acções ──────────────────────────────
-            let actionsHtml = '';
-
-            if (a.status === 'pendente') {
-                actionsHtml = `
-            <div class="pedido-actions">
-                <button class="btn-aprovar"  onclick="aprovar('${a.id}')">Aprovar</button>
-                <button class="btn-rejeitar" onclick="abrirModalRejeicao('${a.id}')">Rejeitar</button>
-            </div>`;
-
-            } else if (a.status === 'aprovado') {
-                const quem = a.aprovado_por ? 'pela liderança' : 'pelo sistema';
-                const data = a.aprovado_em ? ' · ' + new Date(a.aprovado_em).toLocaleDateString('pt-PT') : '';
-                actionsHtml = `<div class="pedido-done aprovado">Aprovado ${quem}${data}</div>`;
-
-            } else if (a.status === 'recusado') {
-                const motivo = a.motivo_recusa ? ` · ${a.motivo_recusa}` : '';
-                actionsHtml = `<div class="pedido-done recusado">Recusado${motivo}</div>`;
-
-                // Botão reabrir se ainda dentro do prazo
-                if (podeReabrir(a)) {
-                    const prazo = tempoParaReabrir(a);
-                    actionsHtml += `
-                <div class="reabrir-wrap">
-                    <button class="btn-reabrir" onclick="reabrir('${a.id}')">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-                        Reabrir Pedido
-                    </button>
-                    ${prazo ? `<div class="reabrir-prazo">${prazo} para reavaliação</div>` : ''}
+            drawerAuth.innerHTML = `
+                <div class="drawer-auth-logado">
+                    <div class="drawer-auth-avatar">${initials}</div>
+                    <div class="drawer-auth-info">
+                        <div class="drawer-auth-nome">${user.nome}</div>
+                        <div class="drawer-auth-tipo">${tipoLabel[user.tipo] || user.tipo}</div>
+                    </div>
+                    <button class="drawer-auth-sair" onclick="ZionAuth.logout()">Sair</button>
                 </div>`;
-                }
-            }
+        } else {
+            authBar.innerHTML = `
+                <a href="login" class="auth-login">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
+                    Entrar
+                </a>`;
 
-            html += `
-        <div class="pedido-card" style="animation-delay:${i*0.04}s" id="card-${a.id}">
-            <div class="pedido-header">
-                ${fotoHtml}
-                <div class="pedido-info">
-                    <div class="pedido-sala-nome">${sala.nome || 'Sala'}</div>
-                    <div class="pedido-sala-esp">${sala.espaco || ''}</div>
-                </div>
-                <span class="pedido-status-badge ${sbClass}">${a.status}</span>
-            </div>
-            <div class="pedido-details">
-                <div class="pedido-detail-cell pedido-detail-full">
-                    <div class="pd-label">Data</div>
-                    <div class="pd-value">${dataFmt}</div>
-                </div>
-                <div class="pedido-detail-cell">
-                    <div class="pd-label">Horário</div>
-                    <div class="pd-value">${hIni} → ${hFim}</div>
-                </div>
-                <div class="pedido-detail-cell">
-                    <div class="pd-label">Solicitante</div>
-                    <div class="pd-value">${a.solicitante_nome || '—'}</div>
-                </div>
-                <div class="pedido-detail-cell">
-                    <div class="pd-label">Telefone</div>
-                    <div class="pd-value">${a.solicitante_tel || '—'}</div>
-                </div>
-                <div class="pedido-detail-cell">
-                    <div class="pd-label">Email</div>
-                    <div class="pd-value" style="font-size:11px">${a.solicitante_email || '—'}</div>
-                </div>
-                ${a.titulo ? `
-                <div class="pedido-detail-cell pedido-detail-full">
-                    <div class="pd-label">Motivo</div>
-                    <div class="pd-value">${a.titulo}</div>
-                </div>` : ''}
-            </div>
-            ${actionsHtml}
-        </div>`;
-        });
-
-        html += '</div>';
-        document.getElementById('main-content').innerHTML = html;
-    }
-
-    // ── APROVAR ────────────────────────────────────────────────
-    async function aprovar(id) {
-        const card = document.getElementById(`card-${id}`);
-        card.querySelectorAll('button').forEach(b => b.disabled = true);
-        const btnA = card.querySelector('.btn-aprovar');
-        if (btnA) btnA.textContent = 'A aprovar...';
-
-        try {
-            await sb(`sala_agendamentos?id=eq.${id}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    status:       'aprovado',
-                    aprovado_por: currentUser.id,
-                    aprovado_em:  new Date().toISOString(),
-                }),
-            });
-            const idx = agendamentos.findIndex(a => a.id === id);
-            if (idx !== -1) { agendamentos[idx].status = 'aprovado'; agendamentos[idx].aprovado_por = currentUser.id; agendamentos[idx].aprovado_em = new Date().toISOString(); }
-            card.querySelector('.pedido-actions').outerHTML = `<div class="pedido-done aprovado">Aprovado com sucesso!</div>`;
-            card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-aprovado';
-            card.querySelector('.pedido-status-badge').textContent = 'aprovado';
-            atualizarBadges();
-        } catch(e) {
-            card.querySelectorAll('button').forEach(b => b.disabled = false);
-            if (btnA) btnA.textContent = 'Aprovar';
-            alert('Erro ao aprovar. Tenta novamente.');
+            drawerAuth.innerHTML = `
+                <a href="login" class="drawer-auth-login" onclick="closeDrawer()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
+                    Entrar / Registar
+                </a>`;
         }
     }
 
-    // ── REJEITAR ───────────────────────────────────────────────
-    function abrirModalRejeicao(id) {
-        pedidoParaRejeitar = id;
-        const a    = agendamentos.find(x => x.id === id);
-        const sala = salas[a?.sala_id] || {};
-        const ini  = a ? new Date(a.data_inicio) : null;
-        const dataFmt = ini ? ini.toLocaleDateString('pt-PT',{day:'numeric',month:'long'}) : '';
-        const hIni    = ini ? ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}) : '';
-        document.getElementById('modal-info').innerHTML =
-            `<strong>${a?.solicitante_nome||'Solicitante'}</strong> pediu a sala <strong>${sala.nome||''}</strong> para ${dataFmt} às ${hIni}.`;
-        document.getElementById('motivo-recusa').value = '';
-        document.getElementById('overlay').classList.remove('hidden');
-    }
-
-    async function confirmarRejeicao() {
-        const id     = pedidoParaRejeitar;
-        const motivo = document.getElementById('motivo-recusa').value.trim();
-        const btn    = document.getElementById('btn-confirm-rej');
-        btn.disabled = true; btn.textContent = 'A rejeitar...';
-
-        try {
-            await sb(`sala_agendamentos?id=eq.${id}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    status:        'recusado',
-                    motivo_recusa: motivo || null,
-                    aprovado_por:  currentUser.id,
-                    aprovado_em:   new Date().toISOString(),
-                }),
-            });
-            const idx = agendamentos.findIndex(a => a.id === id);
-            if (idx !== -1) { agendamentos[idx].status = 'recusado'; agendamentos[idx].motivo_recusa = motivo || null; }
-            const card = document.getElementById(`card-${id}`);
-            if (card) {
-                const actions = card.querySelector('.pedido-actions');
-                if (actions) {
-                    const motFmt = motivo ? ` · ${motivo}` : '';
-                    let reabrirHtml = '';
-                    if (podeReabrir(agendamentos[idx])) {
-                        const prazo = tempoParaReabrir(agendamentos[idx]);
-                        reabrirHtml = `
-                    <div class="reabrir-wrap">
-                        <button class="btn-reabrir" onclick="reabrir('${id}')">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-                            Reabrir Pedido
-                        </button>
-                        ${prazo ? `<div class="reabrir-prazo">${prazo} para reavaliação</div>` : ''}
-                    </div>`;
-                    }
-                    actions.outerHTML = `<div class="pedido-done recusado">Recusado${motFmt}</div>${reabrirHtml}`;
-                }
-                card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-recusado';
-                card.querySelector('.pedido-status-badge').textContent = 'recusado';
-            }
-            closeModal();
-            atualizarBadges();
-        } catch(e) {
-            btn.disabled = false; btn.textContent = 'Confirmar Rejeição';
-            alert('Erro ao rejeitar. Tenta novamente.');
-        }
-    }
-
-    // ── REABRIR ────────────────────────────────────────────────
-    async function reabrir(id) {
-        const btn = document.querySelector(`#card-${id} .btn-reabrir`);
-        if (btn) { btn.disabled = true; btn.textContent = 'A reabrir...'; }
-
-        const agend = agendamentos.find(a => a.id === id);
-        if (!agend || !podeReabrir(agend)) {
-            alert('Este pedido já não pode ser reaberto (menos de 24h antes do horário marcado).');
-            if (btn) { btn.disabled = false; btn.textContent = 'Reabrir Pedido'; }
-            return;
-        }
-
-        try {
-            await sb(`sala_agendamentos?id=eq.${id}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    status:        'pendente',
-                    motivo_recusa: null,
-                    aprovado_por:  null,
-                    aprovado_em:   null,
-                }),
-            });
-            const idx = agendamentos.findIndex(a => a.id === id);
-            if (idx !== -1) {
-                agendamentos[idx].status        = 'pendente';
-                agendamentos[idx].motivo_recusa = null;
-                agendamentos[idx].aprovado_por  = null;
-                agendamentos[idx].aprovado_em   = null;
-            }
-            atualizarBadges();
-            // Volta ao render da aba de recusados para reflectir a mudança
-            renderAba('recusado');
-        } catch(e) {
-            if (btn) { btn.disabled = false; btn.textContent = 'Reabrir Pedido'; }
-            alert('Erro ao reabrir pedido. Tenta novamente.');
-        }
-    }
-
-    function closeModal() {
-        document.getElementById('overlay').classList.add('hidden');
-        document.getElementById('btn-confirm-rej').disabled = false;
-        document.getElementById('btn-confirm-rej').textContent = 'Confirmar Rejeição';
-        pedidoParaRejeitar = null;
-    }
-    function closeModalOutside(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-    init();
+    renderAuth();
 </script>
 </body>
 </html>

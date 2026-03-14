@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relógio de Oração | VDS'26 · Zion Lisboa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ─── Variáveis ─────────────────────────────────────────────── */
+        :root {
+            --bg:         #02161e;
+            --card:       rgba(255,255,255,0.06);
+            --card-strong:rgba(255,255,255,0.09);
+            --border:     rgba(255,255,255,0.16);
+            --text:       #ffffff;
+            --muted:      rgba(255,255,255,0.74);
+            --accent:     #d8c3a5;
+            --success:    #95d5b2;
+            --danger:     #f6bdc0;
+            --font:       'Montserrat', sans-serif;
+            --radius:     18px;
+            --shadow:     0 14px 32px rgba(0,0,0,0.28);
+            --tap:        48px;
+        }
+
+        /* ─── Reset ─────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { max-width: 100vw; overflow-x: hidden; }
+        a { color: inherit; text-decoration: none; }
+        button, input { font: inherit; }
+
+        /* ─── Base ───────────────────────────────────────────────────── */
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                    radial-gradient(circle at top, rgba(255,255,255,0.05), transparent 40%),
+                    linear-gradient(to bottom, rgba(255,255,255,0.02), transparent 30%);
+            z-index: 0;
+        }
+
+        /* ─── Header ─────────────────────────────────────────────────── */
+        header {
+            position: relative;
+            min-height: 34vh;
+            background-image: url('https://storage2.snappages.site/2CD49G/assets/images/11060006_2160x976_2500.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: calc(env(safe-area-inset-top, 0px) + 1.5rem) 1rem 1.25rem;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+        }
+
+        .gradient {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 170px;
+            background: linear-gradient(to bottom, rgba(2,22,30,0), rgba(2,22,30,1));
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        h1 {
+            font-size: 1.72rem;
+            font-weight: 600;
+            line-height: 1.18;
+            margin-bottom: 0.7rem;
+        }
+
+        .month-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            border: 1px solid rgba(255,255,255,0.26);
+            border-radius: 999px;
+            padding: 0.65rem 1rem;
+            font-size: 0.84rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            backdrop-filter: blur(6px);
+        }
+
+        /* ─── Main ───────────────────────────────────────────────────── */
+        main {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 980px);
+            margin: 0 auto;
+            padding: 1rem 0.9rem calc(2rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        /* ─── Cards base ─────────────────────────────────────────────── */
+        .intro-card, .turn-card, .slot-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+            padding: 0.95rem;
+        }
+
+        .intro-card, .turn-card { margin-bottom: 0.9rem; }
+
+        /* ─── Leader links ───────────────────────────────────────────── */
+        .leader-links { display: grid; gap: 0.75rem; margin-top: 0.95rem; }
+
+        .leader-link-card {
+            display: block;
+            border: 1px solid var(--border);
+            background: var(--card-strong);
+            border-radius: 16px;
+            padding: 0.9rem;
+            transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+        }
+
+        .leader-link-card:hover, .leader-link-card:focus-visible {
+            transform: translateY(-1px);
+            border-color: rgba(255,255,255,0.32);
+            background: rgba(255,255,255,0.12);
+            outline: none;
+        }
+
+        .leader-link-title {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.35;
+            margin-bottom: 0.25rem;
+        }
+
+        .leader-link-subtitle {
+            display: block;
+            font-size: 0.84rem;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        /* ─── Turn selector ─────────────────────────────────────────── */
+        .turn-card h2, .selected-turn h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
+        .turn-card p, .selected-turn p, .empty-state { color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+
+        .turn-grid { display: grid; gap: 0.7rem; margin-top: 0.95rem; }
+
+        .turn-button {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            min-height: 72px;
+            padding: 0.9rem;
+            text-align: left;
+            color: var(--text);
+            cursor: pointer;
+            transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+        }
+
+        .turn-button:hover, .turn-button:focus-visible {
+            transform: translateY(-1px);
+            border-color: rgba(255,255,255,0.34);
+            outline: none;
+        }
+
+        .turn-button.selected {
+            border-color: var(--accent);
+            background: rgba(216,195,165,0.14);
+            box-shadow: inset 0 0 0 1px rgba(216,195,165,0.2);
+        }
+
+        .turn-day  { display: block; font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .turn-note { display: block; font-size: 0.84rem; color: var(--muted); line-height: 1.35; }
+
+        /* ─── Slots ──────────────────────────────────────────────────── */
+        .selected-turn { margin-bottom: 0.9rem; }
+
+        .period-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            margin: 1rem 0 0.65rem;
+            font-weight: 700;
+        }
+
+        .slot-list { display: grid; gap: 0.7rem; }
+
+        .slot-item {
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 0.82rem;
+        }
+
+        .slot-item.is-disabled { opacity: 0.58; }
+
+        .slot-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.65rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .slot-time     { font-size: 0.98rem; font-weight: 600; line-height: 1.25; }
+        .slot-capacity { font-size: 0.76rem; color: var(--muted); margin-top: 0.22rem; }
+
+        .slot-status {
+            border-radius: 999px;
+            padding: 0.34rem 0.56rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.18);
+            flex-shrink: 0;
+        }
+
+        .slot-status.available {
+            color: var(--success);
+            border-color: rgba(149,213,178,0.35);
+            background: rgba(149,213,178,0.12);
+        }
+
+        .slot-status.full {
+            color: var(--danger);
+            border-color: rgba(246,189,192,0.35);
+            background: rgba(246,189,192,0.1);
+        }
+
+        /* ─── Registered names ───────────────────────────────────────── */
+        .assigned-list { list-style: none; display: grid; gap: 0.42rem; margin-bottom: 0.8rem; }
+
+        .assigned-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .assigned-list li::before {
+            content: "";
+            width: 8px; height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.32);
+            flex: 0 0 auto;
+        }
+
+        .assigned-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .assigned-name { flex: 1; min-width: 0; }
+
+        .delete-name-btn {
+            width: 34px; height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            flex: 0 0 auto;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .delete-name-btn:hover, .delete-name-btn:focus-visible {
+            background: rgba(246,189,192,0.12);
+            border-color: rgba(246,189,192,0.35);
+            outline: none;
+        }
+
+        /* ─── Slot actions ───────────────────────────────────────────── */
+        .slot-actions { display: grid; gap: 0.45rem; }
+
+        .action-btn {
+            width: 100%;
+            min-height: var(--tap);
+            border-radius: 13px;
+            border: 0;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: transform 0.16s ease, opacity 0.16s ease;
+            padding: 0.85rem 1rem;
+        }
+
+        .action-btn:hover:not(:disabled), .action-btn:focus-visible:not(:disabled) {
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .action-btn.primary   { background: var(--accent); color: #1f1913; }
+        .action-btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .action-btn:disabled  { opacity: 0.42; cursor: not-allowed; transform: none; }
+
+        /* ─── Loading state ──────────────────────────────────────────── */
+        #loadingBanner {
+            text-align: center;
+            padding: 2rem;
+            color: var(--muted);
+            font-size: 0.92rem;
+            display: none;
+        }
+
+        /* ─── Modal ──────────────────────────────────────────────────── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 50;
+        }
+
+        .modal-backdrop.open { display: flex; }
+
+        .modal {
+            width: min(100%, 420px);
+            background: #0d2530;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .modal h4 { font-size: 1rem; margin-bottom: 0.35rem; }
+
+        .modal p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.45;
+            margin-bottom: 0.9rem;
+        }
+
+        .modal input {
+            width: 100%;
+            min-height: 48px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            padding: 0.85rem 0.95rem;
+            font-size: 0.95rem;
+            margin-bottom: 0.85rem;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .modal input::placeholder { color: rgba(255,255,255,0.45); }
+        .modal input:focus { border-color: var(--accent); }
+
+        .modal-actions { display: grid; gap: 0.5rem; }
+
+        /* ─── Responsive ─────────────────────────────────────────────── */
+        @media (max-width: 420px) {
+            main { padding-left: 0.75rem; padding-right: 0.75rem; }
+            h1   { font-size: 1.52rem; }
+            .slot-head   { flex-direction: column; gap: 0.45rem; }
+            .slot-status { align-self: flex-start; }
+        }
+
+        @media (min-width: 768px) {
+            header { min-height: 48vh; padding-bottom: 1.8rem; }
+            h1     { font-size: 2.55rem; }
+            main   { padding-top: 1.5rem; }
+            .intro-card, .turn-card, .slot-card { padding: 1.2rem; }
+            .turn-grid    { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .slot-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
+<header>
+    <div class="overlay"></div>
+    <div class="gradient"></div>
+    <div class="hero-content">
+        <h1>Líderes relógio de oração | Líderes sala de oração</h1>
+        <div class="month-badge">40 dias em Sião • VDS'26</div>
+    </div>
+</header>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════════════ -->
+<main>
+
+    <!-- Grupos WhatsApp -->
+    <section class="intro-card">
+        <div class="leader-links">
+            <a class="leader-link-card"
+               href="https://chat.whatsapp.com/K7pYWrObG2q5gLfQt5Z9dZ"
+               target="_blank" rel="noopener noreferrer">
+                <span class="leader-link-title">VDS'26 | Líderes Sala de Oração (presencial)</span>
+                <span class="leader-link-subtitle">Entra diretamente no grupo de WhatsApp correspondente</span>
+            </a>
+            <a class="leader-link-card"
+               href="https://chat.whatsapp.com/Kt4z4eYaliDKwJpKHFOd0R"
+               target="_blank" rel="noopener noreferrer">
+                <span class="leader-link-title">VDS'26 | Líderes Relógio de Oração (on-line)</span>
+                <span class="leader-link-subtitle">Entra diretamente no grupo de WhatsApp correspondente</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- Seleção do dia -->
+    <section class="turn-card">
+        <h2>Escolhe o dia da semana</h2>
+        <p>A inscrição fica fixa no mesmo horário desse turno, semana após semana.</p>
+        <div class="turn-grid" id="turnGrid"></div>
+    </section>
+
+    <!-- Indicador de carregamento -->
+    <div id="loadingBanner">A carregar horários…</div>
+
+    <!-- Horários do dia selecionado (renderizado dinamicamente) -->
+    <div id="slotSection"></div>
+
+</main>
+
+<!-- ═══ MODAL ══════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="nameModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+        <h4 id="modalTitle">Inscrever neste horário</h4>
+        <p id="modalDesc">Digite o seu nome para entrar no horário.</p>
+        <input type="text" id="nameInput" placeholder="Seu nome" maxlength="50" autocomplete="off" />
+        <div class="modal-actions">
+            <button class="action-btn primary"    id="saveBtn"   type="button">Guardar inscrição</button>
+            <button class="action-btn secondary"  id="cancelBtn" type="button">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SCRIPT ═════════════════════════════════════════════════════ -->
+<script>
+    // ─────────────────────────────────────────────────────────────────
+    // CONFIGURAÇÃO — substitui pelos teus valores do Supabase
+    // Projeto > Settings > API
+    // ─────────────────────────────────────────────────────────────────
+    const SUPABASE_URL      = 'https://SEU_PROJETO.supabase.co';
+    const SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
+
+    // ─────────────────────────────────────────────────────────────────
+    // DADOS ESTÁTICOS (mesmos do original)
+    // ─────────────────────────────────────────────────────────────────
+    const WEEKLY_TURNS = [
+        { key: 'segunda', label: 'Segunda-feira', note: 'manhã e tarde disponíveis' },
+        { key: 'terca',   label: 'Terça-feira',   note: 'manhã e tarde disponíveis' },
+        { key: 'quarta',  label: 'Quarta-feira',  note: 'todos os horários disponíveis, exceto 20:00 às 21:00' },
+        { key: 'quinta',  label: 'Quinta-feira',  note: 'manhã e tarde disponíveis' },
+        { key: 'sexta',   label: 'Sexta-feira',   note: 'manhã e tarde disponíveis' },
+    ];
+
+    const WEEKLY_SLOTS = [
+        { period: 'Manhã', time: '06:00 às 07:00', key: '06:00-07:00' },
+        { period: 'Manhã', time: '07:00 às 08:00', key: '07:00-08:00' },
+        { period: 'Manhã', time: '08:00 às 09:00', key: '08:00-09:00' },
+        { period: 'Tarde', time: '18:00 às 19:00', key: '18:00-19:00' },
+        { period: 'Tarde', time: '19:00 às 20:00', key: '19:00-20:00' },
+        { period: 'Tarde', time: '20:00 às 21:00', key: '20:00-21:00' },
+    ];
+
+    const MAX_PEOPLE = 3;
+
+    // ─────────────────────────────────────────────────────────────────
+    // ESTADO DA APLICAÇÃO
+    // ─────────────────────────────────────────────────────────────────
+    let slotsDB       = [];   // registos da tabela weekly_slots
+    let registrations = {};   // { "segunda|06:00-07:00": [{id, person_name}] }
+    let selectedDay   = null; // key do dia selecionado
+    let isLoading     = false;
+
+    // Modal
+    let pendingSlotId    = null;
+    let pendingSlotLabel = '';
+
+    // ─────────────────────────────────────────────────────────────────
+    // UTILITÁRIOS
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Escapa HTML para evitar XSS ao inserir nomes */
+    function esc(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function sbHeaders(extra = {}) {
+        return {
+            'apikey':        SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type':  'application/json',
+            ...extra,
+        };
+    }
+
+    function setLoading(state) {
+        isLoading = state;
+        document.getElementById('saveBtn').disabled   = state;
+        document.getElementById('cancelBtn').disabled = state;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // SUPABASE — LEITURA
+    // ─────────────────────────────────────────────────────────────────
+
+    async function fetchSlots() {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/weekly_slots?select=id,slot_key,max_people,is_blocked`,
+            { headers: sbHeaders() }
+        );
+        if (!res.ok) throw new Error('Erro ao carregar horários da base de dados.');
+        slotsDB = await res.json();
+    }
+
+    async function fetchRegistrations() {
+        // Usa o embedding do PostgREST para trazer o slot_key junto com cada inscrição
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/slot_registrations` +
+            `?select=id,person_name,weekly_slots(slot_key)` +
+            `&order=created_at.asc`,
+            { headers: sbHeaders() }
+        );
+        if (!res.ok) throw new Error('Erro ao carregar inscrições.');
+        const rows = await res.json();
+
+        registrations = {};
+        for (const row of rows) {
+            const key = row.weekly_slots?.slot_key;
+            if (!key) continue;
+            if (!registrations[key]) registrations[key] = [];
+            registrations[key].push({ id: row.id, person_name: row.person_name });
+        }
+    }
+
+    async function loadAll() {
+        document.getElementById('loadingBanner').style.display = 'block';
+        try {
+            await fetchSlots();
+            await fetchRegistrations();
+        } finally {
+            document.getElementById('loadingBanner').style.display = 'none';
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // SUPABASE — ESCRITA
+    // ─────────────────────────────────────────────────────────────────
+
+    async function apiRegister(slotId, personName) {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/slot_registrations`,
+            {
+                method:  'POST',
+                headers: sbHeaders({ 'Prefer': 'return=minimal' }),
+                body:    JSON.stringify({ slot_id: slotId, person_name: personName }),
+            }
+        );
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || err.error || 'Erro ao guardar inscrição.');
+        }
+    }
+
+    async function apiDelete(regId) {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/slot_registrations?id=eq.${regId}`,
+            { method: 'DELETE', headers: sbHeaders() }
+        );
+        if (!res.ok) throw new Error('Erro ao apagar inscrição.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // RENDER — DIAS DA SEMANA
+    // ─────────────────────────────────────────────────────────────────
+
+    function renderTurnGrid() {
+        const grid = document.getElementById('turnGrid');
+        grid.innerHTML = WEEKLY_TURNS.map(turn => `
+        <button
+          type="button"
+          class="turn-button${selectedDay === turn.key ? ' selected' : ''}"
+          data-turn="${turn.key}">
+          <span class="turn-day">${esc(turn.label)}</span>
+          <span class="turn-note">${esc(turn.note)}</span>
+        </button>
+      `).join('');
+
+        grid.querySelectorAll('.turn-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedDay = btn.dataset.turn;
+                renderTurnGrid();
+                renderSlots();
+                // Scroll suave até aos horários
+                setTimeout(() => {
+                    document.getElementById('slotSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 80);
+            });
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // RENDER — HORÁRIOS DO DIA
+    // ─────────────────────────────────────────────────────────────────
+
+    function renderSlots() {
+        const container = document.getElementById('slotSection');
+
+        if (!selectedDay) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const turn = WEEKLY_TURNS.find(t => t.key === selectedDay);
+
+        // Agrupa slots por período
+        const groups = {};
+        for (const slot of WEEKLY_SLOTS) {
+            if (!groups[slot.period]) groups[slot.period] = [];
+            groups[slot.period].push(slot);
+        }
+
+        let html = `
+        <section class="slot-card">
+          <div class="selected-turn">
+            <h3>${esc(turn.label)}</h3>
+            <p>Cada horário aceita até ${MAX_PEOPLE} pessoas.</p>
+          </div>
+      `;
+
+        for (const [period, slots] of Object.entries(groups)) {
+            html += `<div class="period-title">${esc(period)}</div><div class="slot-list">`;
+
+            for (const slot of slots) {
+                const regKey    = `${selectedDay}|${slot.key}`;
+                const dbSlot    = slotsDB.find(s => s.slot_key === regKey);
+                const isBlocked = dbSlot?.is_blocked ?? false;
+                const names     = registrations[regKey] ?? [];
+                const isFull    = names.length >= MAX_PEOPLE;
+                const available = MAX_PEOPLE - names.length;
+
+                const disabled  = isBlocked || isFull;
+
+                // Badge de estado
+                const statusClass = disabled ? 'full' : 'available';
+                const statusText  = isBlocked
+                    ? 'Indisponível'
+                    : isFull
+                        ? 'Completo'
+                        : `${available} vaga${available > 1 ? 's' : ''}`;
+
+                // Lista de nomes inscritos
+                let namesHtml = '';
+                if (names.length > 0) {
+                    namesHtml = `<ul class="assigned-list">` +
+                        names.map(item => `
+                <li>
+                  <div class="assigned-row">
+                    <span class="assigned-name">${esc(item.person_name)}</span>
+                    <button
+                      class="delete-name-btn"
+                      type="button"
+                      aria-label="Apagar ${esc(item.person_name)}"
+                      data-reg-id="${esc(item.id)}">×</button>
+                  </div>
+                </li>
+              `).join('') +
+                        `</ul>`;
+                } else {
+                    namesHtml = `<p class="empty-state">${
+                        isBlocked
+                            ? 'Este horário não está disponível às quartas-feiras às 20:00.'
+                            : 'Ainda não há ninguém inscrito neste horário.'
+                    }</p>`;
+                }
+
+                // Botão de inscrição
+                const btnText = isBlocked
+                    ? 'Indisponível na quarta às 20:00'
+                    : 'Inscrever neste horário';
+
+                html += `
+            <div class="slot-item${disabled ? ' is-disabled' : ''}">
+              <div class="slot-head">
+                <div>
+                  <div class="slot-time">${esc(slot.time)}</div>
+                  <div class="slot-capacity">${names.length}/${MAX_PEOPLE} pessoas inscritas</div>
+                </div>
+                <div class="slot-status ${statusClass}">${statusText}</div>
+              </div>
+              ${namesHtml}
+              <div class="slot-actions">
+                <button
+                  class="action-btn primary"
+                  type="button"
+                  ${disabled ? 'disabled' : ''}
+                  data-slot-key="${esc(regKey)}"
+                  data-slot-label="${esc(slot.time + ' • ' + turn.label)}"
+                  data-slot-id="${esc(dbSlot?.id ?? '')}">
+                  ${btnText}
+                </button>
+              </div>
+            </div>
+          `;
+            }
+
+            html += `</div>`; // .slot-list
+        }
+
+        html += `</section>`;
+        container.innerHTML = html;
+
+        // Eventos — botões de inscrição
+        container.querySelectorAll('.action-btn.primary[data-slot-key]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.disabled) return;
+                pendingSlotId    = btn.dataset.slotId;
+                pendingSlotLabel = btn.dataset.slotLabel;
+                openModal();
+            });
+        });
+
+        // Eventos — botões de apagar
+        container.querySelectorAll('.delete-name-btn[data-reg-id]').forEach(btn => {
+            btn.addEventListener('click', () => handleDelete(btn.dataset.regId));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // MODAL
+    // ─────────────────────────────────────────────────────────────────
+
+    function openModal() {
+        document.getElementById('nameInput').value = '';
+        document.getElementById('modalDesc').textContent =
+            `Digite o seu nome para entrar no horário ${pendingSlotLabel}.`;
+        document.getElementById('nameModal').classList.add('open');
+        setTimeout(() => document.getElementById('nameInput').focus(), 80);
+    }
+
+    function closeModal() {
+        document.getElementById('nameModal').classList.remove('open');
+        pendingSlotId    = null;
+        pendingSlotLabel = '';
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // HANDLERS
+    // ─────────────────────────────────────────────────────────────────
+
+    async function handleSave() {
+        const name = document.getElementById('nameInput').value.trim();
+        if (!name || !pendingSlotId) return;
+
+        setLoading(true);
+        try {
+            await apiRegister(pendingSlotId, name);
+            await fetchRegistrations();
+            renderSlots();
+            closeModal();
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleDelete(regId) {
+        if (!confirm('Tens a certeza que queres apagar esta inscrição?')) return;
+        try {
+            await apiDelete(regId);
+            await fetchRegistrations();
+            renderSlots();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // EVENT LISTENERS FIXOS
+    // ─────────────────────────────────────────────────────────────────
+
+    document.getElementById('saveBtn').addEventListener('click', handleSave);
+    document.getElementById('cancelBtn').addEventListener('click', closeModal);
+
+    document.getElementById('nameInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter')  handleSave();
+        if (e.key === 'Escape') closeModal();
+    });
+
+    // Fechar modal ao clicar no backdrop
+    document.getElementById('nameModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeModal();
+    });
+
+    // ─────────────────────────────────────────────────────────────────
+    // INICIALIZAÇÃO
+    // ─────────────────────────────────────────────────────────────────
+
+    (async function init() {
+        try {
+            await loadAll();
+            renderTurnGrid();
+        } catch (err) {
+            console.error(err);
+            alert('Não foi possível carregar os dados. Verifica a tua ligação e tenta novamente.');
+        }
+    })();
+</script>
+
+</body>
+</html>

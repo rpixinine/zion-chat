@@ -11,6 +11,55 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
     <style>
+        /* ── Hero banner ─────────────────────────────────── */
+        .banner {
+            min-height: 28vh !important;
+            background-image: url('assets/zion-somos.avif') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            align-items: flex-end !important;
+            justify-content: space-between !important;
+            display: flex !important;
+            padding: 0 14px 14px !important;
+            overflow: hidden !important;
+        }
+        .banner img,
+        .banner-fallback { display: none !important; }
+
+        .banner-overlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.50);
+        }
+        .banner-gradient {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, rgba(2,22,30,0), rgba(2,22,30,1));
+        }
+
+        /* ── Nav pills (dark style) ──────────────────────── */
+        .back-btn {
+            position: relative; z-index: 2;
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(2,22,30,0.65);
+            border: 1px solid rgba(216,195,165,0.35);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
+            color: var(--primary); text-decoration: none;
+            backdrop-filter: blur(8px);
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: rgba(216,195,165,0.12); border-color: var(--primary-light); color: var(--primary-light); }
+
+        .page-badge {
+            position: relative; z-index: 2;
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
+            color: var(--primary); text-transform: uppercase;
+            background: rgba(2,22,30,0.65);
+            border: 1px solid rgba(216,195,165,0.35);
+            border-radius: 999px; padding: 6px 14px;
+            backdrop-filter: blur(8px);
+        }
         .content {
             flex: 1; overflow-y: auto; background: var(--bg-input);
         }
@@ -223,29 +272,6 @@
         }
         .btn-confirm-rejeitar:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* ── Banner nav ───────────────────────────────────── */
-        .banner-nav {
-            position: absolute; bottom: 10px; left: 0; right: 0;
-            display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
-        }
-        .back-btn {
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
-            border-radius: var(--radius-full); padding: 5px 14px;
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
-            color: var(--primary-dark); text-decoration: none; backdrop-filter: blur(8px);
-        }
-        .page-badge {
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
-            color: var(--primary); text-transform: uppercase;
-            background: rgba(255,255,255,0.92); border: 1px solid var(--border);
-            border-radius: var(--radius-full); padding: 5px 14px; backdrop-filter: blur(8px);
-        }
-        .banner-overlay {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 55px;
-            background: linear-gradient(to top, rgba(255,255,255,0.97), transparent);
-        }
-
         @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.95) } to { opacity: 1; transform: scale(1) } }
     </style>
@@ -254,17 +280,10 @@
 <div class="page-wrapper">
 
     <div class="banner">
-        <img src="banner zion.jpg" alt="Zion Lisboa"
-             onerror="this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
-        <div class="banner-fallback">
-            <div class="banner-title">ZION</div>
-            <div class="banner-sub">Lisboa · Portugal</div>
-        </div>
         <div class="banner-overlay"></div>
-        <div class="banner-nav">
-            <a href="index.html" class="back-btn">← Início</a>
-            <span class="page-badge">Aprovações</span>
-        </div>
+        <div class="banner-gradient"></div>
+        <a href="index" class="back-btn">← Início</a>
+        <span class="page-badge">Aprovações</span>
     </div>
 
     <div class="gold-line"></div>
@@ -316,7 +335,7 @@
             <div class="modal-info" id="modal-info"></div>
             <label class="modal-label">Motivo da recusa (opcional)</label>
             <textarea class="modal-textarea" id="motivo-recusa"
-                placeholder="Ex: Sala já reservada para este período, conflito com evento da igreja..."></textarea>
+                      placeholder="Ex: Sala já reservada para este período, conflito com evento da igreja..."></textarea>
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
                 <button class="btn-confirm-rejeitar" id="btn-confirm-rej" onclick="confirmarRejeicao()">Confirmar Rejeição</button>
@@ -326,46 +345,46 @@
 </div>
 
 <script>
-ZionAuth.protect();
-const currentUser = ZionAuth.getUser();
-const SUPA_URL    = window.SUPABASE_URL      || '';
-const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
+    ZionAuth.protect();
+    const currentUser = ZionAuth.getUser();
+    const SUPA_URL    = window.SUPABASE_URL      || '';
+    const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
 
-let salas        = {};
-let agendamentos = [];
-let abaAtiva     = 'pendente';
-let pedidoParaRejeitar = null;
+    let salas        = {};
+    let agendamentos = [];
+    let abaAtiva     = 'pendente';
+    let pedidoParaRejeitar = null;
 
-// ── SUPABASE ───────────────────────────────────────────────
-async function sb(path, opts = {}) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-        ...opts,
-        headers: {
-            'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
-            'Content-Type': 'application/json', 'Prefer': 'return=representation',
-            ...opts.headers
-        }
-    });
-    if (!r.ok) { const e = await r.json().catch(()=>({})); throw e; }
-    return r.json();
-}
-
-// ── INIT ───────────────────────────────────────────────────
-async function init() {
-    renderUserBar();
-
-    // Verifica acesso via membro_id (mais seguro que email)
-    let temAcesso = false;
-    if (currentUser.membro_id) {
-        try {
-            const rows = await sb(`membros?id=eq.${currentUser.membro_id}&select=e_admin,e_presbitero&ativo=eq.true`);
-            const m = rows?.[0];
-            temAcesso = !!(m?.e_admin || m?.e_presbitero);
-        } catch(e) { /* sem acesso */ }
+    // ── SUPABASE ───────────────────────────────────────────────
+    async function sb(path, opts = {}) {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+            ...opts,
+            headers: {
+                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+                'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                ...opts.headers
+            }
+        });
+        if (!r.ok) { const e = await r.json().catch(()=>({})); throw e; }
+        return r.json();
     }
 
-    if (!temAcesso) {
-        document.getElementById('main-content').innerHTML = `
+    // ── INIT ───────────────────────────────────────────────────
+    async function init() {
+        renderUserBar();
+
+        // Verifica acesso via membro_id (mais seguro que email)
+        let temAcesso = false;
+        if (currentUser.membro_id) {
+            try {
+                const rows = await sb(`membros?id=eq.${currentUser.membro_id}&select=e_admin,e_presbitero&ativo=eq.true`);
+                const m = rows?.[0];
+                temAcesso = !!(m?.e_admin || m?.e_presbitero);
+            } catch(e) { /* sem acesso */ }
+        }
+
+        if (!temAcesso) {
+            document.getElementById('main-content').innerHTML = `
         <div class="acesso-negado">
             <div class="acesso-negado-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -376,27 +395,27 @@ async function init() {
             <div class="acesso-negado-title">Acesso Restrito</div>
             <div class="acesso-negado-txt">Esta área é exclusiva para Presbíteros e Administradores.<br>Fala com a liderança da igreja para mais informações.</div>
         </div>`;
-        return;
+            return;
+        }
+
+        document.getElementById('tab-bar').style.display = 'flex';
+
+        const [salasData, agendData] = await Promise.all([
+            sb('salas?select=id,nome,espaco,foto_url&ativo=eq.true'),
+            sb('sala_agendamentos?select=*&order=data_inicio.asc'),
+        ]);
+
+        if (Array.isArray(salasData)) salasData.forEach(s => salas[s.id] = s);
+        agendamentos = Array.isArray(agendData) ? agendData : [];
+
+        atualizarBadges();
+        renderAba('pendente');
     }
 
-    document.getElementById('tab-bar').style.display = 'flex';
-
-    const [salasData, agendData] = await Promise.all([
-        sb('salas?select=id,nome,espaco,foto_url&ativo=eq.true'),
-        sb('sala_agendamentos?select=*&order=data_inicio.asc'),
-    ]);
-
-    if (Array.isArray(salasData)) salasData.forEach(s => salas[s.id] = s);
-    agendamentos = Array.isArray(agendData) ? agendData : [];
-
-    atualizarBadges();
-    renderAba('pendente');
-}
-
-// ── USER BAR ───────────────────────────────────────────────
-function renderUserBar() {
-    const ini = (currentUser.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    document.getElementById('user-bar').innerHTML = `
+    // ── USER BAR ───────────────────────────────────────────────
+    function renderUserBar() {
+        const ini = (currentUser.nome||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+        document.getElementById('user-bar').innerHTML = `
     <div class="user-bar-avatar">${ini}</div>
     <div class="user-bar-info">
         <div class="user-bar-nome">${currentUser.nome}</div>
@@ -410,112 +429,112 @@ function renderUserBar() {
         </svg>
         Sair
     </button>`;
-}
+    }
 
-// ── BADGES ─────────────────────────────────────────────────
-function atualizarBadges() {
-    document.getElementById('badge-pendente').textContent = agendamentos.filter(a=>a.status==='pendente').length;
-    document.getElementById('badge-aprovado').textContent = agendamentos.filter(a=>a.status==='aprovado').length;
-}
+    // ── BADGES ─────────────────────────────────────────────────
+    function atualizarBadges() {
+        document.getElementById('badge-pendente').textContent = agendamentos.filter(a=>a.status==='pendente').length;
+        document.getElementById('badge-aprovado').textContent = agendamentos.filter(a=>a.status==='aprovado').length;
+    }
 
-// ── TABS ───────────────────────────────────────────────────
-function switchTab(tab) {
-    abaAtiva = tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`tab-${tab}`).classList.add('active');
-    renderAba(tab);
-}
+    // ── TABS ───────────────────────────────────────────────────
+    function switchTab(tab) {
+        abaAtiva = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        renderAba(tab);
+    }
 
-// ── HELPER: pode reabrir? ──────────────────────────────────
-// Regra: pedido rejeitado, e faltam mais de 24h para o horário marcado
-function podeReabrir(agend) {
-    if (agend.status !== 'recusado') return false;
-    const inicio = new Date(agend.data_inicio);
-    const agora  = new Date();
-    const diffHoras = (inicio - agora) / (1000 * 60 * 60);
-    return diffHoras > 24;
-}
+    // ── HELPER: pode reabrir? ──────────────────────────────────
+    // Regra: pedido rejeitado, e faltam mais de 24h para o horário marcado
+    function podeReabrir(agend) {
+        if (agend.status !== 'recusado') return false;
+        const inicio = new Date(agend.data_inicio);
+        const agora  = new Date();
+        const diffHoras = (inicio - agora) / (1000 * 60 * 60);
+        return diffHoras > 24;
+    }
 
-function tempoParaReabrir(agend) {
-    const inicio = new Date(agend.data_inicio);
-    const limite = new Date(inicio.getTime() - 24 * 60 * 60 * 1000); // 24h antes
-    const agora  = new Date();
-    const diffMs = limite - agora;
-    if (diffMs <= 0) return null;
-    const h = Math.floor(diffMs / (1000 * 60 * 60));
-    const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    if (h >= 48) return `${Math.floor(h/24)}d para expirar`;
-    if (h > 0)   return `${h}h ${m}min para expirar`;
-    return `${m}min para expirar`;
-}
+    function tempoParaReabrir(agend) {
+        const inicio = new Date(agend.data_inicio);
+        const limite = new Date(inicio.getTime() - 24 * 60 * 60 * 1000); // 24h antes
+        const agora  = new Date();
+        const diffMs = limite - agora;
+        if (diffMs <= 0) return null;
+        const h = Math.floor(diffMs / (1000 * 60 * 60));
+        const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        if (h >= 48) return `${Math.floor(h/24)}d para expirar`;
+        if (h > 0)   return `${h}h ${m}min para expirar`;
+        return `${m}min para expirar`;
+    }
 
-// ── RENDER ABA ─────────────────────────────────────────────
-function renderAba(status) {
-    const lista = agendamentos.filter(a => a.status === status);
-    const total = agendamentos.length;
-    const pend  = agendamentos.filter(a=>a.status==='pendente').length;
-    const aprov = agendamentos.filter(a=>a.status==='aprovado').length;
+    // ── RENDER ABA ─────────────────────────────────────────────
+    function renderAba(status) {
+        const lista = agendamentos.filter(a => a.status === status);
+        const total = agendamentos.length;
+        const pend  = agendamentos.filter(a=>a.status==='pendente').length;
+        const aprov = agendamentos.filter(a=>a.status==='aprovado').length;
 
-    const SVG_HOUSE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+        const SVG_HOUSE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
 
-    let html = `
+        let html = `
     <div class="stats-bar">
         <div class="stat-pill"><div class="stat-num">${total}</div><div class="stat-label">Total</div></div>
         <div class="stat-pill"><div class="stat-num orange">${pend}</div><div class="stat-label">Pendentes</div></div>
         <div class="stat-pill"><div class="stat-num green">${aprov}</div><div class="stat-label">Aprovados</div></div>
     </div>`;
 
-    if (!lista.length) {
-        const msgs = {
-            pendente: 'Sem pedidos pendentes.',
-            aprovado: 'Nenhum agendamento aprovado.',
-            recusado: 'Nenhum pedido recusado.',
-        };
-        html += `<div class="empty"><div class="empty-txt">${msgs[status]}</div></div>`;
-        document.getElementById('main-content').innerHTML = html;
-        return;
-    }
+        if (!lista.length) {
+            const msgs = {
+                pendente: 'Sem pedidos pendentes.',
+                aprovado: 'Nenhum agendamento aprovado.',
+                recusado: 'Nenhum pedido recusado.',
+            };
+            html += `<div class="empty"><div class="empty-txt">${msgs[status]}</div></div>`;
+            document.getElementById('main-content').innerHTML = html;
+            return;
+        }
 
-    const labels = { pendente:'Aguardam aprovação', aprovado:'Aprovados', recusado:'Recusados' };
-    html += `<div class="section-label">${labels[status]} · ${lista.length}</div>`;
-    html += '<div class="pedidos-list">';
+        const labels = { pendente:'Aguardam aprovação', aprovado:'Aprovados', recusado:'Recusados' };
+        html += `<div class="section-label">${labels[status]} · ${lista.length}</div>`;
+        html += '<div class="pedidos-list">';
 
-    lista.forEach((a, i) => {
-        const sala    = salas[a.sala_id] || {};
-        const ini     = new Date(a.data_inicio);
-        const fim     = new Date(a.data_fim);
-        const dataFmt = ini.toLocaleDateString('pt-PT',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
-        const hIni    = ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-        const hFim    = fim.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-        const sbClass = {pendente:'sb-pendente',aprovado:'sb-aprovado',recusado:'sb-recusado'}[a.status];
+        lista.forEach((a, i) => {
+            const sala    = salas[a.sala_id] || {};
+            const ini     = new Date(a.data_inicio);
+            const fim     = new Date(a.data_fim);
+            const dataFmt = ini.toLocaleDateString('pt-PT',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+            const hIni    = ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+            const hFim    = fim.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+            const sbClass = {pendente:'sb-pendente',aprovado:'sb-aprovado',recusado:'sb-recusado'}[a.status];
 
-        const fotoHtml = sala.foto_url
-            ? `<div class="pedido-sala-foto"><img src="${sala.foto_url}" alt="${sala.nome}"></div>`
-            : `<div class="pedido-sala-foto">${SVG_HOUSE}</div>`;
+            const fotoHtml = sala.foto_url
+                ? `<div class="pedido-sala-foto"><img src="${sala.foto_url}" alt="${sala.nome}"></div>`
+                : `<div class="pedido-sala-foto">${SVG_HOUSE}</div>`;
 
-        // ── Secção de acções ──────────────────────────────
-        let actionsHtml = '';
+            // ── Secção de acções ──────────────────────────────
+            let actionsHtml = '';
 
-        if (a.status === 'pendente') {
-            actionsHtml = `
+            if (a.status === 'pendente') {
+                actionsHtml = `
             <div class="pedido-actions">
                 <button class="btn-aprovar"  onclick="aprovar('${a.id}')">Aprovar</button>
                 <button class="btn-rejeitar" onclick="abrirModalRejeicao('${a.id}')">Rejeitar</button>
             </div>`;
 
-        } else if (a.status === 'aprovado') {
-            const quem = a.aprovado_por ? 'pela liderança' : 'pelo sistema';
-            const data = a.aprovado_em ? ' · ' + new Date(a.aprovado_em).toLocaleDateString('pt-PT') : '';
-            actionsHtml = `<div class="pedido-done aprovado">Aprovado ${quem}${data}</div>`;
+            } else if (a.status === 'aprovado') {
+                const quem = a.aprovado_por ? 'pela liderança' : 'pelo sistema';
+                const data = a.aprovado_em ? ' · ' + new Date(a.aprovado_em).toLocaleDateString('pt-PT') : '';
+                actionsHtml = `<div class="pedido-done aprovado">Aprovado ${quem}${data}</div>`;
 
-        } else if (a.status === 'recusado') {
-            const motivo = a.motivo_recusa ? ` · ${a.motivo_recusa}` : '';
-            actionsHtml = `<div class="pedido-done recusado">Recusado${motivo}</div>`;
+            } else if (a.status === 'recusado') {
+                const motivo = a.motivo_recusa ? ` · ${a.motivo_recusa}` : '';
+                actionsHtml = `<div class="pedido-done recusado">Recusado${motivo}</div>`;
 
-            // Botão reabrir se ainda dentro do prazo
-            if (podeReabrir(a)) {
-                const prazo = tempoParaReabrir(a);
-                actionsHtml += `
+                // Botão reabrir se ainda dentro do prazo
+                if (podeReabrir(a)) {
+                    const prazo = tempoParaReabrir(a);
+                    actionsHtml += `
                 <div class="reabrir-wrap">
                     <button class="btn-reabrir" onclick="reabrir('${a.id}')">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
@@ -523,10 +542,10 @@ function renderAba(status) {
                     </button>
                     ${prazo ? `<div class="reabrir-prazo">${prazo} para reavaliação</div>` : ''}
                 </div>`;
+                }
             }
-        }
 
-        html += `
+            html += `
         <div class="pedido-card" style="animation-delay:${i*0.04}s" id="card-${a.id}">
             <div class="pedido-header">
                 ${fotoHtml}
@@ -565,82 +584,82 @@ function renderAba(status) {
             </div>
             ${actionsHtml}
         </div>`;
-    });
-
-    html += '</div>';
-    document.getElementById('main-content').innerHTML = html;
-}
-
-// ── APROVAR ────────────────────────────────────────────────
-async function aprovar(id) {
-    const card = document.getElementById(`card-${id}`);
-    card.querySelectorAll('button').forEach(b => b.disabled = true);
-    const btnA = card.querySelector('.btn-aprovar');
-    if (btnA) btnA.textContent = 'A aprovar...';
-
-    try {
-        await sb(`sala_agendamentos?id=eq.${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-                status:       'aprovado',
-                aprovado_por: currentUser.id,
-                aprovado_em:  new Date().toISOString(),
-            }),
         });
-        const idx = agendamentos.findIndex(a => a.id === id);
-        if (idx !== -1) { agendamentos[idx].status = 'aprovado'; agendamentos[idx].aprovado_por = currentUser.id; agendamentos[idx].aprovado_em = new Date().toISOString(); }
-        card.querySelector('.pedido-actions').outerHTML = `<div class="pedido-done aprovado">Aprovado com sucesso!</div>`;
-        card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-aprovado';
-        card.querySelector('.pedido-status-badge').textContent = 'aprovado';
-        atualizarBadges();
-    } catch(e) {
-        card.querySelectorAll('button').forEach(b => b.disabled = false);
-        if (btnA) btnA.textContent = 'Aprovar';
-        alert('Erro ao aprovar. Tenta novamente.');
+
+        html += '</div>';
+        document.getElementById('main-content').innerHTML = html;
     }
-}
 
-// ── REJEITAR ───────────────────────────────────────────────
-function abrirModalRejeicao(id) {
-    pedidoParaRejeitar = id;
-    const a    = agendamentos.find(x => x.id === id);
-    const sala = salas[a?.sala_id] || {};
-    const ini  = a ? new Date(a.data_inicio) : null;
-    const dataFmt = ini ? ini.toLocaleDateString('pt-PT',{day:'numeric',month:'long'}) : '';
-    const hIni    = ini ? ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}) : '';
-    document.getElementById('modal-info').innerHTML =
-        `<strong>${a?.solicitante_nome||'Solicitante'}</strong> pediu a sala <strong>${sala.nome||''}</strong> para ${dataFmt} às ${hIni}.`;
-    document.getElementById('motivo-recusa').value = '';
-    document.getElementById('overlay').classList.remove('hidden');
-}
-
-async function confirmarRejeicao() {
-    const id     = pedidoParaRejeitar;
-    const motivo = document.getElementById('motivo-recusa').value.trim();
-    const btn    = document.getElementById('btn-confirm-rej');
-    btn.disabled = true; btn.textContent = 'A rejeitar...';
-
-    try {
-        await sb(`sala_agendamentos?id=eq.${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-                status:        'recusado',
-                motivo_recusa: motivo || null,
-                aprovado_por:  currentUser.id,
-                aprovado_em:   new Date().toISOString(),
-            }),
-        });
-        const idx = agendamentos.findIndex(a => a.id === id);
-        if (idx !== -1) { agendamentos[idx].status = 'recusado'; agendamentos[idx].motivo_recusa = motivo || null; }
+    // ── APROVAR ────────────────────────────────────────────────
+    async function aprovar(id) {
         const card = document.getElementById(`card-${id}`);
-        if (card) {
-            const actions = card.querySelector('.pedido-actions');
-            if (actions) {
-                const motFmt = motivo ? ` · ${motivo}` : '';
-                let reabrirHtml = '';
-                if (podeReabrir(agendamentos[idx])) {
-                    const prazo = tempoParaReabrir(agendamentos[idx]);
-                    reabrirHtml = `
+        card.querySelectorAll('button').forEach(b => b.disabled = true);
+        const btnA = card.querySelector('.btn-aprovar');
+        if (btnA) btnA.textContent = 'A aprovar...';
+
+        try {
+            await sb(`sala_agendamentos?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status:       'aprovado',
+                    aprovado_por: currentUser.id,
+                    aprovado_em:  new Date().toISOString(),
+                }),
+            });
+            const idx = agendamentos.findIndex(a => a.id === id);
+            if (idx !== -1) { agendamentos[idx].status = 'aprovado'; agendamentos[idx].aprovado_por = currentUser.id; agendamentos[idx].aprovado_em = new Date().toISOString(); }
+            card.querySelector('.pedido-actions').outerHTML = `<div class="pedido-done aprovado">Aprovado com sucesso!</div>`;
+            card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-aprovado';
+            card.querySelector('.pedido-status-badge').textContent = 'aprovado';
+            atualizarBadges();
+        } catch(e) {
+            card.querySelectorAll('button').forEach(b => b.disabled = false);
+            if (btnA) btnA.textContent = 'Aprovar';
+            alert('Erro ao aprovar. Tenta novamente.');
+        }
+    }
+
+    // ── REJEITAR ───────────────────────────────────────────────
+    function abrirModalRejeicao(id) {
+        pedidoParaRejeitar = id;
+        const a    = agendamentos.find(x => x.id === id);
+        const sala = salas[a?.sala_id] || {};
+        const ini  = a ? new Date(a.data_inicio) : null;
+        const dataFmt = ini ? ini.toLocaleDateString('pt-PT',{day:'numeric',month:'long'}) : '';
+        const hIni    = ini ? ini.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}) : '';
+        document.getElementById('modal-info').innerHTML =
+            `<strong>${a?.solicitante_nome||'Solicitante'}</strong> pediu a sala <strong>${sala.nome||''}</strong> para ${dataFmt} às ${hIni}.`;
+        document.getElementById('motivo-recusa').value = '';
+        document.getElementById('overlay').classList.remove('hidden');
+    }
+
+    async function confirmarRejeicao() {
+        const id     = pedidoParaRejeitar;
+        const motivo = document.getElementById('motivo-recusa').value.trim();
+        const btn    = document.getElementById('btn-confirm-rej');
+        btn.disabled = true; btn.textContent = 'A rejeitar...';
+
+        try {
+            await sb(`sala_agendamentos?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status:        'recusado',
+                    motivo_recusa: motivo || null,
+                    aprovado_por:  currentUser.id,
+                    aprovado_em:   new Date().toISOString(),
+                }),
+            });
+            const idx = agendamentos.findIndex(a => a.id === id);
+            if (idx !== -1) { agendamentos[idx].status = 'recusado'; agendamentos[idx].motivo_recusa = motivo || null; }
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+                const actions = card.querySelector('.pedido-actions');
+                if (actions) {
+                    const motFmt = motivo ? ` · ${motivo}` : '';
+                    let reabrirHtml = '';
+                    if (podeReabrir(agendamentos[idx])) {
+                        const prazo = tempoParaReabrir(agendamentos[idx]);
+                        reabrirHtml = `
                     <div class="reabrir-wrap">
                         <button class="btn-reabrir" onclick="reabrir('${id}')">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
@@ -648,68 +667,68 @@ async function confirmarRejeicao() {
                         </button>
                         ${prazo ? `<div class="reabrir-prazo">${prazo} para reavaliação</div>` : ''}
                     </div>`;
+                    }
+                    actions.outerHTML = `<div class="pedido-done recusado">Recusado${motFmt}</div>${reabrirHtml}`;
                 }
-                actions.outerHTML = `<div class="pedido-done recusado">Recusado${motFmt}</div>${reabrirHtml}`;
+                card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-recusado';
+                card.querySelector('.pedido-status-badge').textContent = 'recusado';
             }
-            card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-recusado';
-            card.querySelector('.pedido-status-badge').textContent = 'recusado';
+            closeModal();
+            atualizarBadges();
+        } catch(e) {
+            btn.disabled = false; btn.textContent = 'Confirmar Rejeição';
+            alert('Erro ao rejeitar. Tenta novamente.');
         }
-        closeModal();
-        atualizarBadges();
-    } catch(e) {
-        btn.disabled = false; btn.textContent = 'Confirmar Rejeição';
-        alert('Erro ao rejeitar. Tenta novamente.');
-    }
-}
-
-// ── REABRIR ────────────────────────────────────────────────
-async function reabrir(id) {
-    const btn = document.querySelector(`#card-${id} .btn-reabrir`);
-    if (btn) { btn.disabled = true; btn.textContent = 'A reabrir...'; }
-
-    const agend = agendamentos.find(a => a.id === id);
-    if (!agend || !podeReabrir(agend)) {
-        alert('Este pedido já não pode ser reaberto (menos de 24h antes do horário marcado).');
-        if (btn) { btn.disabled = false; btn.textContent = 'Reabrir Pedido'; }
-        return;
     }
 
-    try {
-        await sb(`sala_agendamentos?id=eq.${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-                status:        'pendente',
-                motivo_recusa: null,
-                aprovado_por:  null,
-                aprovado_em:   null,
-            }),
-        });
-        const idx = agendamentos.findIndex(a => a.id === id);
-        if (idx !== -1) {
-            agendamentos[idx].status        = 'pendente';
-            agendamentos[idx].motivo_recusa = null;
-            agendamentos[idx].aprovado_por  = null;
-            agendamentos[idx].aprovado_em   = null;
+    // ── REABRIR ────────────────────────────────────────────────
+    async function reabrir(id) {
+        const btn = document.querySelector(`#card-${id} .btn-reabrir`);
+        if (btn) { btn.disabled = true; btn.textContent = 'A reabrir...'; }
+
+        const agend = agendamentos.find(a => a.id === id);
+        if (!agend || !podeReabrir(agend)) {
+            alert('Este pedido já não pode ser reaberto (menos de 24h antes do horário marcado).');
+            if (btn) { btn.disabled = false; btn.textContent = 'Reabrir Pedido'; }
+            return;
         }
-        atualizarBadges();
-        // Volta ao render da aba de recusados para reflectir a mudança
-        renderAba('recusado');
-    } catch(e) {
-        if (btn) { btn.disabled = false; btn.textContent = 'Reabrir Pedido'; }
-        alert('Erro ao reabrir pedido. Tenta novamente.');
+
+        try {
+            await sb(`sala_agendamentos?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status:        'pendente',
+                    motivo_recusa: null,
+                    aprovado_por:  null,
+                    aprovado_em:   null,
+                }),
+            });
+            const idx = agendamentos.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                agendamentos[idx].status        = 'pendente';
+                agendamentos[idx].motivo_recusa = null;
+                agendamentos[idx].aprovado_por  = null;
+                agendamentos[idx].aprovado_em   = null;
+            }
+            atualizarBadges();
+            // Volta ao render da aba de recusados para reflectir a mudança
+            renderAba('recusado');
+        } catch(e) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Reabrir Pedido'; }
+            alert('Erro ao reabrir pedido. Tenta novamente.');
+        }
     }
-}
 
-function closeModal() {
-    document.getElementById('overlay').classList.add('hidden');
-    document.getElementById('btn-confirm-rej').disabled = false;
-    document.getElementById('btn-confirm-rej').textContent = 'Confirmar Rejeição';
-    pedidoParaRejeitar = null;
-}
-function closeModalOutside(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    function closeModal() {
+        document.getElementById('overlay').classList.add('hidden');
+        document.getElementById('btn-confirm-rej').disabled = false;
+        document.getElementById('btn-confirm-rej').textContent = 'Confirmar Rejeição';
+        pedidoParaRejeitar = null;
+    }
+    function closeModalOutside(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-init();
+    init();
 </script>
 </body>
 </html>

@@ -145,11 +145,57 @@
         .dz-loader-ring{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite}
         .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#1A1A1A;color:#fff;font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;padding:10px 20px;border-radius:var(--radius-full);z-index:999;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
         .toast.show{transform:translateX(-50%) translateY(0)}.toast.error{background:#c0392b}.toast.ok{background:#27ae60}
-        .banner-nav{position:absolute;bottom:10px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
-        .back-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:var(--radius-full);padding:5px 14px;font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;color:var(--primary-dark);text-decoration:none;backdrop-filter:blur(8px);box-shadow:var(--shadow-sm);transition:all 0.2s}
-        .back-btn:hover{background:#fff;border-color:var(--primary-light)}
-        .page-badge{font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:var(--primary);text-transform:uppercase;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:var(--radius-full);padding:5px 14px;backdrop-filter:blur(8px)}
-        .banner-overlay{position:absolute;bottom:0;left:0;right:0;height:55px;background:linear-gradient(to top,rgba(255,255,255,0.97),transparent)}
+
+        /* ── Hero banner ─────────────────────────────────── */
+        .banner {
+            min-height: 28vh !important;
+            background-image: url('assets/zion-dizimos.avif') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            align-items: flex-end !important;
+            justify-content: space-between !important;
+            display: flex !important;
+            padding: 0 14px 14px !important;
+            overflow: hidden !important;
+        }
+        .banner img,
+        .banner-fallback { display: none !important; }
+
+        .banner-overlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.50);
+        }
+        .banner-gradient {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, rgba(2,22,30,0), rgba(2,22,30,1));
+        }
+
+        /* ── Nav pills (dark style) ──────────────────────── */
+        .back-btn {
+            position: relative; z-index: 2;
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(2,22,30,0.65);
+            border: 1px solid rgba(216,195,165,0.35);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
+            color: var(--primary); text-decoration: none;
+            backdrop-filter: blur(8px);
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: rgba(216,195,165,0.12); border-color: var(--primary-light); color: var(--primary-light); }
+
+        .page-badge {
+            position: relative; z-index: 2;
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
+            color: var(--primary); text-transform: uppercase;
+            background: rgba(2,22,30,0.65);
+            border: 1px solid rgba(216,195,165,0.35);
+            border-radius: 999px; padding: 6px 14px;
+            backdrop-filter: blur(8px);
+        }
+
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes popIn{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
     </style>
@@ -157,15 +203,10 @@
 <body>
 <div class="page-wrapper">
     <div class="banner">
-        <img src="banner zion.jpg" alt="Zion Lisboa" onerror="this.onerror=null;this.style.display='none';document.querySelector('.banner-fallback').classList.add('show');">
-        <div class="banner-fallback"><div class="banner-title">ZION</div><div class="banner-sub">Lisboa · Portugal</div></div>
         <div class="banner-overlay"></div>
-        <div class="banner-nav">
-            <a href="index.html" class="back-btn">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio
-            </a>
-            <span class="page-badge">Dizimos e Ofertas</span>
-        </div>
+        <div class="banner-gradient"></div>
+        <a href="index" class="back-btn">← Início</a>
+        <span class="page-badge">Dizimos e Ofertas</span>
     </div>
     <div class="gold-line"></div>
     <div class="tabs">
@@ -288,7 +329,7 @@
                     <div id="det-applepay-ui"></div>
                 </div>
                 <!-- Multibanco detail -->
-                
+
                 <!-- Multibanco detail -->
                 <div class="pay-detail" id="det-multibanco" style="display:none">
                     <div id="det-multibanco-ui" style="padding:4px 0">
@@ -496,15 +537,15 @@
                 if(!SB_URL||!SB_KEY) return Promise.resolve();
                 var mid=membroId||authUser.id;
                 return sbReq('dizimos','POST',{ membro_id:mid,membro_nome:nome,data_oferta:today,tipo_oferta:t.key,valor:v,observacoes:obsVal,forma_pagamento:pagamento,status:'pendente',referencia:ref })
-                .then(function(dzRows){
-                    return sbReq('contas_receber','POST',{ tipo:'dizimo',membro_id:mid,membro_nome:nome,descricao:t.label+' — '+nome,referencia:ref,valor_total:v,valor_recebido:0,data_emissao:today,data_vencimento:today,forma_pagamento:pagamento,status:'pendente',observacoes:obsVal })
-                    .then(function(crRows){
-                        if(dzRows&&crRows&&dzRows[0]&&crRows[0]){
-                            dizimoIdsGravados.push(dzRows[0].id); crIdsGravados.push(crRows[0].id);
-                            return sbReq('dizimos?id=eq.'+dzRows[0].id,'PATCH',{ contas_receber_id:crRows[0].id }).catch(function(){});
-                        }
-                    });
-                }).catch(function(e){ console.error('Erro insert '+t.key+':',e.message); });
+                    .then(function(dzRows){
+                        return sbReq('contas_receber','POST',{ tipo:'dizimo',membro_id:mid,membro_nome:nome,descricao:t.label+' — '+nome,referencia:ref,valor_total:v,valor_recebido:0,data_emissao:today,data_vencimento:today,forma_pagamento:pagamento,status:'pendente',observacoes:obsVal })
+                            .then(function(crRows){
+                                if(dzRows&&crRows&&dzRows[0]&&crRows[0]){
+                                    dizimoIdsGravados.push(dzRows[0].id); crIdsGravados.push(crRows[0].id);
+                                    return sbReq('dizimos?id=eq.'+dzRows[0].id,'PATCH',{ contas_receber_id:crRows[0].id }).catch(function(){});
+                                }
+                            });
+                    }).catch(function(e){ console.error('Erro insert '+t.key+':',e.message); });
             });
         });
 
@@ -518,11 +559,11 @@
             if(pagamento==='mbway'){
                 btn.disabled=false; btn.textContent='Confirmar e Registar Oferta';
                 mbwayIniciar(total,ref,dizimoIdsGravados,crIdsGravados)
-                .then(function(data){
-                    if(data.referencia&&dizimoIdsGravados.length>0) sbReq('dizimos?id=in.('+dizimoIdsGravados.join(',')+')', 'PATCH',{ eupago_referencia:data.referencia,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
-                    if(data.referencia&&crIdsGravados.length>0) sbReq('contas_receber?id=in.('+crIdsGravados.join(',')+')', 'PATCH',{ referencia_eupago:data.referencia,status:'aguarda_pagamento' }).catch(function(){});
-                    showToast('Notificacao MB WAY enviada!','ok');
-                }).catch(function(e){ showToast(e.message||'Erro ao enviar MB WAY','error'); });
+                    .then(function(data){
+                        if(data.referencia&&dizimoIdsGravados.length>0) sbReq('dizimos?id=in.('+dizimoIdsGravados.join(',')+')', 'PATCH',{ eupago_referencia:data.referencia,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
+                        if(data.referencia&&crIdsGravados.length>0) sbReq('contas_receber?id=in.('+crIdsGravados.join(',')+')', 'PATCH',{ referencia_eupago:data.referencia,status:'aguarda_pagamento' }).catch(function(){});
+                        showToast('Notificacao MB WAY enviada!','ok');
+                    }).catch(function(e){ showToast(e.message||'Erro ao enviar MB WAY','error'); });
                 return;
             }
             if(pagamento==='cartao'||pagamento==='applepay'||pagamento==='multibanco'){
@@ -562,40 +603,40 @@
             headers:{'Content-Type':'application/json','apikey':SB_KEY},
             body:JSON.stringify({ tipo:tipo,valor:totalValor.toFixed(2),referencia:referencia,email:email||'',telefone:tel||'',descricao:'Oferta Zion Lisboa',dizimo_ids:urlPayDizimoIds,contas_receber_ids:urlPayCrIds })
         })
-        .then(function(r){ return r.json(); })
-        .then(function(data){
-            if(!data.success) throw new Error(data.error||'Erro ao gerar pagamento');
-            if(tipo!=='multibanco'&&!data.paymentUrl) throw new Error('Sem URL de pagamento');
-            var refEupago=data.referencia||referencia; urlPayReferencia=refEupago;
-            if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
-            if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});
-            var uiEl=document.getElementById(uiId);
-            // Cartao/ApplePay: abre automaticamente (sem precisar de 2º clique)
-            if(tipo!=='multibanco' && data.paymentUrl){
-                window.open(data.paymentUrl,'_blank');
-            }
-            if(tipo==='multibanco'){
-                // Mostrar Entidade + Referencia ATM
-                var ent=data.entidade||'--'; var ref=data.referencia||'--';
-                uiEl.innerHTML='<div class="mb-ref-card">'+
-                    '<div class="mb-ref-row"><span class="mb-ref-label">Entidade</span><span class="mb-ref-value">'+ent+'</span></div>'+
-                    '<div class="mb-ref-row"><span class="mb-ref-label">Referencia</span><span class="mb-ref-value mb-ref-big">'+ref+'</span></div>'+
-                    '<div class="mb-ref-row"><span class="mb-ref-label">Valor</span><span class="mb-ref-value">'+totalValor.toFixed(2)+' €</span></div>'+
-                    '<p class="mb-ref-hint">Paga no Multibanco ou Homebanking.<br>Esta pagina actualiza automaticamente quando o pagamento for confirmado.</p>'+
-                    '</div>';
-            } else {
-                var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
-                uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><a class="pay-open-btn" href="'+data.paymentUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</a><div class="url-pay-poll" style="margin-top:12px"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
-            }
-            if(urlPayPollTimer) clearInterval(urlPayPollTimer);
-            urlPayPollTimer=setInterval(function(){ urlPayVerificarEstado(refEupago); },5000);
-            showToast('Pagina de pagamento aberta!','ok');
-        }).catch(function(e){
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if(!data.success) throw new Error(data.error||'Erro ao gerar pagamento');
+                if(tipo!=='multibanco'&&!data.paymentUrl) throw new Error('Sem URL de pagamento');
+                var refEupago=data.referencia||referencia; urlPayReferencia=refEupago;
+                if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
+                if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});
+                var uiEl=document.getElementById(uiId);
+                // Cartao/ApplePay: abre automaticamente (sem precisar de 2º clique)
+                if(tipo!=='multibanco' && data.paymentUrl){
+                    window.open(data.paymentUrl,'_blank');
+                }
+                if(tipo==='multibanco'){
+                    // Mostrar Entidade + Referencia ATM
+                    var ent=data.entidade||'--'; var ref=data.referencia||'--';
+                    uiEl.innerHTML='<div class="mb-ref-card">'+
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Entidade</span><span class="mb-ref-value">'+ent+'</span></div>'+
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Referencia</span><span class="mb-ref-value mb-ref-big">'+ref+'</span></div>'+
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Valor</span><span class="mb-ref-value">'+totalValor.toFixed(2)+' €</span></div>'+
+                        '<p class="mb-ref-hint">Paga no Multibanco ou Homebanking.<br>Esta pagina actualiza automaticamente quando o pagamento for confirmado.</p>'+
+                        '</div>';
+                } else {
+                    var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
+                    uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><a class="pay-open-btn" href="'+data.paymentUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</a><div class="url-pay-poll" style="margin-top:12px"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
+                }
+                if(urlPayPollTimer) clearInterval(urlPayPollTimer);
+                urlPayPollTimer=setInterval(function(){ urlPayVerificarEstado(refEupago); },5000);
+                showToast('Pagina de pagamento aberta!','ok');
+            }).catch(function(e){
             document.getElementById(uiId).innerHTML='<p style="color:#c0392b;font-size:12px;text-align:center">'+(e.message||'Erro ao preparar pagamento')+'</p>';
             showToast(e.message||'Erro ao preparar pagamento','error');
         });
     }
-    
+
     function urlPayVerificarEstado(refEupago){
         if(!refEupago||!SB_URL||!SB_KEY) return;
         sbReq('dizimos?select=status&eupago_referencia=eq.'+refEupago+'&limit=1','GET').then(function(rows){
@@ -681,7 +722,7 @@
         mbwayDizimoIds=dizimoIds||[]; mbwayCrIds=crIds||[];
         var fnUrl=SB_URL.split('/rest')[0]+'/functions/v1/mbway-iniciar';
         return fetch(fnUrl,{ method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY}, body:JSON.stringify({ telemovel:tel,valor:totalValor.toFixed(2),referencia:referencia,descricao:'Oferta Zion Lisboa',email:authUser.email||'',dizimo_ids:mbwayDizimoIds,contas_receber_ids:mbwayCrIds }) })
-        .then(function(r){ return r.json(); }).then(function(data){ if(!data.success) throw new Error(data.error||'Erro MB WAY'); mbwayTransacao=data.id_transacao; mbwayReferencia=data.referencia; mbwayIniciarCountdown(); return data; });
+            .then(function(r){ return r.json(); }).then(function(data){ if(!data.success) throw new Error(data.error||'Erro MB WAY'); mbwayTransacao=data.id_transacao; mbwayReferencia=data.referencia; mbwayIniciarCountdown(); return data; });
     }
 
     function mbwayIniciarCountdown(){

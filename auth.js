@@ -116,7 +116,7 @@ const ZionAuth = (() => {
     // ── Logout ────────────────────────────────────────────────
     function logout() {
         clearSession();
-        window.location.href = 'login.html';
+        window.location.href = 'login';
     }
 
     // ── Render user info num elemento ────────────────────────

@@ -3599,10 +3599,10 @@
 
     async function carregarCaixaAtual() {
         try {
-            const membroId = user?.id;
-            const filtro   = membroId
-                ? `pdv_caixas?status=eq.aberta&membro_id=eq.${membroId}&order=data_abertura.desc&limit=1`
-                : `pdv_caixas?status=eq.aberta&operador=eq.${encodeURIComponent(cfg.operador||'')}&order=data_abertura.desc&limit=1`;
+            const operador = cfg.operador || user?.nome || '';
+            const filtro = operador
+                ? `pdv_caixas?status=eq.aberta&operador=eq.${encodeURIComponent(operador)}&order=data_abertura.desc&limit=1`
+                : `pdv_caixas?status=eq.aberta&order=data_abertura.desc&limit=1`;
             const res = await sb(filtro);
             if (res && res.length > 0) {
                 caixaAtual     = res[0];
@@ -4354,7 +4354,7 @@
                 method: 'POST',
                 body: JSON.stringify({
                     operador: op,
-                    membro_id:      user?.id || null,
+                    //membro_id:      user?.id || null,
                     valor_abertura: troco,
                     status: 'aberta'
                 })

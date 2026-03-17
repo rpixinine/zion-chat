@@ -788,6 +788,29 @@
                         <div><label class="cfg-label">Titular da Conta</label><input class="cfg-input" id="cfg-titular"></div>
                     </div>
                 </div>
+
+                <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:4px">
+                    <div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);text-transform:uppercase;margin-bottom:10px">
+                        Servidor de Impressao (Print Manager)
+                    </div>
+                    <div style="display:grid;gap:8px">
+                        <div>
+                            <label class="cfg-label">URL do Servidor</label>
+                            <input class="cfg-input" id="cfg-print_server_url" placeholder="http://192.168.1.x:3000 ou https://xxx.ngrok-free.app">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <div>
+                                <label class="cfg-label">API Key</label>
+                                <input class="cfg-input" id="cfg-print_api_key" placeholder="muda-esta-chave">
+                            </div>
+                            <div>
+                                <label class="cfg-label">Nome da Impressora</label>
+                                <input class="cfg-input" id="cfg-print_impressora" placeholder="cupom_caixa">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="cfg-msg" id="cfg-msg"></div>
                 <button class="btn-cfg-save" onclick="salvarCfg()">Guardar Configuração</button>
             </div>
@@ -1303,7 +1326,13 @@
 
     // ── CONFIG: carregar form ─────────────────────────────────────────
     function carregarFormCfg() {
-        const campos = ['nome','morada','nif','telefone','email','website','operador','rodape','iban','bic','banco','titular'];
+        const campos = [
+            'nome','morada','nif','telefone','email','website',
+            'operador','rodape','iban','bic','banco','titular',
+            'print_server_url',
+            'print_api_key',
+            'print_impressora'
+        ];
         campos.forEach(f => {
             const el = document.getElementById(`cfg-${f}`);
             if (el) el.value = cfg[f] || '';
@@ -2070,11 +2099,88 @@
         <div style="margin-top:6mm"></div>`;
     }
 
-    function imprimirCupom() {
-        // Se ainda não gerou (clique em Imprimir antes de confirmar) gera agora
+    // function imprimirCupom() {
+    //     gerarCupom(null);
+    //     setTimeout(() => window.print(), 100);
+    // }
+
+    async function imprimirCupom() {
+        // Gera snapshot se ainda não gerou
         gerarCupom(null);
-        setTimeout(() => window.print(), 100);
+
+        // Tenta imprimir via Print Manager se configurado
+        const serverUrl  = cfg.print_server_url?.trim();
+        const apiKey     = cfg.print_api_key?.trim();
+        const impressora = cfg.print_impressora?.trim();
+
+        if (serverUrl && apiKey && impressora) {
+            try {
+                // Monta payload estruturado a partir do snapshot ou estado actual
+                const snap   = _cupomSnapshot;
+                const itens  = snap?.itensCopy || [];
+                const total  = snap?.total     ?? getTotal();
+                const desc   = snap?.desconto  ?? getDesconto();
+                const sub    = itens.reduce((s, i) => s + i.preco * i.qtd, 0);
+                const agora  = new Date();
+                const dStr   = agora.toLocaleDateString("pt-PT") + " "
+                    + agora.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+
+                const payload = {
+                    printer:               impressora,
+                    nome_estabelecimento:  cfg.nome      || "Zion Lisboa",
+                    morada:                cfg.morada    || "",
+                    nif:                   cfg.nif       || "",
+                    telefone:              cfg.telefone  || "",
+                    website:               cfg.website   || "",
+                    rodape:                cfg.rodape    || "Obrigado pela visita!",
+                    data_hora:             dStr,
+                    operador:              snap?.operador     || cfg.operador || "",
+                    numero_pedido:         snap?.numeroPedido || "",
+                    nome_cliente:          snap?.nomeCliente  || "",
+                    forma_pagamento:       snap?.pagTipo      || pagTipo,
+                    subtotal:              sub,
+                    desconto:              desc,
+                    total,
+                    itens: itens.map(i => ({
+                        nome:  i.prod.nome,
+                        qtd:   i.qtd,
+                        preco: i.preco,
+                        total: i.preco * i.qtd
+                    }))
+                };
+
+                const res = await fetch(serverUrl + "/printCupom", {
+                    method:  "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-api-key":    apiKey
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    toast("Cupom enviado para impressora ✓", "ok");
+                    return; // Não abre o dialog de impressão do browser
+                } else {
+                    throw new Error(data.error || "Erro no servidor");
+                }
+
+            } catch (e) {
+                console.error("Erro Print Manager:", e.message);
+                toast("Servidor offline — a imprimir pelo browser", "err");
+                // Fallback para impressão do browser
+                setTimeout(() => window.print(), 300);
+            }
+        } else {
+            // Sem servidor configurado — usa o browser
+            setTimeout(() => window.print(), 100);
+        }
     }
+
+
+
+
 </script>
 
 <script>

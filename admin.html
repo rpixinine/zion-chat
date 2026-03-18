@@ -337,30 +337,65 @@
             color: var(--primary-dark);
             background: var(--primary-faint);
         }
+
+        /* Dropdown Apps no nav */
+        .nav-app-drop {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .nav-drop-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px;
+            min-width: 180px;
+            z-index: 200;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .nav-app-drop.open .nav-drop-menu {
+            display: flex;
+        }
+
+        .nav-drop-item {
+            display: block;
+            padding: 8px 12px;
+            border-radius: 7px;
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .nav-drop-item:hover {
+            background: var(--primary-faint);
+            color: var(--primary-dark);
+        }
     </style>
 </head>
 <body>
 <div class="page-wrapper">
     <div class="gold-line"></div>
-    <div class="user-bar">
-        <div class="user-bar-back">
-            <div class="user-bar-section" id="secao-label">Cadastros</div>
-            <div class="user-bar-date" id="data-hoje"></div>
-        </div>
-        <div class="user-bar-center">
-            <a href="index" target="_blank" class="user-bar-link">APP</a>
-            <a href="pdv" target="_blank" class="user-bar-link">PDV</a>
-            <a href="kds" target="_blank" class="user-bar-link">KDS</a>
-            <a href="gerar-qrcode" target="_blank" class="user-bar-link">QRcode</a>
-            <a href="relogio-oracao" target="_blank" class="user-bar-link">Relógio de Oração</a>
-        </div>
-        <div class="user-bar-right">
-            <div class="user-bar-nome" id="top-user"></div>
-            <button class="logout-btn" onclick="ZionAuth.logout()">Sair</button>
-        </div>
-    </div>
 
     <div class="nav-bar" id="nav-bar">
+
+        <!-- Logo -->
+        <div class="nav-logo" style="display:flex;align-items:center;padding:0 10px;flex-shrink:0;cursor:pointer" onclick="setSecao('dashboard')">
+            <img src="logo_zion.png" alt="Zion" style="height:26px;width:auto;object-fit:contain"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <span style="display:none;font-family:var(--font-title);font-size:13px;font-weight:700;color:var(--primary-dark);letter-spacing:2px">ZION</span>
+        </div>
+
         <div class="nav-item" onclick="setSecao('dashboard')" data-secao="dashboard">Dashboard</div>
         <div class="nav-item active" onclick="loadModule('membros')" data-secao="membros">Membros</div>
         <div class="nav-item" onclick="loadModule('pastores')" data-secao="pastores">Pastores</div>
@@ -375,10 +410,30 @@
         <div class="nav-item" onclick="loadModule('fornecedores')" data-secao="fornecedores">Fornecedores</div>
         <div class="nav-item" onclick="loadModule('financeiro')" data-secao="financeiro">Financeiro</div>
         <div class="nav-item" onclick="loadModule('lista-compras')" data-secao="lista-compras">Lista de Compras</div>
-        <div class="nav-item" onclick="loadModule('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">
-            Utilizadores
-        </div>
+        <div class="nav-item" onclick="loadModule('utilizadores')" data-secao="utilizadores" id="nav-utilizadores">Utilizadores</div>
         <div class="nav-item" onclick="loadModule('configuracoes')" data-secao="configuracoes">Configurações</div>
+
+        <!-- Dropdown "Apps" -->
+        <div class="nav-item nav-app-drop" id="nav-app-drop" onclick="toggleAppDropdown(event)">
+            Apps ▾
+            <div class="nav-drop-menu" id="app-drop-menu">
+                <a href="index"          target="_blank" class="nav-drop-item">APP</a>
+                <a href="pdv"            target="_blank" class="nav-drop-item">PDV</a>
+                <a href="kds"            target="_blank" class="nav-drop-item">KDS</a>
+                <a href="gerar-qrcode"   target="_blank" class="nav-drop-item">QRcode</a>
+                <a href="relogio-oracao" target="_blank" class="nav-drop-item">Relógio de Oração</a>
+            </div>
+        </div>
+
+        <!-- Espaçador -->
+        <div style="flex:1;min-width:8px"></div>
+
+        <!-- User + Logout -->
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;padding-right:12px">
+            <div style="font-family:var(--font-title);font-size:11px;letter-spacing:1px;color:var(--text-muted)" id="top-user"></div>
+            <button class="logout-btn" onclick="ZionAuth.logout()">Sair</button>
+        </div>
+
     </div>
 
     <div class="content" id="main-content">
@@ -386,12 +441,6 @@
             <div class="spin"></div>
             A verificar acesso...
         </div>
-    </div>
-
-    <div class="footer">
-        <div class="footer-div"></div>
-        <div class="footer-copy">© 2026 Zion Lisboa — Todos os direitos reservados</div>
-        <div class="footer-addr">Rua do Centro Cultural, 11 · 1700-036 Alvalade · Lisboa, Portugal</div>
     </div>
 </div>
 
@@ -505,14 +554,30 @@
         return txt ? JSON.parse(txt) : [];
     }
 
+
+    function toggleAppDropdown(e) {
+        e.stopPropagation();
+        document.getElementById('nav-app-drop').classList.toggle('open');
+    }
+
+    // Fechar ao clicar fora
+    document.addEventListener('click', function(e) {
+        const drop = document.getElementById('nav-app-drop');
+        if (drop && !drop.contains(e.target)) {
+            drop.classList.remove('open');
+        }
+    });
+
+
+
     // ── INIT ──────────────────────────────────────────────────────────────────
     async function init() {
         document.getElementById('top-user').textContent =
             currentUser.nome?.split(' ')[0] || '';
         const hoje = new Date().toLocaleDateString('pt-PT',
             {weekday: 'long', day: 'numeric', month: 'long'});
-        document.getElementById('data-hoje').textContent =
-            hoje.charAt(0).toUpperCase() + hoje.slice(1);
+        const dataEl = document.getElementById('data-hoje');
+        if (dataEl) dataEl.textContent = hoje.charAt(0).toUpperCase() + hoje.slice(1);
 
         // Carregar permissões
         const darAcessoTotal = () => {

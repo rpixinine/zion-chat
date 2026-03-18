@@ -1,0 +1,817 @@
+<style>
+    /* ── DASHBOARD MODULE ─────────────────────────────────────────────────── */
+    .db-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        overflow-y: auto;
+        height: 100%;
+        padding-bottom: 24px;
+    }
+
+    /* Hero */
+    .db-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 24px 24px;
+        gap: 8px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .db-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 50% -20%, rgba(0,144,152,0.12) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .db-hero-logo {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+        filter: drop-shadow(0 2px 12px rgba(0,144,152,0.3));
+    }
+
+    .db-hero-logo-fallback {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: var(--primary-faint);
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-title);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        letter-spacing: 2px;
+    }
+
+    .db-hero-title {
+        font-family: var(--font-title);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        letter-spacing: 3px;
+        text-align: center;
+    }
+
+    .db-hero-sub {
+        font-size: 11px;
+        color: var(--text-faint);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-family: var(--font-title);
+    }
+
+    .db-hero-date {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    /* Stats */
+    .db-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        padding: 0 16px 16px;
+    }
+
+    .db-stat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 10px;
+        text-align: center;
+        cursor: default;
+        transition: border-color 0.2s, transform 0.15s;
+    }
+
+    .db-stat:hover {
+        border-color: var(--primary);
+        transform: translateY(-1px);
+    }
+
+    .db-stat-num {
+        font-family: var(--font-title);
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .db-stat-label {
+        font-size: 9px;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 3px;
+    }
+
+    /* Section headers */
+    .db-section-head {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        padding: 0 16px 8px;
+    }
+
+    /* ── CAROUSEL ─────────────────────────────────────────────────────────── */
+    .db-carousel-wrap {
+        padding: 0 0 16px;
+        overflow: hidden;
+    }
+
+    .db-carousel-track {
+        display: flex;
+        gap: 10px;
+        padding: 4px 16px 4px;
+        animation: db-scroll 32s linear infinite;
+        width: max-content;
+    }
+
+    .db-carousel-track:hover {
+        animation-play-state: paused;
+    }
+
+    @keyframes db-scroll {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+
+    .db-app-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        min-width: 130px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .db-app-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--primary-faint);
+        opacity: 0;
+        transition: opacity 0.2s;
+        border-radius: 14px;
+    }
+
+    .db-app-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .db-app-card:hover::before {
+        opacity: 1;
+    }
+
+    .db-app-emoji {
+        font-size: 26px;
+        line-height: 1;
+        position: relative;
+        z-index: 1;
+    }
+
+    .db-app-name {
+        font-family: var(--font-title);
+        font-size: 10px;
+        letter-spacing: 1px;
+        color: var(--primary-dark);
+        font-weight: 700;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .db-app-desc {
+        font-size: 10px;
+        color: var(--text-faint);
+        text-align: center;
+        line-height: 1.4;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ── TWO-COL GRID ─────────────────────────────────────────────────────── */
+    .db-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 0 16px 16px;
+    }
+
+    @media (max-width: 680px) {
+        .db-grid { grid-template-columns: 1fr; }
+        .db-stats { grid-template-columns: repeat(2,1fr); }
+    }
+
+    .db-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .db-panel-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .db-panel-count {
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .db-panel-body {
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 260px;
+        overflow-y: auto;
+    }
+
+    .db-panel-empty {
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-faint);
+    }
+
+    /* Aniversariante row */
+    .db-aniv-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 8px;
+        border-radius: 8px;
+        background: var(--bg-input);
+        border: 1px solid transparent;
+        transition: border-color 0.15s;
+    }
+
+    .db-aniv-row:hover {
+        border-color: var(--border);
+    }
+
+    .db-aniv-foto {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .db-aniv-ini {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-title);
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .db-aniv-info { flex: 1; min-width: 0; }
+
+    .db-aniv-nome {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .db-aniv-dia {
+        font-size: 10px;
+        color: var(--text-faint);
+        margin-top: 1px;
+    }
+
+    .db-aniv-hoje {
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    /* Evento row */
+    .db-evt-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px;
+        border-radius: 8px;
+        background: var(--bg-input);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: border-color 0.15s;
+    }
+
+    .db-evt-row:hover {
+        border-color: var(--primary);
+    }
+
+    .db-evt-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        background: var(--primary-faint);
+        flex-shrink: 0;
+    }
+
+    .db-evt-date-day {
+        font-family: var(--font-title);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        line-height: 1;
+    }
+
+    .db-evt-date-mon {
+        font-size: 8px;
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .db-evt-info { flex: 1; min-width: 0; }
+
+    .db-evt-titulo {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .db-evt-sub {
+        font-size: 10px;
+        color: var(--text-faint);
+        margin-top: 2px;
+    }
+
+    /* ── NOTIFICATIONS ────────────────────────────────────────────────────── */
+    .db-notif-wrap {
+        padding: 0 16px 16px;
+    }
+
+    .db-notif-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .db-notif-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .db-notif-badge {
+        background: var(--red, #c62828);
+        color: #fff;
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .db-notif-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .db-notif-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s;
+    }
+
+    .db-notif-item:last-child { border-bottom: none; }
+
+    .db-notif-item:hover { background: var(--bg-input); }
+
+    .db-notif-item.unread { background: var(--primary-faint); }
+
+    .db-notif-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--primary);
+        flex-shrink: 0;
+        margin-top: 4px;
+    }
+
+    .db-notif-dot.read {
+        background: var(--border);
+    }
+
+    .db-notif-text {
+        flex: 1;
+    }
+
+    .db-notif-msg {
+        font-size: 12px;
+        color: var(--text-main);
+        line-height: 1.5;
+    }
+
+    .db-notif-time {
+        font-size: 10px;
+        color: var(--text-faint);
+        margin-top: 3px;
+    }
+
+    .db-notif-empty {
+        padding: 24px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-faint);
+        line-height: 1.8;
+    }
+</style>
+
+<div class="db-wrap" id="db-wrap">
+
+    <!-- Loading state -->
+    <div class="loading" id="db-loading">
+        <div class="spin"></div>
+        A carregar dashboard...
+    </div>
+
+    <!-- Hero -->
+    <div class="db-hero" id="db-hero" style="display:none">
+        <img id="db-logo" src="logo.png" class="db-hero-logo"
+             onerror="this.style.display='none';document.getElementById('db-logo-fb').style.display='flex'">
+        <div class="db-hero-logo-fallback" id="db-logo-fb" style="display:none">ZL</div>
+        <div class="db-hero-title">ZION LISBOA</div>
+        <div class="db-hero-sub">Painel Administrativo</div>
+        <div class="db-hero-date" id="db-date"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="db-stats" id="db-stats" style="display:none"></div>
+
+    <!-- Quick Access Carousel -->
+    <div id="db-carousel-section" style="display:none">
+        <div class="db-section-head">⚡ Acesso Rápido</div>
+        <div class="db-carousel-wrap">
+            <div class="db-carousel-track" id="db-carousel-track"></div>
+        </div>
+    </div>
+
+    <!-- Two-col: Aniversariantes + Eventos -->
+    <div class="db-grid" id="db-grid" style="display:none">
+
+        <!-- Aniversariantes -->
+        <div class="db-panel">
+            <div class="db-panel-head">
+                🎂 Aniversariantes do Mês
+                <span class="db-panel-count" id="db-aniv-count">0</span>
+            </div>
+            <div class="db-panel-body" id="db-aniv-list">
+                <div class="db-panel-empty">A carregar...</div>
+            </div>
+        </div>
+
+        <!-- Eventos do mês -->
+        <div class="db-panel">
+            <div class="db-panel-head">
+                📅 Eventos do Mês
+                <span class="db-panel-count" id="db-evt-count">0</span>
+            </div>
+            <div class="db-panel-body" id="db-evt-list">
+                <div class="db-panel-empty">A carregar...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Notifications -->
+    <div class="db-notif-wrap" id="db-notif-wrap" style="display:none">
+        <div class="db-section-head" style="padding-bottom:8px">🔔 Notificações</div>
+        <div class="db-notif-panel">
+            <div class="db-notif-head">
+                Recentes
+                <span class="db-notif-badge" id="db-notif-badge" style="display:none">0</span>
+            </div>
+            <div id="db-notif-list"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (async function dbModule() {
+
+        const APPS = [
+            { emoji: '📱', nome: 'APP',              desc: 'App da congregação',      href: 'index'          },
+            { emoji: '💳', nome: 'PDV',              desc: 'Ponto de venda Keola',    href: 'pdv'            },
+            { emoji: '🍽',  nome: 'KDS',              desc: 'Cozinha display',         href: 'kds'            },
+            { emoji: '📸', nome: 'QRcode',           desc: 'Gerador de QR codes',     href: 'gerar-qrcode'   },
+            { emoji: '🕐', nome: 'Relógio Oração',   desc: 'Relógio de oração',       href: 'relogio-oracao' },
+            { emoji: '🙏', nome: 'Sala Oração',      desc: 'Sala de oração online',   href: 'sala-oracao'    },
+            { emoji: '💰', nome: 'Dízimos',          desc: 'Dízimos e ofertas',       href: 'dizimos'        },
+            { emoji: '🎓', nome: 'Diplomas',         desc: 'Gerador de diplomas',     href: 'diplomas'       },
+            { emoji: '👤', nome: 'Meu Perfil',       desc: 'O teu perfil pessoal',    href: 'meu-perfil'     },
+        ];
+
+        // ── Data ──────────────────────────────────────────────────────────────────
+        async function db_init() {
+            // Date
+            const hoje = new Date();
+            const dateEl = document.getElementById('db-date');
+            if (dateEl) {
+                const d = hoje.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                dateEl.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+            }
+
+            // Fetch data in parallel
+            const mesAtual = hoje.getMonth() + 1;
+            const anoAtual = hoje.getFullYear();
+            const mesStr   = String(mesAtual).padStart(2, '0');
+            const inicioMes = `${anoAtual}-${mesStr}-01`;
+            const fimMes    = `${anoAtual}-${mesStr}-31`;
+
+            const [membrosDB, eventosDB, notifDB] = await Promise.all([
+                sb('membros?select=id,nome,foto_url,data_nascimento,e_lider,e_presbitero,e_voluntario&ativo=eq.true').catch(() => []),
+                sb(`eventos?select=*&data_inicio=gte.${inicioMes}&data_inicio=lte.${fimMes}&ativo=eq.true&order=data_inicio`).catch(() => []),
+                sb('notificacoes?select=*&order=created_at.desc&limit=10').catch(() => []),
+            ]);
+
+            // Stats
+            renderStats(membrosDB, eventosDB);
+
+            // Aniversariantes
+            renderAniversariantes(membrosDB, mesAtual, hoje);
+
+            // Eventos
+            renderEventosMes(eventosDB);
+
+            // Notificações
+            renderNotificacoes(notifDB);
+
+            // Carousel
+            renderCarousel();
+
+            // Show all sections
+            ['db-loading'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            ['db-hero','db-stats','db-carousel-section','db-grid','db-notif-wrap'].forEach((id, i) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.display = '';
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(10px)';
+                    el.style.transition = `opacity 0.3s ease ${i * 0.06}s, transform 0.3s ease ${i * 0.06}s`;
+                    setTimeout(() => {
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                    }, 20);
+                }
+            });
+        }
+
+        // ── Stats ─────────────────────────────────────────────────────────────────
+        function renderStats(membrosDB, eventosDB) {
+            const total     = membrosDB.length;
+            const lideres   = membrosDB.filter(m => m.e_lider).length;
+            const voluntarios = membrosDB.filter(m => m.e_voluntario).length;
+            const evMes     = eventosDB.length;
+
+            const colors = ['var(--primary-dark)', 'var(--primary)', 'var(--green)', 'var(--text-muted)'];
+            const data   = [
+                { num: total,       label: 'Membros'    },
+                { num: lideres,     label: 'Líderes'    },
+                { num: voluntarios, label: 'Voluntários' },
+                { num: evMes,       label: 'Eventos/mês' },
+            ];
+
+            const el = document.getElementById('db-stats');
+            if (!el) return;
+            el.innerHTML = data.map((d, i) => `
+            <div class="db-stat">
+                <div class="db-stat-num" style="color:${colors[i]}">${d.num}</div>
+                <div class="db-stat-label">${d.label}</div>
+            </div>`).join('');
+        }
+
+        // ── Aniversariantes ───────────────────────────────────────────────────────
+        function renderAniversariantes(membrosDB, mesAtual, hoje) {
+            const diaHoje = hoje.getDate();
+            const lista = membrosDB
+                .filter(m => {
+                    if (!m.data_nascimento) return false;
+                    return parseInt(m.data_nascimento.split('-')[1]) === mesAtual;
+                })
+                .sort((a, b) => {
+                    const da = parseInt(a.data_nascimento.split('-')[2]);
+                    const db = parseInt(b.data_nascimento.split('-')[2]);
+                    return da - db;
+                });
+
+            document.getElementById('db-aniv-count').textContent = lista.length;
+            const el = document.getElementById('db-aniv-list');
+            if (!el) return;
+
+            if (!lista.length) {
+                el.innerHTML = '<div class="db-panel-empty">Nenhum aniversariante este mês.</div>';
+                return;
+            }
+
+            el.innerHTML = lista.map(m => {
+                const dia     = parseInt(m.data_nascimento.split('-')[2]);
+                const isHoje  = dia === diaHoje;
+                const badges  = [
+                    m.e_lider      && 'Líder',
+                    m.e_presbitero && 'Presbítero',
+                    m.e_voluntario && 'Voluntário',
+                ].filter(Boolean).join(' · ');
+
+                const fotoHtml = m.foto_url
+                    ? `<img src="${m.foto_url}" class="db-aniv-foto"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                   ><div class="db-aniv-ini" style="display:none">${(m.nome||'?')[0]}</div>`
+                    : `<div class="db-aniv-ini">${(m.nome||'?')[0]}</div>`;
+
+                return `<div class="db-aniv-row" style="${isHoje ? 'border-color:var(--primary);background:var(--primary-faint)' : ''}">
+                ${fotoHtml}
+                <div class="db-aniv-info">
+                    <div class="db-aniv-nome">${m.nome}</div>
+                    <div class="db-aniv-dia">Dia ${dia}${badges ? ' · ' + badges : ''}</div>
+                </div>
+                <div class="db-aniv-hoje">${isHoje ? '🎂' : '·'}</div>
+            </div>`;
+            }).join('');
+        }
+
+        // ── Eventos do mês ────────────────────────────────────────────────────────
+        function renderEventosMes(eventosDB) {
+            document.getElementById('db-evt-count').textContent = eventosDB.length;
+            const el = document.getElementById('db-evt-list');
+            if (!el) return;
+
+            if (!eventosDB.length) {
+                el.innerHTML = '<div class="db-panel-empty">Nenhum evento este mês.</div>';
+                return;
+            }
+
+            const STATUS_COR = {
+                aberto: 'var(--primary)',
+                em_curso: 'var(--green)',
+                concluido: 'var(--text-faint)',
+                cancelado: 'var(--red,#c62828)',
+            };
+
+            el.innerHTML = eventosDB.map(e => {
+                const d   = e.data_inicio ? new Date(e.data_inicio) : null;
+                const dia = d ? d.getDate() : '—';
+                const mon = d ? d.toLocaleDateString('pt-PT', { month: 'short' }).replace('.','').toUpperCase() : '';
+                const hora = d ? d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
+                const cor  = STATUS_COR[e.status] || 'var(--text-faint)';
+
+                return `<div class="db-evt-row">
+                <div class="db-evt-date">
+                    <div class="db-evt-date-day">${dia}</div>
+                    <div class="db-evt-date-mon">${mon}</div>
+                </div>
+                <div class="db-evt-info">
+                    <div class="db-evt-titulo">${e.titulo || '—'}</div>
+                    <div class="db-evt-sub">
+                        ${hora ? hora + ' · ' : ''}${e.local || ''}
+                        <span style="color:${cor};font-weight:600;margin-left:4px">${e.status || ''}</span>
+                    </div>
+                </div>
+            </div>`;
+            }).join('');
+        }
+
+        // ── Notificações ──────────────────────────────────────────────────────────
+        function renderNotificacoes(notifDB) {
+            const el     = document.getElementById('db-notif-list');
+            const badge  = document.getElementById('db-notif-badge');
+            if (!el) return;
+
+            const naoLidas = notifDB.filter(n => !n.lida).length;
+            if (badge) {
+                badge.textContent = naoLidas;
+                badge.style.display = naoLidas > 0 ? '' : 'none';
+            }
+
+            if (!notifDB.length) {
+                el.innerHTML = `<div class="db-notif-empty">
+                ✓ Sem notificações por enquanto.<br>
+                <span style="font-size:10px">As notificações aparecerão aqui quando forem criadas.</span>
+            </div>`;
+                return;
+            }
+
+            el.innerHTML = notifDB.map(n => {
+                const dt  = n.created_at ? new Date(n.created_at).toLocaleDateString('pt-PT', {
+                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                }) : '';
+                const lida = !!n.lida;
+                return `<div class="db-notif-item ${lida ? '' : 'unread'}" onclick="db_marcarLida('${n.id}',this)">
+                <div class="db-notif-dot ${lida ? 'read' : ''}"></div>
+                <div class="db-notif-text">
+                    <div class="db-notif-msg">${n.mensagem || n.titulo || '—'}</div>
+                    <div class="db-notif-time">${dt}</div>
+                </div>
+            </div>`;
+            }).join('');
+        }
+
+        // ── Carousel ──────────────────────────────────────────────────────────────
+        function renderCarousel() {
+            const track = document.getElementById('db-carousel-track');
+            if (!track) return;
+
+            // Duplicar para loop infinito
+            const items = [...APPS, ...APPS];
+            track.innerHTML = items.map(app => `
+            <a href="${app.href}" target="_blank" class="db-app-card">
+                <div class="db-app-emoji">${app.emoji}</div>
+                <div class="db-app-name">${app.nome}</div>
+                <div class="db-app-desc">${app.desc}</div>
+            </a>`).join('');
+        }
+
+        // ── Marcar notificação como lida ─────────────────────────────────────────
+        window.db_marcarLida = async function(id, rowEl) {
+            if (!id || id === 'undefined') return;
+            try {
+                await sb(`notificacoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ lida: true }) });
+                rowEl.classList.remove('unread');
+                const dot = rowEl.querySelector('.db-notif-dot');
+                if (dot) dot.classList.add('read');
+                // Atualizar badge
+                const unread = document.querySelectorAll('.db-notif-item:not(.unread) ~ .db-notif-item').length;
+                const badge = document.getElementById('db-notif-badge');
+                const total = document.querySelectorAll('.db-notif-item.unread').length;
+                if (badge) {
+                    badge.textContent = total;
+                    badge.style.display = total > 0 ? '' : 'none';
+                }
+            } catch(e) { /* silencioso */ }
+        };
+
+        // Expor init para o reInitMap
+        window.db_init = db_init;
+
+        // Executar
+        db_init();
+
+    })();
+</script>

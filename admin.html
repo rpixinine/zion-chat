@@ -338,7 +338,7 @@
             background: var(--primary-faint);
         }
 
-        /* Dropdown Apps no nav */
+        /* Dropdown Apps no nav new process */
         .nav-app-drop {
             position: relative;
             cursor: pointer;
@@ -347,16 +347,14 @@
 
         .nav-drop-menu {
             display: none;
-            position: absolute;
-            top: calc(100% + 4px);
-            right: 0;
+            position: fixed;
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 6px;
             min-width: 180px;
-            z-index: 200;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
             flex-direction: column;
             gap: 2px;
         }
@@ -553,21 +551,6 @@
         const txt = await r.text();
         return txt ? JSON.parse(txt) : [];
     }
-
-
-    function toggleAppDropdown(e) {
-        e.stopPropagation();
-        document.getElementById('nav-app-drop').classList.toggle('open');
-    }
-
-    // Fechar ao clicar fora
-    document.addEventListener('click', function(e) {
-        const drop = document.getElementById('nav-app-drop');
-        if (drop && !drop.contains(e.target)) {
-            drop.classList.remove('open');
-        }
-    });
-
 
 
     // ── INIT ──────────────────────────────────────────────────────────────────
@@ -5138,6 +5121,32 @@
         };
     }
 
+    //new process
+    function toggleAppDropdown(e) {
+        e.stopPropagation();
+        const drop = document.getElementById('nav-app-drop');
+        const menu = document.getElementById('app-drop-menu');
+        const isOpen = drop.classList.contains('open');
+
+        if (isOpen) {
+            drop.classList.remove('open');
+            return;
+        }
+
+        // Calcular posição com base no botão
+        const rect = drop.getBoundingClientRect();
+        menu.style.top  = (rect.bottom + 6) + 'px';
+        menu.style.right = (window.innerWidth - rect.right) + 'px';
+
+        drop.classList.add('open');
+    }
+
+    document.addEventListener('click', function(e) {
+        const drop = document.getElementById('nav-app-drop');
+        if (drop && !drop.contains(e.target)) {
+            drop.classList.remove('open');
+        }
+    });
 
     init();
     // ══════════════════════════════════════════════════════════════════════

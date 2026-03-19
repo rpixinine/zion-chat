@@ -196,8 +196,6 @@
     .org-hd-link      { color:#2e7d32; border-color:#2e7d32; }
     .org-hd-office    { color:#e65100; border-color:#e65100; }
 </style>
-<script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
-
 <!-- ══════════════════════════════════════════════ -->
 <!--  PÁGINA PRINCIPAL                             -->
 <!-- ══════════════════════════════════════════════ -->
@@ -526,7 +524,7 @@
         min_minAtivo = min_mins.find(m => m.id === id);
         min_renderSide();
         const [mems, cults] = await Promise.all([
-            min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome,checkin_pin,telemovel)&ativo=eq.true&order=papel,created_at`).catch(() => []),
+            min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(() => []),
             min_sb(`ministerio_cultos?ministerio_id=eq.${id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim)`).catch(() => []),
         ]);
         min_minMems  = mems || [];
@@ -859,33 +857,39 @@
                     <option value="aprendiz" ${m.papel==='aprendiz' ?'selected':''} style="color:#e65100;background:var(--bg-input)">Aprendiz</option>
                     <option value="lider"    ${m.papel==='lider'    ?'selected':''} style="color:var(--primary-dark);background:var(--bg-input)">Líder</option>
                 </select></td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:6px">
-                        <input type="text" maxlength="6" placeholder="----"
-                            value="${m.membros?.checkin_pin||''}"
-                            style="width:60px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;text-align:center;letter-spacing:3px;font-family:var(--font-body);color:var(--text-main)"
-                            onchange="min_salvarPin('${m.membro_id}',this.value,this)">
-                        <span style="font-size:9px;color:var(--text-faint)">4–6 dig.</span>
-                    </div>
+                <td id="pin-cell-${m.membro_id}">
+                    <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_editarPin('${m.membro_id}')">✏️ PIN</button>
                 </td>
                 <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
             </tr>`).join('')}</tbody></table></div>`
             : `<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum membro neste ministério</div></div>`}`;
     }
 
-    async function min_salvarPin(membroId, pin, inputEl) {
-        const val = pin.trim();
+    async function min_editarPin(membroId) {
+        const cell = document.getElementById('pin-cell-'+membroId); if (!cell) return;
+        // Carregar PIN actual
+        cell.innerHTML = '<span style="font-size:10px;color:var(--text-faint)">…</span>';
+        const res = await min_sb('membros?id=eq.'+membroId+'&select=checkin_pin').catch(() => []);
+        const pinActual = res?.[0]?.checkin_pin || '';
+        cell.innerHTML =
+            '<div style="display:flex;align-items:center;gap:4px">' +
+            '<input type="text" maxlength="6" placeholder="----" value="'+pinActual+'" id="pin-input-'+membroId+'" ' +
+            'style="width:58px;padding:4px 7px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:13px;text-align:center;letter-spacing:4px;font-family:var(--font-body);color:var(--text-main)">' +
+            '<button class="btn-sm primary" style="padding:3px 7px;font-size:10px" onclick="min_salvarPin(''+membroId+'')">✓</button>' +
+            '</div>';
+        document.getElementById('pin-input-'+membroId)?.focus();
+    }
+    async function min_salvarPin(membroId) {
+        const input = document.getElementById('pin-input-'+membroId); if (!input) return;
+        const val = input.value.trim();
         if (val && (val.length < 4 || val.length > 6 || !/^\d+$/.test(val))) {
-            min_t('PIN deve ter 4 a 6 dígitos numéricos', 'err');
-            return;
+            min_t('PIN deve ter 4 a 6 dígitos numéricos', 'err'); return;
         }
         try {
-            await min_sb(`membros?id=eq.${membroId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ checkin_pin: val || null })
-            });
+            await min_sb('membros?id=eq.'+membroId, { method:'PATCH', body:JSON.stringify({ checkin_pin: val||null }) });
             min_t(val ? 'PIN guardado ✓' : 'PIN removido');
-            if (inputEl) { inputEl.style.borderColor='var(--green)'; setTimeout(()=>inputEl.style.borderColor='',1500); }
+            const cell = document.getElementById('pin-cell-'+membroId);
+            if (cell) cell.innerHTML = '<button class="btn-sm" style="font-size:10px;padding:3px 8px;border-color:var(--green);color:var(--green)" onclick="min_editarPin(''+membroId+'')">✓ '+val+'</button>';
         } catch(e) { min_t('Erro: '+e.message, 'err'); }
     }
 
@@ -914,7 +918,7 @@
             await min_sb('ministerio_membros', { method:'POST', body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,papel,ativo:true}) });
             min_memNoMin.add(mId); min_filtrarMembros();
             smsg('min-m-msg', `${nome} adicionado`, 'ok'); min_t(`${nome} adicionado`);
-            min_minMems = await min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&select=*,membros(id,nome,checkin_pin,telemovel)&ativo=eq.true&order=papel,created_at`).catch(() => []);
+            min_minMems = await min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(() => []);
             min_renderMems();
             document.getElementById('mint-membros').textContent = `Membros (${min_minMems.length})`;
         } catch (e) { smsg('min-m-msg', e.message, 'err'); }
@@ -1479,11 +1483,24 @@
         modal.style.display = 'flex';
         const container = document.getElementById('min-qr-container');
         container.innerHTML = '';
-        if (window.QRCode) {
-            new QRCode(container, { text: url, width:180, height:180, colorDark:'#02161e', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
-        } else {
-            container.innerHTML = `<div style="font-size:11px;color:var(--red)">QRCode.js não carregou</div>`;
-        }
+        // Usa Google Charts API como gerador de QR (não precisa de biblioteca externa)
+        const encodedUrl = encodeURIComponent(url);
+        const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodedUrl + '&bgcolor=ffffff&color=02161e&margin=8';
+        const img = document.createElement('img');
+        img.src = qrSrc;
+        img.width = 180; img.height = 180;
+        img.style.borderRadius = '6px';
+        img.onerror = () => {
+            container.innerHTML = '<div style="font-size:11px;color:var(--text-faint);padding:20px;text-align:center">Sem ligação para gerar QR.<br>Usa o link em baixo.</div>';
+        };
+        container.appendChild(img);
+        // Botão para download
+        img.onload = () => {
+            const dl = document.createElement('div');
+            dl.style.cssText = 'margin-top:8px';
+            dl.innerHTML = '<a href="'+qrSrc+'&size=400x400" download="qr-'+min_minAtivo.nome+'.png" style="font-size:11px;color:var(--primary-dark);text-decoration:none" target="_blank">⬇ Descarregar PNG</a>';
+            container.appendChild(dl);
+        };
     }
 
     async function min_zapLider(ciId, nomeVoluntario, minAtraso, cultoId) {

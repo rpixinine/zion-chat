@@ -236,14 +236,14 @@ async function ci_init() {
     // 2. Escala de hoje para este ministério
     const escHoje = await sb(
       `ministerio_escala?ministerio_id=eq.${CI.ministerioId}&data=eq.${hoje}` +
-      `&select=*,membros(id,nome,checkin_pin),cultos(id,nome,hora_inicio,hora_fim)`
+      `&select=*,membros(id,nome),cultos(id,nome,hora_inicio,hora_fim)`
     );
 
     if (!escHoje?.length) {
       // Buscar próxima escala
       const proxEsc = await sb(
         `ministerio_escala?ministerio_id=eq.${CI.ministerioId}&data=gt.${hoje}` +
-        `&select=*,membros(id,nome),cultos(id,nome,hora_inicio,dia_semana)&order=data&limit=20`
+        `&select=*,membros(id,nome),cultos(id,nome,hora_inicio)&order=data&limit=20`
       ).catch(() => []);
       ci_renderSemCulto(proxEsc || []);
       return;

@@ -1393,6 +1393,7 @@
             </div>
             <div style="display:flex;gap:6px">
                 <button class="btn-sm" onclick="min_renderCheckin()">↻ Atualizar</button>
+                <button class="btn-sm" onclick="min_abrirLembretes()">📲 Lembretes</button>
                 <button class="btn-sm primary" onclick="min_abrirQR()">📱 QR Code</button>
             </div>
         </div>
@@ -1486,7 +1487,6 @@
     }
 
     async function min_zapLider(ciId, nomeVoluntario, minAtraso, cultoId) {
-        // Buscar lideres
         const lidRaw = await min_sb(
             `ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&papel=eq.lider&select=*,membros(nome,telemovel)`
         ).catch(() => []);
@@ -1496,15 +1496,145 @@
         const cultNome = min_cultsAll.find(c=>c.id===cultoId)?.nome || '';
         const data = new Date().toLocaleDateString('pt-PT');
         const msg = encodeURIComponent(
-            `⚠️ *Zion Lisboa – Check-in*\n` +
-            `*${nomeVoluntario}* chegou com *${minAtraso} min de atraso*.\n` +
-            `Ministério: ${min_minAtivo.nome} · ${cultNome}\n` +
-            `Data: ${data}`
+            '⚠️ *Zion Lisboa – Check-in*\n' +
+            '*' + nomeVoluntario + '* chegou com *' + minAtraso + ' min de atraso*.\n' +
+            'Ministério: ' + min_minAtivo.nome + ' · ' + cultNome + '\n' +
+            'Data: ' + data
         );
-        window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
-        // Marcar como notificado
+        window.open('https://wa.me/' + tel + '?text=' + msg, '_blank');
         await min_sb(`ministerio_checkin?id=eq.${ciId}`, {method:'PATCH',body:JSON.stringify({notificado_lider:true})}).catch(console.error);
         min_t('WhatsApp aberto'); min_renderCheckin();
+    }
+
+    /* ══════════════════════════════════════════════
+       LEMBRETES D-1 VIA WA.ME
+    ══════════════════════════════════════════════ */
+    const MSGS_EDIFICANTES = [
+        '✨ _"Tudo posso naquele que me fortalece."_ — Fil 4:13\nDeus vai usar o teu serviço amanhã para tocar vidas!',
+        '🙏 _"Sirva ao Senhor com alegria."_ — Sl 100:2\nO teu coração de servo faz diferença!',
+        '🔥 _"Sede fortes e corajosos... pois o Senhor teu Deus está contigo."_ — Js 1:9\nServes com propósito e unção!',
+        '💛 _"Cada um ponha ao serviço dos outros o dom que recebeu."_ — 1Pe 4:10\nO teu dom edifica a família Zion!',
+        '🌟 _"O Senhor está contigo onde quer que vás."_ — Js 1:9\nAmanhã será especial porque estarás presente!',
+        '❤️ _"Amai-vos uns aos outros como Eu vos amei."_ — Jo 13:34\nO teu serviço é um ato de amor!',
+        '🕊️ _"Não nos cansemos de fazer o bem."_ — Gl 6:9\nO teu serviço tem recompensa eterna!',
+    ];
+
+    async function min_abrirLembretes() {
+        // Amanhã
+        const amanha = new Date(); amanha.setDate(amanha.getDate()+1);
+        const amanhaISO = amanha.toISOString().split('T')[0];
+        const diasPT = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+        const mesesPT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        const amanhaFmt = diasPT[amanha.getDay()] + ', ' + String(amanha.getDate()).padStart(2,'0') + ' de ' + mesesPT[amanha.getMonth()];
+
+        // Buscar escala de amanhã deste ministério
+        const esc = await min_sb(
+            'ministerio_escala?ministerio_id=eq.' + min_minAtivo.id + '&data=eq.' + amanhaISO +
+            '&select=*,membros(id,nome,telemovel,checkin_pin),cultos(id,nome,hora_inicio)'
+        ).catch(() => []);
+
+        if (!esc?.length) {
+            min_t('Sem escala para amanhã neste ministério', 'err');
+            return;
+        }
+
+        // Agrupar por membro (pode estar em mais que um culto)
+        const porMembro = {};
+        esc.forEach(e => {
+            const m = e.membros; if (!m) return;
+            if (!porMembro[m.id]) porMembro[m.id] = { membro: m, cultos: [] };
+            if (e.cultos) porMembro[m.id].cultos.push(e.cultos);
+        });
+
+        const lista = Object.values(porMembro);
+        const semTel = lista.filter(x => !x.membro.telemovel);
+        const comTel = lista.filter(x =>  x.membro.telemovel);
+
+        // Mostrar modal de confirmação com pré-visualização
+        let modal = document.getElementById('min-modal-lemb');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'min-modal-lemb';
+            modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+            document.body.appendChild(modal);
+        }
+
+        const msgEdif = MSGS_EDIFICANTES[Math.floor(Math.random() * MSGS_EDIFICANTES.length)];
+
+        // Gerar pré-visualização da mensagem para o 1º membro
+        const primeiro = comTel[0];
+        let previewMsg = '';
+        if (primeiro) {
+            previewMsg = min_gerarMsgLembrete(primeiro.membro, primeiro.cultos, amanhaFmt, msgEdif);
+        }
+
+        modal.innerHTML =
+            '<div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:100%;max-width:520px;margin:auto;box-shadow:var(--shadow-md)">' +
+            '<div style="font-family:var(--font-title);font-size:11px;letter-spacing:2px;color:var(--primary-dark);margin-bottom:4px">📲 LEMBRETES DE ESCALA</div>' +
+            '<div style="font-size:12px;color:var(--text-faint);margin-bottom:16px">' + amanhaFmt + ' · ' + min_minAtivo.nome + '</div>' +
+
+            // Resumo
+            '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+            '<div style="flex:1;padding:10px;background:var(--primary-faint);border:1px solid var(--primary);border-radius:10px;text-align:center">' +
+            '<div style="font-size:18px;font-weight:700;color:var(--primary-dark)">' + comTel.length + '</div>' +
+            '<div style="font-size:9px;font-family:var(--font-title);color:var(--text-faint)">COM TELEMÓVEL</div></div>' +
+            (semTel.length ? '<div style="flex:1;padding:10px;background:rgba(192,57,43,0.06);border:1px solid rgba(192,57,43,0.2);border-radius:10px;text-align:center">' +
+            '<div style="font-size:18px;font-weight:700;color:var(--red)">' + semTel.length + '</div>' +
+            '<div style="font-size:9px;font-family:var(--font-title);color:var(--text-faint)">SEM TELEMÓVEL</div></div>' : '') +
+            '</div>' +
+
+            // Preview da mensagem
+            (previewMsg ? '<div style="font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:6px">PRÉ-VISUALIZAÇÃO</div>' +
+            '<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto;margin-bottom:16px;color:var(--text-main)">' +
+            previewMsg.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' : '') +
+
+            // Lista de quem não tem tel
+            (semTel.length ? '<div style="font-size:11px;color:var(--red);margin-bottom:12px;background:rgba(192,57,43,0.06);padding:8px 12px;border-radius:8px">⚠️ Sem telemóvel: ' + semTel.map(x=>x.membro.nome).join(', ') + '</div>' : '') +
+
+            '<div style="font-size:11px;color:var(--text-faint);margin-bottom:16px">O WhatsApp vai abrir para cada pessoa individualmente. Confirma o envio em cada janela.</div>' +
+
+            '<div style="display:flex;gap:8px">' +
+            '<button class="btn-sm" style="flex:1" onclick="document.getElementById('min-modal-lemb').style.display='none'">Cancelar</button>' +
+            '<button class="btn-sm primary" style="flex:1" onclick="min_enviarLembretes(' + JSON.stringify(comTel.map(x=>({id:x.membro.id,nome:x.membro.nome,tel:x.membro.telemovel,pin:x.membro.checkin_pin,cultos:x.cultos}))) + ','' + amanhaFmt + '','' + encodeURIComponent(msgEdif) + '')">Enviar ' + comTel.length + ' lembretes →</button>' +
+            '</div></div>';
+
+        modal.style.display = 'flex';
+    }
+
+    function min_gerarMsgLembrete(membro, cultos, dataFmt, msgEdif) {
+        const primeiroNome = membro.nome.split(' ')[0];
+        const cultosLinhas = cultos.map(c => '  • ' + c.nome + ' às ' + c.hora_inicio.slice(0,5) + 'h').join('\n');
+        const pinInfo = membro.checkin_pin
+            ? '\n🔑 Teu PIN de check-in: *' + membro.checkin_pin + '*'
+            : '\n💡 Fala com o líder para definires o teu PIN de check-in.';
+        return '🌿 Olá, *' + primeiroNome + '*!\n\n' +
+            msgEdif + '\n\n' +
+            '━━━━━━━━━━━━━━━━\n' +
+            '📅 *Escala de amanhã*\n' +
+            '📆 ' + dataFmt + '\n\n' +
+            cultosLinhas + pinInfo + '\n\n' +
+            '_Igreja Zion Lisboa · Com carinho_ 🤍';
+    }
+
+    async function min_enviarLembretes(lista, dataFmt, msgEdifEnc) {
+        document.getElementById('min-modal-lemb').style.display = 'none';
+        if (!lista.length) return;
+        const msgEdif = decodeURIComponent(msgEdifEnc);
+        let enviados = 0;
+        for (const item of lista) {
+            const msg = min_gerarMsgLembrete(
+                { nome: item.nome, telemovel: item.tel, checkin_pin: item.pin },
+                item.cultos, dataFmt, msgEdif
+            );
+            const tel = item.tel.replace(/\D/g,'');
+            window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
+            enviados++;
+            // Pausa entre aberturas para o browser não bloquear
+            if (enviados < lista.length) {
+                await new Promise(r => setTimeout(r, 800));
+            }
+        }
+        min_t('Abertos ' + enviados + ' WhatsApp(s)!');
     }
 
     /* ── START ── */

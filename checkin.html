@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in · Zion Lisboa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy:   #02161e;
+            --navy2:  #031f2a;
+            --teal:   #009098;
+            --teal-d: #007078;
+            --teal-f: rgba(0,144,152,0.12);
+            --beige:  #d8c3a5;
+            --text:   #e8eef0;
+            --muted:  #7a9aa8;
+            --border: rgba(255,255,255,0.08);
+            --card:   rgba(255,255,255,0.04);
+            --red:    #e53935;
+            --green:  #43a047;
+            --orange: #fb8c00;
+            --radius: 14px;
+        }
+        *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+        html, body { height:100%; background:var(--navy); color:var(--text); font-family:'Lato',sans-serif; }
+
+        /* ── FUNDO DECORATIVO ── */
+        body::before {
+            content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+            background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,144,152,0.18) 0%, transparent 70%);
+        }
+
+        .page { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; }
+
+        /* ── CARD ── */
+        .card {
+            width:100%; max-width:420px;
+            background:var(--navy2); border:1px solid var(--border);
+            border-radius:var(--radius); overflow:hidden;
+            box-shadow:0 24px 60px rgba(0,0,0,0.5);
+        }
+        .card-hd {
+            padding:24px 24px 18px;
+            background:linear-gradient(135deg, var(--teal-d) 0%, var(--teal) 100%);
+            display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+        }
+        .card-hd-logo { font-family:'Cinzel',serif; font-size:20px; font-weight:700; letter-spacing:3px; color:white; }
+        .card-hd-sub  { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.75); }
+        .card-hd-min  { font-size:14px; font-weight:600; color:white; margin-top:4px; }
+        .card-hd-data { font-size:12px; color:rgba(255,255,255,0.7); }
+        .card-body    { padding:24px; }
+
+        /* Culto selector */
+        .culto-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+        .culto-chip  {
+            padding:7px 14px; border-radius:20px; border:1px solid var(--border);
+            background:var(--card); font-size:12px; cursor:pointer; color:var(--muted);
+            transition:all 0.15s; text-align:center;
+        }
+        .culto-chip:hover { border-color:var(--teal); color:var(--teal); }
+        .culto-chip.on    { background:var(--teal); color:white; border-color:var(--teal); font-weight:600; }
+
+        /* Form */
+        .field { margin-bottom:16px; }
+        .field label { display:block; font-size:9px; font-family:'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+        .field select, .field input {
+            width:100%; padding:12px 14px; border-radius:10px;
+            border:1px solid var(--border); background:rgba(255,255,255,0.05);
+            color:var(--text); font-size:14px; font-family:'Lato',sans-serif; outline:none;
+            transition:border-color 0.15s;
+            -webkit-appearance:none; appearance:none;
+        }
+        .field select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23009098' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+        .field select option { background:#031f2a; color:#e8eef0; }
+        .field input:focus, .field select:focus { border-color:var(--teal); }
+        .field input[type="password"] { letter-spacing:6px; font-size:18px; text-align:center; }
+        .field input::placeholder { letter-spacing:0; font-size:13px; color:var(--muted); }
+
+        /* PIN dots visual */
+        .pin-dots { display:flex; gap:10px; justify-content:center; margin-bottom:16px; }
+        .pin-dot  { width:12px; height:12px; border-radius:50%; border:2px solid var(--border); background:transparent; transition:all 0.15s; }
+        .pin-dot.filled { background:var(--teal); border-color:var(--teal); }
+
+        /* PIN pad */
+        .pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+        .pin-key {
+            padding:14px; border-radius:10px; border:1px solid var(--border);
+            background:var(--card); color:var(--text); font-size:18px; font-weight:600;
+            cursor:pointer; text-align:center; transition:all 0.12s; user-select:none;
+            font-family:'Lato',sans-serif;
+        }
+        .pin-key:hover  { background:var(--teal-f); border-color:var(--teal); color:var(--teal); }
+        .pin-key:active { transform:scale(0.94); }
+        .pin-key.del    { font-size:14px; color:var(--muted); }
+        .pin-key.del:hover { color:var(--red); border-color:var(--red); background:rgba(229,57,53,0.08); }
+
+        /* Botão submit */
+        .btn-submit {
+            width:100%; padding:14px; border-radius:10px; border:none;
+            background:var(--teal); color:white; font-size:15px; font-weight:700;
+            font-family:'Lato',sans-serif; cursor:pointer; transition:all 0.15s;
+            letter-spacing:0.5px;
+        }
+        .btn-submit:hover    { background:var(--teal-d); }
+        .btn-submit:disabled { opacity:0.4; cursor:not-allowed; }
+
+        /* Mensagens */
+        .msg { padding:12px 14px; border-radius:10px; font-size:13px; margin-bottom:16px; display:none; text-align:center; line-height:1.5; }
+        .msg.show  { display:block; }
+        .msg.err   { background:rgba(229,57,53,0.12); border:1px solid rgba(229,57,53,0.3); color:#ef9a9a; }
+        .msg.ok    { background:rgba(67,160,71,0.12); border:1px solid rgba(67,160,71,0.3); color:#a5d6a7; }
+        .msg.warn  { background:rgba(251,140,0,0.12); border:1px solid rgba(251,140,0,0.3); color:#ffcc80; }
+
+        /* Tela de sucesso */
+        .success-screen { text-align:center; padding:8px 0; display:none; }
+        .success-screen.show { display:block; }
+        .success-icon { font-size:56px; margin-bottom:12px; }
+        .success-nome { font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:var(--teal); margin-bottom:4px; }
+        .success-hora { font-size:13px; color:var(--muted); margin-bottom:8px; }
+        .success-min  { font-size:12px; color:var(--muted); }
+        .late-banner  { background:rgba(251,140,0,0.12); border:1px solid rgba(251,140,0,0.3); border-radius:10px; padding:12px 14px; margin-top:14px; color:#ffcc80; font-size:13px; line-height:1.5; }
+        .late-banner a { color:var(--orange); font-weight:700; text-decoration:none; }
+        .late-banner a:hover { text-decoration:underline; }
+
+        /* Loader */
+        .loader { text-align:center; padding:40px; color:var(--muted); font-size:13px; }
+        .spinner { display:inline-block; width:28px; height:28px; border:2px solid var(--border); border-top-color:var(--teal); border-radius:50%; animation:spin 0.7s linear infinite; margin-bottom:10px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        .card-footer { padding:14px 24px; border-top:1px solid var(--border); text-align:center; font-size:11px; color:var(--muted); letter-spacing:0.5px; }
+    </style>
+</head>
+<body>
+
+<!--
+  ╔══════════════════════════════════════════════╗
+  ║  CONFIGURAÇÃO — preenche com os teus dados   ║
+  ╚══════════════════════════════════════════════╝
+  Podes também expor window.SUPABASE_URL e window.SUPABASE_ANON_KEY
+  no teu index.html antes de carregar este ficheiro.
+-->
+<script>
+    // Usa as variáveis globais se existirem (definidas no teu app principal)
+    // ou preenche aqui directamente:
+    const SB_URL  = window.SUPABASE_URL  || 'https://SEU_PROJECT.supabase.co';
+    const SB_KEY  = window.SUPABASE_ANON_KEY || 'SUA_ANON_KEY';
+    // Tolerância em minutos para considerar atraso
+    const TOLERANCIA_MIN = 10;
+</script>
+
+<div class="page">
+    <div class="card">
+        <div class="card-hd">
+            <div class="card-hd-logo">ZION LISBOA</div>
+            <div class="card-hd-sub">Check-in de Serviço</div>
+            <div class="card-hd-min" id="ci-min-nome">A carregar…</div>
+            <div class="card-hd-data" id="ci-data"></div>
+        </div>
+
+        <div class="card-body" id="ci-body">
+            <div class="loader">
+                <div class="spinner"></div><br>A verificar escala…
+            </div>
+        </div>
+
+        <div class="card-footer">Igreja Zion Lisboa · Sistema de Presença</div>
+    </div>
+</div>
+
+<script>
+    /* ══════════════════════════════════════════════════
+       UTILITÁRIOS
+    ══════════════════════════════════════════════════ */
+    function sb(path, opts) {
+        const url = SB_URL + '/rest/v1/' + path;
+        return fetch(url, {
+            headers: {
+                'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY,
+                'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                ...(opts?.headers||{})
+            },
+            ...opts
+        }).then(async r => {
+            const data = await r.json().catch(() => null);
+            if (!r.ok) throw new Error(data?.message || data?.error || r.statusText);
+            return data;
+        });
+    }
+
+    function hojeISO() { return new Date().toISOString().split('T')[0]; }
+    function agoraHHMM() {
+        const n = new Date();
+        return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+    }
+    function dataFmt(iso) {
+        return new Date(iso+'T00:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    }
+
+    /* ══════════════════════════════════════════════════
+       ESTADO
+    ══════════════════════════════════════════════════ */
+    var CI = {
+        ministerioId: null, ministerioNome: '',
+        cultos: [],          // cultos de hoje para este ministério
+        cultSel: null,       // culto seleccionado
+        escalados: [],       // membros na escala hoje para o culto
+        membroSel: null,
+        pin: '',
+        lideres: []          // membros com papel=lider neste ministério
+    };
+
+    /* ══════════════════════════════════════════════════
+       INIT
+    ══════════════════════════════════════════════════ */
+    async function ci_init() {
+        const params = new URLSearchParams(location.search);
+        CI.ministerioId = params.get('min');
+
+        const hoje = hojeISO();
+        document.getElementById('ci-data').textContent = dataFmt(hoje);
+
+        if (!CI.ministerioId) {
+            ci_renderErroFatal('URL inválido — sem parâmetro de ministério.');
+            return;
+        }
+
+        try {
+            // 1. Dados do ministério
+            const mins = await sb(`ministerios?id=eq.${CI.ministerioId}&select=id,nome`);
+            if (!mins?.length) { ci_renderErroFatal('Ministério não encontrado.'); return; }
+            CI.ministerioNome = mins[0].nome;
+            document.getElementById('ci-min-nome').textContent = CI.ministerioNome;
+
+            // 2. Escala de hoje para este ministério
+            const escHoje = await sb(
+                `ministerio_escala?ministerio_id=eq.${CI.ministerioId}&data=eq.${hoje}` +
+                `&select=*,membros(id,nome,checkin_pin),cultos(id,nome,hora_inicio,hora_fim)`
+            );
+
+            if (!escHoje?.length) {
+                ci_renderSemCulto();
+                return;
+            }
+
+            // 3. Líderes do ministério (para notificação WhatsApp)
+            const lidRaw = await sb(
+                `ministerio_membros?ministerio_id=eq.${CI.ministerioId}&papel=eq.lider&select=*,membros(id,nome,telemovel)`
+            ).catch(() => []);
+            CI.lideres = (lidRaw||[]).map(l => l.membros).filter(Boolean);
+
+            // Agrupar por culto
+            const cultoMap = {};
+            escHoje.forEach(e => {
+                const c = e.cultos;
+                if (!c) return;
+                if (!cultoMap[c.id]) cultoMap[c.id] = { ...c, escalados: [] };
+                cultoMap[c.id].escalados.push(e);
+            });
+            CI.cultos = Object.values(cultoMap).sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+            ci_renderForm();
+        } catch(e) {
+            ci_renderErroFatal('Erro ao carregar dados: ' + e.message);
+        }
+    }
+
+    /* ══════════════════════════════════════════════════
+       RENDERS
+    ══════════════════════════════════════════════════ */
+    function ci_renderErroFatal(msg) {
+        document.getElementById('ci-body').innerHTML =
+            `<div class="msg err show">${msg}</div>`;
+    }
+
+    function ci_renderSemCulto() {
+        document.getElementById('ci-body').innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:40px;margin-bottom:12px">🗓</div>
+      <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--teal);margin-bottom:6px">Sem Escala Hoje</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Não há escala registada para<br><strong style="color:var(--text)">${CI.ministerioNome}</strong><br>neste dia.</div>
+    </div>`;
+    }
+
+    function ci_renderForm() {
+        // Se só um culto, selecciona automaticamente
+        if (CI.cultos.length === 1) {
+            CI.cultSel = CI.cultos[0];
+        }
+
+        let cultoHtml = '';
+        if (CI.cultos.length > 1) {
+            cultoHtml = `
+      <div class="field" style="margin-bottom:14px">
+        <label>Culto de hoje</label>
+        <div class="culto-chips" id="ci-culto-chips">
+          ${CI.cultos.map(c => `
+            <div class="culto-chip ${CI.cultSel?.id===c.id?'on':''}" onclick="ci_selCulto('${c.id}')">
+              <div style="font-weight:600">${c.nome}</div>
+              <div style="font-size:10px;opacity:0.8">${c.hora_inicio.slice(0,5)}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+        }
+
+        document.getElementById('ci-body').innerHTML = `
+    <div class="success-screen" id="ci-success"></div>
+    <div id="ci-form-inner">
+      ${cultoHtml}
+      <div class="field">
+        <label>O teu nome</label>
+        <select id="ci-sel-membro" onchange="ci_selMembro(this.value)">
+          <option value="">— Selecciona o teu nome —</option>
+          ${ci_opcoesEscalados()}
+        </select>
+      </div>
+      <div class="msg" id="ci-msg"></div>
+      <label style="display:block;font-size:9px;font-family:'Cinzel',serif;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">PIN de 4 dígitos</label>
+      <div class="pin-dots" id="ci-dots">
+        <div class="pin-dot" id="d0"></div>
+        <div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div>
+        <div class="pin-dot" id="d3"></div>
+      </div>
+      <div class="pin-pad">
+        ${[1,2,3,4,5,6,7,8,9].map(n=>`<div class="pin-key" onclick="ci_pin('${n}')">${n}</div>`).join('')}
+        <div class="pin-key" onclick="ci_pin('0')" style="grid-column:2">0</div>
+        <div class="pin-key del" onclick="ci_pinDel()">⌫</div>
+      </div>
+      <button class="btn-submit" id="ci-btn" onclick="ci_submit()" disabled>Confirmar Presença</button>
+    </div>`;
+
+        // Se culto único, já preenche os escalados
+        if (CI.cultSel) ci_atualizarEscalados();
+    }
+
+    function ci_opcoesEscalados() {
+        const esc = CI.cultSel ? CI.cultSel.escalados : [];
+        if (!esc.length) return `<option value="" disabled>Nenhum escalado para este culto</option>`;
+        return esc.map(e => `<option value="${e.membro_id}">${e.membros?.nome || '—'}</option>`).join('');
+    }
+
+    function ci_selCulto(cId) {
+        CI.cultSel = CI.cultos.find(c => c.id === cId);
+        CI.membroSel = null; CI.pin = '';
+        document.querySelectorAll('.culto-chip').forEach(el => el.classList.toggle('on', el.getAttribute('onclick').includes(cId)));
+        ci_atualizarEscalados();
+    }
+
+    function ci_atualizarEscalados() {
+        const sel = document.getElementById('ci-sel-membro');
+        if (!sel) return;
+        sel.innerHTML = `<option value="">— Selecciona o teu nome —</option>` + ci_opcoesEscalados();
+        ci_selMembro('');
+    }
+
+    function ci_selMembro(id) {
+        CI.membroSel = id || null;
+        CI.pin = '';
+        ci_renderDots();
+        ci_atualizarBtn();
+    }
+
+    function ci_pin(d) {
+        if (CI.pin.length >= 4) return;
+        CI.pin += d;
+        ci_renderDots();
+        ci_atualizarBtn();
+    }
+    function ci_pinDel() {
+        CI.pin = CI.pin.slice(0,-1);
+        ci_renderDots();
+        ci_atualizarBtn();
+    }
+    function ci_renderDots() {
+        for (let i=0;i<4;i++) document.getElementById('d'+i)?.classList.toggle('filled', i < CI.pin.length);
+    }
+    function ci_atualizarBtn() {
+        const btn = document.getElementById('ci-btn');
+        if (btn) btn.disabled = !(CI.membroSel && CI.pin.length === 4 && CI.cultSel);
+    }
+
+    function ci_showMsg(msg, tipo) {
+        const el = document.getElementById('ci-msg'); if(!el) return;
+        el.textContent = msg; el.className = 'msg show ' + tipo;
+    }
+    function ci_hideMsg() {
+        const el = document.getElementById('ci-msg'); if(el) el.className = 'msg';
+    }
+
+    /* ══════════════════════════════════════════════════
+       SUBMIT
+    ══════════════════════════════════════════════════ */
+    async function ci_submit() {
+        if (!CI.membroSel || CI.pin.length !== 4 || !CI.cultSel) return;
+        ci_hideMsg();
+
+        const btn = document.getElementById('ci-btn');
+        btn.disabled = true; btn.textContent = 'A verificar…';
+
+        try {
+            // 1. Buscar membro e validar PIN
+            const memRes = await sb(`membros?id=eq.${CI.membroSel}&select=id,nome,checkin_pin`);
+            const mem = memRes?.[0];
+            if (!mem) throw new Error('Membro não encontrado.');
+            if (!mem.checkin_pin) throw new Error('PIN não configurado. Fala com o líder.');
+            if (mem.checkin_pin !== CI.pin) {
+                ci_showMsg('PIN incorrecto. Tenta novamente.', 'err');
+                CI.pin = ''; ci_renderDots(); ci_atualizarBtn();
+                btn.disabled = false; btn.textContent = 'Confirmar Presença';
+                return;
+            }
+
+            // 2. Verificar se já fez check-in hoje
+            const hoje = hojeISO();
+            const jaFeito = await sb(
+                `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}&membro_id=eq.${CI.membroSel}&culto_id=eq.${CI.cultSel.id}&data=eq.${hoje}`
+            );
+            if (jaFeito?.length) {
+                ci_showMsg('Já fizeste check-in hoje para este culto! ✓', 'ok');
+                btn.disabled = false; btn.textContent = 'Confirmar Presença';
+                return;
+            }
+
+            // 3. Calcular se está atrasado
+            const agora = new Date();
+            const [hh, mm] = CI.cultSel.hora_inicio.split(':').map(Number);
+            const inicioCulto = new Date(agora); inicioCulto.setHours(hh, mm, 0, 0);
+            const diffMin = Math.round((agora - inicioCulto) / 60000);
+            const atrasado = diffMin > TOLERANCIA_MIN;
+            const minAtraso = atrasado ? diffMin : 0;
+
+            // 4. Registar check-in
+            await sb('ministerio_checkin', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ministerio_id: CI.ministerioId,
+                    membro_id: CI.membroSel,
+                    culto_id: CI.cultSel.id,
+                    data: hoje,
+                    atrasado,
+                    minutos_atraso: minAtraso,
+                    notificado_lider: false
+                })
+            });
+
+            // 5. Mostrar sucesso
+            ci_renderSucesso(mem.nome, atrasado, minAtraso);
+
+            // 6. Se atrasado → abrir WhatsApp para líder (após 1.5s)
+            if (atrasado && CI.lideres.length) {
+                setTimeout(() => ci_notificarLider(mem.nome, minAtraso), 1500);
+            }
+
+        } catch(e) {
+            ci_showMsg(e.message, 'err');
+            btn.disabled = false; btn.textContent = 'Confirmar Presença';
+        }
+    }
+
+    function ci_renderSucesso(nome, atrasado, minAtraso) {
+        const hora = agoraHHMM();
+        const successEl = document.getElementById('ci-success');
+        const formEl    = document.getElementById('ci-form-inner');
+        if (formEl) formEl.style.display = 'none';
+        if (successEl) {
+            successEl.innerHTML = `
+      <div class="success-icon">${atrasado ? '⚠️' : '✅'}</div>
+      <div class="success-nome">${nome}</div>
+      <div class="success-hora">Check-in às ${hora}</div>
+      <div class="success-min">${CI.ministerioNome} · ${CI.cultSel.nome}</div>
+      ${atrasado ? `<div class="late-banner">
+        <strong>Chegada com ${minAtraso} min de atraso.</strong><br>
+        ${CI.lideres.length ? `O líder será notificado por WhatsApp.` : 'Fala com o teu líder.'}
+      </div>` : `<div style="margin-top:12px;font-size:12px;color:var(--muted)">Estás no horário 👍</div>`}`;
+            successEl.classList.add('show');
+        }
+    }
+
+    function ci_notificarLider(nomeVoluntario, minAtraso) {
+        const lider = CI.lideres[0];
+        const tel = lider?.telemovel?.replace(/\D/g,'');
+        if (!tel) return;
+        const msg = encodeURIComponent(
+            `⚠️ *Zion Lisboa – Check-in*\n` +
+            `*${nomeVoluntario}* chegou com *${minAtraso} min de atraso*.\n` +
+            `Ministério: ${CI.ministerioNome} · ${CI.cultSel?.nome || ''}\n` +
+            `Data: ${dataFmt(hojeISO())}`
+        );
+        window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+    }
+
+    /* ── START ── */
+    ci_init();
+</script>
+</body>
+</html>

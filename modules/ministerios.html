@@ -373,7 +373,8 @@
     function ym()         { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
     function addM(s,n)    { const [a,m]=s.split('-'); const d=new Date(parseInt(a),parseInt(m)-1+n,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
     function mesLbl(s)    { const [a,m]=s.split('-'); return MESES_PT[parseInt(m)]+' '+a; }
-    function sabDomMes(a,m){ const r=[]; for(let d=1;d<=new Date(a,m,0).getDate();d++){ const dt=new Date(a,m-1,d),dw=dt.getDay(); if(dw===0||dw===6) r.push({d,dw,iso:`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}); } return r; }
+    //function sabDomMes(a,m){ const r=[]; for(let d=1;d<=new Date(a,m,0).getDate();d++){ const dt=new Date(a,m-1,d),dw=dt.getDay(); if(dw===0||dw===6) r.push({d,dw,iso:`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}); } return r; }
+    function todosDiasMes(a,m){ const r=[]; for(let d=1;d<=new Date(a,m,0).getDate();d++){ const dt=new Date(a,m-1,d),dw=dt.getDay(); r.push({d,dw,iso:`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}); } return r; }
     function isSabado(s)  { return s==='Sabado'||s==='Sábado'; }
 
     /* ══════════════════════════════════════════════
@@ -1028,12 +1029,14 @@
         for (let d = 1; d <= fim; d++) {
             const iso = `${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const dw  = new Date(a, m-1, d).getDay();
-            const eSabDom = dw === 0 || dw === 6;
+            //const eSabDom = dw === 0 || dw === 6;
             let cls = 'cal-mini-dia';
-            if (!eSabDom) cls += ' semana';
-            else if (inSet.has(iso)) cls += ' bloqueado';
+            //if (!eSabDom) cls += ' semana';
+            if (inSet.has(iso)) cls += ' bloqueado';
+            //else if (inSet.has(iso)) cls += ' bloqueado';
             else if (iso === hoje) cls += ' hoje';
-            diasHtml += `<div class="${cls}" onclick="${eSabDom?`min_togIndisp('${iso}')`:'void(0)'}" title="${iso}">${d}</div>`;
+            //diasHtml += `<div class="${cls}" onclick="${eSabDom?`min_togIndisp('${iso}')`:'void(0)'}" title="${iso}">${d}</div>`;
+            diasHtml += `<div class="${cls}" onclick="min_togIndisp('${iso}')" title="${iso}">${d}</div>`;
         }
         el.innerHTML = `
         <div class="sec-hd" style="margin-bottom:10px"><div class="sec-lbl">Indisponibilidades</div></div>
@@ -1122,7 +1125,7 @@
     function min_renderEscCorpo() {
         const el = document.getElementById('min-esc-corpo'); if (!el) return;
         const [a, m] = min_escMes.split('-').map(Number);
-        const dias  = sabDomMes(a, m);
+        const dias  = todosDiasMes(a, m);
         const cults = min_minCults.map(mc => ({...mc.cultos, vagas:mc.vagas||1, mc_id:mc.id})).filter(Boolean);
         if (!dias.length || !cults.length) { el.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto neste mês</div>`; return; }
         //const sabDatas = dias.filter(d => d.dw === 6);
@@ -1183,13 +1186,15 @@
         await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&gerado_auto=eq.true`, {method:'DELETE'}).catch(() => {});
         const srvRec = {}; escAnt.forEach(e => { srvRec[e.membro_id]=(srvRec[e.membro_id]||0)+1; }); min_minMems.forEach(m => { if(!srvRec[m.membro_id]) srvRec[m.membro_id]=0; });
         const dMap = {}; dsAll.forEach(d => { dMap[d.membro_id+'_'+d.culto_id]=d.disponivel; });
-        const dias  = sabDomMes(a, m);
+        const dias  = todosDiasMes(a, m);
         const cults = min_minCults.map(mc => ({...mc.cultos, vagas:mc.vagas||1})).filter(Boolean);
         const novas = []; const jaEsc = {};
         const memsEscalaveis = min_minMems.filter(m => m.papel !== 'lider');
         dias.forEach(({d, dw, iso}) => {
             cults.forEach(c => {
-                const match = (isSabado(c.dia_semana)&&dw===6)||(c.dia_semana==='Domingo'&&dw===0); if (!match) return;
+                //const match = (isSabado(c.dia_semana)&&dw===6)||(c.dia_semana==='Domingo'&&dw===0); if (!match) return;
+                const DIA_DW_G = { 'Domingo':0,'Segunda':1,'Terça':2,'Quarta':3,'Quinta':4,'Sexta':5,'Sabado':6,'Sábado':6 };
+                const match = DIA_DW_G[c.dia_semana] === dw;
                 const indSet = new Set(indAll.filter(i=>i.data===iso&&(!i.culto_id||i.culto_id===c.id)).map(i=>i.membro_id));
                 const dispMems = memsEscalaveis.filter(m => {
                     if (indSet.has(m.membro_id)||jaEsc[m.membro_id+'_'+iso]) return false;
@@ -1248,7 +1253,7 @@
         const [a,m] = min_escMes.split('-').map(Number); const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
         const esc   = await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome)&order=data,culto_id`).catch(()=>[]);
         const cults = min_minCults.map(mc => ({...mc.cultos, vagas:mc.vagas||1})).filter(Boolean);
-        const dias  = sabDomMes(a, m);
+        const dias  = todosDiasMes(a, m);
         const tabelaHtml = min_gerarTabelaHtml(esc, cults, dias, a, m);
         window._minHtml = min_htmlPdf(tabelaHtml, a, m);
         window._minTxt  = min_textoWhatsApp(esc, cults, dias, a, m);
@@ -1351,7 +1356,9 @@
             const {d,dw} = dataMap[iso]||{d:'?',dw:0};
             s += `*${DIAS_PT[dw].toUpperCase()}, ${String(d).padStart(2,'0')} ${MESES_ABV[m]}*\n`;
             cults.forEach(c => {
-                const datasSet = new Set((isSabado(c.dia_semana)?sabDatas:domDatas).map(d => d.iso));
+                //const datasSet = new Set((isSabado(c.dia_semana)?sabDatas:domDatas).map(d => d.iso));
+                const cd = cultDatas.find(x => x.c.id === c.id);
+                const datasSet = new Set((cd?.datas || []).map(d => d.iso));
                 if (!datasSet.has(iso)) return;
                 const ps = esc.filter(e => e.data===iso && e.culto_id===c.id);
                 s += `  _${c.nome}_ (${c.hora_inicio?.slice(0,5)})\n`;

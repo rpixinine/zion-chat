@@ -2,9 +2,20 @@
 <style>
     /* ── LAYOUT BASE ── */
     .mod-page     { display:flex; height:100%; overflow:hidden; }
-    .mod-sidebar  { width:248px; flex-shrink:0; background:var(--bg-card); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+    .mod-sidebar  { width:300px; min-width:180px; max-width:520px; flex-shrink:0; background:var(--bg-card); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; position:relative; }
+    .mod-sidebar-resize { width:5px; position:absolute; right:0; top:0; bottom:0; cursor:col-resize; z-index:10; background:transparent; transition:background 0.15s; }
+    .mod-sidebar-resize:hover, .mod-sidebar-resize.dragging { background:var(--primary); opacity:0.4; }
     .mod-sidebar-hd { padding:10px 12px 8px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:6px; flex-shrink:0; }
     .mod-sidebar-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); flex:1; }
+    /* Filtros de tipo */
+    .mod-filter-bar { display:flex; gap:4px; padding:6px 8px; border-bottom:1px solid var(--border); flex-wrap:wrap; flex-shrink:0; background:var(--bg-panel); }
+    .mod-filter-chip { padding:3px 9px; border-radius:20px; font-size:9px; font-family:var(--font-title); letter-spacing:0.5px; cursor:pointer; border:1px solid var(--border); background:var(--bg-input); color:var(--text-faint); transition:all 0.12s; white-space:nowrap; }
+    .mod-filter-chip:hover { border-color:var(--primary); color:var(--primary-dark); }
+    .mod-filter-chip.on { background:var(--primary); color:white; border-color:var(--primary); }
+    .mod-filter-chip.on.f-ae         { background:#7b1fa2; border-color:#7b1fa2; }
+    .mod-filter-chip.on.f-ministerio { background:#1565c0; border-color:#1565c0; }
+    .mod-filter-chip.on.f-link       { background:#2e7d32; border-color:#2e7d32; }
+    .mod-filter-chip.on.f-office     { background:#e65100; border-color:#e65100; }
     .mod-list     { flex:1; overflow-y:auto; padding:4px 0 8px; }
     .mod-content  { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
     .mod-empty    { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-faint); text-align:center; gap:6px; }
@@ -23,7 +34,7 @@
     .tree-pilar-hd.active-pilar { color:var(--primary); background:var(--primary-faint); border-radius:6px; }
     .tree-ph-nome  { flex:1; }
     .tree-ph-count { font-size:9px; color:var(--text-faint); background:var(--bg-panel);
-        padding:1px 6px; border-radius:20px; font-family:var(--font-title); }
+                     padding:1px 6px; border-radius:20px; font-family:var(--font-title); }
     .tree-item {
         display:flex; align-items:center; gap:0; border-radius:7px; cursor:pointer;
         margin:1px 6px; border:1px solid transparent; transition:all 0.12s; position:relative;
@@ -203,17 +214,26 @@
     .org-box-tipo { font-size:8px; font-family:var(--font-title); letter-spacing:0.5px; opacity:0.65; margin-top:2px; }
     .org-box-count { font-size:8px; color:var(--text-faint); margin-top:1px; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <!-- ══════════════════════════════════════════════ -->
 <!--  PÁGINA PRINCIPAL                             -->
 <!-- ══════════════════════════════════════════════ -->
 <div class="mod-page">
     <!-- SIDEBAR -->
-    <div class="mod-sidebar">
+    <div class="mod-sidebar" id="min-sidebar-wrap">
+        <div class="mod-sidebar-resize" id="min-sidebar-resize"></div>
         <div class="mod-sidebar-hd">
             <div class="mod-sidebar-title">Ministérios</div>
             <button class="btn-icon" title="Organograma" onclick="min_abrirOrg()">🗂</button>
             <button class="btn-add" style="font-size:11px;padding:4px 10px" onclick="min_abrirFormMin(null)">+ Novo</button>
+        </div>
+        <div class="mod-filter-bar" id="min-filter-bar">
+            <span class="mod-filter-chip on" data-tipo="" onclick="min_setFiltro("")">Todos</span>
+            <span class="mod-filter-chip f-ae"         data-tipo="ae"          onclick="min_setFiltro("ae")">AE</span>
+            <span class="mod-filter-chip f-ministerio" data-tipo="ministerio"  onclick="min_setFiltro("ministerio")">Ministério</span>
+            <span class="mod-filter-chip f-link"       data-tipo="link"        onclick="min_setFiltro("link")">Link</span>
+            <span class="mod-filter-chip f-office"     data-tipo="office"      onclick="min_setFiltro("office")">Office</span>
         </div>
         <div class="mod-list" id="min-sidebar">
             <div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">A carregar…</div>
@@ -322,12 +342,12 @@
         <div class="org-panel-hd">
             <div class="org-panel-title">🗂 Organograma — Estrutura Completa</div>
             <div style="display:flex;gap:6px;align-items:center">
-                <div style="display:flex;gap:6px;font-size:10px;font-family:var(--font-title)">
-                    <span style="padding:2px 8px;border-radius:20px;background:var(--primary-faint);color:var(--primary-dark)">PILAR</span>
-                    <span style="padding:2px 8px;border-radius:20px;background:rgba(123,31,162,0.08);color:#6a1b9a">AE</span>
-                    <span style="padding:2px 8px;border-radius:20px;background:rgba(21,101,192,0.08);color:#1565c0">MINISTÉRIO</span>
-                    <span style="padding:2px 8px;border-radius:20px;background:rgba(46,125,50,0.08);color:#2e7d32">LINK</span>
-                    <span style="padding:2px 8px;border-radius:20px;background:rgba(230,81,0,0.08);color:#e65100">OFFICE</span>
+                <div style="display:flex;gap:4px;font-size:10px;font-family:var(--font-title)">
+                    <button class="mod-filter-chip on"            id="org-tab-all" onclick="min_orgTab("all")">Tudo</button>
+                    <button class="mod-filter-chip f-ae"          id="org-tab-ae" onclick="min_orgTab("ae")">AE</button>
+                    <button class="mod-filter-chip f-ministerio"  id="org-tab-ministerio" onclick="min_orgTab("ministerio")">Ministério</button>
+                    <button class="mod-filter-chip f-link"        id="org-tab-link" onclick="min_orgTab("link")">Link</button>
+                    <button class="mod-filter-chip f-office"      id="org-tab-office" onclick="min_orgTab("office")">Office</button>
                 </div>
                 <button class="btn-sm" onclick="min_fecharOrg()">✕ Fechar</button>
             </div>
@@ -410,23 +430,54 @@
         return trail.join(' › ');
     }
 
+    var min_filtroTipo = '';
+
+    function min_setFiltro(tipo) {
+        min_filtroTipo = tipo;
+        // atualizar chips
+        document.querySelectorAll('#min-filter-bar .mod-filter-chip').forEach(c => {
+            const isActive = c.dataset.tipo === tipo;
+            c.classList.toggle('on', isActive);
+        });
+        min_renderSide();
+    }
+
     /* ── SIDEBAR RENDERIZAÇÃO ── */
     function min_renderSide() {
         const el = document.getElementById('min-sidebar');
         if (!el) return;
 
-        const tree = min_buildTree(min_mins);
+        // Filtrar por tipo se activo
+        let lista = min_mins;
+        if (min_filtroTipo) {
+            // Mostrar o item e todos os seus ancestrais para manter a hierarquia legível
+            const idsRelevantes = new Set();
+            min_mins.forEach(m => {
+                if (m.tipo === min_filtroTipo) {
+                    idsRelevantes.add(m.id);
+                    // sobe na hierarquia
+                    let cur = m;
+                    while (cur?.parent_id) {
+                        idsRelevantes.add(cur.parent_id);
+                        cur = min_mins.find(x => x.id === cur.parent_id);
+                    }
+                }
+            });
+            lista = min_mins.filter(m => idsRelevantes.has(m.id));
+        }
+
+        const tree = min_buildTree(lista);
         if (!tree.length) {
-            el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum ministério activo</div>`;
+            el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum resultado</div>`;
             return;
         }
 
         const pilares   = tree.filter(n => n.tipo === 'pilar');
-        const outroRaiz = tree.filter(n => n.tipo !== 'pilar');
+        const semPilar  = tree.filter(n => n.tipo !== 'pilar');
 
         let html = '';
 
-        pilares.forEach((p, idx) => {
+        pilares.forEach(p => {
             const isActivePilar = min_minAtivo?.id === p.id;
             const desc = min_countDesc(p);
             html += `<div class="tree-pilar-hd ${isActivePilar ? 'active-pilar' : ''}" onclick="min_sel('${p.id}')">
@@ -436,10 +487,13 @@
             p._ch.forEach(c => { html += min_renderTreeItem(c, 1); });
         });
 
-        if (outroRaiz.length) {
+        if (semPilar.length) {
             html += `<div class="tree-sep"></div>`;
-            html += `<div class="tree-pilar-hd"><span class="tree-ph-nome">Outros</span></div>`;
-            outroRaiz.forEach(n => { html += min_renderTreeItem(n, 1); });
+            html += `<div class="tree-pilar-hd" title="Itens sem Pilar atribuído. Edita-os para os associar a um Pilar.">
+                <span class="tree-ph-nome" style="color:var(--text-faint)">Sem Pilar</span>
+                <span class="tree-ph-count">${semPilar.length}</span>
+            </div>`;
+            semPilar.forEach(n => { html += min_renderTreeItem(n, 1); });
         }
 
         el.innerHTML = html;
@@ -517,6 +571,7 @@
                 <button class="mod-tab"        id="mint-indisp"   onclick="min_tab('indisp')">Indisponibilidades</button>
                 <button class="mod-tab"        id="mint-escala"   onclick="min_tab('escala')">Escala</button>
                 <button class="mod-tab"        id="mint-partilha" onclick="min_tab('partilha')">Partilhar</button>
+                <button class="mod-tab"        id="mint-checkin"  onclick="min_tab('checkin')">Check-in</button>
             </div>
             <div style="display:flex;gap:6px;padding-bottom:8px;flex-shrink:0">
                 <button class="btn-sm" onclick="min_abrirFormMin('${id}')">Editar</button>
@@ -528,12 +583,13 @@
         <div class="mod-tab-body"        id="mintb-disp"></div>
         <div class="mod-tab-body"        id="mintb-indisp"></div>
         <div class="mod-tab-body"        id="mintb-escala"></div>
-        <div class="mod-tab-body"        id="mintb-partilha"></div>`;
+        <div class="mod-tab-body"        id="mintb-partilha"></div>
+        <div class="mod-tab-body"        id="mintb-checkin"></div>`;
         min_renderMems();
     }
 
     function min_tab(t) {
-        ['membros','cultos','disp','indisp','escala','partilha'].forEach(x => {
+        ['membros','cultos','disp','indisp','escala','partilha','checkin'].forEach(x => {
             document.getElementById(`mint-${x}`)?.classList.toggle('active', x === t);
             document.getElementById(`mintb-${x}`)?.classList.toggle('active', x === t);
         });
@@ -542,6 +598,7 @@
         if (t === 'indisp')   min_renderIndisp();
         if (t === 'escala')   min_renderEscala();
         if (t === 'partilha') min_renderPartilha();
+        if (t === 'checkin')  min_renderCheckin();
     }
 
     /* ══════════════════════════════════════════════
@@ -555,21 +612,77 @@
         document.getElementById('min-modal-org').style.display = 'none';
     }
 
+    var min_orgFiltro = 'all';
+
+    function min_orgTab(tipo) {
+        min_orgFiltro = tipo;
+        ['all','ae','ministerio','link','office'].forEach(t => {
+            document.getElementById('org-tab-'+t)?.classList.toggle('on', t === tipo);
+        });
+        min_renderOrg();
+    }
+
     function min_renderOrg() {
         const el = document.getElementById('min-org-body');
         if (!el) return;
-        const tree    = min_buildTree(min_mins);
-        const pilares = tree.filter(n => n.tipo === 'pilar');
-        const outros  = tree.filter(n => n.tipo !== 'pilar');
 
-        if (!tree.length) {
+        if (!min_mins.length) {
             el.innerHTML = `<div style="text-align:center;color:var(--text-faint);padding:40px;font-size:12px">Nenhum ministério activo</div>`;
             return;
         }
 
-        let html = '';
+        // Se filtro por tipo: mostra lista flat agrupada por hierarquia desse tipo
+        if (min_orgFiltro !== 'all') {
+            // Pegar todos do tipo seleccionado
+            const doTipo = min_mins.filter(m => m.tipo === min_orgFiltro);
+            if (!doTipo.length) {
+                el.innerHTML = `<div style="text-align:center;color:var(--text-faint);padding:40px;font-size:12px">Nenhum item do tipo "${TIPO_LBL[min_orgFiltro]}"</div>`;
+                return;
+            }
+            // Incluir ancestrais para contexto
+            const idsSet = new Set();
+            doTipo.forEach(m => {
+                idsSet.add(m.id);
+                let cur = m;
+                while (cur?.parent_id) {
+                    idsSet.add(cur.parent_id);
+                    cur = min_mins.find(x => x.id === cur.parent_id);
+                }
+            });
+            const lista = min_mins.filter(m => idsSet.has(m.id));
+            const tree  = min_buildTree(lista);
+            const pilares  = tree.filter(n => n.tipo === 'pilar');
+            const semPilar = tree.filter(n => n.tipo !== 'pilar');
 
-        // Uma secção por pilar
+            let html = '';
+            pilares.forEach(p => {
+                html += `<div class="org-pilar-section">
+                    <div class="org-pilar-lbl">${p.nome}</div>
+                    <div class="org-tree">
+                        <div class="org-has-ch">
+                            <div class="org-box nivel-pilar">
+                                <div class="org-box-nome">${p.nome}</div>
+                                <div class="org-box-tipo">PILAR</div>
+                            </div>
+                        </div>
+                        <ul class="org-ul">${p._ch.map(c => min_renderOrgLi(c, 1)).join('')}</ul>
+                    </div>
+                </div>`;
+            });
+            if (semPilar.length) {
+                html += `<div class="org-pilar-section"><div class="org-pilar-lbl">SEM PILAR</div>
+                    <div class="org-tree"><ul class="org-ul">${semPilar.map(n => min_renderOrgLi(n, 1)).join('')}</ul></div></div>`;
+            }
+            el.innerHTML = html || `<div style="text-align:center;color:var(--text-faint);padding:40px;font-size:12px">Nenhum resultado</div>`;
+            return;
+        }
+
+        // Modo ALL: uma secção por pilar
+        const tree    = min_buildTree(min_mins);
+        const pilares = tree.filter(n => n.tipo === 'pilar');
+        const semPilar = tree.filter(n => n.tipo !== 'pilar');
+
+        let html = '';
         pilares.forEach(p => {
             html += `<div class="org-pilar-section">
                 <div class="org-pilar-lbl">${p.nome}</div>
@@ -585,17 +698,12 @@
                 </div>
             </div>`;
         });
-
-        // Outros (raízes não-pilar)
-        if (outros.length) {
+        if (semPilar.length) {
             html += `<div class="org-pilar-section">
-                <div class="org-pilar-lbl">OUTROS</div>
-                <div class="org-tree">
-                    <ul class="org-ul">${outros.map(n => min_renderOrgLi(n, 1)).join('')}</ul>
-                </div>
+                <div class="org-pilar-lbl" style="color:var(--text-faint)">SEM PILAR</div>
+                <div class="org-tree"><ul class="org-ul">${semPilar.map(n => min_renderOrgLi(n, 1)).join('')}</ul></div>
             </div>`;
         }
-
         el.innerHTML = html;
     }
 
@@ -678,7 +786,7 @@
 
     async function min_salvarMin() {
         const nome      = document.getElementById('min-f-nome').value.trim();
-        const slug      = nome //.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        const slug      = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
         const tipo      = document.getElementById('min-f-tipo').value || null;
         const descricao = document.getElementById('min-f-desc').value.trim() || null;
         const ativo     = document.getElementById('min-f-ativo').checked;
@@ -748,10 +856,10 @@
             <thead><tr><th>Nome</th><th>Papel</th><th></th></tr></thead>
             <tbody>${min_minMems.map(m => `<tr>
                 <td style="font-weight:600">${m.membros?.nome || '—'}</td>
-                <td><select style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:11px" onchange="min_alterPapel('${m.id}',this.value)">
-                    <option value="membro"   ${m.papel==='membro'   ?'selected':''}>Membro</option>
-                    <option value="aprendiz" ${m.papel==='aprendiz' ?'selected':''}>Aprendiz</option>
-                    <option value="lider"    ${m.papel==='lider'    ?'selected':''}>Líder</option>
+                <td><select style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:11px;color:var(--text-main);font-family:var(--font-body)" onchange="min_alterPapel('${m.id}',this.value)">
+                    <option value="membro"   ${m.papel==='membro'   ?'selected':''} style="color:var(--text-main);background:var(--bg-input)">Membro</option>
+                    <option value="aprendiz" ${m.papel==='aprendiz' ?'selected':''} style="color:#e65100;background:var(--bg-input)">Aprendiz</option>
+                    <option value="lider"    ${m.papel==='lider'    ?'selected':''} style="color:var(--primary-dark);background:var(--bg-input)">Líder</option>
                 </select></td>
                 <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
             </tr>`).join('')}</tbody></table></div>`
@@ -849,8 +957,8 @@
                 <td>${m.membros?.nome||'—'}</td>
                 <td><span class="badge ${m.papel==='lider'?'badge-lider':m.papel==='aprendiz'?'badge-aprendiz':'badge-membro'}">${PAPEL_LBL[m.papel]||m.papel}</span></td>
                 ${cults.map(c => { const k=m.membro_id+'_'+c.id; const d=min_dispMap[k]; const on=d?d.disponivel:true;
-            return `<td><button class="disp-toggle ${on?'on':''}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
-        }).join('')}
+                    return `<td><button class="disp-toggle ${on?'on':''}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
+                }).join('')}
             </tr>`).join('')}</tbody>
         </table></div>`;
     }
@@ -986,19 +1094,19 @@
         <thead><tr>
             <th class="th-culto">Culto</th>
             ${todasDatas.map(iso => { const {d,dw}=dataMap[iso]||{d:'?',dw:0};
-            return `<th>${DIAS_PT[dw]}<br><span style="font-size:10px;font-weight:400">${String(d).padStart(2,'0')} ${MESES_ABV[m]}</span></th>`;
-        }).join('')}
+                return `<th>${DIAS_PT[dw]}<br><span style="font-size:10px;font-weight:400">${String(d).padStart(2,'0')} ${MESES_ABV[m]}</span></th>`;
+            }).join('')}
         </tr></thead><tbody>`;
         cultDatas.forEach(({c, datas}) => {
             const datasSet = new Set(datas.map(d => d.iso));
             html += `<tr>
                 <td class="td-culto"><div style="font-weight:700;font-size:12px">${c.nome}</div><div style="font-size:10px;color:var(--text-faint)">${c.hora_inicio?.slice(0,5)}</div></td>
                 ${todasDatas.map(iso => {
-                if (!datasSet.has(iso)) return `<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
-                const ps = min_escala.filter(e => e.data === iso && e.culto_id === c.id);
-                const faltam = Math.max(0, c.vagas - ps.filter(p => p.papel_escala === 'servindo').length);
-                if (!ps.length) return `<td class="td-vazia"><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="color:var(--text-faint);font-size:10px">—</span><span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span></div></td>`;
-                return `<td><div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+                    if (!datasSet.has(iso)) return `<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
+                    const ps = min_escala.filter(e => e.data === iso && e.culto_id === c.id);
+                    const faltam = Math.max(0, c.vagas - ps.filter(p => p.papel_escala === 'servindo').length);
+                    if (!ps.length) return `<td class="td-vazia"><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="color:var(--text-faint);font-size:10px">—</span><span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span></div></td>`;
+                    return `<td><div style="display:flex;flex-direction:column;gap:3px;align-items:center">
                         ${ps.map(p=>`<div class="esc-cell">
                             <span class="esc-cell-nome">${p.membros?.nome||'—'}</span>
                             ${p.papel_escala!=='servindo'?`<span class="esc-cell-papel">${p.papel_escala.toUpperCase()}</span>`:''}
@@ -1008,7 +1116,7 @@
                         ${faltam>0?`<span style="font-size:9px;color:var(--orange);font-family:var(--font-title)">${faltam} vaga${faltam>1?'s':''}</span>`:''}
                         <span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span>
                     </div></td>`;
-            }).join('')}
+                }).join('')}
             </tr>`;
         });
         html += `</tbody></table></div>`;
@@ -1120,8 +1228,8 @@
         <thead><tr>
             <th style="background:#009098;color:white;padding:10px 14px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.2);min-width:130px">Culto</th>
             ${todasDatas.map(iso => { const {d,dw}=dataMap[iso]||{d:'?',dw:0};
-            return `<th style="background:#009098;color:white;padding:10px 12px;text-align:center;font-size:10px;border:1px solid rgba(255,255,255,0.2);white-space:nowrap">${String(d).padStart(2,'0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;
-        }).join('')}
+                return `<th style="background:#009098;color:white;padding:10px 12px;text-align:center;font-size:10px;border:1px solid rgba(255,255,255,0.2);white-space:nowrap">${String(d).padStart(2,'0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;
+            }).join('')}
         </tr></thead><tbody>`;
         cultDatas.forEach(({c, datas}, ri) => {
             const datasSet = new Set(datas.map(d => d.iso));
@@ -1131,11 +1239,11 @@
                     <div>${c.nome}</div><div style="font-size:10px;color:#009098;font-weight:400">${c.hora_inicio?.slice(0,5)||''}</div>
                 </td>
                 ${todasDatas.map(iso => {
-                if (!datasSet.has(iso)) return `<td style="background:#f5f5f5;border:1px solid #e0e0e0;text-align:center;color:#ccc">—</td>`;
-                const ps = esc.filter(e => e.data===iso && e.culto_id===c.id);
-                if (!ps.length) return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;color:#bbb;font-size:11px">---</td>`;
-                return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;vertical-align:middle;padding:8px 10px">${ps.map(p=>`<div style="padding:2px 0">${p.membros?.nome||'—'}${p.papel_escala!=='servindo'?` <span style="font-size:9px;color:#e65100;font-style:italic">(${p.papel_escala})</span>`:''}${p.notas?`<br><span style="font-size:10px;color:#999">${p.notas}</span>`:''}</div>`).join('')}</td>`;
-            }).join('')}
+                    if (!datasSet.has(iso)) return `<td style="background:#f5f5f5;border:1px solid #e0e0e0;text-align:center;color:#ccc">—</td>`;
+                    const ps = esc.filter(e => e.data===iso && e.culto_id===c.id);
+                    if (!ps.length) return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;color:#bbb;font-size:11px">---</td>`;
+                    return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;vertical-align:middle;padding:8px 10px">${ps.map(p=>`<div style="padding:2px 0">${p.membros?.nome||'—'}${p.papel_escala!=='servindo'?` <span style="font-size:9px;color:#e65100;font-style:italic">(${p.papel_escala})</span>`:''}${p.notas?`<br><span style="font-size:10px;color:#999">${p.notas}</span>`:''}</div>`).join('')}</td>`;
+                }).join('')}
             </tr>`;
         });
         return html + `</tbody></table>`;
@@ -1192,6 +1300,189 @@
 
     function min_copiar()   { if(!window._minTxt){min_t('Sem escala','err');return;} navigator.clipboard.writeText(window._minTxt).then(()=>min_t('Copiado!')).catch(()=>min_t('Erro ao copiar','err')); }
     function min_imprimir() { if(!window._minHtml){min_t('Sem escala','err');return;} const w=window.open('','_blank'); w.document.write(window._minHtml); w.document.close(); }
+
+    /* ── SIDEBAR RESIZE ── */
+    (function() {
+        const handle = document.getElementById('min-sidebar-resize');
+        const sidebar = document.getElementById('min-sidebar-wrap');
+        if (!handle || !sidebar) return;
+        let dragging = false, startX = 0, startW = 0;
+        handle.addEventListener('mousedown', e => {
+            dragging = true; startX = e.clientX; startW = sidebar.offsetWidth;
+            handle.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            const newW = Math.min(520, Math.max(180, startW + (e.clientX - startX)));
+            sidebar.style.width = newW + 'px';
+        });
+        document.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            dragging = false;
+            handle.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        });
+    })();
+
+
+    /* ══════════════════════════════════════════════
+       CHECK-IN — aba admin
+    ══════════════════════════════════════════════ */
+    async function min_renderCheckin() {
+        const el = document.getElementById('mintb-checkin'); if (!el) return;
+        const hoje = new Date().toISOString().split('T')[0];
+        const checkins = await min_sb(
+            `ministerio_checkin?ministerio_id=eq.${min_minAtivo.id}&data=eq.${hoje}` +
+            `&select=*,membros(nome),cultos(nome,hora_inicio)&order=hora_checkin`
+        ).catch(() => []);
+
+        const escHoje = await min_sb(
+            `ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=eq.${hoje}` +
+            `&select=*,membros(id,nome),cultos(id,nome,hora_inicio)&order=culto_id`
+        ).catch(() => []);
+
+        // URL do check-in (usa base da página actual)
+        const baseUrl = location.origin + (location.pathname.includes('index') 
+            ? location.pathname.replace('index.html','') 
+            : location.pathname.replace(/\/[^/]*$/, '/'));
+        const checkUrl = baseUrl + 'checkin.html?min=' + min_minAtivo.id;
+
+        // Agrupar escalados por culto
+        const cultosHoje = {};
+        escHoje.forEach(e => {
+            const c = e.cultos; if (!c) return;
+            if (!cultosHoje[c.id]) cultosHoje[c.id] = { nome:c.nome, hora:c.hora_inicio?.slice(0,5), membros:[] };
+            cultosHoje[c.id].membros.push({ id:e.membro_id, nome:e.membros?.nome||'—' });
+        });
+
+        // Map de quem já fez check-in
+        const ciMap = {}; // membro_id+culto_id → checkin
+        checkins.forEach(c => { ciMap[c.membro_id+'_'+c.culto_id] = c; });
+
+        el.innerHTML = `
+        <div class="sec-hd">
+            <div>
+                <div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${min_minAtivo.nome}</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">${new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'2-digit',month:'long'})}</div>
+            </div>
+            <div style="display:flex;gap:6px">
+                <button class="btn-sm" onclick="min_renderCheckin()">↻ Atualizar</button>
+                <button class="btn-sm primary" onclick="min_abrirQR()">📱 QR Code</button>
+            </div>
+        </div>
+
+        <!-- RESUMO -->
+        <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+            <div style="flex:1;min-width:100px;background:var(--primary-faint);border:1px solid var(--primary);border-radius:var(--radius);padding:14px;text-align:center">
+                <div style="font-family:var(--font-title);font-size:22px;color:var(--primary-dark)">${checkins.filter(c=>!c.atrasado).length}</div>
+                <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title);letter-spacing:1px">NO HORÁRIO</div>
+            </div>
+            <div style="flex:1;min-width:100px;background:rgba(251,140,0,0.08);border:1px solid rgba(251,140,0,0.3);border-radius:var(--radius);padding:14px;text-align:center">
+                <div style="font-family:var(--font-title);font-size:22px;color:var(--orange)">${checkins.filter(c=>c.atrasado).length}</div>
+                <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title);letter-spacing:1px">ATRASADOS</div>
+            </div>
+            <div style="flex:1;min-width:100px;background:rgba(192,57,43,0.06);border:1px solid rgba(192,57,43,0.2);border-radius:var(--radius);padding:14px;text-align:center">
+                <div style="font-family:var(--font-title);font-size:22px;color:var(--red)">${escHoje.length - checkins.length}</div>
+                <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title);letter-spacing:1px">AUSENTES</div>
+            </div>
+        </div>
+
+        <!-- TABELA POR CULTO -->
+        ${Object.entries(cultosHoje).length ? Object.entries(cultosHoje).map(([cId, cult]) => {
+            const rows = cult.membros.map(m => {
+                const ci = ciMap[m.id+'_'+cId];
+                const hora = ci ? new Date(ci.hora_checkin).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}) : '—';
+                const status = ci ? (ci.atrasado ? 'atrasado' : 'ok') : 'ausente';
+                const statusLbl = { ok:'✅ Presente', atrasado:`⚠️ ${ci?.minutos_atraso}min atraso`, ausente:'❌ Ausente' };
+                const statusClr = { ok:'var(--green)', atrasado:'var(--orange)', ausente:'var(--red)' };
+                const zapBtn = ci?.atrasado && !ci?.notificado_lider
+                    ? `<button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_zapLider('${ci.id}','${m.nome}',${ci.minutos_atraso},'${cId}')">📲 Zap</button>`
+                    : ci?.atrasado && ci?.notificado_lider ? `<span style="font-size:10px;color:var(--text-faint)">✓ Notificado</span>` : '';
+                return `<tr>
+                    <td style="font-weight:600">${m.nome}</td>
+                    <td style="font-family:var(--font-title);font-size:11px;color:${statusClr[status]}">${statusLbl[status]}</td>
+                    <td style="font-family:var(--font-title);font-size:11px;color:var(--text-faint)">${hora}</td>
+                    <td>${zapBtn}</td>
+                </tr>`;
+            }).join('');
+            return `
+            <div style="margin-bottom:16px">
+                <div style="font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                    ${cult.nome} <span style="color:var(--text-faint);font-weight:400">${cult.hora}</span>
+                    <span style="margin-left:auto;font-size:9px;color:var(--text-faint)">${cult.membros.length} escalados</span>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+                    <table class="t"><thead><tr><th>Nome</th><th>Estado</th><th>Hora</th><th></th></tr></thead>
+                    <tbody>${rows}</tbody></table>
+                </div>
+            </div>`;
+        }).join('') : `<div style="padding:30px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Sem escala para hoje</div></div>`}
+
+        <!-- LINK CHECK-IN -->
+        <div style="margin-top:12px;padding:12px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;gap:10px">
+            <div style="flex:1;font-size:11px;color:var(--text-faint);word-break:break-all">${checkUrl}</div>
+            <button class="btn-sm" onclick="navigator.clipboard.writeText('${checkUrl}').then(()=>min_t('Link copiado!'))">Copiar</button>
+        </div>`;
+
+        window._ciCheckUrl = checkUrl;
+    }
+
+    function min_abrirQR() {
+        const url = window._ciCheckUrl;
+        if (!url) { min_t('Abre primeiro o tab Check-in', 'err'); return; }
+        // Modal com QR
+        let modal = document.getElementById('min-modal-qr');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'min-modal-qr';
+            modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center';
+            modal.innerHTML = `<div style="background:var(--bg-card);border-radius:var(--radius);padding:28px;text-align:center;box-shadow:var(--shadow-md);max-width:340px;width:90%">
+                <div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:var(--primary-dark);margin-bottom:6px">CHECK-IN QR CODE</div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:16px" id="min-qr-min-nome"></div>
+                <div id="min-qr-container" style="display:flex;justify-content:center;margin-bottom:16px;padding:12px;background:white;border-radius:10px;display:inline-block"></div>
+                <div style="font-size:10px;color:var(--text-faint);margin-bottom:16px;word-break:break-all" id="min-qr-url"></div>
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:16px">QR fixo — válido sempre para este ministério</div>
+                <button class="btn-sm" onclick="document.getElementById('min-modal-qr').style.display='none'">Fechar</button>
+            </div>`;
+            modal.onclick = e => { if(e.target===modal) modal.style.display='none'; };
+            document.body.appendChild(modal);
+        }
+        document.getElementById('min-qr-min-nome').textContent = min_minAtivo.nome;
+        document.getElementById('min-qr-url').textContent = url;
+        modal.style.display = 'flex';
+        const container = document.getElementById('min-qr-container');
+        container.innerHTML = '';
+        if (window.QRCode) {
+            new QRCode(container, { text: url, width:180, height:180, colorDark:'#02161e', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+        } else {
+            container.innerHTML = `<div style="font-size:11px;color:var(--red)">QRCode.js não carregou</div>`;
+        }
+    }
+
+    async function min_zapLider(ciId, nomeVoluntario, minAtraso, cultoId) {
+        // Buscar lideres
+        const lidRaw = await min_sb(
+            `ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&papel=eq.lider&select=*,membros(nome,telemovel)`
+        ).catch(() => []);
+        const lider = lidRaw?.[0]?.membros;
+        const tel = lider?.telemovel?.replace(/\D/g,'');
+        if (!tel) { min_t('Líder sem telemóvel registado', 'err'); return; }
+        const cultNome = min_cultsAll.find(c=>c.id===cultoId)?.nome || '';
+        const data = new Date().toLocaleDateString('pt-PT');
+        const msg = encodeURIComponent(
+            `⚠️ *Zion Lisboa – Check-in*\n` +
+            `*${nomeVoluntario}* chegou com *${minAtraso} min de atraso*.\n` +
+            `Ministério: ${min_minAtivo.nome} · ${cultNome}\n` +
+            `Data: ${data}`
+        );
+        window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+        // Marcar como notificado
+        await min_sb(`ministerio_checkin?id=eq.${ciId}`, {method:'PATCH',body:JSON.stringify({notificado_lider:true})}).catch(console.error);
+        min_t('WhatsApp aberto'); min_renderCheckin();
+    }
 
     /* ── START ── */
     min_init();

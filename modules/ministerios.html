@@ -514,7 +514,7 @@
         min_cultsAll = cs || []; //(cs || []).filter(c => c.dia_semana === 'Domingo' || isSabado(c.dia_semana));
         min_renderSide();
         const el = document.getElementById('min-content');
-        if (el) el.innerHTML = `<div class="mod-empty"><div class="mod-empty-title">Selecciona um Ministério</div></div>`;
+        if (el) el.innerHTML = `<div class="mod-empty"><div class="mod-empty-title">Selecione um Ministério</div></div>`;
     }
 
     /* ══════════════════════════════════════════════
@@ -1125,10 +1125,18 @@
         const dias  = sabDomMes(a, m);
         const cults = min_minCults.map(mc => ({...mc.cultos, vagas:mc.vagas||1, mc_id:mc.id})).filter(Boolean);
         if (!dias.length || !cults.length) { el.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto neste mês</div>`; return; }
-        const sabDatas = dias.filter(d => d.dw === 6);
-        const domDatas = dias.filter(d => d.dw === 0);
-        const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana) ? sabDatas : domDatas }));
+        //const sabDatas = dias.filter(d => d.dw === 6);
+        //const domDatas = dias.filter(d => d.dw === 0);
+        //const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana) ? sabDatas : domDatas }));
+        //const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
+
+        const DIA_DW = { 'Domingo':0, 'Segunda':1, 'Terça':2, 'Quarta':3, 'Quinta':4, 'Sexta':5, 'Sabado':6, 'Sábado':6 };
+        const cultDatas = cults.map(c => {
+            const dw = DIA_DW[c.dia_semana] ?? -1;
+            return { c, datas: dw >= 0 ? dias.filter(d => d.dw === dw) : [] };
+        });
         const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
+
         const dataMap = Object.fromEntries(dias.map(d => [d.iso, d]));
         let html = `<div class="esc-table-wrap"><table class="esc-table">
         <thead><tr>
@@ -1258,10 +1266,18 @@
 
     function min_gerarTabelaHtml(esc, cults, dias, a, m) {
         if (!esc.length && !cults.length) return '';
-        const sabDatas  = dias.filter(d => d.dw === 6);
-        const domDatas  = dias.filter(d => d.dw === 0);
-        const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana)?sabDatas:domDatas }));
+        //const sabDatas  = dias.filter(d => d.dw === 6);
+        //const domDatas  = dias.filter(d => d.dw === 0);
+        //const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana)?sabDatas:domDatas }));
+        //const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
+
+        const DIA_DW = { 'Domingo':0, 'Segunda':1, 'Terça':2, 'Quarta':3, 'Quinta':4, 'Sexta':5, 'Sabado':6, 'Sábado':6 };
+        const cultDatas = cults.map(c => {
+            const dw = DIA_DW[c.dia_semana] ?? -1;
+            return { c, datas: dw >= 0 ? dias.filter(d => d.dw === dw) : [] };
+        });
         const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
+
         const dataMap   = Object.fromEntries(dias.map(d => [d.iso, d]));
         if (!todasDatas.length) return '';
         let html = `<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit">
@@ -1317,10 +1333,19 @@
     function min_textoWhatsApp(esc, cults, dias, a, m) {
         if (!esc.length) return '';
         let s = `📋 *ESCALA DE SERVIÇO*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
-        const sabDatas  = dias.filter(d => d.dw === 6);
-        const domDatas  = dias.filter(d => d.dw === 0);
-        const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana)?sabDatas:domDatas }));
+        // const sabDatas  = dias.filter(d => d.dw === 6);
+        // const domDatas  = dias.filter(d => d.dw === 0);
+        // const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana)?sabDatas:domDatas }));
+        // const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
+
+        // PARA:
+        const DIA_DW = { 'Domingo':0, 'Segunda':1, 'Terça':2, 'Quarta':3, 'Quinta':4, 'Sexta':5, 'Sabado':6, 'Sábado':6 };
+        const cultDatas = cults.map(c => {
+            const dw = DIA_DW[c.dia_semana] ?? -1;
+            return { c, datas: dw >= 0 ? dias.filter(d => d.dw === dw) : [] };
+        });
         const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
+
         const dataMap = Object.fromEntries(dias.map(d => [d.iso, d]));
         todasDatas.forEach(iso => {
             const {d,dw} = dataMap[iso]||{d:'?',dw:0};

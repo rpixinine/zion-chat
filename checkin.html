@@ -240,7 +240,12 @@ async function ci_init() {
     );
 
     if (!escHoje?.length) {
-      ci_renderSemCulto();
+      // Buscar próxima escala
+      const proxEsc = await sb(
+        `ministerio_escala?ministerio_id=eq.${CI.ministerioId}&data=gt.${hoje}` +
+        `&select=*,membros(id,nome),cultos(id,nome,hora_inicio,dia_semana)&order=data&limit=20`
+      ).catch(() => []);
+      ci_renderSemCulto(proxEsc || []);
       return;
     }
 
@@ -274,14 +279,53 @@ function ci_renderErroFatal(msg) {
     `<div class="msg err show">${msg}</div>`;
 }
 
-function ci_renderSemCulto() {
-  document.getElementById('ci-body').innerHTML = `
-    <div style="text-align:center;padding:20px 0">
-      <div style="font-size:40px;margin-bottom:12px">🗓</div>
-      <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--teal);margin-bottom:6px">Sem Escala Hoje</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">Não há escala registada para<br><strong style="color:var(--text)">${CI.ministerioNome}</strong><br>neste dia.</div>
-    </div>`;
+function ci_renderSemCulto(proxEsc) {
+  // Agrupar próximas escalas por data+culto
+  const proxMap = {};
+  (proxEsc||[]).forEach(e => {
+    const key = e.data + '_' + e.culto_id;
+    if (!proxMap[key]) proxMap[key] = { data:e.data, culto:e.cultos, membros:[] };
+    if (e.membros) proxMap[key].membros.push(e.membros.nome);
+  });
+  const proxList = Object.values(proxMap).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,4);
+  const diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  let proxHtml = '';
+  if (proxList.length) {
+    proxHtml += '<div style="margin-top:20px;text-align:left">';
+    proxHtml += '<div style="font-size:9px;font-family:'Cinzel',serif;letter-spacing:2px;color:var(--muted);margin-bottom:10px;text-align:center">PRÓXIMAS ESCALAS</div>';
+    proxList.forEach(p => {
+      const dt = new Date(p.data+'T00:00:00');
+      const dLabel = diasSemana[dt.getDay()] + ', ' + String(dt.getDate()).padStart(2,'0') + ' ' + meses[dt.getMonth()];
+      const diff = Math.round((dt - new Date(new Date().toDateString())) / 86400000);
+      const diffLabel = diff===1 ? 'amanhã' : diff===7 ? 'semana que vem' : 'em '+diff+' dias';
+      const membNomes = p.membros.slice(0,4).join(' · ') + (p.membros.length>4 ? ' + '+(p.membros.length-4)+' mais' : '');
+      proxHtml += '<div style="padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:6px">';
+      proxHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+      proxHtml += '<div style="font-weight:700;font-size:13px">'+dLabel+'</div>';
+      proxHtml += '<div style="font-size:10px;color:var(--teal);font-style:italic">'+diffLabel+'</div>';
+      proxHtml += '</div>';
+      proxHtml += '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">'+(p.culto?p.culto.nome:'')+' · '+(p.culto?p.culto.hora_inicio.slice(0,5):'')+'</div>';
+      proxHtml += '<div style="font-size:11px;color:rgba(255,255,255,0.5)">'+membNomes+'</div>';
+      proxHtml += '</div>';
+    });
+    proxHtml += '</div>';
+  } else {
+    proxHtml = '<div style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">Sem escalas futuras registadas.</div>';
+  }
+
+  document.getElementById('ci-body').innerHTML =
+    '<div style="padding:8px 0">' +
+    '<div style="text-align:center;margin-bottom:16px">' +
+    '<div style="font-size:40px;margin-bottom:10px">🗓</div>' +
+    '<div style="font-family:'Cinzel',serif;font-size:14px;color:var(--teal);margin-bottom:4px">Sem Escala Hoje</div>' +
+    '<div style="font-size:12px;color:var(--muted)">Não há serviço escalado para <strong style="color:var(--text)">' + CI.ministerioNome + '</strong> hoje.</div>' +
+    '</div>' +
+    proxHtml +
+    '</div>';
 }
+
 
 function ci_renderForm() {
   // Se só um culto, selecciona automaticamente

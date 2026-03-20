@@ -2758,12 +2758,12 @@
                     minute: '2-digit'
                 }) : '—';
                 const status = ci ? (ci.atrasado ? 'atrasado' : 'ok') : 'ausente';
-                const statusLbl = {
-                    ok: '✅ Presente',
-                    atrasado: `⚠️ ${ci?.minutos_atraso}min atraso`,
-                    ausente: '❌ Ausente'
-                };
-                const statusClr = {ok: 'var(--green)', atrasado: 'var(--orange)', ausente: 'var(--red)'};
+                const agora = new Date();
+                const [hh, mm] = (cult.hora ? cult.hora.split(':') : ['23','59']).map(Number);
+                const horaCulto = new Date(); horaCulto.setHours(hh, mm, 0, 0);
+                const cultoJaComecou = agora >= horaCulto;
+                const statusLbl = { ok:'✅ Presente', atrasado:`⚠️ ${ci?.minutos_atraso}min atraso`, ausente: cultoJaComecou ? '❌ Ausente' : '🕐 Aguardando' };
+                const statusClr = { ok:'var(--green)', atrasado:'var(--orange)', ausente: cultoJaComecou ? 'var(--red)' : 'var(--text-faint)' };
                 const zapBtn = ci?.atrasado && !ci?.notificado_lider
                     ? `<button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_zapLider('${ci.id}','${m.nome}',${ci.minutos_atraso},'${cId}')">📲 Zap</button>`
                     : ci?.atrasado && ci?.notificado_lider ? `<span style="font-size:10px;color:var(--text-faint)">✓ Notificado</span>` : '';

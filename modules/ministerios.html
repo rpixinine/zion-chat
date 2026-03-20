@@ -2896,6 +2896,14 @@
         const mesesPT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
         const amanhaFmt = diasPT[amanha.getDay()] + ', ' + String(amanha.getDate()).padStart(2, '0') + ' de ' + mesesPT[amanha.getMonth()];
 
+        // Buscar nome do líder
+        const lidRaw = await min_sb(
+            'ministerio_membros?ministerio_id=eq.' + min_minAtivo.id +
+            '&papel=eq.lider&select=*,membros(nome)&limit=1'
+        ).catch(() => []);
+        const nomeLider = lidRaw?.[0]?.membros?.nome || '';
+        const checkUrl  = window._ciCheckUrl || '';
+
         // Buscar escala de amanhã deste ministério
         const esc = await min_sb(
             'ministerio_escala?ministerio_id=eq.' + min_minAtivo.id + '&data=eq.' + amanhaISO +
@@ -2935,11 +2943,11 @@
         const primeiro = comTel[0];
         let previewMsg = '';
         if (primeiro) {
-            previewMsg = min_gerarMsgLembrete(primeiro.membro, primeiro.cultos, amanhaFmt, msgEdif);
+            previewMsg = min_gerarMsgLembrete(primeiro.membro, primeiro.cultos, amanhaFmt, msgEdif, nomeLider, checkUrl);
         }
 
         // Guardar dados para uso nos botões (sem passar por onclick inline)
-        window._lembDados = {comTel, amanhaFmt, msgEdif};
+        window._lembDados = { comTel, amanhaFmt, msgEdif, nomeLider, checkUrl };
 
         const wrap = document.createElement('div');
         wrap.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);padding:24px;width:100%;max-width:520px;margin:auto;box-shadow:var(--shadow-md)';
@@ -3006,7 +3014,7 @@
         btnEnviar.textContent = 'Enviar ' + comTel.length + ' lembretes →';
         btnEnviar.onclick = () => {
             const d = window._lembDados;
-            min_enviarLembretes(d.comTel, d.amanhaFmt, d.msgEdif);
+            min_enviarLembretes(d.comTel, d.amanhaFmt, d.msgEdif, d.nomeLider, d.checkUrl);
         };
 
         btns.appendChild(btnCancel);
@@ -3018,28 +3026,30 @@
         modal.style.display = 'flex';
     }
 
-    function min_gerarMsgLembrete(membro, cultos, dataFmt, msgEdif) {
+    function min_gerarMsgLembrete(membro, cultos, dataFmt, msgEdif, nomeLider, checkUrl) {
         const primeiroNome = membro.nome.split(' ')[0];
         const cultosLinhas = cultos.map(c => '  • ' + c.nome + ' às ' + c.hora_inicio.slice(0, 5) + 'h').join('\n');
         const pinInfo = membro.checkin_pin
-            ? '\n🔑 Teu PIN de check-in: *' + membro.checkin_pin + '*'
-            : '\n💡 Fala com o líder para definires o teu PIN de check-in.';
-        return '🌿 Olá, *' + primeiroNome + '*!\n\n' +
+            ? '\n Teu PIN de check-in: *' + membro.checkin_pin + '*'
+            : '\n Fala com o líder para definires o teu PIN de check-in.';
+        const liderInfo = nomeLider ? '\n Líder: *' + nomeLider + '*' : '';
+        const linkInfo  = checkUrl  ? '\n Check-in: ' + checkUrl : '';
+        return 'Olá, *' + primeiroNome + '*!\n\n' +
             msgEdif + '\n\n' +
             '━━━━━━━━━━━━━━━━\n' +
-            '📅 *Escala de amanhã*\n' +
-            '📆 ' + dataFmt + '\n\n' +
-            cultosLinhas + pinInfo + '\n\n' +
-            '_Igreja Zion Lisboa · Com carinho_ 🤍';
+            ' *Escala de amanhã*\n' +
+            ' ' + dataFmt + '\n\n' +
+            cultosLinhas + pinInfo + linkInfo + '\n\n' +
+            'Obrigado pelo seu voluntariado';
     }
 
-    async function min_enviarLembretes(comTel, amanhaFmt, msgEdif) {
+    async function min_enviarLembretes(comTel, amanhaFmt, msgEdif, nomeLider, checkUrl) {
         const modal = document.getElementById('min-modal-lemb');
         if (modal) modal.style.display = 'none';
         if (!comTel?.length) return;
         let enviados = 0;
         for (const item of comTel) {
-            const msg = min_gerarMsgLembrete(item.membro, item.cultos, amanhaFmt, msgEdif);
+            const msg = min_gerarMsgLembrete(item.membro, item.cultos, amanhaFmt, msgEdif, nomeLider, checkUrl);
             const tel = item.membro.telefone.replace(/\D/g, '');
             window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
             enviados++;

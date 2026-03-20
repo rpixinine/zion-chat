@@ -2377,7 +2377,7 @@
         const memsEscalaveis = min_minMems.filter(m => m.papel !== 'lider');
         dias.forEach(({d, dw, iso}) => {
             cults.forEach(c => {
-                
+
                 const match = DIA_DW[c.dia_semana] === dw;
                 if (!match) return;
                 const indSet = new Set(indAll.filter(i => i.data === iso && (!i.culto_id || i.culto_id === c.id)).map(i => i.membro_id));
@@ -2849,12 +2849,12 @@
 
     async function min_zapLider(ciId, nomeVoluntario, minAtraso, cultoId) {
         const lidRaw = await min_sb(
-            `ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&papel=eq.lider&select=*,membros(nome,telemovel)`
+            `ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&papel=eq.lider&select=*,membros(nome,telefone)`
         ).catch(() => []);
         const lider = lidRaw?.[0]?.membros;
-        const tel = lider?.telemovel?.replace(/\D/g, '');
+        const tel = lider?.telefone?.replace(/\D/g, '');
         if (!tel) {
-            min_t('Líder sem telemóvel registado', 'err');
+            min_t('Líder sem telefone registado', 'err');
             return;
         }
         const cultNome = min_cultsAll.find(c => c.id === cultoId)?.nome || '';
@@ -2899,7 +2899,7 @@
         // Buscar escala de amanhã deste ministério
         const esc = await min_sb(
             'ministerio_escala?ministerio_id=eq.' + min_minAtivo.id + '&data=eq.' + amanhaISO +
-            '&select=*,membros(id,nome,telemovel,checkin_pin),cultos(id,nome,hora_inicio)'
+            '&select=*,membros(id,nome,telefone,checkin_pin),cultos(id,nome,hora_inicio)'
         ).catch(() => []);
 
         if (!esc?.length) {
@@ -2917,8 +2917,8 @@
         });
 
         const lista = Object.values(porMembro);
-        const semTel = lista.filter(x => !x.membro.telemovel);
-        const comTel = lista.filter(x => x.membro.telemovel);
+        const semTel = lista.filter(x => !x.membro.telefone);
+        const comTel = lista.filter(x => x.membro.telefone);
 
         // Mostrar modal de confirmação com pré-visualização
         let modal = document.getElementById('min-modal-lemb');
@@ -3040,7 +3040,7 @@
         let enviados = 0;
         for (const item of comTel) {
             const msg = min_gerarMsgLembrete(item.membro, item.cultos, amanhaFmt, msgEdif);
-            const tel = item.membro.telemovel.replace(/\D/g, '');
+            const tel = item.membro.telefone.replace(/\D/g, '');
             window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
             enviados++;
             if (enviados < comTel.length) await new Promise(r => setTimeout(r, 800));

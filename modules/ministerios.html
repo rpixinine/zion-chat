@@ -2911,145 +2911,6 @@
         '"Não nos cansemos de fazer o bem."_ — Gl 6:9\nO teu serviço tem recompensa eterna!',
     ];
 
-    async function min_abrirLembretesOld() {
-        // Amanhã
-        const amanha = new Date();
-        amanha.setDate(amanha.getDate() + 1);
-        const amanhaISO = amanha.toISOString().split('T')[0];
-        const diasPT = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
-        const mesesPT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-        const amanhaFmt = diasPT[amanha.getDay()] + ', ' + String(amanha.getDate()).padStart(2, '0') + ' de ' + mesesPT[amanha.getMonth()];
-
-        // Buscar nome do líder
-        const lidRaw = await min_sb(
-            'ministerio_membros?ministerio_id=eq.' + min_minAtivo.id +
-            '&papel=eq.lider&select=*,membros(nome)&limit=1'
-        ).catch(() => []);
-        const nomeLider = lidRaw?.[0]?.membros?.nome || '';
-        const checkUrl  = window._ciCheckUrl || '';
-
-        // Buscar escala de amanhã deste ministério
-        const esc = await min_sb(
-            'ministerio_escala?ministerio_id=eq.' + min_minAtivo.id + '&data=eq.' + amanhaISO +
-            '&select=*,membros(id,nome,telefone,checkin_pin),cultos(id,nome,hora_inicio)'
-        ).catch(() => []);
-
-        if (!esc?.length) {
-            min_t('Sem escala para amanhã neste ministério', 'err');
-            return;
-        }
-
-        // Agrupar por membro (pode estar em mais que um culto)
-        const porMembro = {};
-        esc.forEach(e => {
-            const m = e.membros;
-            if (!m) return;
-            if (!porMembro[m.id]) porMembro[m.id] = {membro: m, cultos: []};
-            if (e.cultos) porMembro[m.id].cultos.push(e.cultos);
-        });
-
-        const lista = Object.values(porMembro);
-        const semTel = lista.filter(x => !x.membro.telefone);
-        const comTel = lista.filter(x => x.membro.telefone);
-
-        // Mostrar modal de confirmação com pré-visualização
-        let modal = document.getElementById('min-modal-lemb');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'min-modal-lemb';
-            modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
-            document.body.appendChild(modal);
-        }
-
-        const msgEdif = MSGS_EDIFICANTES[Math.floor(Math.random() * MSGS_EDIFICANTES.length)];
-
-        // Gerar pré-visualização da mensagem para o 1º membro
-        const primeiro = comTel[0];
-        let previewMsg = '';
-        if (primeiro) {
-            previewMsg = min_gerarMsgLembrete(primeiro.membro, primeiro.cultos, amanhaFmt, msgEdif, nomeLider, checkUrl);
-        }
-
-        // Guardar dados para uso nos botões (sem passar por onclick inline)
-        window._lembDados = { comTel, amanhaFmt, msgEdif, nomeLider, checkUrl };
-
-        const wrap = document.createElement('div');
-        wrap.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);padding:24px;width:100%;max-width:520px;margin:auto;box-shadow:var(--shadow-md)';
-
-        const titulo = document.createElement('div');
-        titulo.style.cssText = 'font-family:var(--font-title);font-size:11px;letter-spacing:2px;color:var(--primary-dark);margin-bottom:4px';
-        titulo.textContent = '📲 LEMBRETES DE ESCALA';
-
-        const sub = document.createElement('div');
-        sub.style.cssText = 'font-size:12px;color:var(--text-faint);margin-bottom:16px';
-        sub.textContent = amanhaFmt + ' · ' + min_minAtivo.nome;
-
-        const resumo = document.createElement('div');
-        resumo.style.cssText = 'display:flex;gap:8px;margin-bottom:16px';
-        resumo.innerHTML =
-            '<div style="flex:1;padding:10px;background:var(--primary-faint);border:1px solid var(--primary);border-radius:10px;text-align:center">' +
-            '<div style="font-size:18px;font-weight:700;color:var(--primary-dark)">' + comTel.length + '</div>' +
-            '<div style="font-size:9px;font-family:var(--font-title);color:var(--text-faint)">COM TELEMÓVEL</div></div>' +
-            (semTel.length ? '<div style="flex:1;padding:10px;background:rgba(192,57,43,0.06);border:1px solid rgba(192,57,43,0.2);border-radius:10px;text-align:center">' +
-                '<div style="font-size:18px;font-weight:700;color:var(--red)">' + semTel.length + '</div>' +
-                '<div style="font-size:9px;font-family:var(--font-title);color:var(--text-faint)">SEM TELEMÓVEL</div></div>' : '');
-
-        wrap.appendChild(titulo);
-        wrap.appendChild(sub);
-        wrap.appendChild(resumo);
-
-        if (previewMsg) {
-            const prevLbl = document.createElement('div');
-            prevLbl.style.cssText = 'font-size:10px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:6px';
-            prevLbl.textContent = 'PRÉ-VISUALIZAÇÃO';
-            const prevBox = document.createElement('div');
-            prevBox.style.cssText = 'background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto;margin-bottom:16px;color:var(--text-main)';
-            prevBox.textContent = previewMsg;
-            wrap.appendChild(prevLbl);
-            wrap.appendChild(prevBox);
-        }
-
-        if (semTel.length) {
-            const aviso = document.createElement('div');
-            aviso.style.cssText = 'font-size:11px;color:var(--red);margin-bottom:12px;background:rgba(192,57,43,0.06);padding:8px 12px;border-radius:8px';
-            aviso.textContent = 'Sem telemóvel: ' + semTel.map(x => x.membro.nome).join(', ');
-            wrap.appendChild(aviso);
-        }
-
-        const info = document.createElement('div');
-        info.style.cssText = 'font-size:11px;color:var(--text-faint);margin-bottom:16px';
-        info.textContent = 'O WhatsApp vai abrir para cada pessoa individualmente. Confirma o envio em cada janela.';
-        wrap.appendChild(info);
-
-        const btns = document.createElement('div');
-        btns.style.cssText = 'display:flex;gap:8px';
-
-        const btnCancel = document.createElement('button');
-        btnCancel.className = 'btn-sm';
-        btnCancel.style.flex = '1';
-        btnCancel.textContent = 'Cancelar';
-        btnCancel.onclick = () => {
-            modal.style.display = 'none';
-        };
-
-        const btnEnviar = document.createElement('button');
-        btnEnviar.className = 'btn-sm primary';
-        btnEnviar.style.flex = '1';
-        btnEnviar.textContent = 'Enviar ' + comTel.length + ' lembretes →';
-        btnEnviar.onclick = () => {
-            const d = window._lembDados;
-            min_enviarLembretes(d.comTel, d.amanhaFmt, d.msgEdif, d.nomeLider, d.checkUrl);
-        };
-
-        btns.appendChild(btnCancel);
-        btns.appendChild(btnEnviar);
-        wrap.appendChild(btns);
-
-        modal.innerHTML = '';
-        modal.appendChild(wrap);
-        modal.style.display = 'flex';
-    }
-
     async function min_abrirLembretes() {
         const amanha = new Date();
         amanha.setDate(amanha.getDate() + 1);
@@ -3101,7 +2962,7 @@
         // ── Cabeçalho
         wrap.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div style="font-family:var(--font-title);font-size:11px;letter-spacing:2px;color:var(--primary-dark)">📲 LEMBRETES DE ESCALA</div>
+        <div style="font-family:var(--font-title);font-size:11px;letter-spacing:2px;color:var(--primary-dark)">LEMBRETES DE ESCALA</div>
         <button class="btn-icon" onclick="document.getElementById('min-modal-lemb').style.display='none'">✕</button>
     </div>
     <div style="font-size:12px;color:var(--text-faint);margin-bottom:16px">${amanhaFmt} · ${min_minAtivo.nome}</div>
@@ -3109,10 +2970,10 @@
     <!-- ── MENSAGEM PARA GRUPO ── -->
     <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:18px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--primary-dark)">💬 MENSAGEM PARA GRUPO WHATSAPP</div>
+            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--primary-dark)">MENSAGEM PARA GRUPO WHATSAPP</div>
             <div style="display:flex;gap:6px">
-                <button class="btn-sm" id="btn-copiar-grupo" onclick="min_copiarGrupo()">📋 Copiar</button>
-                <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="document.getElementById('prev-grupo').style.display=document.getElementById('prev-grupo').style.display==='none'?'block':'none'">👁 Ver</button>
+                <button class="btn-sm" id="btn-copiar-grupo" onclick="min_copiarGrupo()">Copiar</button>
+                <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="document.getElementById('prev-grupo').style.display=document.getElementById('prev-grupo').style.display==='none'?'block':'none'">Ver</button>
             </div>
         </div>
         <div id="prev-grupo" style="display:none;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;line-height:1.8;white-space:pre-wrap;max-height:160px;overflow-y:auto;color:var(--text-main);font-family:monospace">${msgGrupo}</div>
@@ -3124,7 +2985,7 @@
         MENSAGENS INDIVIDUAIS — ${comTel.length} com telemóvel${semTel.length ? ', ' + semTel.length + ' sem' : ''}
     </div>
     <div id="lemb-lista" style="display:flex;flex-direction:column;gap:6px"></div>
-    ${semTel.length ? `<div style="margin-top:10px;font-size:11px;color:var(--red);background:rgba(192,57,43,0.06);padding:8px 12px;border-radius:8px">⚠️ Sem telemóvel: ${semTel.map(x=>x.membro.nome).join(', ')}</div>` : ''}
+    ${semTel.length ? `<div style="margin-top:10px;font-size:11px;color:var(--red);background:rgba(192,57,43,0.06);padding:8px 12px;border-radius:8px">Sem telemóvel: ${semTel.map(x=>x.membro.nome).join(', ')}</div>` : ''}
     <button class="btn-sm" style="width:100%;margin-top:16px" onclick="document.getElementById('min-modal-lemb').style.display='none'">Fechar</button>`;
 
         modal.innerHTML = '';
@@ -3153,9 +3014,9 @@
                 <div style="font-weight:600;font-size:13px">${item.membro.nome}</div>
                 <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title);letter-spacing:0.3px;margin-top:2px">${cultosStr}</div>
             </div>
-            <button class="btn-sm" style="font-size:10px;padding:3px 8px;white-space:nowrap" onclick="min_prevLembrete(${idx})">👁</button>
+            <button class="btn-sm" style="font-size:10px;padding:3px 8px;white-space:nowrap" onclick="min_prevLembrete(${idx})">Ver</button>
             <button class="btn-sm primary" id="lemb-btn-${idx}" style="white-space:nowrap;font-size:11px" onclick="min_abrirZap(${idx},'${waUrl.replace(/'/g,"\\'")}')">
-                📱 ${primeiroNome}
+                ${primeiroNome}
             </button>`;
             lista_el.appendChild(row);
 
@@ -3193,7 +3054,7 @@
         navigator.clipboard.writeText(window._lembMsgGrupo)
             .then(() => {
                 const btn = document.getElementById('btn-copiar-grupo');
-                if (btn) { btn.textContent = '✓ Copiado!'; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; setTimeout(()=>{ btn.textContent='📋 Copiar'; btn.style.borderColor=''; btn.style.color=''; },2500); }
+                if (btn) { btn.textContent = '✓ Copiado!'; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; setTimeout(()=>{ btn.textContent='Copiar'; btn.style.borderColor=''; btn.style.color=''; },2500); }
             })
             .catch(() => min_t('Erro ao copiar','err'));
     }
@@ -3210,13 +3071,13 @@
             });
         });
 
-        let s = `📅 *ESCALA DE AMANHÃ*\n`;
+        let s = `*ESCALA DE AMANHÃ*\n`;
         s += `*${min_minAtivo.nome.toUpperCase()}*\n`;
         s += `*${dataFmt}*\n`;
         s += '━━━━━━━━━━━━━━━━\n\n';
 
         Object.values(porCulto).forEach(c => {
-            s += `🎯 *${c.nome}* (${c.hora}h)\n`;
+            s += `*${c.nome}* (${c.hora}h)\n`;
             c.membros.forEach(nome => { s += `  • ${nome}\n`; });
             s += '\n';
         });

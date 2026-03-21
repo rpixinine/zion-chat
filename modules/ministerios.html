@@ -2370,6 +2370,17 @@
         dsAll.forEach(d => {
             dMap[d.membro_id + '_' + d.culto_id] = d.disponivel;
         });
+
+        const DIA_DW = {
+            'Domingo': 0,
+            'Segunda-feira': 1,
+            'Terca-feira': 2,
+            'Quarta-feira': 3,
+            'Quinta-feira': 4,
+            'Sexta-feira': 5,
+            'Sabado': 6,
+        };
+
         const dias = todosDiasMes(a, m);
         const cults = min_minCults.map(mc => ({...mc.cultos, vagas: mc.vagas || 1})).filter(Boolean);
         const novas = [];
@@ -2585,13 +2596,8 @@
 
     function min_textoWhatsApp(esc, cults, dias, a, m) {
         if (!esc.length) return '';
-        let s = `📋 *ESCALA DE SERVIÇO*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
-        // const sabDatas  = dias.filter(d => d.dw === 6);
-        // const domDatas  = dias.filter(d => d.dw === 0);
-        // const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana)?sabDatas:domDatas }));
-        // const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
+        let s = `*ESCALA DA ÁREA*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
 
-        // PARA:
         const DIA_DW = {
             'Domingo': 0,
             'Segunda-feira': 1,
@@ -2612,7 +2618,6 @@
             const {d, dw} = dataMap[iso] || {d: '?', dw: 0};
             s += `*${DIAS_PT[dw].toUpperCase()}, ${String(d).padStart(2, '0')} ${MESES_ABV[m]}*\n`;
             cults.forEach(c => {
-                //const datasSet = new Set((isSabado(c.dia_semana)?sabDatas:domDatas).map(d => d.iso));
                 const cd = cultDatas.find(x => x.c.id === c.id);
                 const datasSet = new Set((cd?.datas || []).map(d => d.iso));
                 if (!datasSet.has(iso)) return;

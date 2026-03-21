@@ -1535,7 +1535,7 @@
         ]);
         min_mins = ms || [];
         min_memAll = mbs || [];
-        min_cultsAll = cs || []; //(cs || []).filter(c => c.dia_semana === 'Domingo' || isSabado(c.dia_semana));
+        min_cultsAll = cs || [];
         min_renderSide();
         const el = document.getElementById('min-content');
         if (el) el.innerHTML = `<div class="mod-empty"><div class="mod-empty-title">Selecione um Ministério</div></div>`;
@@ -1787,7 +1787,7 @@
 
         function addOpts(nodes, depth) {
             nodes.forEach(n => {
-                if (n.id === excludeId) return; // não pode ser pai de si mesmo
+                if (n.id === excludeId) return;
                 const prefix = '·'.repeat(depth * 2);
                 const sel_ = n.id === selectedId ? 'selected' : '';
                 opts.push(`<option value="${n.id}" ${sel_}>${prefix} ${n.nome}${n.tipo ? ' [' + TIPO_LBL[n.tipo] + ']' : ''}</option>`);
@@ -1905,7 +1905,7 @@
                     <option value="lider"    ${m.papel === 'lider' ? 'selected' : ''} style="color:var(--primary-dark);background:var(--bg-input)">Líder</option>
                 </select></td>
                 <td id="pin-cell-${m.membro_id}">
-                    <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_editarPin('${m.membro_id}')">✏️ PIN</button>
+                    <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_editarPin('${m.membro_id}')">PIN</button>
                 </td>
                 <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
             </tr>`).join('')}</tbody></table></div>`
@@ -1960,7 +1960,7 @@
             if (cell) {
                 const btn2 = document.createElement('button');
                 btn2.className = 'btn-sm';
-                btn2.textContent = val ? '✓ ' + val : '✏️ PIN';
+                btn2.textContent = val ? '✓ ' + val : 'PIN';
                 btn2.style.cssText = 'font-size:10px;padding:3px 8px' + (val ? ';border-color:var(--green);color:var(--green)' : '');
                 btn2.onclick = () => min_editarPin(membroId);
                 cell.innerHTML = '';
@@ -2154,13 +2154,10 @@
         for (let d = 1; d <= fim; d++) {
             const iso = `${a}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const dw = new Date(a, m - 1, d).getDay();
-            //const eSabDom = dw === 0 || dw === 6;
+
             let cls = 'cal-mini-dia';
-            //if (!eSabDom) cls += ' semana';
             if (inSet.has(iso)) cls += ' bloqueado';
-            //else if (inSet.has(iso)) cls += ' bloqueado';
             else if (iso === hoje) cls += ' hoje';
-            //diasHtml += `<div class="${cls}" onclick="${eSabDom?`min_togIndisp('${iso}')`:'void(0)'}" title="${iso}">${d}</div>`;
             diasHtml += `<div class="${cls}" onclick="min_togIndisp('${iso}')" title="${iso}">${d}</div>`;
         }
         el.innerHTML = `
@@ -2292,10 +2289,6 @@
             el.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto neste mês</div>`;
             return;
         }
-        //const sabDatas = dias.filter(d => d.dw === 6);
-        //const domDatas = dias.filter(d => d.dw === 0);
-        //const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana) ? sabDatas : domDatas }));
-        //const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
 
         const DIA_DW = {
             'Domingo': 0,
@@ -2514,7 +2507,7 @@
             <div><div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${min_minAtivo.nome} — ${mesLbl(min_escMes)}</div></div>
             <div style="display:flex;gap:6px">
                 <button class="btn-sm" onclick="min_copiar()">📋 Copiar WhatsApp</button>
-                <button class="btn-sm primary" onclick="min_imprimir()">🖨️ PDF / Imprimir</button>
+                <button class="btn-sm primary" onclick="min_imprimir()">PDF / Imprimir</button>
             </div>
         </div>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto">
@@ -2719,7 +2712,8 @@
         const baseUrl = location.origin + (location.pathname.includes('index')
             ? location.pathname.replace('index.html', '')
             : location.pathname.replace(/\/[^/]*$/, '/'));
-        const checkUrl = baseUrl + 'checkin.html?min=' + min_minAtivo.id;
+        //const checkUrl = baseUrl + 'checkin.html?min=' + min_minAtivo.id;
+        const checkUrl = baseUrl + 'checkin?min=' + min_minAtivo.id;
 
         // Agrupar escalados por culto
         const cultosHoje = {};
@@ -2731,7 +2725,7 @@
         });
 
         // Map de quem já fez check-in
-        const ciMap = {}; // membro_id+culto_id → checkin
+        const ciMap = {}; 
         checkins.forEach(c => {
             ciMap[c.membro_id + '_' + c.culto_id] = c;
         });
@@ -2747,9 +2741,9 @@
         })}</div>
             </div>
             <div style="display:flex;gap:6px">
-                <button class="btn-sm" onclick="min_renderCheckin()">↻ Atualizar</button>
-                <button class="btn-sm" onclick="min_abrirLembretes()">📲 Lembretes</button>
-                <button class="btn-sm primary" onclick="min_abrirQR()">📱 QR Code</button>
+                <button class="btn-sm" onclick="min_renderCheckin()">Atualizar</button>
+                <button class="btn-sm" onclick="min_abrirLembretes()">Lembretes</button>
+                <button class="btn-sm primary" onclick="min_abrirQR()">QR Code</button>
             </div>
         </div>
 
@@ -2782,10 +2776,10 @@
                 const [hh, mm] = (cult.hora ? cult.hora.split(':') : ['23','59']).map(Number);
                 const horaCulto = new Date(); horaCulto.setHours(hh, mm, 0, 0);
                 const cultoJaComecou = agora >= horaCulto;
-                const statusLbl = { ok:'✅ Presente', atrasado:`⚠️ ${ci?.minutos_atraso}min atraso`, ausente: cultoJaComecou ? '❌ Ausente' : '🕐 Aguardando' };
+                const statusLbl = { ok:'Presente', atrasado:`${ci?.minutos_atraso}min atraso`, ausente: cultoJaComecou ? 'Ausente' : 'Aguardando' };
                 const statusClr = { ok:'var(--green)', atrasado:'var(--orange)', ausente: cultoJaComecou ? 'var(--red)' : 'var(--text-faint)' };
                 const zapBtn = ci?.atrasado && !ci?.notificado_lider
-                    ? `<button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_zapLider('${ci.id}','${m.nome}',${ci.minutos_atraso},'${cId}')">📲 Zap</button>`
+                    ? `<button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_zapLider('${ci.id}','${m.nome}',${ci.minutos_atraso},'${cId}')">Zap</button>`
                     : ci?.atrasado && ci?.notificado_lider ? `<span style="font-size:10px;color:var(--text-faint)">✓ Notificado</span>` : '';
                 return `<tr>
                     <td style="font-weight:600">${m.nome}</td>
@@ -2890,7 +2884,7 @@
         const cultNome = min_cultsAll.find(c => c.id === cultoId)?.nome || '';
         const data = new Date().toLocaleDateString('pt-PT');
         const msg = encodeURIComponent(
-            '⚠️ *Zion Lisboa – Check-in*\n' +
+            '*Zion Lisboa – Check-in*\n' +
             '*' + nomeVoluntario + '* chegou com *' + minAtraso + ' min de atraso*.\n' +
             'Ministério: ' + min_minAtivo.nome + ' · ' + cultNome + '\n' +
             'Data: ' + data
@@ -2908,13 +2902,13 @@
        LEMBRETES D-1 VIA WA.ME
     ══════════════════════════════════════════════ */
     const MSGS_EDIFICANTES = [
-        '✨ _"Tudo posso naquele que me fortalece."_ — Fil 4:13\nDeus vai usar o teu serviço amanhã para tocar vidas!',
-        '🙏 _"Sirva ao Senhor com alegria."_ — Sl 100:2\nO teu coração de servo faz diferença!',
-        '🔥 _"Sede fortes e corajosos... pois o Senhor teu Deus está contigo."_ — Js 1:9\nServes com propósito e unção!',
-        '💛 _"Cada um ponha ao serviço dos outros o dom que recebeu."_ — 1Pe 4:10\nO teu dom edifica a família Zion!',
-        '🌟 _"O Senhor está contigo onde quer que vás."_ — Js 1:9\nAmanhã será especial porque estarás presente!',
-        '❤️ _"Amai-vos uns aos outros como Eu vos amei."_ — Jo 13:34\nO teu serviço é um ato de amor!',
-        '🕊️ _"Não nos cansemos de fazer o bem."_ — Gl 6:9\nO teu serviço tem recompensa eterna!',
+        '"Tudo posso naquele que me fortalece."_ — Fil 4:13\nDeus vai usar o teu serviço amanhã para tocar vidas!',
+        '"Sirva ao Senhor com alegria."_ — Sl 100:2\nO teu coração de servo faz diferença!',
+        '"Sede fortes e corajosos... pois o Senhor teu Deus está contigo."_ — Js 1:9\nServes com propósito e unção!',
+        '"Cada um ponha ao serviço dos outros o dom que recebeu."_ — 1Pe 4:10\nO teu dom edifica a família Zion!',
+        '"O Senhor está contigo onde quer que vás."_ — Js 1:9\nAmanhã será especial porque estarás presente!',
+        '"Amai-vos uns aos outros como Eu vos amei."_ — Jo 13:34\nO teu serviço é um ato de amor!',
+        '"Não nos cansemos de fazer o bem."_ — Gl 6:9\nO teu serviço tem recompensa eterna!',
     ];
 
     async function min_abrirLembretes() {
@@ -3018,7 +3012,7 @@
         if (semTel.length) {
             const aviso = document.createElement('div');
             aviso.style.cssText = 'font-size:11px;color:var(--red);margin-bottom:12px;background:rgba(192,57,43,0.06);padding:8px 12px;border-radius:8px';
-            aviso.textContent = '⚠️ Sem telemóvel: ' + semTel.map(x => x.membro.nome).join(', ');
+            aviso.textContent = 'Sem telemóvel: ' + semTel.map(x => x.membro.nome).join(', ');
             wrap.appendChild(aviso);
         }
 
@@ -3063,13 +3057,13 @@
             ? '\n Teu PIN de check-in: *' + membro.checkin_pin + '*'
             : '\n Fala com o líder para definires o teu PIN de check-in.';
         const liderInfo = nomeLider ? '\n Líder: *' + nomeLider + '*' : '';
-        const linkInfo  = checkUrl  ? '\n Check-in: ' + checkUrl : '';
+        const linkInfo  = checkUrl  ? '\n Check-in: \n' + checkUrl : '';
         return 'Olá, *' + primeiroNome + '*!\n\n' +
             msgEdif + '\n\n' +
             '━━━━━━━━━━━━━━━━\n' +
             ' *Escala de amanhã*\n' +
             ' ' + dataFmt + '\n\n' +
-            cultosLinhas + pinInfo + linkInfo + '\n\n' +
+            cultosLinhas + pinInfo + '\n\n' + linkInfo + '\n\n' +
             'Obrigado pelo seu voluntariado';
     }
 

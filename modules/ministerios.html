@@ -2504,8 +2504,11 @@
         const esc = await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome)&order=data,culto_id`).catch(() => []);
         const cults = min_minCults.map(mc => ({...mc.cultos, vagas: mc.vagas || 1})).filter(Boolean);
         const dias = todosDiasMes(a, m);
-        const tabelaHtml = min_gerarTabelaHtml(esc, cults, dias, a, m);
-        window._minHtml = min_htmlPdf(tabelaHtml, a, m);
+
+        const tabelaHtml      = min_gerarTabelaHtml(esc, cults, dias, a, m, false); // preview escuro
+        const tabelaHtmlPrint = min_gerarTabelaHtml(esc, cults, dias, a, m, true);  // PDF claro
+        window._minHtml = min_htmlPdf(tabelaHtmlPrint, a, m);
+
         window._minTxt = min_textoWhatsApp(esc, cults, dias, a, m);
         el.innerHTML = `<div class="sec-hd">
             <div><div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${min_minAtivo.nome} — ${mesLbl(min_escMes)}</div></div>
@@ -2519,12 +2522,8 @@
         </div>`;
     }
 
-    function min_gerarTabelaHtml(esc, cults, dias, a, m) {
+    function min_gerarTabelaHtml(esc, cults, dias, a, m, forPrint = false) {
         if (!esc.length && !cults.length) return '';
-        //const sabDatas  = dias.filter(d => d.dw === 6);
-        //const domDatas  = dias.filter(d => d.dw === 0);
-        //const cultDatas = cults.map(c => ({ c, datas: isSabado(c.dia_semana)?sabDatas:domDatas }));
-        //const todasDatas = [...new Set(cultDatas.flatMap(cd => cd.datas.map(d => d.iso)))].sort();
 
         const DIA_DW = {
             'Domingo': 0,
@@ -2543,33 +2542,49 @@
 
         const dataMap = Object.fromEntries(dias.map(d => [d.iso, d]));
         if (!todasDatas.length) return '';
+
+        const thBg      = forPrint ? '#009098'  : 'var(--primary)';
+        const thBorder  = forPrint ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.15)';
+        const tdCultoBg = forPrint ? '#e0f7fa'  : 'var(--primary-faint)';
+        const tdCultoBd = forPrint ? '#b2dfdb'  : 'var(--border)';
+        const tdCultoClr= forPrint ? '#009098'  : 'var(--primary-dark)';
+        const tdGrayBg  = forPrint ? '#f5f5f5'  : 'var(--bg-panel)';
+        const tdBorder  = forPrint ? '#e0e0e0'  : 'var(--border)';
+        const tdGrayClr = forPrint ? '#ccc'     : 'var(--text-faint)';
+        const tdEmptyClr= forPrint ? '#bbb'     : 'var(--text-faint)';
+        const tdTextClr = forPrint ? 'inherit'  : 'var(--text-main)';
+        const tdPapelClr= forPrint ? '#e65100'  : 'var(--orange)';
+        const tdNotasClr= forPrint ? '#999'     : 'var(--text-faint)';
+
         let html = `<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit">
         <thead><tr>
-            <th style="background:#009098;color:white;padding:10px 14px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.2);min-width:130px">Culto</th>
+            <th style="background:${thBg};color:white;padding:10px 14px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid ${thBorder};min-width:130px">Culto</th>
             ${todasDatas.map(iso => {
             const {d, dw} = dataMap[iso] || {d: '?', dw: 0};
-            return `<th style="background:#009098;color:white;padding:10px 12px;text-align:center;font-size:10px;border:1px solid rgba(255,255,255,0.2);white-space:nowrap">${String(d).padStart(2, '0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;
+            return `<th style="background:${thBg};color:white;padding:10px 12px;text-align:center;font-size:10px;border:1px solid ${thBorder};white-space:nowrap">${String(d).padStart(2, '0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;
         }).join('')}
         </tr></thead><tbody>`;
         cultDatas.forEach(({c, datas}, ri) => {
             const datasSet = new Set(datas.map(d => d.iso));
-            const bg = ri % 2 === 0 ? '#ffffff' : '#f8fffe';
+            const bg = forPrint ? (ri % 2 === 0 ? '#ffffff' : '#f8fffe') : (ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-panel)');
             html += `<tr>
-                <td style="background:#e0f7fa;padding:10px 14px;font-weight:700;font-size:12px;border:1px solid #b2dfdb;vertical-align:middle">
-                    <div>${c.nome}</div><div style="font-size:10px;color:#009098;font-weight:400">${c.hora_inicio?.slice(0, 5) || ''}</div>
+                <td style="background:${tdCultoBg};padding:10px 14px;font-weight:700;font-size:12px;border:1px solid ${tdCultoBd};vertical-align:middle;color:${tdTextClr}">
+                    <div>${c.nome}</div><div style="font-size:10px;color:${tdCultoClr};font-weight:400">${c.hora_inicio?.slice(0, 5) || ''}</div>
                 </td>
                 ${todasDatas.map(iso => {
-                if (!datasSet.has(iso)) return `<td style="background:#f5f5f5;border:1px solid #e0e0e0;text-align:center;color:#ccc">—</td>`;
+                if (!datasSet.has(iso)) return `<td style="background:${tdGrayBg};border:1px solid ${tdBorder};text-align:center;color:${tdGrayClr}">—</td>`;
                 const ps = esc.filter(e => e.data === iso && e.culto_id === c.id);
-                if (!ps.length) return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;color:#bbb;font-size:11px">---</td>`;
-                return `<td style="background:${bg};border:1px solid #e0e0e0;text-align:center;vertical-align:middle;padding:8px 10px">${ps.map(p => `<div style="padding:2px 0">${p.membros?.nome || '—'}${p.papel_escala !== 'servindo' ? ` <span style="font-size:9px;color:#e65100;font-style:italic">(${p.papel_escala})</span>` : ''}${p.notas ? `<br><span style="font-size:10px;color:#999">${p.notas}</span>` : ''}</div>`).join('')}</td>`;
+                if (!ps.length) return `<td style="background:${bg};border:1px solid ${tdBorder};text-align:center;color:${tdEmptyClr};font-size:11px">---</td>`;
+                return `<td style="background:${bg};border:1px solid ${tdBorder};text-align:center;vertical-align:middle;padding:8px 10px;color:${tdTextClr}">${ps.map(p => `<div style="padding:2px 0">${p.membros?.nome || '—'}${p.papel_escala !== 'servindo' ? ` <span style="font-size:9px;color:${tdPapelClr};font-style:italic">(${p.papel_escala})</span>` : ''}${p.notas ? `<br><span style="font-size:10px;color:${tdNotasClr}">${p.notas}</span>` : ''}</div>`).join('')}</td>`;
             }).join('')}
             </tr>`;
         });
+
         return html + `</tbody></table>`;
     }
 
     function min_htmlPdf(tabelaHtml, a, m) {
+
         return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala ${min_minAtivo.nome} — ${mesLbl(min_escMes)}</title>
         <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
         <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Lato',sans-serif;padding:14mm;color:#111;font-size:13px}@media print{body{padding:8mm}@page{size:A4 landscape;margin:10mm}}</style>
@@ -2846,8 +2861,18 @@
         // Botão para download
         img.onload = () => {
             const dl = document.createElement('div');
-            dl.style.cssText = 'margin-top:8px';
+            dl.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;align-items:center;gap:6px';
             dl.innerHTML = '<a href="' + qrSrc + '&size=400x400" download="qr-' + min_minAtivo.nome + '.png" style="font-size:11px;color:var(--primary-dark);text-decoration:none" target="_blank">⬇ Descarregar PNG</a>';
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn-sm';
+            copyBtn.style.cssText = 'font-size:11px;padding:4px 12px;margin-top:2px';
+            copyBtn.textContent = 'Copiar link';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(url)
+                    .then(() => { copyBtn.textContent = '✓ Copiado!'; setTimeout(() => { copyBtn.textContent = '📋 Copiar link'; }, 2000); })
+                    .catch(() => min_t('Erro ao copiar', 'err'));
+            };
+            dl.appendChild(copyBtn);
             container.appendChild(dl);
         };
     }

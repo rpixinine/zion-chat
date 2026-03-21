@@ -2725,7 +2725,7 @@
         });
 
         // Map de quem já fez check-in
-        const ciMap = {}; 
+        const ciMap = {};
         checkins.forEach(c => {
             ciMap[c.membro_id + '_' + c.culto_id] = c;
         });
@@ -2911,7 +2911,7 @@
         '"Não nos cansemos de fazer o bem."_ — Gl 6:9\nO teu serviço tem recompensa eterna!',
     ];
 
-    async function min_abrirLembretes() {
+    async function min_abrirLembretesOld() {
         // Amanhã
         const amanha = new Date();
         amanha.setDate(amanha.getDate() + 1);
@@ -3048,6 +3048,182 @@
         modal.innerHTML = '';
         modal.appendChild(wrap);
         modal.style.display = 'flex';
+    }
+
+    async function min_abrirLembretes() {
+        const amanha = new Date();
+        amanha.setDate(amanha.getDate() + 1);
+        const amanhaISO = amanha.toISOString().split('T')[0];
+        const diasPT  = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+        const mesesPT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        const amanhaFmt = diasPT[amanha.getDay()] + ', ' + String(amanha.getDate()).padStart(2,'0') + ' de ' + mesesPT[amanha.getMonth()];
+
+        const lidRaw = await min_sb(
+            'ministerio_membros?ministerio_id=eq.' + min_minAtivo.id +
+            '&papel=eq.lider&select=*,membros(nome)&limit=1'
+        ).catch(() => []);
+        const nomeLider = lidRaw?.[0]?.membros?.nome || '';
+        const checkUrl  = window._ciCheckUrl || '';
+
+        const esc = await min_sb(
+            'ministerio_escala?ministerio_id=eq.' + min_minAtivo.id + '&data=eq.' + amanhaISO +
+            '&select=*,membros(id,nome,telefone,checkin_pin),cultos(id,nome,hora_inicio)'
+        ).catch(() => []);
+
+        if (!esc?.length) { min_t('Sem escala para amanhã neste ministério','err'); return; }
+
+        const porMembro = {};
+        esc.forEach(e => {
+            const m = e.membros;
+            if (!m) return;
+            if (!porMembro[m.id]) porMembro[m.id] = { membro: m, cultos: [] };
+            if (e.cultos) porMembro[m.id].cultos.push(e.cultos);
+        });
+        const lista    = Object.values(porMembro);
+        const comTel   = lista.filter(x => x.membro.telefone);
+        const semTel   = lista.filter(x => !x.membro.telefone);
+        const msgEdif  = MSGS_EDIFICANTES[Math.floor(Math.random() * MSGS_EDIFICANTES.length)];
+
+        // Gera mensagem de grupo
+        const msgGrupo = min_gerarMsgGrupo(lista, amanhaFmt);
+
+        let modal = document.getElementById('min-modal-lemb');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'min-modal-lemb';
+            modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+            document.body.appendChild(modal);
+        }
+
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);padding:24px;width:100%;max-width:560px;margin:auto;box-shadow:var(--shadow-md)';
+
+        // ── Cabeçalho
+        wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-family:var(--font-title);font-size:11px;letter-spacing:2px;color:var(--primary-dark)">📲 LEMBRETES DE ESCALA</div>
+        <button class="btn-icon" onclick="document.getElementById('min-modal-lemb').style.display='none'">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-faint);margin-bottom:16px">${amanhaFmt} · ${min_minAtivo.nome}</div>
+
+    <!-- ── MENSAGEM PARA GRUPO ── -->
+    <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--primary-dark)">💬 MENSAGEM PARA GRUPO WHATSAPP</div>
+            <div style="display:flex;gap:6px">
+                <button class="btn-sm" id="btn-copiar-grupo" onclick="min_copiarGrupo()">📋 Copiar</button>
+                <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="document.getElementById('prev-grupo').style.display=document.getElementById('prev-grupo').style.display==='none'?'block':'none'">👁 Ver</button>
+            </div>
+        </div>
+        <div id="prev-grupo" style="display:none;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;line-height:1.8;white-space:pre-wrap;max-height:160px;overflow-y:auto;color:var(--text-main);font-family:monospace">${msgGrupo}</div>
+        <div style="font-size:10px;color:var(--text-faint);margin-top:6px">Copia e cola no grupo — sem PINs individuais, apenas a escala geral.</div>
+    </div>
+
+    <!-- ── LISTA INDIVIDUAL ── -->
+    <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:8px">
+        MENSAGENS INDIVIDUAIS — ${comTel.length} com telemóvel${semTel.length ? ', ' + semTel.length + ' sem' : ''}
+    </div>
+    <div id="lemb-lista" style="display:flex;flex-direction:column;gap:6px"></div>
+    ${semTel.length ? `<div style="margin-top:10px;font-size:11px;color:var(--red);background:rgba(192,57,43,0.06);padding:8px 12px;border-radius:8px">⚠️ Sem telemóvel: ${semTel.map(x=>x.membro.nome).join(', ')}</div>` : ''}
+    <button class="btn-sm" style="width:100%;margin-top:16px" onclick="document.getElementById('min-modal-lemb').style.display='none'">Fechar</button>`;
+
+        modal.innerHTML = '';
+        modal.appendChild(wrap);
+
+        // Guarda dados globais para copiar grupo
+        window._lembMsgGrupo = msgGrupo;
+        window._lembDados = { comTel, amanhaFmt, msgEdif, nomeLider, checkUrl };
+
+        modal.style.display = 'flex';
+
+        // Renderiza lista individual com botões
+        const lista_el = document.getElementById('lemb-lista');
+        comTel.forEach((item, idx) => {
+            const msg = min_gerarMsgLembrete(item.membro, item.cultos, amanhaFmt, msgEdif, nomeLider, checkUrl);
+            const tel = item.membro.telefone.replace(/\D/g,'');
+            const waUrl = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
+            const primeiroNome = item.membro.nome.split(' ')[0];
+            const cultosStr = item.cultos.map(c => c.nome + ' ' + c.hora_inicio.slice(0,5) + 'h').join(' · ');
+
+            const row = document.createElement('div');
+            row.id = 'lemb-row-' + idx;
+            row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);transition:border-color 0.15s';
+            row.innerHTML = `
+            <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:13px">${item.membro.nome}</div>
+                <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title);letter-spacing:0.3px;margin-top:2px">${cultosStr}</div>
+            </div>
+            <button class="btn-sm" style="font-size:10px;padding:3px 8px;white-space:nowrap" onclick="min_prevLembrete(${idx})">👁</button>
+            <button class="btn-sm primary" id="lemb-btn-${idx}" style="white-space:nowrap;font-size:11px" onclick="min_abrirZap(${idx},'${waUrl.replace(/'/g,"\\'")}')">
+                📱 ${primeiroNome}
+            </button>`;
+            lista_el.appendChild(row);
+
+            // Guarda msg para preview
+            row._msg = msg;
+            row._waUrl = waUrl;
+        });
+    }
+
+    // ── Preview individual
+    function min_prevLembrete(idx) {
+        const row = document.getElementById('lemb-row-' + idx);
+        if (!row?._msg) return;
+        let prev = document.getElementById('lemb-prev-' + idx);
+        if (prev) { prev.remove(); return; }
+        prev = document.createElement('div');
+        prev.id = 'lemb-prev-' + idx;
+        prev.style.cssText = 'background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;line-height:1.8;white-space:pre-wrap;color:var(--text-main);font-family:monospace;margin-top:4px';
+        prev.textContent = row._msg;
+        row.after(prev);
+    }
+
+    // ── Abre WhatsApp e marca como enviado
+    function min_abrirZap(idx, waUrl) {
+        window.open(waUrl, '_blank');
+        const btn = document.getElementById('lemb-btn-' + idx);
+        const row = document.getElementById('lemb-row-' + idx);
+        if (btn) { btn.textContent = '✓ Enviado'; btn.classList.remove('primary'); btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)'; btn.disabled = true; }
+        if (row) { row.style.borderColor = 'var(--green)'; row.style.background = 'rgba(46,125,50,0.05)'; }
+    }
+
+    // ── Copia mensagem de grupo
+    function min_copiarGrupo() {
+        if (!window._lembMsgGrupo) return;
+        navigator.clipboard.writeText(window._lembMsgGrupo)
+            .then(() => {
+                const btn = document.getElementById('btn-copiar-grupo');
+                if (btn) { btn.textContent = '✓ Copiado!'; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; setTimeout(()=>{ btn.textContent='📋 Copiar'; btn.style.borderColor=''; btn.style.color=''; },2500); }
+            })
+            .catch(() => min_t('Erro ao copiar','err'));
+    }
+
+    // ── Gera texto para grupo (sem PIN, sem link individual)
+    function min_gerarMsgGrupo(lista, dataFmt) {
+        // Agrupa por culto
+        const porCulto = {};
+        lista.forEach(item => {
+            item.cultos.forEach(c => {
+                const key = c.id;
+                if (!porCulto[key]) porCulto[key] = { nome: c.nome, hora: c.hora_inicio.slice(0,5), membros: [] };
+                porCulto[key].membros.push(item.membro.nome);
+            });
+        });
+
+        let s = `📅 *ESCALA DE AMANHÃ*\n`;
+        s += `*${min_minAtivo.nome.toUpperCase()}*\n`;
+        s += `*${dataFmt}*\n`;
+        s += '━━━━━━━━━━━━━━━━\n\n';
+
+        Object.values(porCulto).forEach(c => {
+            s += `🎯 *${c.nome}* (${c.hora}h)\n`;
+            c.membros.forEach(nome => { s += `  • ${nome}\n`; });
+            s += '\n';
+        });
+
+        s += '_Por favor confirma a tua presença com o líder._\n';
+        s += `_Dúvidas? Fala com ${window._lembDados?.nomeLider || 'o líder'}._`;
+        return s;
     }
 
     function min_gerarMsgLembrete(membro, cultos, dataFmt, msgEdif, nomeLider, checkUrl) {

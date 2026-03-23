@@ -12,68 +12,145 @@ export default async function handler(req, res) {
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (req.method === "OPTIONS") return res.status(200).end();
-    if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+    if (req.method !== "POST")   return res.status(405).json({ error: "Method Not Allowed" });
 
     try {
-        const { nome, email, telefone, password, onde_conheceu } = req.body;
+        const { nome, nif, email, telefone, onde_conheceu, foto_url, password } = req.body;
 
-        if (!nome || !email || !password)
-            return res.status(400).json({ error: "Nome, email e password são obrigatórios." });
-
-        if (password.length < 6)
-            return res.status(400).json({ error: "Password deve ter pelo menos 6 caracteres." });
+        // ── Validações básicas ─────────────────────────────────
+        if (!nome?.trim())     return res.status(400).json({ error: "Nome obrigatório." });
+        if (!email?.trim())    return res.status(400).json({ error: "Email obrigatório." });
+        if (!password)         return res.status(400).json({ error: "Password obrigatória." });
+        if (password.length < 6) return res.status(400).json({ error: "Password deve ter pelo menos 6 caracteres." });
 
         const emailNorm = email.toLowerCase().trim();
+        const nifNorm   = nif?.replace(/\D/g, '') || null;
 
-        // Verifica se email já existe
-        const { data: existing } = await supabase
+        // Valida NIF se fornecido (9 dígitos)
+        if (nifNorm && nifNorm.length !== 9) {
+            return res.status(400).json({ error: "NIF inválido. Deve ter 9 dígitos." });
+        }
+
+        // ── Verifica se email já está registado ────────────────
+        const { data: emailExistente } = await supabase
             .from("usuarios")
             .select("id")
             .eq("email", emailNorm)
             .single();
 
-        if (existing)
-            return res.status(409).json({ error: "Este email já tem conta. Faz login." });
+        if (emailExistente) {
+            return res.status(409).json({ error: "Este email já tem conta registada." });
+        }
 
-        // Hash da password
-        const password_hash = await bcrypt.hash(password, 12);
+        // ── Verifica se NIF já está registado noutro utilizador ─
+        if (nifNorm) {
+            const { data: nifExistente } = await supabase
+                .from("usuarios")
+                .select("id")
+                .eq("nif", nifNorm)
+                .single();
 
-        // 1. Cria registo na tabela visitantes
-        const { data: visitante, error: errV } = await supabase
-            .from("visitantes")
-            .insert({
-                nome,
-                email: emailNorm,
-                telefone:       telefone || null,
-                onde_conheceu:  onde_conheceu || null,
-                data_visita:    new Date().toISOString().split("T")[0],
-                ativo:          true,
-            })
-            .select()
-            .single();
+            if (nifExistente) {
+                return res.status(409).json({ error: "Este NIF já está associado a outra conta." });
+            }
+        }
 
-        if (errV) throw new Error("Erro ao criar visitante: " + errV.message);
+        // ── Auto-vínculo com membro existente ──────────────────
+        // Procura membro pelo NIF (prioridade) ou email
+        // Não dá permissão de admin — máximo é 'membro'
+        let membroId   = null;
+        let visitanteId = null;
+        let tipo        = "visitante";
 
-        // 2. Cria conta na tabela usuarios
-        const { data: usuario, error: errU } = await supabase
+        // 1. Tenta match por NIF
+        if (nifNorm) {
+            const { data: membroPorNif } = await supabase
+                .from("membros")
+                .select("id, email, ativo")
+                .eq("nif", nifNorm)
+                .eq("ativo", true)
+                .single();
+
+            if (membroPorNif) {
+                membroId = membroPorNif.id;
+                tipo     = "membro";
+            }
+        }
+
+        // 2. Se não encontrou por NIF, tenta por email
+        if (!membroId) {
+            const { data: membroPorEmail } = await supabase
+                .from("membros")
+                .select("id, ativo")
+                .eq("email", emailNorm)
+                .eq("ativo", true)
+                .single();
+
+            if (membroPorEmail) {
+                membroId = membroPorEmail.id;
+                tipo     = "membro";
+            }
+        }
+
+        // 3. Se não é membro, cria registo de visitante
+        if (!membroId) {
+            const { data: novoVisitante, error: visitanteErr } = await supabase
+                .from("visitantes")
+                .insert({
+                    nome:           nome.trim(),
+                    nif:            nifNorm,
+                    email:          emailNorm,
+                    telefone:       telefone || null,
+                    onde_conheceu:  onde_conheceu || null,
+                    foto_url:       foto_url || null,
+                })
+                .select("id")
+                .single();
+
+            if (visitanteErr) {
+                console.error("[register] visitante insert:", visitanteErr);
+                throw new Error("Erro ao criar perfil de visitante.");
+            }
+
+            visitanteId = novoVisitante.id;
+        }
+
+        // ── Hash da password ───────────────────────────────────
+        const passwordHash = await bcrypt.hash(password, 12);
+
+        // ── Cria utilizador ────────────────────────────────────
+        const { data: novoUser, error: userErr } = await supabase
             .from("usuarios")
             .insert({
-                nome,
+                nome:         nome.trim(),
+                nif:          nifNorm,
                 email:        emailNorm,
-                password_hash,
-                tipo:         "visitante",
-                visitante_id: visitante.id,
-                membro_id:    null,
+                password_hash: passwordHash,
+                tipo,                          // 'visitante' ou 'membro'
+                membro_id:    membroId,         // null se visitante
+                visitante_id: visitanteId,      // null se membro vinculado
+                foto_url:     foto_url || null,
                 ativo:        true,
             })
-            .select()
+            .select("id, nome, email, tipo, membro_id, visitante_id")
             .single();
 
-        if (errU) throw new Error("Erro ao criar utilizador: " + errU.message);
+        if (userErr) {
+            console.error("[register] usuario insert:", userErr);
+            throw new Error("Erro ao criar conta.");
+        }
 
-        // Gera token JWT
+        // Se vinculou a membro, actualiza o registo do membro com o user_id
+        if (membroId) {
+            await supabase
+                .from("membros")
+                .update({ usuario_id: novoUser.id })
+                .eq("id", membroId);
+        }
+
+        // ── Gera token JWT ─────────────────────────────────────
         const token = jwt.sign(
-            { id: usuario.id, email: usuario.email, tipo: usuario.tipo },
+            { id: novoUser.id, email: novoUser.email, tipo: novoUser.tipo },
             process.env.JWT_SECRET,
             { expiresIn: "7d" }
         );
@@ -81,17 +158,18 @@ export default async function handler(req, res) {
         return res.status(201).json({
             token,
             user: {
-                id:           usuario.id,
-                nome:         usuario.nome,
-                email:        usuario.email,
-                tipo:         usuario.tipo,
-                visitante_id: usuario.visitante_id,
-                membro_id:    null,
+                id:           novoUser.id,
+                nome:         novoUser.nome,
+                email:        novoUser.email,
+                tipo:         novoUser.tipo,       // 'visitante' ou 'membro' (nunca 'admin' por registo)
+                membro_id:    novoUser.membro_id,
+                visitante_id: novoUser.visitante_id,
+                vinculado:    !!membroId,          // true se foi auto-vinculado a membro
             }
         });
 
     } catch (err) {
         console.error("[auth/register]", err);
-        return res.status(500).json({ error: err.message || "Erro interno." });
+        return res.status(500).json({ error: err.message || "Erro interno. Tenta novamente." });
     }
 }

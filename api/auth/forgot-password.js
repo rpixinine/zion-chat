@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-import { emailRecuperacaoPassword, APP_URL } from "./emailTemplates.js";
+import { emailRecuperacaoPassword, APP_URL } from "./email-templates.js";
 
 const supabase = createClient(
     process.env.SUPABASE_URL,

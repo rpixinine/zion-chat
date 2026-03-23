@@ -46,26 +46,36 @@
             position: relative;
             min-width: 0;
             overflow: hidden;
+            background: #02161e; /* fallback enquanto carrega */
         }
 
         .carousel-slide {
             position: absolute;
             inset: 0;
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
             opacity: 0;
             transition: opacity 1.2s ease-in-out;
         }
         .carousel-slide.active { opacity: 1; }
+
+        /* A imagem em si — usa <img> para controlar object-fit */
+        .carousel-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;        /* preenche sempre sem distorcer */
+            object-position: center;  /* centra horizontal e verticalmente */
+            display: block;
+        }
+
+        /* Overlay escuro sobre a imagem */
         .carousel-slide::after {
             content: '';
             position: absolute;
             inset: 0;
             background: linear-gradient(160deg,
-            rgba(2, 22, 30, 0.50) 0%,
+            rgba(2, 22, 30, 0.55) 0%,
             rgba(0, 40, 50, 0.25) 50%,
-            rgba(0, 0, 0, 0.45) 100%);
+            rgba(0, 0, 0, 0.50) 100%);
+            pointer-events: none;
         }
 
         /* Logo topo esquerdo */
@@ -75,12 +85,14 @@
             left: 32px;
             z-index: 2;
         }
-        .auth-image-logo img {
+        .auth-image-logo img.logo-img {
             height: 36px;
             width: auto;
             object-fit: contain;
             filter: brightness(0) invert(1);
             opacity: 0.90;
+            /* reset do object-position do carrossel */
+            object-position: initial;
         }
         .auth-image-logo-text {
             font-family: var(--font);
@@ -105,12 +117,12 @@
             align-items: center;
         }
         .carousel-dot {
-            width: 6px;
-            height: 6px;
+            width: 6px; height: 6px;
             border-radius: 50%;
             background: rgba(255,255,255,0.35);
             transition: all 0.3s ease;
             cursor: pointer;
+            border: none;
         }
         .carousel-dot.active {
             background: var(--cta-light);
@@ -133,48 +145,19 @@
         .auth-form::-webkit-scrollbar { width: 3px; }
         .auth-form::-webkit-scrollbar-thumb { background: rgba(0,144,152,0.2); border-radius: 2px; }
 
-        .auth-inner {
-            width: 100%;
-            max-width: 420px;
-            padding: 48px 40px;
-        }
+        .auth-inner { width: 100%; max-width: 420px; padding: 48px 40px; }
 
-        .auth-logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 32px;
-        }
+        .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
         .auth-logo-line { width: 28px; height: 2px; background: var(--cta); border-radius: 2px; }
-        .auth-logo-text {
-            font-family: var(--font);
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: var(--cta-light);
-        }
+        .auth-logo-text { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--cta-light); }
 
-        .tabs {
-            display: flex;
-            border-radius: var(--radius);
-            overflow: hidden;
-            border: 1px solid var(--border);
-            margin-bottom: 28px;
-        }
+        .tabs { display: flex; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 28px; }
         .tab {
-            flex: 1;
-            padding: 11px;
-            cursor: pointer;
-            background: var(--bg-input);
-            border: none;
-            font-family: var(--font);
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--text-faint);
-            transition: all 0.2s;
+            flex: 1; padding: 11px; cursor: pointer;
+            background: var(--bg-input); border: none;
+            font-family: var(--font); font-size: 11px; font-weight: 500;
+            letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-faint); transition: all 0.2s;
         }
         .tab:first-child { border-right: 1px solid var(--border); }
         .tab.active { background: var(--cta); color: #fff; }
@@ -182,38 +165,23 @@
 
         .form-section { display: none; }
         .form-section.active { display: block; }
-
         .form-group { margin-bottom: 13px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 13px; }
 
         .form-label {
-            display: block;
-            font-family: var(--font);
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--text-faint);
-            margin-bottom: 6px;
+            display: block; font-family: var(--font);
+            font-size: 10px; font-weight: 600; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px;
         }
 
         .form-input, .form-textarea {
-            width: 100%;
-            padding: 11px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
-            font-family: var(--font);
-            font-size: 14px;
-            color: var(--text);
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%; padding: 11px 14px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg-input);
+            font-family: var(--font); font-size: 14px; color: var(--text);
+            outline: none; transition: border-color 0.2s, box-shadow 0.2s;
         }
         .form-input::placeholder, .form-textarea::placeholder { color: var(--text-faint); }
-        .form-input:focus, .form-textarea:focus {
-            border-color: var(--cta);
-            box-shadow: 0 0 0 3px var(--cta-faint);
-        }
+        .form-input:focus, .form-textarea:focus { border-color: var(--cta); box-shadow: 0 0 0 3px var(--cta-faint); }
         .form-input.error { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
         .form-textarea { resize: none; height: 68px; line-height: 1.5; }
 
@@ -221,15 +189,10 @@
         .input-password-wrap { position: relative; }
         .input-password-wrap .form-input { padding-right: 42px; }
         .password-toggle {
-            position: absolute;
-            right: 12px; top: 50%;
-            transform: translateY(-50%);
-            background: none; border: none;
-            cursor: pointer; padding: 4px;
-            color: var(--text-faint);
-            display: flex; align-items: center; justify-content: center;
-            transition: color 0.2s;
-            -webkit-tap-highlight-color: transparent;
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; padding: 4px;
+            color: var(--text-faint); display: flex; align-items: center; justify-content: center;
+            transition: color 0.2s; -webkit-tap-highlight-color: transparent;
         }
         .password-toggle:hover { color: var(--cta-light); }
         .password-toggle svg { width: 17px; height: 17px; pointer-events: none; }
@@ -247,25 +210,16 @@
 
         /* Foto */
         .photo-upload-wrap {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 18px;
-            padding: 13px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+            padding: 13px; background: var(--bg-input);
+            border: 1px solid var(--border); border-radius: 10px;
         }
         .photo-preview {
-            width: 58px; height: 58px;
-            border-radius: 50%;
+            width: 58px; height: 58px; border-radius: 50%;
             background: var(--cta-faint) center center / cover no-repeat;
-            border: 2px solid var(--border-cta);
-            flex-shrink: 0;
+            border: 2px solid var(--border-cta); flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            overflow: hidden;
-            transition: border-color 0.2s;
+            cursor: pointer; overflow: hidden; transition: border-color 0.2s;
         }
         .photo-preview svg { width: 20px; height: 20px; color: var(--cta-light); }
         .photo-preview.has-image svg { display: none; }
@@ -287,81 +241,42 @@
         #foto-input-galeria, #foto-input-camera { display: none; }
 
         .submit-btn {
-            width: 100%;
-            padding: 13px;
-            border: 1px solid var(--cta);
-            border-radius: 8px;
-            background: var(--cta);
-            color: #fff;
-            font-family: var(--font);
-            font-size: 12px; font-weight: 600;
+            width: 100%; padding: 13px; border: 1px solid var(--cta);
+            border-radius: 8px; background: var(--cta); color: #fff;
+            font-family: var(--font); font-size: 12px; font-weight: 600;
             letter-spacing: 2px; text-transform: uppercase;
-            cursor: pointer; margin-top: 4px;
-            transition: all 0.2s;
+            cursor: pointer; margin-top: 4px; transition: all 0.2s;
             box-shadow: 0 4px 20px rgba(0,144,152,0.25);
         }
-        .submit-btn:hover {
-            background: var(--cta-light); border-color: var(--cta-light);
-            box-shadow: 0 6px 28px rgba(0,144,152,0.35);
-            transform: translateY(-1px);
-        }
+        .submit-btn:hover { background: var(--cta-light); border-color: var(--cta-light); box-shadow: 0 6px 28px rgba(0,144,152,0.35); transform: translateY(-1px); }
         .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
         .forgot-link {
             background: none; border: none; cursor: pointer;
             font-family: var(--font); font-size: 11px; letter-spacing: 1px;
-            color: var(--text-faint);
-            text-decoration: underline; text-underline-offset: 3px;
+            color: var(--text-faint); text-decoration: underline; text-underline-offset: 3px;
             transition: color 0.2s;
         }
         .forgot-link:hover { color: var(--cta-light); }
 
-        .msg-box {
-            padding: 10px 13px; border-radius: 8px;
-            font-size: 13px; margin-bottom: 14px;
-            display: none; line-height: 1.5;
-        }
+        .msg-box { padding: 10px 13px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; line-height: 1.5; }
         .msg-box.error   { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red); display: block; }
         .msg-box.success { background: var(--cta-faint); border: 1px solid var(--border-cta); color: var(--cta-light); display: block; }
 
-        .form-divider {
-            display: flex; align-items: center; gap: 10px;
-            margin: 4px 0 13px;
-        }
+        .form-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 13px; }
         .form-divider-line { flex: 1; height: 1px; background: var(--border); }
-        .form-divider-txt {
-            font-family: var(--font); font-size: 9px; font-weight: 600;
-            letter-spacing: 2px; color: var(--text-faint); text-transform: uppercase;
-        }
+        .form-divider-txt { font-family: var(--font); font-size: 9px; font-weight: 600; letter-spacing: 2px; color: var(--text-faint); text-transform: uppercase; }
 
         /* Modal */
         #forgot-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 300; display: none;
-            align-items: center; justify-content: center;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            z-index: 300; display: none; align-items: center; justify-content: center;
             padding: 20px; backdrop-filter: blur(5px);
         }
-        .forgot-modal {
-            width: 100%; max-width: 400px;
-            background: #0a2030;
-            border: 1px solid var(--border); border-radius: 14px;
-            overflow: hidden;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-            animation: scaleIn 0.2s ease;
-        }
-        .forgot-modal-head {
-            padding: 14px 20px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-        }
+        .forgot-modal { width: 100%; max-width: 400px; background: #0a2030; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.5); animation: scaleIn 0.2s ease; }
+        .forgot-modal-head { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         .forgot-modal-title { font-family: var(--font); font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--cta-light); }
-        .forgot-modal-x {
-            width: 26px; height: 26px; border-radius: 50%;
-            border: 1px solid var(--border); background: none;
-            cursor: pointer; font-size: 14px; color: var(--text-faint);
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s;
-        }
+        .forgot-modal-x { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border); background: none; cursor: pointer; font-size: 14px; color: var(--text-faint); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .forgot-modal-x:hover { border-color: var(--red-border); color: var(--red); }
         .forgot-modal-body { padding: 20px; }
         .forgot-modal-body p { font-size: 13px; color: var(--text-faint); line-height: 1.6; margin-bottom: 16px; }
@@ -371,7 +286,7 @@
             body { flex-direction: column; overflow-y: auto; height: auto; min-height: 100vh; }
             .auth-image { height: 240px; flex: none; width: 100%; }
             .auth-image-logo { top: 20px; left: 20px; }
-            .auth-image-logo img { height: 28px; }
+            .auth-image-logo .logo-img { height: 28px; }
             .auth-form { flex: none; width: 100%; border-left: none; border-top: 1px solid var(--border); align-items: stretch; }
             .auth-inner { max-width: 100%; padding: 30px 22px 48px; }
         }
@@ -385,23 +300,38 @@
 <div class="auth-image">
 
     <!--
-        Coloca aqui as tuas 4 fotos em assets/
-        Troca slide1.jpg, slide2.jpg... pelos nomes reais
-    -->
-    <div class="carousel-slide active" style="background-image: url('assets/zion-alto.avif')"></div>
-    <div class="carousel-slide"        style="background-image: url('assets/zion-somos.avif')"></div>
-    <div class="carousel-slide"        style="background-image: url('assets/zion-visao.avif')"></div>
-    <div class="carousel-slide"        style="background-image: url('assets/palco-zion.avif')"></div>
-    <div class="carousel-slide"        style="background-image: url('assets/zion-adoracao.png')"></div>
+        Usa <img> em vez de background-image para ter controlo total
+        com object-fit: cover — todas as fotos ficam ao mesmo tamanho
+        sem distorção independentemente das dimensões originais.
 
-    <!-- Logo pequeno no topo -->
+        object-position: center center  → centra a foto
+        Podes ajustar por foto, ex: object-position: center top
+        para fotos de pessoas (mostra o rosto em vez dos pés)
+    -->
+    <div class="carousel-slide active">
+        <img src="assets/zion-alto.avif" alt="" loading="eager" object-position="center center">
+    </div>
+    <div class="carousel-slide">
+        <img src="assets/zion-somos.avif" alt="" loading="lazy">
+    </div>
+    <div class="carousel-slide">
+        <img src="assets/zion-visao.avif" alt="" loading="lazy">
+    </div>
+    <div class="carousel-slide">
+        <img src="assets/palco-zion.avif" alt="" loading="lazy">
+    </div>
+    <div class="carousel-slide">
+        <img src="assets/zion-adoracao.png" alt="" loading="lazy">
+    </div>
+
+    <!-- Logo no topo -->
     <div class="auth-image-logo">
-        <img src="assets/logo-zion-branca.svg" alt="Zion Lisboa"
+        <img class="logo-img" src="assets/logo-zion-branca.svg" alt="Zion Lisboa"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
         <span class="auth-image-logo-text">ZION</span>
     </div>
 
-    <!-- Dots indicadores -->
+    <!-- Dots -->
     <div class="carousel-dots" id="carousel-dots"></div>
 </div>
 
@@ -562,13 +492,12 @@
     // ── Carrossel ──────────────────────────────────────
     const slides   = document.querySelectorAll('.carousel-slide');
     const dotsWrap = document.getElementById('carousel-dots');
-    let current    = 0;
-    let timer      = null;
+    let current = 0, timer = null;
 
-    // Cria os dots dinamicamente
     slides.forEach((_, i) => {
-        const dot = document.createElement('div');
+        const dot = document.createElement('button');
         dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', `Slide ${i + 1}`);
         dot.addEventListener('click', () => { goTo(i); resetTimer(); });
         dotsWrap.appendChild(dot);
     });
@@ -580,16 +509,12 @@
         slides[current].classList.add('active');
         dotsWrap.children[current].classList.add('active');
     }
-
-    function next() { goTo((current + 1) % slides.length); }
-
+    function next()       { goTo((current + 1) % slides.length); }
     function startTimer() { timer = setInterval(next, 3000); }
-    function resetTimer()  { clearInterval(timer); startTimer(); }
+    function resetTimer() { clearInterval(timer); startTimer(); }
 
-    // Pausa ao hover
     document.querySelector('.auth-image').addEventListener('mouseenter', () => clearInterval(timer));
     document.querySelector('.auth-image').addEventListener('mouseleave', startTimer);
-
     startTimer();
 
     // ── Toggle password ────────────────────────────────
@@ -709,7 +634,13 @@
                     headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': fotoFile.type },
                     body: fotoFile,
                 });
-                if (uploadRes.ok) fotoUrl = `${SUPA_URL}/storage/v1/object/public/imagens/${filename}`;
+                if (uploadRes.ok) {
+                    fotoUrl = `${SUPA_URL}/storage/v1/object/public/imagens/${filename}`;
+                } else {
+                    const uploadErr = await uploadRes.json().catch(() => ({}));
+                    console.warn('[upload foto]', uploadRes.status, uploadErr);
+                    // Continua sem foto — não bloqueia o registo
+                }
             }
             await ZionAuth.register({
                 nome: `${nome} ${apelido}`.trim(),
@@ -754,7 +685,7 @@
         btn.disabled = true; btn.textContent = 'A enviar...';
         try {
             await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email}) });
-            msgEl.textContent = 'Email enviado! Verifica a tua caixa de entrada.';
+            msgEl.textContent = 'Se este email tiver conta, receberás instruções em breve.';
             msgEl.className = 'msg-box success';
             btn.textContent = 'Email enviado';
             setTimeout(() => fecharForgot(), 4000);
@@ -765,7 +696,6 @@
         }
     }
 
-    // ── Redirect se já logado ──────────────────────────
     if (typeof ZionAuth !== 'undefined' && ZionAuth.isLoggedIn()) {
         const redirect = sessionStorage.getItem('zion_redirect');
         sessionStorage.removeItem('zion_redirect');

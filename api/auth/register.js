@@ -29,101 +29,82 @@ export default async function handler(req, res) {
         if (nifNorm && nifNorm.length !== 9)
             return res.status(400).json({ error: "NIF inválido. Deve ter 9 dígitos." });
 
-        // ── Verifica se email já está registado ────────────────
+        // ── Verifica se email já está registado em usuarios ────
         const { data: emailExistente } = await supabase
             .from("usuarios")
             .select("id")
             .eq("email", emailNorm)
-            .maybeSingle(); // maybeSingle não lança erro se não encontrar
+            .maybeSingle();
 
         if (emailExistente)
             return res.status(409).json({ error: "Este email já tem conta registada." });
 
-        // ── Verifica se NIF já está em uso ─────────────────────
-        if (nifNorm) {
-            const { data: nifExistente } = await supabase
-                .from("usuarios")
-                .select("id")
-                .eq("nif", nifNorm)
-                .maybeSingle();
-
-            if (nifExistente)
-                return res.status(409).json({ error: "Este NIF já está associado a outra conta." });
-        }
-
-        // ── Tenta auto-vínculo com membro existente ────────────
+        // ── Auto-vínculo com membro existente ──────────────────
+        // Schema membros: tem coluna nif (text) e email (text)
         // Prioridade: NIF → email
-        // Usa maybeSingle para não crashar se não encontrar ou se coluna não existir
         let membroId    = null;
         let visitanteId = null;
         let tipo        = "visitante";
 
-        // 1. Tenta por NIF (só se a coluna nif existir na tabela membros)
+        // 1. Tenta por NIF (coluna nif existe em membros ✓)
         if (nifNorm) {
-            try {
-                const { data: membroPorNif } = await supabase
-                    .from("membros")
-                    .select("id")
-                    .eq("nif", nifNorm)
-                    .eq("ativo", true)
-                    .maybeSingle();
+            const { data: membroPorNif } = await supabase
+                .from("membros")
+                .select("id, nome, email")
+                .eq("nif", nifNorm)
+                .eq("ativo", true)
+                .maybeSingle();
 
-                if (membroPorNif) {
-                    membroId = membroPorNif.id;
-                    tipo     = "membro";
-                    console.log(`[register] Vínculo por NIF: membro_id=${membroId}`);
-                }
-            } catch (e) {
-                // Coluna nif não existe na tabela membros — ignora e continua
-                console.warn("[register] Coluna nif não encontrada em membros:", e.message);
+            if (membroPorNif) {
+                membroId = membroPorNif.id;
+                tipo     = "membro";
+                console.log(`[register] Vínculo por NIF → membro_id=${membroId} (${membroPorNif.nome})`);
             }
         }
 
-        // 2. Tenta por email se ainda não encontrou
+        // 2. Tenta por email se não encontrou por NIF
+        //    (membros.email tem unique key, maybeSingle é seguro)
         if (!membroId) {
-            try {
-                const { data: membroPorEmail } = await supabase
-                    .from("membros")
-                    .select("id")
-                    .eq("email", emailNorm)
-                    .eq("ativo", true)
-                    .maybeSingle();
+            const { data: membroPorEmail } = await supabase
+                .from("membros")
+                .select("id, nome")
+                .eq("email", emailNorm)
+                .eq("ativo", true)
+                .maybeSingle();
 
-                if (membroPorEmail) {
-                    membroId = membroPorEmail.id;
-                    tipo     = "membro";
-                    console.log(`[register] Vínculo por email: membro_id=${membroId}`);
-                }
-            } catch (e) {
-                console.warn("[register] Erro ao buscar membro por email:", e.message);
+            if (membroPorEmail) {
+                membroId = membroPorEmail.id;
+                tipo     = "membro";
+                console.log(`[register] Vínculo por email → membro_id=${membroId} (${membroPorEmail.nome})`);
             }
         }
 
-        // 3. Se visitante, cria registo na tabela visitantes
+        // 3. Se não é membro → cria visitante
+        //    Schema visitantes: id, nome, email, telefone, zona,
+        //    onde_conheceu, data_visita, convertido, membro_id,
+        //    observacoes, created_at, ativo
+        //    NÃO tem: nif, foto_url (essas colunas não existem)
         if (!membroId) {
-            // Constrói o payload de forma segura — só inclui campos que provavelmente existem
-            const visitantePayload = {
-                nome:          nome.trim(),
-                email:         emailNorm,
-                foto_url:      foto_url || null,
-            };
-            // Campos opcionais — adicionados só se tiverem valor
-            if (telefone)      visitantePayload.telefone      = telefone;
-            if (onde_conheceu) visitantePayload.onde_conheceu = onde_conheceu;
-            if (nifNorm)       visitantePayload.nif           = nifNorm;
-
             const { data: novoVisitante, error: visitanteErr } = await supabase
                 .from("visitantes")
-                .insert(visitantePayload)
+                .insert({
+                    nome:          nome.trim(),
+                    email:         emailNorm,
+                    telefone:      telefone || null,
+                    onde_conheceu: onde_conheceu || null,
+                    ativo:         true,
+                    // foto_url NÃO existe em visitantes
+                    // nif NÃO existe em visitantes
+                })
                 .select("id")
                 .single();
 
             if (visitanteErr) {
-                // Se a tabela visitantes não existir ou coluna falhar, continua sem visitante_id
-                console.warn("[register] Não foi possível criar visitante:", visitanteErr.message);
-                // Não bloqueia o registo — o utilizador fica sem visitante_id
+                // Loga mas não bloqueia — o utilizador fica sem visitante_id
+                console.warn("[register] Erro ao criar visitante:", visitanteErr.message);
             } else {
                 visitanteId = novoVisitante.id;
+                console.log(`[register] Visitante criado → visitante_id=${visitanteId}`);
             }
         }
 
@@ -131,55 +112,52 @@ export default async function handler(req, res) {
         const passwordHash = await bcrypt.hash(password, 12);
 
         // ── Cria utilizador ────────────────────────────────────
-        // Payload base — apenas colunas que certamente existem
-        const userPayload = {
-            nome:          nome.trim(),
-            email:         emailNorm,
-            password_hash: passwordHash,
-            tipo,
-            ativo:         true,
-            foto_url:      foto_url || null,
-        };
-
-        // Colunas opcionais — só adiciona se tiverem valor
-        // Se a coluna não existir no schema, o Supabase ignora (ou retorna erro tratado abaixo)
-        if (nifNorm)     userPayload.nif          = nifNorm;
-        if (membroId)    userPayload.membro_id     = membroId;
-        if (visitanteId) userPayload.visitante_id  = visitanteId;
-        if (telefone)    userPayload.telefone       = telefone;
-
+        // Schema usuarios: id, nome, email, password_hash, tipo,
+        //   visitante_id, membro_id, ativo, created_at, updated_at,
+        //   e_admin, ultimo_acesso, ver_*/criar_*/editar_*/eliminar_*
+        //
+        // NÃO tem: nif, telefone, foto_url
+        // (essas colunas existem em membros/visitantes, não em usuarios)
         const { data: novoUser, error: userErr } = await supabase
             .from("usuarios")
-            .insert(userPayload)
+            .insert({
+                nome:          nome.trim(),
+                email:         emailNorm,
+                password_hash: passwordHash,
+                tipo,                           // 'visitante' ou 'membro'
+                membro_id:     membroId,         // null se visitante
+                visitante_id:  visitanteId,      // null se membro vinculado
+                ativo:         true,
+                e_admin:       false,
+                // Permissões todas a false por defeito (o schema já tem default false)
+            })
             .select("id, nome, email, tipo, membro_id, visitante_id")
             .single();
 
         if (userErr) {
             console.error("[register] Erro ao inserir usuario:", JSON.stringify(userErr));
 
-            // Mensagem mais amigável para erros comuns
-            if (userErr.code === "23505") // unique violation
+            if (userErr.code === "23505")  // unique violation (email duplicado)
                 return res.status(409).json({ error: "Este email já tem conta registada." });
 
-            if (userErr.code === "42703") // column does not exist
-                return res.status(500).json({
-                    error: `Coluna em falta na tabela usuarios: ${userErr.message}. Verifica o schema da BD.`
-                });
+            if (userErr.code === "42703")  // column does not exist
+                return res.status(500).json({ error: `Schema desactualizado: ${userErr.message}` });
+
+            if (userErr.code === "23514")  // check constraint violation
+                return res.status(400).json({ error: `Valor inválido: ${userErr.message}` });
 
             throw new Error(userErr.message);
         }
 
-        // ── Actualiza membro com o user_id (se vinculou) ───────
-        if (membroId) {
-            try {
-                await supabase
-                    .from("membros")
-                    .update({ usuario_id: novoUser.id })
-                    .eq("id", membroId);
-            } catch (e) {
-                // Coluna usuario_id pode não existir — não bloqueia
-                console.warn("[register] Não foi possível actualizar usuario_id em membros:", e.message);
-            }
+        // ── Actualiza foto_url no membro se vinculou ───────────
+        // membros tem foto_url ✓ — aproveita para guardar a foto
+        // mesmo que o user já seja membro, actualiza a foto se foi enviada
+        if (membroId && foto_url) {
+            await supabase
+                .from("membros")
+                .update({ foto_url })
+                .eq("id", membroId)
+                .is("foto_url", null); // só actualiza se o membro ainda não tiver foto
         }
 
         // ── Gera token JWT ─────────────────────────────────────
@@ -195,15 +173,15 @@ export default async function handler(req, res) {
                 id:           novoUser.id,
                 nome:         novoUser.nome,
                 email:        novoUser.email,
-                tipo:         novoUser.tipo,
+                tipo:         novoUser.tipo,          // 'visitante' ou 'membro'
                 membro_id:    novoUser.membro_id    || null,
                 visitante_id: novoUser.visitante_id || null,
-                vinculado:    !!membroId,
+                vinculado:    !!membroId,             // true se foi auto-vinculado a membro existente
             }
         });
 
     } catch (err) {
-        console.error("[auth/register] ERRO GERAL:", err.message, err.stack);
+        console.error("[auth/register] ERRO GERAL:", err.message);
         return res.status(500).json({ error: err.message || "Erro interno. Tenta novamente." });
     }
 }

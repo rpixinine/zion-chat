@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import crypto from "crypto";
 
 const supabase = createClient(
@@ -7,13 +7,16 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const APP_URL = process.env.APP_URL || "https://zion-lisboa.vercel.app";
 
-// Email remetente:
-//   Desenvolvimento → usa onboarding@resend.dev (não precisa de domínio verificado)
-//   Produção        → define RESEND_FROM_EMAIL=noreply@zionlisboa.pt (ou o teu domínio)
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-const APP_URL    = process.env.APP_URL || "https://zion-lisboa.vercel.app"; // ajusta para o teu URL Vercel
+// Transporter Gmail com App Password
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD, 
+    },
+});
 
 export default async function handler(req, res) {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -30,7 +33,7 @@ export default async function handler(req, res) {
 
         const emailNorm = email.toLowerCase().trim();
 
-        // 1. Verifica se o utilizador existe (não revela se existe ou não por segurança)
+        // 1. Verifica se utilizador existe e está activo
         const { data: user } = await supabase
             .from("usuarios")
             .select("id, nome, email, ativo")
@@ -38,9 +41,9 @@ export default async function handler(req, res) {
             .single();
 
         // Responde sempre com sucesso para não revelar se o email existe
-        // O email só é enviado se o utilizador existir e estiver activo
         if (user && user.ativo) {
-            // 2. Invalida tokens anteriores deste email
+
+            // 2. Invalida tokens anteriores
             await supabase
                 .from("password_resets")
                 .update({ usado: true })
@@ -58,16 +61,17 @@ export default async function handler(req, res) {
                     email:      emailNorm,
                     token,
                     expires_at: expiresAt.toISOString(),
+                    usado:      false,
                 });
 
             if (insertErr) throw new Error("Erro ao gerar token: " + insertErr.message);
 
-            // 5. Envia email
-            const resetUrl = `${APP_URL}/reset-password.html?token=${token}`;
+            // 5. Envia email via Gmail
+            const resetUrl     = `${APP_URL}/reset-password?token=${token}`;
             const primeiroNome = (user.nome || "").split(" ")[0];
 
-            await resend.emails.send({
-                from:    FROM_EMAIL,
+            await transporter.sendMail({
+                from:    `"Zion Lisboa" <${process.env.GMAIL_USER}>`,
                 to:      emailNorm,
                 subject: "Recuperação de password — Zion Lisboa",
                 html: `

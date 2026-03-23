@@ -31,7 +31,7 @@ function emailBase({ titulo, corpo, rodape = '' }) {
           <!-- ── HEADER ESCURO ── -->
           <tr>
             <td align="center" bgcolor="#02161e"
-                style="background-color:#02161e;padding:32px 40px;">
+                    style="background-color:#007078FF;padding:32px 40px;">
 
               <!-- Linha decorativa teal -->
               <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 18px;">
@@ -41,8 +41,6 @@ function emailBase({ titulo, corpo, rodape = '' }) {
                 </tr>
               </table>
 
-              <!-- Logo SVG — visível porque o fundo é escuro (#02161e) -->
-              <!-- alt="ZION" aparece quando o cliente de email bloqueia imagens -->
               <img src="${APP_URL}/assets/logo-zion-branca.svg"
                    alt="ZION"
                    width="130" height="48"

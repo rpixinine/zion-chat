@@ -1,11 +1,4 @@
 // ── Email Templates — Zion Lisboa ────────────────────────────────────────────
-// Regras para compatibilidade com clientes de email (Gmail, Outlook, Apple Mail):
-//   ✓ Cores sólidas em vez de gradientes (gradientes são ignorados no Gmail)
-//   ✓ bgcolor="" nos <td> além de background no style (Outlook precisa de bgcolor)
-//   ✓ Sem CSS externo — tudo inline
-//   ✓ Logo como texto "ZION" em vez de imagem SVG
-//     (SVGs e imagens externas são bloqueadas por muitos clientes por defeito)
-//   ✓ Tabelas em vez de divs para layout
 
 const APP_URL = process.env.APP_URL || "https://chat.zionlisboa.pt";
 
@@ -48,8 +41,12 @@ function emailBase({ titulo, corpo, rodape = '' }) {
                 </tr>
               </table>
 
-              <!-- Logo em texto (100% compatível com todos os clientes) -->
-              <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:700;letter-spacing:12px;color:#ffffff;text-align:center;">ZION</p>
+              <!-- Logo SVG — visível porque o fundo é escuro (#02161e) -->
+              <!-- alt="ZION" aparece quando o cliente de email bloqueia imagens -->
+              <img src="${APP_URL}/assets/logo-zion-branca.svg"
+                   alt="ZION"
+                   width="130" height="48"
+                   style="display:block;margin:0 auto 10px;width:130px;height:auto;max-height:48px;border:0;outline:none;text-decoration:none;color:#ffffff;font-family:Georgia,serif;font-size:24px;font-weight:700;letter-spacing:10px;">
               <p style="margin:8px 0 0;font-family:Arial,sans-serif;font-size:10px;letter-spacing:4px;color:rgba(255,255,255,0.50);text-transform:uppercase;text-align:center;">Lisboa &middot; Portugal</p>
 
             </td>

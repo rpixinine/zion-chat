@@ -42,7 +42,7 @@ const ZionAuth = (() => {
         if (!isLoggedIn()) {
             // Guarda a página atual para redirecionar depois do login
             sessionStorage.setItem('zion_redirect', window.location.href);
-            window.location.href = 'login.html';
+            window.location.href = 'login';
             return;
         }
 
@@ -53,7 +53,7 @@ const ZionAuth = (() => {
             const nivelReq   = hierarquia[opts.tipo] || 0;
 
             if (nivelUser < nivelReq) {
-                window.location.href = 'acesso-negado.html';
+                window.location.href = 'acesso-negado';
                 return;
             }
         }

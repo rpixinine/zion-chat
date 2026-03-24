@@ -422,6 +422,37 @@
 
     renderAuth();
 </script>
+<!-- ═══ BANNERS PWA ══════════════════════════════════════════ -->
+
+<!-- Banner Android -->
+<div id="btn-instalar" style="display:none; position:fixed; bottom:88px; left:50%;
+     transform:translateX(-50%);
+     background:#009098; color:white; padding:12px 24px; border-radius:999px;
+     font-family:var(--font-title); font-size:11px; letter-spacing:1.5px;
+     box-shadow:0 4px 20px rgba(0,144,152,0.4); cursor:pointer; z-index:999;
+     align-items:center; gap:8px; white-space:nowrap; border:none;">
+    📲 Instalar App Zion Lisboa
+</div>
+
+<!-- Banner iOS -->
+<div id="banner-ios" style="display:none; position:fixed; bottom:0; left:0; right:0;
+     background:var(--bg-card); border-top:1px solid var(--border);
+     padding:16px 20px 32px; z-index:999; text-align:center;">
+    <div style="font-family:var(--font-title); font-size:10px; letter-spacing:2px;
+       color:var(--primary-dark); margin-bottom:8px;">INSTALAR APP</div>
+    <div style="font-size:13px; color:var(--text-muted); line-height:1.7">
+        Toca em
+        <svg style="height:16px;width:16px;vertical-align:middle;color:var(--primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        e depois em <strong>"Adicionar ao Ecrã de Início"</strong>
+    </div>
+    <button onclick="document.getElementById('banner-ios').style.display='none'"
+            style="margin-top:12px; background:none; border:1px solid var(--border);
+           border-radius:999px; padding:6px 18px;
+           color:var(--text-faint); font-size:12px; cursor:pointer;">
+        Fechar
+    </button>
+</div>
+
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -430,6 +461,41 @@
                 .catch(err => console.error('SW erro:', err));
         });
     }
+
+    // ── Android ──────────────────────────────────────────────
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('btn-instalar').style.display = 'flex';
+    });
+    document.getElementById('btn-instalar').addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const {outcome} = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        document.getElementById('btn-instalar').style.display = 'none';
+    });
+    window.addEventListener('appinstalled', () => {
+        document.getElementById('btn-instalar').style.display = 'none';
+    });
+
+    // ── iOS ──────────────────────────────────────────────────
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS && !isInstalled) {
+        document.getElementById('banner-ios').style.display = 'block';
+    }
+
+    <button
+        onClick="localStorage.setItem('pwa-ios-fechado','1'); document.getElementById('banner-ios').style.display='none'"
+        style="margin-top:12px; background:none; border:1px solid var(--border);
+           border-radius:999px; padding:6px 18px;
+           color:var(--text-faint); font-size:12px; cursor:pointer;">
+        Fechar
+    </button>
+
+
 </script>
 </body>
 </html>

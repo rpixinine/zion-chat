@@ -500,6 +500,88 @@
     if (isIOS && !isInstalled && !iosFechado) {
         document.getElementById('banner-ios').style.display = 'block';
     }
+
+    // ── TIMEOUT DE INATIVIDADE ────────────────────────────────────────────────
+    (function initIdleTimeout() {
+        if (!ZionAuth.getUser()) return; // só corre se logado
+
+        const IDLE_MINUTES = 3;
+        const WARN_SECONDS = 30;
+
+        let idleTimer, warnTimer;
+        let warnModal = null;
+
+        function criarModal() {
+            if (document.getElementById('idle-modal')) return;
+            const el = document.createElement('div');
+            el.id = 'idle-modal';
+            el.style.cssText = `
+            position:fixed;inset:0;z-index:99999;
+            background:rgba(2,22,30,0.85);backdrop-filter:blur(6px);
+            display:flex;align-items:center;justify-content:center;
+            opacity:0;transition:opacity 0.3s;pointer-events:none;
+        `;
+            el.innerHTML = `
+            <div style="background:var(--bg-card,#071c26);border:1px solid var(--border,rgba(255,255,255,0.12));
+                        border-radius:16px;padding:32px 28px;text-align:center;
+                        max-width:320px;width:90%;box-shadow:0 24px 48px rgba(0,0,0,0.4)">
+                <div style="font-size:36px;margin-bottom:12px">⏱</div>
+                <div style="font-family:'Montserrat',sans-serif;font-size:12px;letter-spacing:2px;font-weight:600;
+                            color:#009098;margin-bottom:8px;text-transform:uppercase">Sessão Inativa</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.75);margin-bottom:4px;line-height:1.6">
+                    A tua sessão vai expirar em
+                </div>
+                <div id="idle-countdown" style="font-family:'Montserrat',sans-serif;font-size:40px;
+                            font-weight:700;color:#fc8a8a;margin:8px 0 20px"></div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:20px">
+                    segundos. Move o rato ou clica para continuar.
+                </div>
+                <button onclick="idleContinuar()" style="width:100%;padding:12px;
+                    background:#009098;color:#fff;border:none;border-radius:10px;
+                    font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:2px;
+                    font-weight:600;text-transform:uppercase;cursor:pointer">
+                    Continuar Sessão
+                </button>
+            </div>`;
+            document.body.appendChild(el);
+            warnModal = el;
+        }
+
+        function mostrarAviso() {
+            criarModal();
+            warnModal.style.opacity = '1';
+            warnModal.style.pointerEvents = '';
+            let restantes = WARN_SECONDS;
+            const cdEl = document.getElementById('idle-countdown');
+            if (cdEl) cdEl.textContent = restantes;
+            warnTimer = setInterval(() => {
+                restantes--;
+                if (cdEl) cdEl.textContent = restantes;
+                if (restantes <= 0) {
+                    clearInterval(warnTimer);
+                    ZionAuth.logout();
+                }
+            }, 1000);
+        }
+
+        function resetar() {
+            clearTimeout(idleTimer);
+            clearInterval(warnTimer);
+            if (warnModal) {
+                warnModal.style.opacity = '0';
+                warnModal.style.pointerEvents = 'none';
+            }
+            idleTimer = setTimeout(mostrarAviso, IDLE_MINUTES * 60 * 1000);
+        }
+
+        window.idleContinuar = function () { resetar(); };
+
+        ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(ev => {
+            document.addEventListener(ev, resetar, { passive: true });
+        });
+
+        resetar();
+    })();
 </script>
 </body>
 </html>

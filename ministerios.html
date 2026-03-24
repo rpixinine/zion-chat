@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Ministérios — Zion Church Lisboa</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#009098">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zion Lisboa">
+    <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+    
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
     <link rel="stylesheet" href="css/tokens.css">
@@ -138,73 +146,82 @@
 </div>
 
 <script>
-const SUPA_URL = window.SUPABASE_URL      || '';
-const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
+    const SUPA_URL = window.SUPABASE_URL      || '';
+    const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
-const SVG_IG   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`;
-const SVG_USER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    const SVG_IG   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`;
+    const SVG_USER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
-async function sb(path) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
-    });
-    if (!r.ok) throw new Error(`Supabase ${r.status}`);
-    return r.json();
-}
+    async function sb(path) {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+            headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+        });
+        if (!r.ok) throw new Error(`Supabase ${r.status}`);
+        return r.json();
+    }
 
-async function init() {
-    try {
-        const [ministerios, configs] = await Promise.all([
-            sb('ministerios?select=*&ativo=eq.true&tipo=eq.ministerio&order=created_at.asc'),
-            sb('configuracoes?select=chave,valor'),
-        ]);
-        const cfg = {};
-        (Array.isArray(configs) ? configs : []).forEach(r => { cfg[r.chave] = r.valor; });
+    async function init() {
+        try {
+            const [ministerios, configs] = await Promise.all([
+                sb('ministerios?select=*&ativo=eq.true&tipo=eq.ministerio&order=created_at.asc'),
+                sb('configuracoes?select=chave,valor'),
+            ]);
+            const cfg = {};
+            (Array.isArray(configs) ? configs : []).forEach(r => { cfg[r.chave] = r.valor; });
 
-        if (cfg['copy']) document.getElementById('footer-copy').textContent = cfg['copy'];
-        const addrLine = [cfg['endereco']||'', [cfg['codigo_postal']||'', cfg['cidade']||''].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-        if (addrLine) document.getElementById('footer-addr').textContent = addrLine;
+            if (cfg['copy']) document.getElementById('footer-copy').textContent = cfg['copy'];
+            const addrLine = [cfg['endereco']||'', [cfg['codigo_postal']||'', cfg['cidade']||''].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+            if (addrLine) document.getElementById('footer-addr').textContent = addrLine;
 
-        const instagram = cfg['instagram'] || 'https://www.instagram.com/zionlisboa/';
-        const site      = cfg['site']      || 'https://zionchurch.org.br/';
-        document.getElementById('footer-links').innerHTML = `
+            const instagram = cfg['instagram'] || 'https://www.instagram.com/zionlisboa/';
+            const site      = cfg['site']      || 'https://zionchurch.org.br/';
+            document.getElementById('footer-links').innerHTML = `
             <a class="footer-link" href="${site}" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
             <a class="footer-link" href="${instagram}" target="_blank">${SVG_IG} @ZionLisboa</a>`;
 
-        renderMinisterios(Array.isArray(ministerios) ? ministerios : []);
-    } catch (e) {
-        console.error(e);
-        document.getElementById('main-content').innerHTML = `<div class="empty"><div class="empty-txt">Erro ao carregar. Tenta novamente.</div></div>`;
+            renderMinisterios(Array.isArray(ministerios) ? ministerios : []);
+        } catch (e) {
+            console.error(e);
+            document.getElementById('main-content').innerHTML = `<div class="empty"><div class="empty-txt">Erro ao carregar. Tenta novamente.</div></div>`;
+        }
     }
-}
 
-function renderMinisterios(list) {
-    if (!list.length) {
-        document.getElementById('main-content').innerHTML = `<div class="empty"><div class="empty-txt">Nenhum ministério disponível de momento.</div></div>`;
-        return;
-    }
-    let html = `
+    function renderMinisterios(list) {
+        if (!list.length) {
+            document.getElementById('main-content').innerHTML = `<div class="empty"><div class="empty-txt">Nenhum ministério disponível de momento.</div></div>`;
+            return;
+        }
+        let html = `
     <div class="card d1">
         <div class="card-text">Temos ministérios para todas as faixas etárias e áreas de serviço. Cada ministério é um espaço de crescimento, conexão e propósito dentro da Zion Lisboa.</div>
     </div>
     <p class="section-label">Nossos Ministérios</p>`;
 
-    list.forEach((m, i) => {
-        const metaItems = [];
-        if (m.faixa_etaria) metaItems.push(`<span class="min-meta-item">${SVG_USER} ${m.faixa_etaria}</span>`);
-        if (m.instagram)    metaItems.push(`<span class="min-meta-item">${SVG_IG}<a href="${m.instagram}" target="_blank">Instagram</a></span>`);
-        html += `
+        list.forEach((m, i) => {
+            const metaItems = [];
+            if (m.faixa_etaria) metaItems.push(`<span class="min-meta-item">${SVG_USER} ${m.faixa_etaria}</span>`);
+            if (m.instagram)    metaItems.push(`<span class="min-meta-item">${SVG_IG}<a href="${m.instagram}" target="_blank">Instagram</a></span>`);
+            html += `
         <div class="card" style="animation-delay:${(i+2)*0.04}s">
             ${m.faixa_etaria ? `<div class="card-badge">${m.faixa_etaria}</div>` : ''}
             <div class="card-title">${m.nome}</div>
             ${m.descricao ? `<div class="card-text">${m.descricao}</div>` : ''}
             ${metaItems.length ? `<div class="min-meta">${metaItems.join('')}</div>` : ''}
         </div>`;
-    });
-    document.getElementById('main-content').innerHTML = html;
-}
+        });
+        document.getElementById('main-content').innerHTML = html;
+    }
 
-init();
+    init();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW registado:', reg.scope))
+                .catch(err => console.error('SW erro:', err));
+        });
+    }
 </script>
 </body>
 </html>

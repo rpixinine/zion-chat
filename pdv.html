@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDV — Zion Lisboa</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
+
+
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap"
@@ -2915,6 +2922,110 @@
             background: var(--border);
             border-radius: 4px;
         }
+
+
+        /* ── ABA CARDÁPIO (pedidos remotos) ────────────────── */
+        #aba-cardapio {
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+        #aba-cardapio.active { display: flex; }
+
+        .cardapio-toolbar {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .cardapio-stats {
+            display: flex; gap: 8px; padding: 10px 14px; flex-shrink: 0;
+        }
+
+        .cardapio-list {
+            flex: 1; overflow-y: auto; padding: 10px 14px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        /* Card de pedido do cardápio */
+        .pcard-cardapio {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            border-left: 4px solid var(--primary);
+            transition: box-shadow 0.15s;
+        }
+        .pcard-cardapio:hover { box-shadow: var(--shadow-md); }
+        .pcard-cardapio.recebendo { border-left-color: var(--green); opacity: 0.7; }
+
+        .cardapio-ped-header {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+        }
+        .cardapio-ped-num {
+            font-family: var(--font-title); font-size: 26px; font-weight: 700;
+            color: var(--primary-dark); min-width: 52px;
+        }
+        .cardapio-ped-info { flex: 1; }
+        .cardapio-ped-nome { font-size: 15px; font-weight: 700; color: var(--text-main); }
+        .cardapio-ped-hora { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+        .cardapio-ped-total {
+            font-family: var(--font-title); font-size: 22px; font-weight: 700;
+            color: var(--primary-dark); flex-shrink: 0;
+        }
+
+        .cardapio-itens {
+            font-size: 12px; color: var(--text-muted);
+            background: var(--bg-page); border-radius: 8px; padding: 10px 12px;
+            margin-bottom: 12px; line-height: 1.8;
+        }
+        .cardapio-item-row {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .cardapio-item-row + .cardapio-item-row { border-top: 1px solid var(--border); }
+        .cardapio-item-nome { font-weight: 600; color: var(--text-main); }
+        .cardapio-item-qty { color: var(--text-faint); }
+        .cardapio-item-val { font-family: var(--font-title); color: var(--primary-dark); font-weight: 700; }
+
+        .cardapio-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+        .btn-receber {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 20px; border-radius: 10px; border: none;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: #fff; font-family: var(--font-title); font-size: 11px;
+            font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+            cursor: pointer; transition: all 0.15s;
+            box-shadow: 0 3px 12px rgba(0,112,120,0.28);
+        }
+        .btn-receber:hover { box-shadow: 0 5px 20px rgba(0,112,120,0.42); transform: translateY(-1px); }
+        .btn-receber:disabled { background: var(--bg-panel); color: var(--text-faint); box-shadow: none; cursor: not-allowed; transform: none; }
+
+        .btn-cancelar-ped {
+            padding: 8px 14px; border-radius: 8px;
+            border: 1px solid rgba(192,57,43,0.25);
+            background: rgba(192,57,43,0.07);
+            color: var(--red); font-size: 11px; font-family: var(--font-title);
+            letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s;
+        }
+        .btn-cancelar-ped:hover { background: rgba(192,57,43,0.14); }
+
+        .no-cardapio-orders {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 100%; gap: 14px;
+            color: var(--text-faint); font-size: 14px; padding: 40px;
+            text-align: center;
+        }
+        .no-cardapio-icon {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: var(--primary-faint);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px;
+        }
+
     </style>
 </head>
 <body>
@@ -2930,6 +3041,7 @@
     <div class="header-tabs">
         <button class="htab active" id="tab-venda" onclick="setAba('venda')">Venda</button>
         <button class="htab" id="tab-pedidos" onclick="setAba('pedidos')">Pedidos</button>
+        <button class="htab" id="tab-cardapio" onclick="setAba('cardapio')">Cardápio</button>
         <button class="htab" id="tab-estoque" onclick="setAba('estoque')">Estoque</button>
         <button class="htab" id="tab-relatorios" onclick="setAba('relatorios')">Relatórios</button>
         <button class="htab" id="tab-caixa" onclick="setAba('caixa')">Caixa</button>
@@ -3044,6 +3156,25 @@
     </div>
 
     <div id="aba-pedidos"></div>
+
+    <!-- ABA CARDAPIO -->
+    <div id="aba-cardapio">
+        <div class="cardapio-toolbar">
+        <span style="font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:var(--primary-dark);text-transform:uppercase">
+            Pedidos do Cardápio
+        </span>
+            <span style="font-size:11px;color:var(--text-faint)">·</span>
+            <span style="font-size:11px;color:var(--text-muted)">Hoje</span>
+            <button class="btn-cx primary" style="margin-left:auto;padding:6px 14px;font-size:10px" onclick="carregarCardapio()">↻ Actualizar</button>
+        </div>
+        <div class="cardapio-stats" id="cardapio-stats"></div>
+        <div class="cardapio-list" id="cardapio-list">
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:100%;color:var(--text-faint)">
+                <div class="spin"></div>
+                <span>A carregar pedidos do cardápio...</span>
+            </div>
+        </div>
+    </div>
 
     <!-- ABA ESTOQUE -->
     <div id="aba-estoque">
@@ -3446,13 +3577,15 @@
 
     function setAba(aba) {
         document.getElementById('aba-venda').style.display = aba === 'venda' ? 'grid' : 'none';
-        ['pedidos', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => document.getElementById(`aba-${a}`).classList.toggle('active', a === aba));
-        ['venda', 'pedidos', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => document.getElementById(`tab-${a}`)?.classList.toggle('active', a === aba));
+        ['pedidos', 'cardapio', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => document.getElementById(`aba-${a}`).classList.toggle('active', a === aba));
+        ['venda', 'cardapio', 'pedidos', 'estoque', 'relatorios', 'caixa', 'config'].forEach(a => document.getElementById(`tab-${a}`)?.classList.toggle('active', a === aba));
         if (aba === 'estoque') renderEstoque();
         if (aba === 'pedidos') carregarPedidos();
         if (aba === 'caixa') renderCaixaTab();
         if (aba === 'relatorios' && !relData) carregarRelatorios('hoje');
         if (aba === 'config') carregarImpressorasConfig();
+        if (aba === 'cardapio') carregarCardapio();
+
     }
 
     async function carregarTudo() {
@@ -3700,6 +3833,13 @@
             document.getElementById('prod-grid').innerHTML = `<div class="grid-empty"><div class="grid-empty-icon"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="12"/><line x1="11" y1="16" x2="11.01" y2="16"/></svg></div><div>Erro ao carregar produtos</div></div>`;
         }
         document.getElementById('pdv-loading').style.display = 'none';
+
+        // Auto-refresh cardápio a cada 15 segundos
+         setInterval(() => {
+                 if (document.getElementById('aba-cardapio').classList.contains('active')) {
+                         carregarCardapio();
+                     }
+             }, 15000);
     }
 
     init();
@@ -3851,6 +3991,18 @@
         document.getElementById('overlay-pag').classList.remove('open');
         mbwayPDVClearTimers();
         mbwayPDVApagarTemp();
+
+        // Reverte pedido do cardápio para pendente se o pagamento foi cancelado
+        const origemId = itens?.[0]?._pedidoOrigem;
+        if (origemId) {
+            sb(`pedidos?id=eq.${origemId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'pendente' })
+            }).catch(() => {});
+            // Actualiza na lista local também
+            const p = cardapioPedidos.find(x => x.id === origemId);
+            if (p) p.status = 'pendente';
+        }
     }
 
     function setPag(tipo) {
@@ -4071,7 +4223,9 @@
             callback(nomeSel);
             return;
         }
-        document.getElementById('input-nome-cliente').value = '';
+        // Pré-preenche com o nome do cardápio se disponível
+        const nomeCardapio = itens?.[0]?._nomeCliente || '';
+        document.getElementById('input-nome-cliente').value = nomeCardapio;
         document.getElementById('overlay-nome').classList.add('open');
         setTimeout(() => document.getElementById('input-nome-cliente').focus(), 100);
     }
@@ -4165,6 +4319,10 @@
                 _cupomSnapshot = {itensCopy, total, desconto, nomeCliente, pagTipo, cartaoAuth, operador, numeroPedido};
                 fecharModalPag();
                 mbwayPDVApagarTemp();
+
+                await _marcarPedidoOrigem(itensCopy, pedidoId);
+
+
                 gerarCupom(_cupomSnapshot);
                 // ← Imprime automaticamente após confirmar
                 await imprimirCupom();
@@ -4180,6 +4338,28 @@
                 btn.textContent = 'Confirmar';
             }
         });
+    }
+
+    async function _marcarPedidoOrigem(itensCopy, pedidoId) {
+        // Verifica se a venda vem de um pedido do cardápio
+        const origemId = itensCopy?.[0]?._pedidoOrigem;
+        if (!origemId) return;
+
+        try {
+            await sb(`pedidos?id=eq.${origemId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status:   'entregue',
+                    caixa_id: caixaAtual?.id || null,
+                    // Liga o pedido do cardápio ao novo pedido gerado pelo PDV
+                    referencia_pagamento: pedidoId || null,
+                })
+            });
+            // Remove da lista do cardápio
+            cardapioPedidos = cardapioPedidos.filter(p => p.id !== origemId);
+        } catch (e) {
+            console.warn('Não foi possível marcar pedido origem:', e);
+        }
     }
 
     // ── Cupom ─────────────────────────────────────────────
@@ -4796,6 +4976,237 @@
         gerarCupom(_cupomSnapshot);
         await imprimirCupom();
     }
+
+    // ── Variável de estado para pedidos do cardápio ───────────────────────
+    let cardapioPedidos = [];
+
+    // ── Carrega pedidos do cardápio (hoje, pendentes, sem caixa) ──────────
+    async function carregarCardapio() {
+        const listEl   = document.getElementById('cardapio-list');
+        const statsEl  = document.getElementById('cardapio-stats');
+        if (!listEl) return;
+
+        listEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;height:100%;color:var(--text-faint)"><div class="spin"></div><span>A carregar...</span></div>`;
+
+        const hoje = new Date().toISOString().split('T')[0];
+
+        try {
+            cardapioPedidos = await sb(
+                `pedidos?data_pedido=eq.${hoje}&origem=eq.cardapio&status=in.(pendente,em_preparacao)&order=numero.asc&select=*`
+            );
+        } catch {
+            cardapioPedidos = [];
+        }
+
+        // Stats
+        const total = cardapioPedidos.reduce((s, p) => s + Number(p.total || 0), 0);
+        const pendentes  = cardapioPedidos.filter(p => p.status === 'pendente').length;
+        const emPreparo  = cardapioPedidos.filter(p => p.status === 'em_preparacao').length;
+
+        if (statsEl) statsEl.innerHTML = `
+        <div class="pstat">
+            <div class="pstat-num">${cardapioPedidos.length}</div>
+            <div class="pstat-lbl">Em Espera</div>
+        </div>
+        <div class="pstat">
+            <div class="pstat-num" style="color:var(--orange)">${pendentes}</div>
+            <div class="pstat-lbl">Pendentes</div>
+        </div>
+        <div class="pstat">
+            <div class="pstat-num" style="color:var(--primary-dark)">€${total.toFixed(2)}</div>
+            <div class="pstat-lbl">Total Hoje</div>
+        </div>
+    `;
+
+        renderCardapioPedidos();
+    }
+
+    // ── Render dos pedidos do cardápio ────────────────────────────────────
+    async function renderCardapioPedidos() {
+        const listEl = document.getElementById('cardapio-list');
+        if (!listEl) return;
+
+        if (!cardapioPedidos.length) {
+            listEl.innerHTML = `
+            <div class="no-cardapio-orders">
+                <div class="no-cardapio-icon">📋</div>
+                <div style="font-weight:600">Sem pedidos pendentes</div>
+                <div style="font-size:12px;opacity:.7;margin-top:4px">
+                    Os pedidos feitos no Cardápio Keola aparecem aqui
+                </div>
+            </div>`;
+            return;
+        }
+
+        // Carrega itens de todos os pedidos em paralelo
+        const itensMap = {};
+        await Promise.all(cardapioPedidos.map(async p => {
+            try {
+                const res = await sb(`pedido_itens?pedido_id=eq.${p.id}&select=*`);
+                itensMap[p.id] = res || [];
+            } catch {
+                itensMap[p.id] = [];
+            }
+        }));
+
+        listEl.innerHTML = cardapioPedidos.map(ped => {
+            const hora  = ped.created_at
+                ? new Date(ped.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+                : '';
+            const itens = itensMap[ped.id] || [];
+            const isEmPreparo = ped.status === 'em_preparacao';
+
+            const itensHTML = itens.length
+                ? itens.map(i => `
+                <div class="cardapio-item-row">
+                    <span class="cardapio-item-nome">${i.produto_nome || '?'}</span>
+                    <span class="cardapio-item-qty">× ${i.quantidade}</span>
+                    <span class="cardapio-item-val">€ ${(Number(i.preco_unitario) * Number(i.quantidade)).toFixed(2)}</span>
+                </div>`).join('')
+                : '<span style="color:var(--text-faint);font-size:11px">Sem itens</span>';
+
+            return `
+            <div class="pcard-cardapio ${isEmPreparo ? 'recebendo' : ''}" id="cped-${ped.id}">
+                <div class="cardapio-ped-header">
+                    <div class="cardapio-ped-num">#${String(ped.numero || '').padStart(2,'0')}</div>
+                    <div class="cardapio-ped-info">
+                        <div class="cardapio-ped-nome">${ped.nome_cliente || 'Anónimo'}</div>
+                        <div class="cardapio-ped-hora">
+                            ${hora}
+                            <span class="ped-badge ${ped.status}" style="display:inline-block;margin-left:4px;padding:2px 8px;border-radius:20px;font-size:9px;font-family:var(--font-title)">
+                                ${ped.status === 'pendente' ? '⏳ Pendente' : '🍳 Em Preparação'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="cardapio-ped-total">€ ${Number(ped.total).toFixed(2)}</div>
+                </div>
+
+                <div class="cardapio-itens">${itensHTML}</div>
+
+                <div class="cardapio-actions">
+                    <button class="btn-receber"
+                            id="btn-rec-${ped.id}"
+                            onclick="receberPedidoCardapio('${ped.id}')">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Receber Pagamento
+                    </button>
+                    <button class="btn-cancelar-ped" onclick="cancelarPedidoCardapio('${ped.id}')">
+                        ✕ Cancelar
+                    </button>
+                    <span style="font-size:10px;color:var(--text-faint);margin-left:auto;font-family:var(--font-title);letter-spacing:.5px">
+                        ${itens.length} ${itens.length === 1 ? 'item' : 'itens'}
+                    </span>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ── Recebe pedido do cardápio: carrega no carrinho e abre pagamento ───
+    async function receberPedidoCardapio(pedidoId) {
+        if (!caixaAtual) {
+            toast('Abra a caixa antes de receber pagamentos!', 'err');
+            setAba('caixa');
+            return;
+        }
+
+        const ped = cardapioPedidos.find(p => p.id === pedidoId);
+        if (!ped) return;
+
+        const btn = document.getElementById(`btn-rec-${pedidoId}`);
+        if (btn) { btn.disabled = true; btn.textContent = 'A carregar...'; }
+
+        try {
+            // Carrega itens do pedido
+            const pedItens = await sb(`pedido_itens?pedido_id=eq.${pedidoId}&select=*`);
+
+            if (!pedItens || !pedItens.length) {
+                toast('Pedido sem itens!', 'err');
+                if (btn) { btn.disabled = false; btn.textContent = 'Receber Pagamento'; }
+                return;
+            }
+
+            // Muda status para em_preparacao para bloquear no cardápio
+            await sb(`pedidos?id=eq.${pedidoId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'em_preparacao' })
+            });
+
+            // Limpa carrinho e carrega os itens
+            itens = [];
+
+            for (const pi of pedItens) {
+                // Tenta encontrar o produto no catálogo para dados completos
+                const prodKeola = keolaProds.find(k => k.id === pi.produto_id);
+                const prodLoja  = lojaProds.find(l => l.id === pi.produto_id);
+                const prodInfo  = prodKeola || prodLoja;
+
+                itens.push({
+                    prod: {
+                        id:        pi.produto_id,
+                        nome:      pi.produto_nome || prodInfo?.nome || '?',
+                        _keola:    !!prodKeola,
+                        sku:       prodInfo?.sku || null,
+                    },
+                    qtd:   Number(pi.quantidade),
+                    preco: Number(pi.preco_unitario),
+                    // Referência ao pedido original
+                    _pedidoOrigem: pedidoId,
+                    _nomeCliente:  ped.nome_cliente,
+                    _numeroPedido: ped.numero,
+                });
+            }
+
+            // Muda para aba venda e abre modal de pagamento
+            setAba('venda');
+            renderCaixa();
+
+            // Pre-seleciona o cliente se existir
+            const clienteSel = document.getElementById('cliente-sel');
+            if (clienteSel && ped.membro_id) {
+                clienteSel.value = ped.membro_id;
+            }
+
+            // Pequeno delay para o DOM actualizar
+            await new Promise(r => setTimeout(r, 100));
+
+            // Mostra toast informativo
+            toast(`Pedido #${String(ped.numero).padStart(2,'0')} de ${ped.nome_cliente} carregado ✓`, 'ok');
+
+            // Abre modal de pagamento directamente
+            abrirModalPag();
+
+            // Actualiza a lista do cardápio
+            const cped = document.getElementById(`cped-${pedidoId}`);
+            if (cped) cped.classList.add('recebendo');
+
+        } catch (e) {
+            toast('Erro ao carregar pedido: ' + (e?.message || JSON.stringify(e)), 'err');
+            if (btn) { btn.disabled = false; btn.textContent = 'Receber Pagamento'; }
+        }
+    }
+
+    // ── Cancela pedido do cardápio ─────────────────────────────────────────
+    async function cancelarPedidoCardapio(pedidoId) {
+        const ped = cardapioPedidos.find(p => p.id === pedidoId);
+        const nome = ped?.nome_cliente || 'este pedido';
+        if (!confirm(`Cancelar o pedido de ${nome}?`)) return;
+
+        try {
+            await sb(`pedidos?id=eq.${pedidoId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'cancelado' })
+            });
+            cardapioPedidos = cardapioPedidos.filter(p => p.id !== pedidoId);
+            renderCardapioPedidos();
+            toast('Pedido cancelado', 'ok');
+        } catch {
+            toast('Erro ao cancelar', 'err');
+        }
+    }
+
 </script>
 
 </body>

@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Check-in — Zion Lisboa</title>
 
+    <!-- Favicon -->
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#009098">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -459,7 +464,7 @@
 
     <!-- STEP 1: NIF -->
     <div id="step-nif" class="step">
-        <span class="nif-label">Insere o teu NIF</span>
+        <span class="nif-label">Identifica-te</span>
         <div id="msg-nif" class="msg"></div>
         <div class="nif-wrap">
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -468,12 +473,12 @@
                 <path d="M14 10h4M14 14h3"/>
             </svg>
             <input type="text" class="nif-input" id="nif-input"
-                   placeholder="000 000 000"
+                   placeholder="NIF, email ou telemóvel"
                    inputmode="numeric" maxlength="14"
                    autocomplete="off"
                    onkeydown="if(event.key==='Enter')pBuscar()">
         </div>
-        <button class="btn-buscar" id="btn-buscar" onclick="pBuscar()">Confirmar Identidade</button>
+        <button class="btn-buscar" id="btn-buscar" onclick="pBuscar()">Confirmar</button>
     </div>
 
     <!-- STEP 2: Membro + Presença -->
@@ -572,7 +577,7 @@
 
                 /* carrega participantes (com nif) */
                 _participantes = await sb(
-                    `evento_presencas?select=*,membros(id,nome,foto_url,nif,e_lider,e_presbitero,e_voluntario,professor)&evento_id=eq.${evId}`
+                    `evento_presencas?select=*,membros(id,nome,telefone,email,foto_url,nif,e_lider,e_presbitero,e_voluntario,professor)&evento_id=eq.${evId}`
                 ) || [];
 
                 mostrar('nif');
@@ -615,16 +620,17 @@
         function setMsg(id, tipo, txt) { const el = document.getElementById('msg-' + id); if (el) { el.textContent = txt; el.className = 'msg show ' + tipo; } }
         function limparMsg(id) { const el = document.getElementById('msg-' + id); if (el) { el.textContent = ''; el.className = 'msg'; } }
 
-        /* ── BUSCAR POR NIF ───────────────────────────────────── */
+        /* ── BUSCAR POR Acesso Membro -  Visitante ───────────────────────────────────── */
         async function pBuscar() {
             const input = document.getElementById('nif-input');
-            const nif = input.value.replace(/\D/g, '').trim();
+            const raw   = input.value.trim();
+            const clean = raw.replace(/\s/g, '');
             limparMsg('nif');
             input.classList.remove('invalid');
 
-            if (nif.length < 5) {
+            if (!clean || clean.length < 5) {
                 input.classList.add('invalid');
-                setMsg('nif', 'error', 'Insere um NIF ou CPF válido.');
+                setMsg('nif', 'error', 'Insere um NIF, email ou telemóvel válido.');
                 return;
             }
 
@@ -632,22 +638,39 @@
             btn.disabled = true; btn.textContent = 'A verificar...';
 
             try {
-                /* procura localmente nos participantes já carregados */
-                const pres = _participantes.find(p => {
-                    const mNif = (p.membros?.nif || '').replace(/\D/g, '');
-                    return mNif === nif;
-                });
+                const isEmail  = clean.includes('@');
+                const telClean = clean.replace(/\D/g, '');
+                let pres = null;
+
+                if (isEmail) {
+                    /* Pesquisa por email */
+                    pres = _participantes.find(p =>
+                        (p.membros?.email || '').toLowerCase().trim() === clean.toLowerCase()
+                    );
+                } else {
+                    /* Pesquisa por NIF ou sufixo de telemóvel */
+                    pres = _participantes.find(p => {
+                        const mNif = (p.membros?.nif      || '').replace(/\D/g, '');
+                        const mTel = (p.membros?.telefone || '').replace(/\D/g, '');
+                        if (mNif && mNif === telClean) return true;
+                        if (telClean.length >= 9 && mTel.length >= 9
+                            && mTel.slice(-9) === telClean.slice(-9)) return true;
+                        return false;
+                    });
+                }
 
                 if (!pres || !pres.membros) {
                     input.classList.add('invalid');
-                    setMsg('nif', 'error', 'Nenhum participante encontrado com esse NIF. Fala com um responsável.');
-                    btn.disabled = false; btn.textContent = 'Confirmar Identidade';
+                    setMsg('nif', 'error',
+                        'Nenhum participante encontrado. Verifica os dados ou fala com um responsável.');
+                    btn.disabled = false; btn.textContent = 'Confirmar';
                     return;
                 }
 
                 if (pres.status === 'presente') {
-                    setMsg('nif', 'success', `${pres.membros.nome}, a tua presença já foi registada! ✓`);
-                    btn.disabled = false; btn.textContent = 'Confirmar Identidade';
+                    setMsg('nif', 'success',
+                        `${pres.membros.nome}, a tua presença já foi registada! ✓`);
+                    btn.disabled = false; btn.textContent = 'Confirmar';
                     return;
                 }
 
@@ -661,7 +684,7 @@
                 console.error(e);
             }
 
-            btn.disabled = false; btn.textContent = 'Confirmar Identidade';
+            btn.disabled = false; btn.textContent = 'Confirmar';
         }
 
         /* ── RENDER CARD MEMBRO ───────────────────────────────── */

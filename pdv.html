@@ -5066,41 +5066,51 @@
                 : '<span style="color:var(--text-faint);font-size:11px">Sem itens</span>';
 
             return `
-            <div class="pcard-cardapio ${isEmPreparo ? 'recebendo' : ''}" id="cped-${ped.id}">
-                <div class="cardapio-ped-header">
-                    <div class="cardapio-ped-num">#${String(ped.numero || '').padStart(2,'0')}</div>
-                    <div class="cardapio-ped-info">
-                        <div class="cardapio-ped-nome">${ped.nome_cliente || 'Anónimo'}</div>
-                        <div class="cardapio-ped-hora">
-                            ${hora}
-                            <span class="ped-badge ${ped.status}" style="display:inline-block;margin-left:4px;padding:2px 8px;border-radius:20px;font-size:9px;font-family:var(--font-title)">
-                                ${ped.status === 'pendente' ? '⏳ Pendente' : '🍳 Em Preparação'}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="cardapio-ped-total">€ ${Number(ped.total).toFixed(2)}</div>
-                </div>
+    <div class="pcard-cardapio ${isEmPreparo ? 'recebendo' : ''}" id="cped-${ped.id}">
 
-                <div class="cardapio-itens">${itensHTML}</div>
-
-                <div class="cardapio-actions">
-                    <button class="btn-receber"
-                            id="btn-rec-${ped.id}"
-                            onclick="receberPedidoCardapio('${ped.id}')">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        Receber Pagamento
-                    </button>
-                    <button class="btn-cancelar-ped" onclick="cancelarPedidoCardapio('${ped.id}')">
-                        ✕ Cancelar
-                    </button>
-                    <span style="font-size:10px;color:var(--text-faint);margin-left:auto;font-family:var(--font-title);letter-spacing:.5px">
-                        ${itens.length} ${itens.length === 1 ? 'item' : 'itens'}
+        <div class="cardapio-ped-header">
+            <div class="cardapio-ped-num">#${String(ped.numero || '').padStart(2,'0')}</div>
+            <div class="cardapio-ped-info">
+                <div class="cardapio-ped-nome">${ped.nome_cliente || 'Anónimo'}</div>
+                <div class="cardapio-ped-hora">
+                    🕐 ${hora}
+                    <span class="ped-badge ${ped.status}">
+                        ${ped.status === 'pendente' ? '⏳ Pendente' : '🍳 Em Preparação'}
                     </span>
                 </div>
-            </div>`;
+            </div>
+            <div class="cardapio-ped-total">€ ${Number(ped.total).toFixed(2)}</div>
+        </div>
+
+        <div class="cardapio-itens">
+            ${itens.length
+                ? itens.map(i => `
+                    <div class="cardapio-item-row">
+                        <span class="cardapio-item-nome">${i.produto_nome || '?'}</span>
+                        <span class="cardapio-item-qty">× ${i.quantidade}</span>
+                        <span class="cardapio-item-val">€ ${(Number(i.preco_unitario) * Number(i.quantidade)).toFixed(2)}</span>
+                    </div>`).join('')
+                : '<span style="color:var(--text-faint);font-size:11px;padding:4px 0;display:block">Sem itens</span>'
+            }
+        </div>
+
+        <div class="cardapio-actions">
+            <button class="btn-receber"
+                    id="btn-rec-${ped.id}"
+                    onclick="receberPedidoCardapio('${ped.id}')">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Receber
+            </button>
+            <button class="btn-cancelar-ped" onclick="cancelarPedidoCardapio('${ped.id}')">✕</button>
+            <span class="cardapio-itens-count" style="margin-left:auto">
+                ${itens.length} ${itens.length === 1 ? 'item' : 'itens'}
+            </span>
+        </div>
+
+    </div>`;
         }).join('');
     }
 

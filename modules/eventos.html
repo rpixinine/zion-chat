@@ -715,7 +715,7 @@
             evRenderFilaPagamento();
         }
 
-        function evRenderFilaPagamento() {
+        function evRenderFilaPagamentoold() {
             const ev = evAtivo; if (!ev) return;
             const pendentes  = evInscricoes.filter(i => i.status === 'pendente');
             const pagos      = evInscricoes.filter(i => i.status === 'pago');
@@ -820,6 +820,194 @@
             document.getElementById('ev-panel-inner').innerHTML = html;
         }
 
+        function evRenderFilaPagamento() {
+            const ev = evAtivo; if (!ev) return;
+            const pendentes  = evInscricoes.filter(i => i.status === 'pendente');
+            const pagos      = evInscricoes.filter(i => i.status === 'pago');
+            const cancelados = evInscricoes.filter(i => i.status === 'cancelado');
+            const valor = Number(ev.valor) || 0;
+
+            // ── Totais financeiros ─────────────────────────────────────────
+            const totalPago     = pagos.length * valor;
+            const totalPendente = pendentes.length * valor;
+            const totalGeral    = evInscricoes.filter(i => i.status !== 'cancelado').length * valor;
+
+            const _igLabel = { membro:'Membro', em_processo:'Em Processo',
+                visitante:'Visitante', nao_membro:'Não Membro' };
+            const _igCls   = { membro:'badge-primary', em_processo:'badge-gray',
+                visitante:'badge-gray',  nao_membro:'badge-gray' };
+
+            const _row = (i, showBtns) => {
+                const lbl = _igLabel[i.status_igreja] || i.status_igreja || '—';
+                const cls = _igCls[i.status_igreja]   || 'badge-gray';
+                const link = i.membro_id
+                    ? `<span style="font-size:9px;color:var(--primary-dark)">✓ Membro vinculado</span>`
+                    : `<span style="font-size:9px;color:var(--text-faint)">Sem vínculo automático</span>`;
+                const pagoDt = i.pago_em
+                    ? `<div style="font-size:10px;color:var(--text-faint);margin-top:2px">Pago em ${
+                        new Date(i.pago_em).toLocaleDateString('pt-PT',
+                            {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+                    }</div>` : '';
+
+                return `<div style="background:var(--bg-card);border:1px solid var(--border);
+                     border-radius:10px;padding:12px;margin-bottom:6px;
+                     display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:180px">
+                <div style="font-size:13px;font-weight:600">${i.nome || '—'}
+                    ${valor > 0 ? `<span style="float:right;font-size:11px;font-weight:700;
+                        color:${i.status==='pago'?'var(--green)':'var(--text-faint)'};
+                        background:${i.status==='pago'?'rgba(46,125,50,.1)':'var(--bg-input)'};
+                        padding:1px 8px;border-radius:20px">${valor.toFixed(2)} €</span>` : ''}
+                </div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">
+                    ${i.email || '—'}${i.telemovel ? ' · ' + i.telemovel : ''}
+                </div>
+                <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
+                    <span class="badge ${cls}" style="font-size:8px">${lbl}</span>
+                    ${link}
+                </div>
+                ${pagoDt}
+            </div>
+            ${showBtns ? `<div style="display:flex;gap:5px;flex-wrap:wrap">
+                <button class="ev-btn success" style="font-size:9px;padding:5px 10px"
+                    onclick="evMarcarPago('${i.id}')">
+                    ✓ Pago${valor > 0 ? ' (' + valor.toFixed(2) + '€)' : ''}
+                </button>
+                <button class="ev-btn danger" style="font-size:9px;padding:5px 10px"
+                    onclick="evCancelarInscricao('${i.id}')">Cancelar</button>
+            </div>` : ''}
+        </div>`;
+            };
+
+            // ── Card de resumo financeiro ──────────────────────────────────
+            const caixaJaFechada = ev.caixa_fechada;
+            const resumoFinanceiro = valor > 0 ? `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+                padding:16px;margin-bottom:14px">
+        <div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;
+                    color:var(--text-faint);margin-bottom:12px">RESUMO FINANCEIRO</div>
+
+        <!-- Grid de totais -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+            <div style="background:rgba(46,125,50,.08);border:1px solid rgba(46,125,50,.2);
+                        border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--green)">${totalPago.toFixed(2)} €</div>
+                <div style="font-size:9px;color:var(--text-faint);margin-top:3px">
+                    RECEBIDO (${pagos.length} pax)
+                </div>
+            </div>
+            <div style="background:var(--bg-input);border:1px solid var(--border);
+                        border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--text-muted)">${totalPendente.toFixed(2)} €</div>
+                <div style="font-size:9px;color:var(--text-faint);margin-top:3px">
+                    PENDENTE (${pendentes.length} pax)
+                </div>
+            </div>
+            <div style="background:var(--bg-input);border:1px solid var(--border);
+                        border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--text-muted)">${totalGeral.toFixed(2)} €</div>
+                <div style="font-size:9px;color:var(--text-faint);margin-top:3px">
+                    TOTAL PREVISTO
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de progresso de arrecadação -->
+        ${totalGeral > 0 ? `
+        <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:11px;color:var(--text-faint)">Taxa de arrecadação</span>
+                <span style="font-size:11px;font-weight:700;color:var(--green)">
+                    ${Math.round(totalPago/totalGeral*100)}%
+                </span>
+            </div>
+            <div style="height:8px;background:var(--bg-input);border-radius:4px;overflow:hidden">
+                <div style="height:100%;width:${Math.round(totalPago/totalGeral*100)}%;
+                            background:linear-gradient(90deg,var(--green),#66bb6a);
+                            border-radius:4px;transition:width .4s ease"></div>
+            </div>
+        </div>` : ''}
+
+        <!-- Botão Fechar Caixa -->
+        ${!caixaJaFechada && pagos.length > 0 ? `
+        <button class="ev-btn success" style="width:100%;padding:10px;font-size:10px"
+            onclick="evFecharCaixaEvento('${ev.id}')">
+            🏦 Fechar Caixa e Gerar Receita no Financeiro (${totalPago.toFixed(2)} €)
+        </button>` : ''}
+        ${caixaJaFechada ? `
+        <div style="text-align:center;padding:10px;font-size:12px;
+                    color:var(--green);background:rgba(46,125,50,.08);
+                    border-radius:8px;border:1px solid rgba(46,125,50,.2)">
+            ✓ Caixa fechada — receita gerada no financeiro
+            ${ev.caixa_fechada_em
+                ? `<div style="font-size:10px;color:var(--text-faint);margin-top:3px">
+                    em ${new Date(ev.caixa_fechada_em).toLocaleDateString('pt-PT',
+                    {day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'})}
+                   </div>` : ''}
+        </div>` : ''}
+    </div>` : '';
+
+            let html = `<div style="animation:fadeIn .2s ease">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="ev-btn" onclick="evVoltarDetalhe()">← Voltar</button>
+        <button class="ev-btn qr" onclick="evCopiarLinkInscricao('${ev.id}')">🔗 Copiar Link</button>
+        <button class="ev-btn" onclick="evVerInscricoes('${ev.id}')">↺ Atualizar</button>
+    </div>
+
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+                padding:14px;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px">${ev.titulo}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${valor > 0
+                ? `<span class="badge badge-primary" style="font-size:11px">${valor.toFixed(2)} €/pax</span>`
+                : ''}
+            <span class="badge badge-gray">Total: ${evInscricoes.length}</span>
+            <span class="badge badge-red">A pagar: ${pendentes.length}</span>
+            <span class="badge badge-green">Pagos: ${pagos.length}</span>
+        </div>
+    </div>
+
+    ${resumoFinanceiro}`;
+
+            /* Fila de pagamento */
+            if (pendentes.length) {
+                html += `<div class="ev-grupo-label" style="margin-top:0;border-top:none">
+            Fila de Pagamento (${pendentes.length})</div>`;
+                pendentes.forEach((i, idx) => {
+                    html += `<div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-start">
+                <div style="min-width:24px;height:24px;border-radius:50%;background:var(--primary-faint);
+                            color:var(--primary-dark);font-size:10px;font-weight:700;
+                            display:flex;align-items:center;justify-content:center;
+                            flex-shrink:0;margin-top:12px">${idx + 1}</div>
+                <div style="flex:1">${_row(i, true)}</div>
+            </div>`;
+                });
+            } else {
+                html += `<div style="text-align:center;padding:20px;font-size:13px;color:var(--text-faint)">
+            Nenhuma inscrição pendente de pagamento.</div>`;
+            }
+
+            /* Pagos */
+            if (pagos.length) {
+                html += `<div class="ev-grupo-label">Pagamentos Confirmados (${pagos.length})
+            ${valor > 0 ? `<span style="float:right;color:var(--green);font-weight:700">
+                Total: ${totalPago.toFixed(2)} €</span>` : ''}
+        </div>`;
+                pagos.forEach(i => { html += _row(i, false); });
+            }
+
+            /* Cancelados */
+            if (cancelados.length) {
+                html += `<div class="ev-grupo-label">Cancelados (${cancelados.length})</div>`;
+                cancelados.forEach(i => {
+                    html += `<div style="opacity:.45">${_row(i, false)}</div>`;
+                });
+            }
+
+            html += '</div>';
+            document.getElementById('ev-panel-inner').innerHTML = html;
+        }
+
 // ── CONFIRMAR PAGAMENTO ──────────────────────────────────────────
         async function evMarcarPago(inscricaoId) {
             const insc = evInscricoes.find(i => i.id === inscricaoId);
@@ -829,6 +1017,18 @@
             if (!confirm(
                 `Confirmar pagamento${valor > 0 ? ' de ' + valor.toFixed(2) + ' €' : ''} de:\n\n${insc.nome}\n${insc.email}\n${insc.telemovel || ''}`
             )) return;
+
+            const metodo = await evEscolherMetodoPagamento();
+            if (metodo === null) return; // cancelou
+            // Adiciona forma_pagamento ao PATCH:
+            await _sb(`evento_inscricoes?id=eq.${inscricaoId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status:          'pago',
+                    pago_em:         new Date().toISOString(),
+                    forma_pagamento: metodo      // ← novo campo
+                })
+            });
 
             try {
                 /* Marca como pago */
@@ -2267,6 +2467,152 @@ ${secoesTipo}
             evRenderDetalhe();
         }
 
+        function evEscolherMetodoPagamento() {
+            return new Promise(resolve => {
+                // Overlay simples de escolha — sem dependências externas
+                const ov = document.createElement('div');
+                ov.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.6);
+            z-index:9999;display:flex;align-items:center;justify-content:center;
+            backdrop-filter:blur(3px)`;
+                const metodos = [
+                    { key:'dinheiro',      label:'💵 Dinheiro' },
+                    { key:'mbway',         label:'📱 MBWay' },
+                    { key:'multibanco',    label:'🏧 Multibanco' },
+                    { key:'transferencia', label:'🏦 Transferência' },
+                    { key:'presencial',    label:'✋ Outro/Presencial' },
+                ];
+                ov.innerHTML = `
+            <div style="background:var(--bg-card);border:1px solid var(--border);
+                        border-radius:16px;padding:24px;width:92%;max-width:320px">
+                <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;
+                            color:var(--text-faint);margin-bottom:14px">FORMA DE PAGAMENTO</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                    ${metodos.map(m => `
+                        <button class="ev-btn" style="text-align:left;padding:11px 14px;font-size:12px"
+                            data-key="${m.key}">${m.label}</button>
+                    `).join('')}
+                </div>
+                <button class="ev-btn danger" style="width:100%;margin-top:12px;font-size:10px"
+                    id="_ev-pag-cancel">Cancelar</button>
+            </div>`;
+                document.body.appendChild(ov);
+                ov.querySelectorAll('[data-key]').forEach(btn => {
+                    btn.onclick = () => { ov.remove(); resolve(btn.dataset.key); };
+                });
+                document.getElementById('_ev-pag-cancel').onclick = () => { ov.remove(); resolve(null); };
+            });
+        }
+
+        async function evFecharCaixaEvento(evId) {
+            const ev = evEventos.find(e => e.id === evId);
+            if (!ev) return;
+
+            const valor     = Number(ev.valor) || 0;
+            const pagos     = evInscricoes.filter(i => i.status === 'pago');
+            const totalPago = pagos.length * valor;
+
+            if (totalPago === 0) {
+                alert('Nenhum pagamento confirmado. Confirma os pagamentos antes de fechar o caixa.');
+                return;
+            }
+
+            // Agrupar pagos por forma_pagamento (campo opcional na inscrição)
+            // Se não existir forma_pagamento na tabela, agrupa tudo em 'presencial'
+            const totaisPag = {};
+            for (const p of pagos) {
+                const metodo = p.forma_pagamento || 'presencial';
+                totaisPag[metodo] = (totaisPag[metodo] || 0) + valor;
+            }
+
+            const PAG_LABEL = {
+                dinheiro:   'Dinheiro',
+                mbway:      'MBWay',
+                multibanco: 'Multibanco',
+                transferencia: 'Transferência',
+                presencial: 'Presencial',
+                outro:      'Outro'
+            };
+
+            const hoje        = new Date().toISOString().split('T')[0];
+            const hojeStr     = new Date().toLocaleDateString('pt-PT');
+            const evRef       = 'EV-' + evId.substring(0, 8).toUpperCase();
+            const dataEvento  = ev.data_inicio
+                ? new Date(ev.data_inicio).toLocaleDateString('pt-PT')
+                : hojeStr;
+
+            const totalMethods = Object.keys(totaisPag).length;
+            const confirmMsg =
+                `Fechar caixa do evento "${ev.titulo}"?\n\n` +
+                `Pagamentos confirmados: ${pagos.length} pessoa(s)\n` +
+                Object.entries(totaisPag)
+                    .map(([m, v]) => `  ${PAG_LABEL[m] || m}: ${v.toFixed(2)} €`)
+                    .join('\n') +
+                `\n\nTotal: ${totalPago.toFixed(2)} €\n\n` +
+                `Será lançado em Contas a Receber (status: recebido).`;
+
+            if (!confirm(confirmMsg)) return;
+
+            // Feedback visual no botão
+            const btn = document.querySelector(`[onclick*="evFecharCaixaEvento"]`);
+            if (btn) { btn.disabled = true; btn.textContent = 'A fechar...'; }
+
+            try {
+                // ── 1. Um lançamento por método de pagamento (igual ao PDV) ──
+                for (const [metodo, valorMetodo] of Object.entries(totaisPag)) {
+                    if (valorMetodo <= 0) continue;
+                    const nPax = pagos.filter(p => (p.forma_pagamento || 'presencial') === metodo).length;
+
+                    await _sb('contas_receber', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            descricao:        `Evento · ${PAG_LABEL[metodo] || metodo} · ${dataEvento} · ${ev.titulo}`,
+                            tipo:             'venda',
+                            valor_total:      Number(valorMetodo.toFixed(2)),
+                            valor_recebido:   Number(valorMetodo.toFixed(2)),
+                            data_emissao:     hoje,
+                            data_vencimento:  hoje,
+                            data_recebimento: hoje,
+                            data_pagamento:   hoje,
+                            forma_pagamento:  metodo,
+                            status:           'recebido',
+                            referencia:       evRef,
+                            observacoes:      `Fecho Evento · ${nPax} inscrição(ões) · ${valor.toFixed(2)} €/pax · ${ev.titulo}`
+                        })
+                    }).catch(e => console.warn('Erro ao lançar contas_receber:', e));
+                }
+
+                // ── 2. Marcar evento como caixa fechada ───────────────────────
+                await _sb(`eventos?id=eq.${evId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        caixa_fechada:    true,
+                        caixa_fechada_em: new Date().toISOString()
+                    })
+                });
+
+                // ── 3. Atualiza cache local ───────────────────────────────────
+                ev.caixa_fechada    = true;
+                ev.caixa_fechada_em = new Date().toISOString();
+                if (evAtivo?.id === evId) {
+                    evAtivo.caixa_fechada    = true;
+                    evAtivo.caixa_fechada_em = new Date().toISOString();
+                }
+
+                // ── 4. Re-renderiza fila ──────────────────────────────────────
+                evRenderFilaPagamento();
+
+                // Toast (usa o mesmo sistema do PDV se existir, senão alert)
+                if (window.toast) {
+                    toast(`Caixa fechada · ${pagos.length} inscri${pagos.length === 1 ? 'ção' : 'ções'} · € ${totalPago.toFixed(2)}`, 'ok');
+                }
+
+            } catch (err) {
+                console.error('Erro ao fechar caixa:', err);
+                alert('Erro ao fechar caixa: ' + (err?.message || JSON.stringify(err)));
+                if (btn) { btn.disabled = false; btn.textContent = `🏦 Fechar Caixa e Gerar Receita (${totalPago.toFixed(2)} €)`; }
+            }
+        }
+
 // ── EXPOR ──────────────────────────────────────────────────────────────
         Object.assign(window, {
             evSetTab,
@@ -2305,7 +2651,9 @@ ${secoesTipo}
             evRenderFilaPagamento,
             evMarcarPago,
             evRenderDetalhe,
-            evVoltarDetalhe
+            evVoltarDetalhe,
+            evFecharCaixaEvento,
+            evEscolherMetodoPagamento
         });
 
         evInit();

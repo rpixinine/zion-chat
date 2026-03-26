@@ -189,4 +189,137 @@ export function emailRecuperacaoPassword({ nome, resetUrl }) {
     };
 }
 
+
+// ── Email: Confirmação de Inscrição em Evento ─────────────────────────────────
+export function emailConfirmacaoInscricao({ nome, evento, data, local, valor, posicao, identificador }) {
+    const primeiroNome = (nome || '').split(' ')[0];
+    const gratuito     = !valor || Number(valor) === 0;
+    const valorStr     = gratuito ? 'Gratuito' : `${Number(valor).toFixed(2)} €`;
+
+    // QR Code via API pública — funciona em todos os clientes de email
+    // O identificador é o email ou telemóvel (o que a pessoa usou para se inscrever)
+    // É exactamente o que presenca.html usa para fazer o check-in
+    const qrData      = encodeURIComponent(identificador);
+    const qrUrl       = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&color=005f65&bgcolor=ffffff&data=${qrData}`;
+
+    const corpo = `
+      <!-- Saudação -->
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:15px;color:#0a2020;">
+        Ol&aacute;, <strong>${primeiroNome}</strong> 👋
+      </p>
+      <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:14px;color:#4a6a6a;line-height:1.7;">
+        A tua inscri&ccedil;&atilde;o no evento <strong style="color:#007078;">${evento}</strong>
+        foi registada com sucesso!
+        ${!gratuito
+        ? ' Dirige-te &agrave; secretaria no dia do evento para efectuar o pagamento.'
+        : ''}
+      </p>
+
+      <!-- Card do evento -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:22px;border-radius:10px;overflow:hidden;border:1px solid #d0e8e8;">
+        <tr>
+          <td bgcolor="#007078" style="background-color:#007078;padding:14px 20px;">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:16px;
+                      font-weight:700;color:#ffffff;letter-spacing:.3px;">${evento}</p>
+          </td>
+        </tr>
+        <tr>
+          <td bgcolor="#f5fafa" style="background-color:#f5fafa;padding:16px 20px;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              ${data ? `
+              <tr>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;width:80px;">&#128197; Data</td>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;
+                           color:#0a2020;font-weight:600;">${data}</td>
+              </tr>` : ''}
+              ${local ? `
+              <tr>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;">&#128205; Local</td>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;
+                           color:#0a2020;font-weight:600;">${local}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;">&#128179; Valor</td>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;
+                           font-weight:700;color:${gratuito ? '#2e7d32' : '#007078'};">${valorStr}</td>
+              </tr>
+              ${posicao ? `
+              <tr>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;">&#35; Posição</td>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;
+                           font-weight:700;color:#007078;">${posicao}º na fila</td>
+              </tr>` : ''}
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Secção QR Code -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:24px;border:1px solid #d0e8e8;border-radius:10px;overflow:hidden;">
+        <tr>
+          <td align="center" bgcolor="#f5fafa"
+              style="background-color:#f5fafa;padding:22px 20px 8px;">
+            <p style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:11px;
+                      letter-spacing:2px;text-transform:uppercase;color:#007078;">
+              O Teu QR Code de Check-in
+            </p>
+            <!-- QR Code via api.qrserver.com — compatível com todos os clientes -->
+            <img src="${qrUrl}"
+                 alt="QR Code Check-in"
+                 width="160" height="160"
+                 style="display:block;margin:0 auto;width:160px;height:160px;border:0;
+                        border-radius:6px;outline:none;text-decoration:none;">
+          </td>
+        </tr>
+        <tr>
+          <td align="center" bgcolor="#f5fafa"
+              style="background-color:#f5fafa;padding:12px 20px 18px;">
+            <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;color:#7a9a9a;">
+              Apresenta este c&oacute;digo na entrada ou usa o identificador:
+            </p>
+            <p style="margin:0;font-family:'Courier New',monospace;font-size:13px;
+                      font-weight:700;color:#007078;letter-spacing:.5px;">
+              ${identificador}
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Instrução de pagamento (só para eventos pagos) -->
+      ${!gratuito ? `
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:22px;border-left:3px solid #e65100;background-color:#fff8f5;" bgcolor="#fff8f5">
+        <tr>
+          <td style="padding:12px 16px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#7a3a00;line-height:1.7;">
+              <strong>Pagamento:</strong> No dia do evento, dirige-te &agrave; secretaria,
+              informa o teu nome ou email e efectua o pagamento de
+              <strong>${valorStr}</strong>. Ap&oacute;s confirma&ccedil;&atilde;o, poder&aacute;s
+              fazer o check-in normalmente.
+            </p>
+          </td>
+        </tr>
+      </table>` : ''}
+
+      <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#7a9a9a;
+                line-height:1.6;text-align:center;">
+        Tens d&uacute;vidas? Fala connosco pelo WhatsApp ou no pr&oacute;ximo culto.
+      </p>`;
+
+    return {
+        subject: `Inscrição confirmada — ${evento}`,
+        html: emailBase({
+            titulo: `Inscrição — ${evento}`,
+            corpo,
+            rodape: `Este email foi enviado porque te inscreveste no evento <strong>${evento}</strong>.`
+        })
+    };
+}
+
 export { APP_URL };

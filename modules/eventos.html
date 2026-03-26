@@ -766,7 +766,7 @@
 
             let html = `<div style="animation:fadeIn .2s ease">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <button class="ev-btn" onclick="evView='info';evRenderDetalhe()">← Voltar</button>
+        <button class="ev-btn" onclick="evVoltarDetalhe()">← Voltar</button>
         <button class="ev-btn qr" onclick="evCopiarLinkInscricao('${ev.id}')">🔗 Copiar Link</button>
         <button class="ev-btn" onclick="evVerInscricoes('${ev.id}')">↺ Atualizar</button>
     </div>
@@ -1020,8 +1020,11 @@
                 canc = e.status === 'cancelado';
 
             let btns = '';
-            if (ab) btns += `<button class="ev-btn" onclick="evAbrirForm('${e.id}')">Editar</button>`;
+            // Editar sempre disponível, independente do estado
+            btns += `<button class="ev-btn" onclick="evAbrirForm('${e.id}')">Editar</button>`;
             if (ab) btns += `<button class="ev-btn success" onclick="evIniciar('${e.id}')">Iniciar Evento</button>`;
+            // if (ab) btns += `<button class="ev-btn" onclick="evAbrirForm('${e.id}')">Editar</button>`;
+            // if (ab) btns += `<button class="ev-btn success" onclick="evIniciar('${e.id}')">Iniciar Evento</button>`;
             if (emC) btns += `<button class="ev-btn primary" onclick="evVerPresencas('${e.id}')">Presencas</button>`;
             if (emC) btns += `<button class="ev-btn qr" onclick="evMostrarQR('${e.id}')">QR Code</button>`;
             if (emC) btns += `<button class="ev-btn success" onclick="evConcluir('${e.id}')">Concluir</button>`;
@@ -2258,6 +2261,12 @@ ${secoesTipo}
             evTipoIdx = n;
         }
 
+        // Wrapper para o botão Voltar — reseta evView dentro do closure
+        function evVoltarDetalhe() {
+            evView = 'info';
+            evRenderDetalhe();
+        }
+
 // ── EXPOR ──────────────────────────────────────────────────────────────
         Object.assign(window, {
             evSetTab,
@@ -2295,7 +2304,8 @@ ${secoesTipo}
             evVerInscricoes,
             evRenderFilaPagamento,
             evMarcarPago,
-            evCancelarInscricao,
+            evRenderDetalhe,
+            evVoltarDetalhe
         });
 
         evInit();

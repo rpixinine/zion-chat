@@ -804,7 +804,7 @@
         }
 
         /* ── SUBMIT ──────────────────────────────────────────── */
-        async function iSubmit() {
+        async function iSubmitold() {
             clearInvalid();
             clearMsg();
 
@@ -954,6 +954,155 @@
 
             } catch (err) {
                 console.error(err);
+                setMsg('error', 'Erro ao registar. Tenta novamente ou pede ajuda a um responsável.');
+                btn.disabled = false;
+                btn.textContent = 'Confirmar Inscrição';
+            }
+        }
+
+        async function iSubmit() {
+            clearInvalid();
+            clearMsg();
+
+            const nome     = document.getElementById('f_nome')?.value?.trim() || '';
+            const email    = document.getElementById('f_email')?.value?.trim()?.toLowerCase() || '';
+            const tel      = document.getElementById('f_tel')?.value?.trim() || '';
+            const igEl     = document.querySelector('input[name="ig_status"]:checked');
+            const ig_status = igEl?.value || '';
+            const telClean = tel.replace(/\D/g, '');
+
+            /* Validação */
+            let hasError = false;
+            if (!nome)                          { markInvalid('f_nome');  hasError = true; }
+            if (!email || !email.includes('@')) { markInvalid('f_email'); hasError = true; }
+            if (telClean.length < 9)            { markInvalid('f_tel');   hasError = true; }
+            if (hasError) {
+                setMsg('error', 'Preenche correctamente todos os campos obrigatórios (*).');
+                return;
+            }
+            if (!ig_status) {
+                setMsg('error', 'Selecciona o teu estado na Igreja para continuar.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.textContent = 'A registar...';
+
+            try {
+                const evId   = _evento.id;
+                const telSuf = telClean.slice(-9);
+
+                /* ── 1. Verificar duplicado por email ────────────────── */
+                const dupEmail = await sb(
+                    `evento_inscricoes?evento_id=eq.${evId}&email=eq.${encodeURIComponent(email)}&select=id,status,nome&limit=1`
+                ).catch(() => []);
+
+                let dup = dupEmail?.[0] || null;
+
+                /* ── 1b. Verificar duplicado por telemóvel ───────────── */
+                if (!dup) {
+                    const allInsc = await sb(
+                        `evento_inscricoes?evento_id=eq.${evId}&select=id,status,nome,telemovel&limit=200`
+                    ).catch(() => []);
+                    dup = allInsc?.find(r =>
+                        (r.telemovel || '').replace(/\D/g, '').slice(-9) === telSuf
+                    ) || null;
+                }
+
+                /* ── 2. Tratar duplicados ─────────────────────────────── */
+                if (dup) {
+                    if (dup.status === 'pago') {
+                        setMsg('success',
+                            `✓ <strong>${dup.nome}</strong>, o teu pagamento já foi confirmado! Até já 🎉`
+                        );
+                        btn.disabled = false;
+                        btn.textContent = 'Confirmar Inscrição';
+                        return;
+                    }
+                    if (dup.status === 'pendente') {
+                        setMsg('info',
+                            `Já tens uma inscrição pendente. Dirige-te à secretaria no dia do evento para efectuar o pagamento.`
+                        );
+                        btn.disabled = false;
+                        btn.textContent = 'Confirmar Inscrição';
+                        return;
+                    }
+                    // cancelado → permite criar nova, continua
+                }
+
+                /* ── 3. Encontrar membro por email/tel ───────────────── */
+                let membroId = null;
+                try {
+                    const mByEmail = await sb(
+                        `membros?email=eq.${encodeURIComponent(email)}&select=id&limit=1`
+                    ).catch(() => []);
+                    membroId = mByEmail?.[0]?.id || null;
+
+                    if (!membroId) {
+                        const mAll = await sb(
+                            `membros?select=id,telefone&ativo=eq.true&limit=500`
+                        ).catch(() => []);
+                        const found = mAll?.find(m =>
+                            (m.telefone || '').replace(/\D/g, '').slice(-9) === telSuf
+                        );
+                        membroId = found?.id || null;
+                    }
+                } catch (e) { /* não crítico */ }
+
+                /* ── 4. Criar inscrição ──────────────────────────────── */
+                const novaInscricao = await sb('evento_inscricoes', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        evento_id:     evId,
+                        nome,
+                        email,
+                        telemovel:     tel,
+                        status_igreja: ig_status,
+                        membro_id:     membroId,
+                        status:        'pendente'
+                    })
+                });
+
+                const novaId = novaInscricao?.[0]?.id;
+
+                /* ── 5. Email em background (não bloqueia) ───────────── */
+                if (novaId) {
+                    enviarEmailConfirmacao(novaId); // fire-and-forget
+                }
+
+                /* ── 6. Posição na fila ──────────────────────────────── */
+                const fila = await sb(
+                    `evento_inscricoes?evento_id=eq.${evId}&status=eq.pendente&select=id&order=created_at`
+                ).catch(() => []);
+                const pos = fila?.length || 1;
+
+                /* ── 7. Tela de confirmação ──────────────────────────── */
+                const valor    = Number(_evento.valor) || 0;
+                const gratuito = _evento.gratuito || valor === 0;
+
+                document.getElementById('conf-icon').textContent  = '✓';
+                document.getElementById('conf-icon').className    = 'conf-icon ok';
+                document.getElementById('conf-title').textContent = 'Inscrição Registada!';
+                document.getElementById('conf-title').className   = 'conf-title ok';
+
+                const numEl = document.getElementById('conf-num');
+                numEl.textContent  = `# ${pos}`;
+                numEl.style.display = '';
+
+                document.getElementById('conf-sub').innerHTML =
+                    `Olá <strong>${nome}</strong>! A tua inscrição em <strong>${_evento.titulo}</strong> foi registada com sucesso.
+            ${email ? '<br><small style="opacity:.7">Confirmação enviada para ' + email + '</small>' : ''}`;
+
+                document.getElementById('conf-box').innerHTML = gratuito
+                    ? `<strong>Próximo passo:</strong> No dia do evento faz o check-in através do QR Code que estará disponível na entrada.`
+                    : `<strong>Próximo passo:</strong> Dirige-te à secretaria no dia do evento, informa o teu <strong>nome</strong> ou <strong>email</strong> e efectua o pagamento de <strong>${valor.toFixed(2)} €</strong>.<br><br>
+               Após confirmação serás adicionado à lista de presença.`;
+
+                mostrar('confirmado');
+
+            } catch (err) {
+                console.error('[iSubmit]', err);
                 setMsg('error', 'Erro ao registar. Tenta novamente ou pede ajuda a um responsável.');
                 btn.disabled = false;
                 btn.textContent = 'Confirmar Inscrição';

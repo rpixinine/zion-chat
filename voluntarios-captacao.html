@@ -337,21 +337,40 @@
         btn.disabled = true; btn.textContent = 'A pesquisar...';
 
         try {
-            // Tenta por nif, telefone, telemovel e email em paralelo
-            const enc = encodeURIComponent(q);
             const campos = `id,nome,email,telefone,telemovel,nif,ativo`;
-            const [r1, r2, r3, r4] = await Promise.allSettled([
-                sbGet(`membros?nif=eq.${enc}&select=${campos}&limit=1`),
-                sbGet(`membros?telefone=eq.${enc}&select=${campos}&limit=1`),
-                sbGet(`membros?telemovel=eq.${enc}&select=${campos}&limit=1`),
-                sbGet(`membros?email=eq.${enc}&select=${campos}&limit=1`),
-            ]);
+            const enc    = encodeURIComponent(q);
+            let encontrado = null;
 
-            const encontrado =
-                (r1.status === 'fulfilled' && r1.value?.[0]) ||
-                (r2.status === 'fulfilled' && r2.value?.[0]) ||
-                (r3.status === 'fulfilled' && r3.value?.[0]) ||
-                (r4.status === 'fulfilled' && r4.value?.[0]) || null;
+            const isEmail   = q.includes('@');
+            const isNumeric = /^\d+$/.test(q.replace(/[\s\-\+]/g, ''));
+
+            if (isEmail) {
+                // Pesquisa só por email
+                const r = await sbGet(`membros?email=eq.${enc}&select=${campos}&limit=1`).catch(() => []);
+                encontrado = r[0] || null;
+
+            } else if (isNumeric) {
+                // Pesquisa por telefone e NIF (campos numéricos/texto)
+                // Usa a sintaxe or do PostgREST para uma única query
+                const r = await sbGet(
+                    `membros?or=(telefone.eq.${enc},telemovel.eq.${enc},nif.eq.${enc})&select=${campos}&limit=1`
+                ).catch(() => []);
+                encontrado = r[0] || null;
+
+            } else {
+                // Pesquisa por nome parcial (útil para teste)
+                const rNome = await sbGet(
+                    `membros?nome=ilike.*${enc}*&select=${campos}&ativo=eq.true&limit=5`
+                ).catch(() => []);
+                if (rNome.length === 1) {
+                    encontrado = rNome[0];
+                } else if (rNome.length > 1) {
+                    showAlert('alert-search', 'warning',
+                        `Encontrados ${rNome.length} membros com esse nome. Use o NIF, telemóvel ou e-mail para ser mais preciso.`);
+                    btn.disabled = false; btn.textContent = 'Pesquisar';
+                    return;
+                }
+            }
 
             if (!encontrado) {
                 showAlert('alert-search', 'error', 'Membro não encontrado. Verifique o NIF, telemóvel ou e-mail.');
@@ -359,7 +378,7 @@
             }
 
             if (!encontrado.ativo) {
-                showAlert('alert-search', 'error', 'Este membro não está ativo.');
+                showAlert('alert-search', 'error', 'Este membro não está ativo na igreja.');
                 return;
             }
 
@@ -369,7 +388,7 @@
             ).catch(() => []);
 
             if (jaInscrito.length) {
-                showAlert('alert-search', 'warning', 'Este membro já tem uma inscrição nesta campanha.');
+                showAlert('alert-search', 'warning', 'Este membro já tem uma inscrição registada nesta campanha.');
                 return;
             }
 
@@ -377,7 +396,7 @@
             mostrarMembro();
 
         } catch (e) {
-            console.error(e);
+            console.error('Erro na pesquisa:', e);
             showAlert('alert-search', 'error', 'Erro ao pesquisar. Tente novamente.');
         } finally {
             btn.disabled = false; btn.textContent = 'Pesquisar';

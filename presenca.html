@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Check-in — Zion Lisboa</title>
-    
+
     <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
-    
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#009098">
     <meta name="mobile-web-app-capable" content="yes">
@@ -922,7 +922,7 @@
         }
 
         /* ── LÓGICA DE PROCURA (partilhada entre manual e QR) ─── */
-        async function procurarParticipante(dado) {
+        async function procurarParticipanteOld(dado) {
             try {
                 const isEmail  = dado.includes('@');
                 const telClean = dado.replace(/\D/g, '');
@@ -958,6 +958,165 @@
                 return { ok: false, msg: 'Erro ao verificar. Tenta novamente.' };
             }
         }
+
+        async function procurarParticipante(dado) {
+            try {
+                const isPagoEvento = Number(_evento.valor) > 0 && !_evento.gratuito;
+                const isEmail      = dado.includes('@');
+                const telClean     = dado.replace(/\D/g, '');
+
+                // ── DEBUG — apaga depois de confirmar que está a funcionar ──
+                console.log('[procurar] dado:', dado, '| isPago:', isPagoEvento);
+                console.log('[procurar] _participantes:', _participantes.length, _participantes.map(p => ({
+                    nome: p.membros?.nome,
+                    email: p.membros?.email,
+                    telefone: p.membros?.telefone,
+                    nif: p.membros?.nif
+                })));
+
+                // ════════════════════════════════════════════════════════════
+                // EVENTO PAGO — fonte de verdade: evento_inscricoes (status=pago)
+                // ════════════════════════════════════════════════════════════
+                if (isPagoEvento) {
+                    let inscricoes = [];
+                    try {
+                        inscricoes = await sb(
+                            `evento_inscricoes?evento_id=eq.${_evento.id}&status=eq.pago&select=id,nome,email,telemovel,status,membro_id`
+                        ) || [];
+                    } catch (e) {
+                        console.error('Erro ao buscar inscricoes pagas:', e);
+                        return { ok: false, msg: 'Erro ao verificar inscrição. Tenta novamente.' };
+                    }
+
+                    console.log('[procurar] inscricoes pagas:', inscricoes.length, inscricoes.map(i => ({nome:i.nome, email:i.email, tel:i.telemovel})));
+
+                    let insc = null;
+                    if (isEmail) {
+                        insc = inscricoes.find(i =>
+                            (i.email || '').toLowerCase().trim() === dado.toLowerCase().trim()
+                        );
+                    } else {
+                        insc = inscricoes.find(i => {
+                            const iTel = (i.telemovel || '').replace(/\D/g, '');
+                            return telClean.length >= 9 && iTel.length >= 9
+                                && iTel.slice(-9) === telClean.slice(-9);
+                        });
+                    }
+
+                    // Fallback: pesquisa por nome nas inscrições pagas
+                    if (!insc && dado.length >= 3 && !isEmail && telClean.length < 9) {
+                        const q = dado.toLowerCase().trim();
+                        const matches = inscricoes.filter(i =>
+                            (i.nome || '').toLowerCase().includes(q)
+                        );
+                        if (matches.length === 1) {
+                            insc = matches[0];
+                        } else if (matches.length > 1) {
+                            return {
+                                ok: false,
+                                msg: `Encontrados ${matches.length} inscritos com "${dado}". Sê mais específico.`
+                            };
+                        }
+                    }
+
+                    if (!insc) {
+                        return {
+                            ok: false,
+                            msg: 'Inscrição paga não encontrada. Confirma os dados ou verifica o pagamento na secretaria.'
+                        };
+                    }
+
+                    // Verifica se já tem presença na lista
+                    const jaExiste = _participantes.find(p =>
+                        insc.membro_id
+                            ? p.membro_id === insc.membro_id
+                            : (p.membros?.email || '').toLowerCase() === (insc.email || '').toLowerCase()
+                    );
+
+                    if (jaExiste) {
+                        if (jaExiste.status === 'presente') return { ok: true, jaPresente: true, pres: jaExiste };
+                        return { ok: true, jaPresente: false, pres: jaExiste };
+                    }
+
+                    // Cria entrada em evento_presencas na hora
+                    const payload = { evento_id: _evento.id, status: 'pendente' };
+                    if (insc.membro_id) payload.membro_id = insc.membro_id;
+
+                    const criado = await sb('evento_presencas', {
+                        method: 'POST',
+                        body: JSON.stringify([payload])
+                    });
+                    const novaP = criado?.[0];
+                    if (!novaP) return { ok: false, msg: 'Erro ao criar registo de presença.' };
+
+                    const presSimulada = {
+                        ...novaP,
+                        membros: {
+                            id:           insc.membro_id || null,
+                            nome:         insc.nome,
+                            email:        insc.email,
+                            telefone:     insc.telemovel,
+                            foto_url:     null,
+                            nif:          null,
+                            e_lider:      false,
+                            e_presbitero: false,
+                            e_voluntario: false,
+                            professor:    false,
+                        }
+                    };
+                    _participantes.push(presSimulada);
+                    return { ok: true, jaPresente: false, pres: presSimulada };
+                }
+
+                // ════════════════════════════════════════════════════════════
+                // EVENTO GRATUITO — fonte de verdade: evento_presencas + membros
+                // ════════════════════════════════════════════════════════════
+                let pres = null;
+
+                if (isEmail) {
+                    pres = _participantes.find(p =>
+                        (p.membros?.email || '').toLowerCase().trim() === dado.toLowerCase().trim()
+                    );
+                } else {
+                    pres = _participantes.find(p => {
+                        const mNif = (p.membros?.nif      || '').replace(/\D/g, '');
+                        const mTel = (p.membros?.telefone || '').replace(/\D/g, '');
+                        if (mNif && mNif === telClean && telClean.length >= 8) return true;
+                        if (telClean.length >= 9 && mTel.length >= 9
+                            && mTel.slice(-9) === telClean.slice(-9)) return true;
+                        return false;
+                    });
+                }
+
+                if (!pres && dado.length >= 3) {
+                    const q = dado.toLowerCase().trim();
+                    const matches = _participantes.filter(p =>
+                        (p.membros?.nome || '').toLowerCase().includes(q)
+                    );
+                    if (matches.length === 1) {
+                        // Só aceita se for resultado único para evitar enganos
+                        pres = matches[0];
+                    } else if (matches.length > 1) {
+                        return {
+                            ok: false,
+                            msg: `Encontrados ${matches.length} participantes com "${dado}". Sê mais específico.`
+                        };
+                    }
+                }
+
+                if (!pres) {
+                    return { ok: false, msg: 'Participante não encontrado. Verifica os dados ou fala com um responsável.' };
+                }
+
+                if (pres.status === 'presente') return { ok: true, jaPresente: true, pres };
+                return { ok: true, jaPresente: false, pres };
+
+            } catch (e) {
+                console.error('[procurarParticipante]', e);
+                return { ok: false, msg: 'Erro ao verificar. Tenta novamente.' };
+            }
+        }
+
 
         /* ── RENDER CARD MEMBRO ───────────────────────────────── */
         function renderMembro() {

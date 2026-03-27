@@ -4,12 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Inscrição de Voluntários — Zion Lisboa</title>
-
-    <!-- Favicon -->
-    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
-    
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
     <script src="config.js"></script>
     <style>
@@ -337,58 +331,52 @@
         btn.disabled = true; btn.textContent = 'A pesquisar...';
 
         try {
-            const campos = `id,nome,email,telefone,telemovel,nif,ativo`;
-            const enc    = encodeURIComponent(q);
-            let encontrado = null;
+            const enc = encodeURIComponent(q);
 
+            // Determinar qual campo pesquisar com base no formato do input
             const isEmail   = q.includes('@');
-            const isNumeric = /^\d+$/.test(q.replace(/[\s\-\+]/g, ''));
+            const isNumeric = /^[\d\s\-\+]+$/.test(q);
 
+            // Filtros base: ativo=true e ainda não é voluntário (e_voluntario=false ou null)
+            const baseFilter = `ativo=eq.true&select=*&limit=1`;
+
+            let url = '';
             if (isEmail) {
-                // Pesquisa só por email
-                const r = await sbGet(`membros?email=eq.${enc}&select=${campos}&limit=1`).catch(() => []);
-                encontrado = r[0] || null;
-
+                url = `membros?email=eq.${enc}&${baseFilter}`;
             } else if (isNumeric) {
-                // Pesquisa por telefone e NIF (campos numéricos/texto)
-                // Usa a sintaxe or do PostgREST para uma única query
-                const r = await sbGet(
-                    `membros?or=(telefone.eq.${enc},telemovel.eq.${enc},nif.eq.${enc})&select=${campos}&limit=1`
-                ).catch(() => []);
-                encontrado = r[0] || null;
-
+                // Número pode ser NIF ou telefone — tenta os dois via or
+                const num = q.replace(/[\s\-\+]/g, '');
+                url = `membros?or=(telefone.eq.${encodeURIComponent(num)},nif.eq.${encodeURIComponent(num)})&${baseFilter}`;
             } else {
-                // Pesquisa por nome parcial (útil para teste)
-                const rNome = await sbGet(
-                    `membros?nome=ilike.*${enc}*&select=${campos}&ativo=eq.true&limit=5`
-                ).catch(() => []);
-                if (rNome.length === 1) {
-                    encontrado = rNome[0];
-                } else if (rNome.length > 1) {
-                    showAlert('alert-search', 'warning',
-                        `Encontrados ${rNome.length} membros com esse nome. Use o NIF, telemóvel ou e-mail para ser mais preciso.`);
-                    btn.disabled = false; btn.textContent = 'Pesquisar';
-                    return;
-                }
+                showAlert('alert-search', 'error',
+                    'Use o NIF (número), telemóvel (número) ou e-mail para pesquisar.');
+                return;
             }
+
+            const rows = await sbGet(url);
+            const encontrado = rows[0] || null;
 
             if (!encontrado) {
-                showAlert('alert-search', 'error', 'Membro não encontrado. Verifique o NIF, telemóvel ou e-mail.');
+                showAlert('alert-search', 'error',
+                    'Membro não encontrado. Confirme que está registado na igreja e use NIF, telemóvel ou e-mail.');
                 return;
             }
 
-            if (!encontrado.ativo) {
-                showAlert('alert-search', 'error', 'Este membro não está ativo na igreja.');
+            // Verificar se já é voluntário
+            if (encontrado.e_voluntario === true) {
+                showAlert('alert-search', 'warning',
+                    `${encontrado.nome} já está registado como voluntário.`);
                 return;
             }
 
-            // Verificar inscrição duplicada
+            // Verificar inscrição duplicada nesta campanha
             const jaInscrito = await sbGet(
                 `voluntarios_inscricoes?campanha_id=eq.${campanha.id}&membro_id=eq.${encontrado.id}&select=id&limit=1`
             ).catch(() => []);
 
             if (jaInscrito.length) {
-                showAlert('alert-search', 'warning', 'Este membro já tem uma inscrição registada nesta campanha.');
+                showAlert('alert-search', 'warning',
+                    `${encontrado.nome} já tem uma inscrição nesta campanha.`);
                 return;
             }
 
@@ -397,19 +385,23 @@
 
         } catch (e) {
             console.error('Erro na pesquisa:', e);
-            showAlert('alert-search', 'error', 'Erro ao pesquisar. Tente novamente.');
+            // Mostrar o detalhe do erro para debug
+            const detalhe = e?.message || e?.hint || JSON.stringify(e);
+            showAlert('alert-search', 'error', `Erro ao pesquisar: ${detalhe}`);
         } finally {
             btn.disabled = false; btn.textContent = 'Pesquisar';
         }
     }
 
     function mostrarMembro() {
-        const tel = membro.telefone || membro.telemovel || '—';
+        // Suporta tanto "telefone" como "telefone" como nome de coluna
+        const tel = membro.telefone || membro.telefone || '—';
+        const nif = membro.nif || '—';
         document.getElementById('membro-dados').innerHTML = `
       <div class="member-field"><small>Nome</small><span>${membro.nome}</span></div>
       <div class="member-field"><small>E-mail</small><span>${membro.email || '—'}</span></div>
       <div class="member-field"><small>Telemóvel</small><span>${tel}</span></div>
-      <div class="member-field"><small>NIF</small><span>${membro.nif || '—'}</span></div>`;
+      <div class="member-field"><small>NIF</small><span>${nif}</span></div>`;
         document.getElementById('result-membro').classList.remove('hidden');
     }
 

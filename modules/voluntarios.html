@@ -248,47 +248,116 @@
 
         // ══════════════════════════════════════════════════════
         // ABA 1 — VOLUNTÁRIOS ATIVOS
-        // Mostra membros com e_voluntario=true (campo existente em membros)
         // ══════════════════════════════════════════════════════
+
+        // Cache completo para filtros sem re-fetch
+        let vl_ativosCache    = [];  // todos os voluntários com _ministerios e _idiomas
+        let vl_ministeriosList = []; // [{ id, nome }] para o select de filtro
+        let vl_idiomasList    = [];  // ['Português', 'Inglês', ...] únicos
+
         async function vl_renderAtivos() {
             vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
 
-            let rows = [];
             try {
-                // Buscar membros voluntários com os seus ministérios
-                rows = await sb(
-                    'membros?e_voluntario=eq.true&ativo=eq.true' +
-                    '&select=id,nome,email,telefone,telefone,Idiomas' +
-                    '&order=nome'
+                // Colunas certas: telefone (não telemovel), Idiomas (I maiúsculo)
+                const membros = await sb(
+                    'membros?e_voluntario=eq.true&ativo=eq.true&select=id,nome,email,telefone,Idiomas&order=nome'
                 ) || [];
 
-                // Buscar ministérios de cada voluntário
-                if (rows.length) {
-                    const ids = rows.map(m => m.id).join(',');
-                    const mins = await sb(
-                        `membro_ministerios?membro_id=in.(${ids})&ativo=eq.true&select=membro_id,papel,ministerios(id,nome)`
+                // Ministérios de cada voluntário
+                let minsMap = {};
+                let minsRaw = [];
+                if (membros.length) {
+                    const ids = membros.map(m => m.id).join(',');
+                    minsRaw = await sb(
+                        `membro_ministerios?membro_id=in.(${ids})&ativo=eq.true` +
+                        `&select=id,membro_id,papel,ministerios(id,nome)`
                     ).catch(() => []);
 
-                    const minsMap = {};
-                    (mins || []).forEach(v => {
+                    (minsRaw || []).forEach(v => {
                         if (!minsMap[v.membro_id]) minsMap[v.membro_id] = [];
-                        minsMap[v.membro_id].push(v.ministerios?.nome || '—');
+                        minsMap[v.membro_id].push({ id: v.ministerios?.id, nome: v.ministerios?.nome, papel: v.papel, vinc_id: v.id });
                     });
-
-                    rows = rows.map(r => ({ ...r, _ministerios: (minsMap[r.id] || []).join(', ') || '—' }));
                 }
+
+                vl_ativosCache = membros.map(m => ({
+                    ...m,
+                    _ministerios: minsMap[m.id] || [],
+                    _idiomasArr:  vl_parseIdiomas(m.Idiomas),
+                }));
+
+                // Listas para filtros
+                const minSet = new Map();
+                minsRaw.forEach(v => { if (v.ministerios?.id) minSet.set(v.ministerios.id, v.ministerios.nome); });
+                vl_ministeriosList = [...minSet.entries()].map(([id, nome]) => ({ id, nome })).sort((a,b) => a.nome.localeCompare(b.nome));
+
+                const idSet = new Set();
+                vl_ativosCache.forEach(m => m._idiomasArr.forEach(i => idSet.add(i)));
+                vl_idiomasList = [...idSet].sort();
+
             } catch (e) {
                 vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro ao carregar: ${e?.message || JSON.stringify(e)}</div>`;
                 return;
             }
 
-            const stats = `
-      <div class="vl-stat-row">
-        <div class="vl-stat"><div class="vl-stat-num" style="color:var(--primary-dark)">${rows.length}</div><div class="vl-stat-label">Total Voluntários</div></div>
+            vl_renderAtivosFiltrado();
+        }
+
+        function vl_parseIdiomas(val) {
+            if (!val) return [];
+            try { const a = typeof val === 'string' ? JSON.parse(val) : val; return Array.isArray(a) ? a : []; }
+            catch (_) { return typeof val === 'string' ? [val] : []; }
+        }
+
+        function vl_renderAtivosFiltrado() {
+            const q      = (document.getElementById('vl-search-nome')?.value || '').toLowerCase();
+            const filtMin = document.getElementById('vl-filter-min')?.value || '';
+            const filtIdi = document.getElementById('vl-filter-idi')?.value || '';
+
+            let lista = [...vl_ativosCache];
+            if (q)       lista = lista.filter(m => m.nome.toLowerCase().includes(q));
+            if (filtMin) lista = lista.filter(m => m._ministerios.some(mn => mn.id === filtMin));
+            if (filtIdi) lista = lista.filter(m => m._idiomasArr.includes(filtIdi));
+
+            const minOpts = vl_ministeriosList.map(mn =>
+                `<option value="${mn.id}" ${filtMin === mn.id ? 'selected' : ''}>${mn.nome}</option>`
+            ).join('');
+            const idiOpts = vl_idiomasList.map(i =>
+                `<option value="${i}" ${filtIdi === i ? 'selected' : ''}>${i}</option>`
+            ).join('');
+
+            const filtros = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+        <input class="vl-input" id="vl-search-nome" placeholder="Pesquisar nome..."
+          value="${q}" oninput="vl_renderAtivosFiltrado()"
+          style="flex:2;min-width:160px;max-width:260px">
+        <select class="vl-select" id="vl-filter-min" onchange="vl_renderAtivosFiltrado()"
+          style="flex:1;min-width:150px">
+          <option value="">Todos os ministérios</option>${minOpts}
+        </select>
+        <select class="vl-select" id="vl-filter-idi" onchange="vl_renderAtivosFiltrado()"
+          style="flex:1;min-width:130px">
+          <option value="">Todos os idiomas</option>${idiOpts}
+        </select>
+        ${q||filtMin||filtIdi
+                ? `<button class="vl-btn vl-btn-m" onclick="vl_limparFiltros()" style="white-space:nowrap">Limpar</button>`
+                : ''}
       </div>`;
 
-            const tabela = !rows.length
-                ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum membro marcado como voluntário.</div>'
+            const stats = `
+      <div class="vl-stat-row">
+        <div class="vl-stat">
+          <div class="vl-stat-num" style="color:var(--primary-dark)">${vl_ativosCache.length}</div>
+          <div class="vl-stat-label">Total</div>
+        </div>
+        <div class="vl-stat">
+          <div class="vl-stat-num" style="color:var(--primary-dark)">${lista.length}</div>
+          <div class="vl-stat-label">Filtrados</div>
+        </div>
+      </div>`;
+
+            const tabela = !lista.length
+                ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum voluntário encontrado com estes filtros.</div>'
                 : `<div class="vl-card" style="padding:0;overflow:hidden;">
           <table class="vl-table">
             <thead>
@@ -301,22 +370,23 @@
               </tr>
             </thead>
             <tbody>
-              ${rows.map(v => {
-                    const tel = v.telefone || v.telefone || '—';
-                    const Idiomas = (() => {
-                        try { const a = typeof v.Idiomas === 'string' ? JSON.parse(v.Idiomas) : v.Idiomas; return Array.isArray(a) ? a.join(', ') : '—'; }
-                        catch (_) { return v.Idiomas || '—'; }
-                    })();
+              ${lista.map(v => {
+                    const tel     = v.telefone || '—';
+                    const idiomas = v._idiomasArr.join(', ') || '—';
+                    const minsStr = v._ministerios.map(mn => mn.nome).join(', ') || '—';
                     return `<tr>
-                  <td><strong>${v.nome}</strong></td>
-                  <td style="font-size:11px;color:var(--text-faint)">${v._ministerios}</td>
+                  <td><strong style="font-size:12px">${v.nome}</strong></td>
+                  <td style="font-size:11px;color:var(--text-faint)">${minsStr}</td>
                   <td>
                     <div style="font-size:11px">${tel}</div>
                     <div style="font-size:10px;color:var(--text-faint)">${v.email || ''}</div>
                   </td>
-                  <td style="font-size:11px;color:var(--text-faint)">${Idiomas}</td>
+                  <td style="font-size:11px;color:var(--text-faint)">${idiomas}</td>
                   <td>
-                    <button class="vl-btn vl-btn-m" onclick="mb_selectMembro && mb_selectMembro('${v.id}')">Ver Perfil</button>
+                    <div style="display:flex;gap:5px">
+                      <button class="vl-btn vl-btn-o" onclick="vl_abrirPerfil('${v.id}')">Perfil</button>
+                      <button class="vl-btn vl-btn-d" onclick="vl_removerVoluntario('${v.id}','${v.nome.replace(/'/g,"\\'")}')">Remover</button>
+                    </div>
                   </td>
                 </tr>`;
                 }).join('')}
@@ -324,13 +394,181 @@
           </table>
         </div>`;
 
-            vl_c().innerHTML = `
-      <div class="vl-toolbar">
-        <span class="vl-toolbar-title">Voluntários Ativos</span>
-        <button class="vl-btn vl-btn-p" onclick="vl_abrirRegistarVoluntario()">Registar Voluntário</button>
-      </div>
-      ${stats}
-      ${tabela}`;
+            // Manter scroll position ao re-renderizar só a lista
+            const existing = document.getElementById('vl-ativos-body');
+            if (existing) {
+                existing.innerHTML = filtros + stats + tabela;
+            } else {
+                vl_c().innerHTML = `
+        <div class="vl-toolbar">
+          <span class="vl-toolbar-title">Voluntários Ativos</span>
+          <button class="vl-btn vl-btn-p" onclick="vl_abrirRegistarVoluntario()">Registar Voluntário</button>
+        </div>
+        <div id="vl-ativos-body">${filtros}${stats}${tabela}</div>`;
+            }
+        }
+
+        function vl_limparFiltros() {
+            const n = document.getElementById('vl-search-nome');
+            const m = document.getElementById('vl-filter-min');
+            const i = document.getElementById('vl-filter-idi');
+            if (n) n.value = '';
+            if (m) m.value = '';
+            if (i) i.value = '';
+            vl_renderAtivosFiltrado();
+        }
+
+        // ── Remover voluntário ────────────────────────────────
+        async function vl_removerVoluntario(membroId, nome) {
+            if (!confirm(`Remover ${nome} da lista de voluntários?\nO perfil do membro não será alterado, apenas o estado de voluntário.`)) return;
+            try {
+                await sb(`membros?id=eq.${membroId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: false }) });
+                // Atualizar cache sem re-fetch
+                vl_ativosCache = vl_ativosCache.filter(m => m.id !== membroId);
+                const idx = vl_membrosCache.findIndex(m => m.id === membroId);
+                if (idx >= 0) vl_membrosCache[idx].e_voluntario = false;
+                vl_renderAtivosFiltrado();
+            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+        }
+
+        // ── Modal Perfil do Voluntário ────────────────────────
+        async function vl_abrirPerfil(membroId) {
+            const vol = vl_ativosCache.find(m => m.id === membroId);
+            if (!vol) return;
+
+            // Buscar ministérios disponíveis para o select
+            let todosMin = [];
+            try {
+                todosMin = await sb('ministerios?ativo=eq.true&select=id,nome,tipo&order=tipo,nome') || [];
+            } catch (_) {}
+
+            const minsAtuais = vol._ministerios;
+            const minsHtml = minsAtuais.length
+                ? minsAtuais.map(mn => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;
+            background:var(--bg-input);border:1px solid var(--border);border-radius:8px;margin-bottom:4px">
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:var(--text-main)">${mn.nome}</div>
+              ${mn.papel ? `<div style="font-size:10px;color:var(--text-faint)">${mn.papel}</div>` : ''}
+            </div>
+            <button class="vl-btn vl-btn-d" style="padding:3px 9px;font-size:8px"
+              onclick="vl_removerMinisterioModal('${mn.vinc_id}','${membroId}')">Remover</button>
+          </div>`).join('')
+                : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Sem ministérios associados.</div>';
+
+            const minGrupos = {};
+            todosMin.forEach(m => {
+                const g = m.tipo === 'ministerio' ? 'Ministérios' : m.tipo === 'area_equipa' ? 'Areas de Equipa' : (m.tipo || 'Outros');
+                if (!minGrupos[g]) minGrupos[g] = [];
+                minGrupos[g].push(m);
+            });
+
+            const minOpts = Object.entries(minGrupos).map(([g, items]) =>
+                `<optgroup label="${g}">${items.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}</optgroup>`
+            ).join('');
+
+            const papeisOpts = [
+                ['','— Função —'],['Auxiliar','Auxiliar'],['Co-liderArea','Co-lider de Área'],
+                ['Core','Core'],['LiderArea','Lider de Área'],['LiderEquipa','Lider de Equipa'],
+                ['Lider','Lider de Ministério'],['Office','Office'],['Presbitério','Presbitério'],
+            ].map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+
+            const tel     = vol.telefone || '—';
+            const idiomas = vol._idiomasArr.join(', ') || '—';
+
+            const ov = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.id = 'vl-perfil-modal';
+            ov.innerHTML = `
+      <div class="vl-modal" style="max-width:500px">
+        <div class="vl-modal-title">${vol.nome}</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px">
+          <div>
+            <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1px;color:var(--text-faint);margin-bottom:2px">Telefone</div>
+            <div style="font-size:12px">${tel}</div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1px;color:var(--text-faint);margin-bottom:2px">E-mail</div>
+            <div style="font-size:12px">${vol.email || '—'}</div>
+          </div>
+          <div style="grid-column:1/-1">
+            <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1px;color:var(--text-faint);margin-bottom:2px">Idiomas</div>
+            <div style="font-size:12px">${idiomas}</div>
+          </div>
+        </div>
+
+        <div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);
+          text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">
+          Ministérios
+        </div>
+
+        <div id="vl-perfil-mins">${minsHtml}</div>
+
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <select class="vl-select" id="vl-perfil-add-min" style="flex:2;min-width:150px">
+            <option value="">Adicionar ministério...</option>${minOpts}
+          </select>
+          <select class="vl-select" id="vl-perfil-add-papel" style="flex:1;min-width:120px">
+            ${papeisOpts}
+          </select>
+          <button class="vl-btn vl-btn-p" onclick="vl_adicionarMinisterioModal('${membroId}')">Adicionar</button>
+        </div>
+
+        <div id="vl-perfil-alert" style="margin-top:8px"></div>
+
+        <div class="vl-modal-footer">
+          <button class="vl-btn vl-btn-d" onclick="vl_removerVoluntarioModal('${membroId}','${vol.nome.replace(/'/g,"\\'")}')">Remover Voluntário</button>
+          <button class="vl-btn vl-btn-p" onclick="document.getElementById('vl-perfil-modal').remove()">Fechar</button>
+        </div>
+      </div>`;
+            document.body.appendChild(ov);
+        }
+
+        async function vl_removerMinisterioModal(vincId, membroId) {
+            if (!confirm('Remover este ministério do voluntário?')) return;
+            try {
+                await sb(`membro_ministerios?id=eq.${vincId}`, { method: 'PATCH', body: JSON.stringify({ ativo: false }) });
+                // Atualizar cache
+                const vol = vl_ativosCache.find(m => m.id === membroId);
+                if (vol) vol._ministerios = vol._ministerios.filter(mn => mn.vinc_id !== vincId);
+                // Re-abrir modal
+                document.getElementById('vl-perfil-modal')?.remove();
+                vl_abrirPerfil(membroId);
+                vl_renderAtivosFiltrado();
+            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+        }
+
+        async function vl_adicionarMinisterioModal(membroId) {
+            const minId = document.getElementById('vl-perfil-add-min')?.value;
+            const papel = document.getElementById('vl-perfil-add-papel')?.value || null;
+            const alEl  = document.getElementById('vl-perfil-alert');
+            if (!minId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um ministério.</div>'; return; }
+
+            const vol = vl_ativosCache.find(m => m.id === membroId);
+            if (vol?._ministerios.some(mn => mn.id === minId)) {
+                if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Já associado.</div>';
+                return;
+            }
+
+            try {
+                const res = await sb('membro_ministerios', {
+                    method: 'POST',
+                    body: JSON.stringify({ membro_id: membroId, ministerio_id: minId, papel: papel || null, ativo: true })
+                });
+                // Re-abrir modal actualizado
+                document.getElementById('vl-perfil-modal')?.remove();
+                // Recarregar cache deste voluntário
+                await vl_renderAtivos();
+                vl_abrirPerfil(membroId);
+            } catch (e) {
+                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+            }
+        }
+
+        async function vl_removerVoluntarioModal(membroId, nome) {
+            document.getElementById('vl-perfil-modal')?.remove();
+            await vl_removerVoluntario(membroId, nome);
         }
 
         // ══════════════════════════════════════════════════════
@@ -360,7 +598,7 @@
                 const insIds  = inscricoes.map(i => i.id).join(',');
 
                 const [membsData, campsData, areasData] = await Promise.all([
-                    sb(`membros?id=in.(${memIds})&select=id,nome,email,telefone,telefone`).catch(() => []),
+                    sb(`membros?id=in.(${memIds})&select=id,nome,email,telefone,telemovel`).catch(() => []),
                     sb(`voluntarios_campanhas?id=in.(${campIds})&select=id,nome`).catch(() => []),
                     sb(`voluntarios_areas_interesse?inscricao_id=in.(${insIds})&select=inscricao_id,ordem,motivo,ministerio_id,ministerios(id,nome)&order=ordem`).catch(() => []),
                 ]);
@@ -464,7 +702,7 @@
         <td colspan="8">
           <div class="vl-g2" style="margin-bottom:9px">
             <div><span style="font-size:10px;color:var(--text-faint)">E-mail</span><br><span style="font-size:12px">${m?.email || '—'}</span></div>
-            <div><span style="font-size:10px;color:var(--text-faint)">Telemóvel</span><br><span style="font-size:12px">${m?.telefone || m?.telefone || '—'}</span></div>
+            <div><span style="font-size:10px;color:var(--text-faint)">Telemóvel</span><br><span style="font-size:12px">${m?.telefone || m?.telemovel || '—'}</span></div>
           </div>
           ${ins._areas.map(a => `
             <div style="margin-bottom:7px">
@@ -802,12 +1040,20 @@
         window.vl_distribuirTodos     = vl_distribuirTodos;
         window.vl_abrirDistribuir     = vl_abrirDistribuir;
         window.vl_confirmarDistribuir = vl_confirmarDistribuir;
-        window.vl_abrirRegistarVoluntario = vl_abrirRegistarVoluntario;
-        window.vl_confirmarRegistar   = vl_confirmarRegistar;
+        window.vl_abrirRegistarVoluntario  = vl_abrirRegistarVoluntario;
+        window.vl_confirmarRegistar        = vl_confirmarRegistar;
         window.vl_novaCampanha        = vl_novaCampanha;
         window.vl_guardarCampanha     = vl_guardarCampanha;
         window.vl_statusCampanha      = vl_statusCampanha;
         window.vl_gerarLinks          = vl_gerarLinks;
+        // Aba ativos — filtros, perfil, ministérios
+        window.vl_renderAtivosFiltrado      = vl_renderAtivosFiltrado;
+        window.vl_limparFiltros             = vl_limparFiltros;
+        window.vl_removerVoluntario         = vl_removerVoluntario;
+        window.vl_abrirPerfil               = vl_abrirPerfil;
+        window.vl_removerMinisterioModal    = vl_removerMinisterioModal;
+        window.vl_adicionarMinisterioModal  = vl_adicionarMinisterioModal;
+        window.vl_removerVoluntarioModal    = vl_removerVoluntarioModal;
 
         vl_init();
 

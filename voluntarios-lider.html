@@ -3,15 +3,22 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Voluntários — Area do Líder</title>
+    <title>Voluntários — Área do Líder</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
+    
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
             --bg:      #02161e;
-            --surface: #0a2330;
+            --surface: #071e28;
             --border:  #1a3a4a;
             --teal:    #009098;
             --teal-d:  #006e74;
@@ -20,6 +27,7 @@
             --error:   #e05252;
             --warn:    #d4992a;
             --ok:      #3aaa6c;
+            --gold:    #c9a84c;
         }
 
         body {
@@ -27,79 +35,137 @@
             color: var(--text);
             font-family: 'Lato', sans-serif;
             min-height: 100vh;
-            padding: 32px 16px 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 16px 60px;
         }
 
-        .container { max-width: 760px; margin: 0 auto; }
+        /* ── PAGE WRAPPER ─────────────────────────────────── */
+        .page {
+            width: 100%;
+            max-width: 720px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
-        header { margin-bottom: 32px; }
+        /* ── HEADER (padrão Zion) ─────────────────────────── */
+        .card-hd {
+            text-align: center;
+            padding: 26px 20px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+            position: relative;
+        }
 
-        header h1 {
+        .card-hd::after {
+            content: '';
+            display: block;
+            position: absolute;
+            bottom: -1px; left: 50%;
+            transform: translateX(-50%);
+            width: 60px; height: 2px;
+            background: var(--teal);
+            border-radius: 2px;
+        }
+
+        .hd-logo {
+            height: 40px; width: auto; object-fit: contain;
+            margin: 0 auto 10px; display: block;
+        }
+
+        .hd-logo-text {
+            display: none;
             font-family: 'Cinzel', serif;
-            font-size: 1.4rem;
-            color: var(--teal);
+            font-size: 1.3rem; font-weight: 700;
+            letter-spacing: 0.12em; color: var(--teal);
+            margin-bottom: 6px;
+        }
+
+        .hd-ministerio {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem; font-weight: 600;
+            letter-spacing: 0.04em; color: var(--text);
+            margin-top: 6px; margin-bottom: 3px;
+        }
+
+        .hd-campanha { font-size: 0.84rem; color: var(--muted); }
+
+        /* ── INFO BAR ─────────────────────────────────────── */
+        .info-bar {
+            display: flex; gap: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .info-cell {
+            flex: 1;
+            padding: 14px 16px;
+            border-right: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .info-cell:last-child { border-right: none; }
+
+        .info-cell small {
+            display: block;
+            font-family: 'Cinzel', serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
             margin-bottom: 4px;
         }
 
-        header p { color: var(--muted); font-size: 0.9rem; }
-
-        .info-bar {
-            display: flex;
-            gap: 24px;
-            flex-wrap: wrap;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 28px;
-        }
-
-        .info-item small {
-            display: block;
-            font-size: 0.76rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 3px;
-        }
-
-        .info-item span { font-size: 0.95rem; }
-
-        .badge {
-            display: inline-block;
-            font-size: 0.75rem;
+        .info-cell strong {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
             font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            padding: 3px 10px;
-            border-radius: 4px;
+            color: var(--teal);
         }
 
-        .badge-warn    { background: rgba(212,153,42,0.15); color: var(--warn); border: 1px solid var(--warn); }
-        .badge-ok      { background: rgba(58,170,108,0.15); color: var(--ok);   border: 1px solid var(--ok); }
-        .badge-muted   { background: rgba(107,154,170,0.1); color: var(--muted); border: 1px solid var(--muted); }
-
-        .deadline-bar {
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 0.88rem;
-            margin-bottom: 24px;
+        /* ── PRAZO BAR ────────────────────────────────────── */
+        .prazo-bar {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.86rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .deadline-ok   { background: rgba(58,170,108,0.1);  border: 1px solid var(--ok);   color: var(--ok); }
-        .deadline-warn { background: rgba(212,153,42,0.1);  border: 1px solid var(--warn); color: var(--warn); }
-        .deadline-over { background: rgba(224,82,82,0.1);   border: 1px solid var(--error); color: var(--error); }
+        .prazo-ok   { background: rgba(58,170,108,0.1);  border: 1px solid var(--ok);   color: var(--ok); }
+        .prazo-warn { background: rgba(212,153,42,0.1);  border: 1px solid var(--warn); color: var(--warn); }
+        .prazo-over { background: rgba(224,82,82,0.1);   border: 1px solid var(--error); color: var(--error); }
 
+        .prazo-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .prazo-ok .prazo-dot   { background: var(--ok); }
+        .prazo-warn .prazo-dot { background: var(--warn); }
+        .prazo-over .prazo-dot { background: var(--error); }
+
+        /* ── PERSON CARDS ─────────────────────────────────── */
         .person-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 20px 24px;
-            margin-bottom: 16px;
-            transition: border-color 0.2s;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s, opacity 0.2s;
         }
 
-        .person-card.contacted { border-color: var(--ok); opacity: 0.7; }
+        .person-card.contacted {
+            border-color: rgba(58,170,108,0.4);
+            opacity: 0.75;
+        }
 
         .person-header {
             display: flex;
@@ -110,377 +176,525 @@
         }
 
         .person-name {
-            font-size: 1rem;
-            font-weight: 700;
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
             color: var(--text);
+            margin-bottom: 3px;
         }
 
-        .person-meta {
-            font-size: 0.84rem;
+        .person-areas {
+            font-size: 0.78rem;
             color: var(--muted);
-            margin-top: 2px;
+            line-height: 1.5;
         }
 
-        .person-body {
+        .badge {
+            display: inline-block;
+            font-family: 'Cinzel', serif;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .badge-ok   { background: rgba(58,170,108,0.12); color: var(--ok);   border: 1px solid rgba(58,170,108,0.3); }
+        .badge-warn { background: rgba(212,153,42,0.12); color: var(--warn); border: 1px solid rgba(212,153,42,0.3); }
+
+        .person-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px 20px;
-            margin-bottom: 16px;
+            gap: 8px 20px;
+            margin-bottom: 12px;
         }
 
         .person-field small {
             display: block;
-            font-size: 0.76rem;
-            letter-spacing: 0.05em;
+            font-size: 0.7rem;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
             color: var(--muted);
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
-        .person-field span { font-size: 0.9rem; }
+        .person-field span { font-size: 0.88rem; }
 
         .motivo-box {
             background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 12px 14px;
-            font-size: 0.88rem;
+            border-left: 3px solid var(--teal);
+            border-radius: 0 6px 6px 0;
+            padding: 10px 12px;
+            font-size: 0.85rem;
             color: var(--muted);
             line-height: 1.6;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             font-style: italic;
         }
 
-        .disponibilidade-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 16px;
-        }
+        .disp-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
 
-        .tag {
-            font-size: 0.78rem;
-            padding: 4px 10px;
+        .disp-tag {
+            font-size: 0.75rem;
+            padding: 3px 9px;
             border-radius: 4px;
-            background: rgba(0,144,152,0.1);
+            background: rgba(0,144,152,0.08);
             border: 1px solid var(--border);
             color: var(--muted);
         }
 
+        /* ── BUTTONS ──────────────────────────────────────── */
         .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border: none;
-            border-radius: 6px;
-            font-family: 'Lato', sans-serif;
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            padding: 9px 18px;
-            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px;
+            border: none; border-radius: 6px;
+            font-family: 'Lato', sans-serif; font-size: 0.82rem;
+            font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+            padding: 8px 16px; cursor: pointer;
             transition: background 0.2s, opacity 0.2s;
+            text-decoration: none;
         }
 
-        .btn-teal    { background: var(--teal); color: #fff; }
+        .btn-teal  { background: var(--teal); color: #fff; }
         .btn-teal:hover { background: var(--teal-d); }
-        .btn-whats   { background: #25d366; color: #fff; }
+        .btn-whats { background: #25d366; color: #fff; }
         .btn-whats:hover { background: #1ead52; }
-        .btn-muted   { background: var(--border); color: var(--muted); }
+        .btn-muted { background: var(--border); color: var(--muted); }
+        .btn-danger { background: rgba(224,82,82,0.12); color: var(--error); border: 1px solid rgba(224,82,82,0.3); }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
-        .card-empty {
+        /* ── EMPTY / LOADING / ERROR ──────────────────────── */
+        .state-center {
             text-align: center;
-            padding: 48px;
+            padding: 60px 20px;
             color: var(--muted);
         }
 
-        .hidden { display: none !important; }
+        .state-icon { font-size: 2rem; margin-bottom: 12px; opacity: 0.4; }
 
-        @media (max-width: 500px) {
-            .person-body { grid-template-columns: 1fr; }
-            .info-bar    { flex-direction: column; gap: 12px; }
+        .state-title {
+            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            letter-spacing: 0.06em;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .state-sub { font-size: 0.85rem; }
+
+        /* ── FOOTER ───────────────────────────────────────── */
+        .card-footer {
+            text-align: center;
+            font-family: 'Cinzel', serif;
+            font-size: 0.62rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--border);
+            padding: 20px 0 8px;
+            margin-top: auto;
+        }
+
+        @media (max-width: 480px) {
+            .person-grid { grid-template-columns: 1fr; }
+            .info-bar    { flex-direction: column; }
+            .info-cell   { border-right: none; border-bottom: 1px solid var(--border); }
+            .info-cell:last-child { border-bottom: none; }
         }
     </style>
 </head>
 <body>
-<div class="container">
 
-    <div id="loading" style="text-align:center;padding:80px;color:var(--muted);">A carregar...</div>
+<div class="page">
 
-    <div id="content" class="hidden">
-        <header>
-            <h1 id="ministerio-nome">Voluntários</h1>
-            <p id="campanha-info"></p>
-        </header>
+    <!-- HEADER ZION -->
+    <div class="card-hd">
+        <img class="hd-logo"
+             src="assets/logo-zion-branca.svg"
+             alt="Zion Lisboa"
+             onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
+        <span id="logo-fb" class="hd-logo-text">ZION LISBOA</span>
+        <div class="hd-ministerio" id="ministerio-nome">Voluntários</div>
+        <div class="hd-campanha" id="campanha-info"></div>
+    </div>
+
+    <!-- LOADING -->
+    <div id="state-loading" class="state-center">
+        <div class="state-icon">⏳</div>
+        <div class="state-title">A carregar...</div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="state-error" class="state-center" style="display:none">
+        <div class="state-icon">✕</div>
+        <div class="state-title">Link inválido</div>
+        <div class="state-sub">Este link não é válido ou já expirou. Contacte a equipa de gestão.</div>
+    </div>
+
+    <!-- CONTENT -->
+    <div id="content" style="display:none">
 
         <div class="info-bar">
-            <div class="info-item">
-                <small>Candidatos atribuídos</small>
-                <span id="total-candidatos">—</span>
+            <div class="info-cell">
+                <small>Candidatos</small>
+                <strong id="total-candidatos">—</strong>
             </div>
-            <div class="info-item">
+            <div class="info-cell">
                 <small>Contactados</small>
-                <span id="total-contactados">—</span>
+                <strong id="total-contactados" style="color:var(--ok)">—</strong>
             </div>
-            <div class="info-item">
-                <small>Prazo para contacto</small>
-                <span id="prazo-display">—</span>
+            <div class="info-cell">
+                <small>Pendentes</small>
+                <strong id="total-pendentes" style="color:var(--warn)">—</strong>
+            </div>
+            <div class="info-cell">
+                <small>Prazo</small>
+                <strong id="prazo-display" style="font-size:0.9rem">—</strong>
             </div>
         </div>
 
-        <div id="deadline-bar" class="deadline-bar"></div>
+        <div id="prazo-bar" style="display:none"></div>
 
         <div id="lista-candidatos"></div>
+
     </div>
 
-    <div id="error-screen" class="hidden" style="text-align:center;padding:80px;color:var(--error);">
-        Link inválido ou expirado.
-    </div>
+    <div class="card-footer">2026 · Zion Lisboa · Gestão de Voluntários</div>
 
-</div>
+</div><!-- .page -->
 
 <script>
-    const SUPABASE_URL = window.ZION_CONFIG?.url || 'https://SEU_PROJETO.supabase.co';
-    const SUPABASE_KEY = window.ZION_CONFIG?.key || 'SUA_ANON_KEY';
-    const sb           = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ============================================================
+    // CONFIG — usa as variáveis do config.js
+    // ============================================================
+    const _URL = window.SUPABASE_URL  || '';
+    const _KEY = window.SUPABASE_ANON_KEY || '';
 
-    let atribuicao = null;
+    // ============================================================
+    // FETCH HELPERS
+    // ============================================================
+    async function sbGet(path) {
+        const r = await fetch(`${_URL}/rest/v1/${path}`, {
+            headers: { 'apikey': _KEY, 'Authorization': `Bearer ${_KEY}`, 'Content-Type': 'application/json' }
+        });
+        if (!r.ok) { const e = await r.json().catch(() => {}); throw e; }
+        const t = await r.text(); return t ? JSON.parse(t) : [];
+    }
+
+    async function sbPatch(path, body) {
+        const r = await fetch(`${_URL}/rest/v1/${path}`, {
+            method: 'PATCH',
+            headers: { 'apikey': _KEY, 'Authorization': `Bearer ${_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+            body: JSON.stringify(body)
+        });
+        if (!r.ok) { const e = await r.json().catch(() => {}); throw e; }
+        const t = await r.text(); return t ? JSON.parse(t) : [];
+    }
+
+    // ============================================================
+    // ESTADO
+    // ============================================================
     let candidatos = [];
 
+    // ============================================================
+    // INIT
+    // ============================================================
     async function init() {
         const token = new URLSearchParams(location.search).get('t');
-        if (!token) { showError(); return; }
+        if (!token || !_URL || !_KEY) { showError(); return; }
 
-        // Buscar atribuição
-        const { data: atr, error } = await sb
-            .from('voluntarios_atribuicoes')
-            .select('*, ministerios(nome), voluntarios_inscricoes(campanha_id, voluntarios_campanhas(nome))')
-            .eq('link_token', token)
-            .single();
+        try {
+            // 1. Buscar a atribuição pelo token
+            const atribs = await sbGet(
+                `voluntarios_atribuicoes?link_token=eq.${encodeURIComponent(token)}&select=*&limit=1`
+            );
 
-        if (error || !atr) { showError(); return; }
+            if (!atribs.length) { showError(); return; }
+            const atrib = atribs[0];
 
-        atribuicao = atr;
+            // 2. Buscar dados do ministério
+            const ministerios = await sbGet(
+                `ministerios?id=eq.${atrib.ministerio_id}&select=id,nome&limit=1`
+            ).catch(() => []);
+            const ministerio = ministerios[0];
 
-        // Definir prazo se ainda não definido (segurança)
-        const prazo = atr.prazo_contato ? new Date(atr.prazo_contato) : null;
+            // 3. Buscar inscricao para obter a campanha
+            const inscricoes = await sbGet(
+                `voluntarios_inscricoes?id=eq.${atrib.inscricao_id}&select=id,campanha_id&limit=1`
+            ).catch(() => []);
+            const inscricao = inscricoes[0];
 
-        // Buscar todos os candidatos desta atribuição (mesma campanha + mesmo ministério)
-        // O link é por ministério e campanha, não por pessoa individual
-        const campanhaId = atr.voluntarios_inscricoes?.campanha_id
-            || await getCampanhaId(atr.inscricao_id);
+            // 4. Buscar dados da campanha
+            let campanhaNome = 'Campanha de Voluntários';
+            if (inscricao?.campanha_id) {
+                const camps = await sbGet(
+                    `voluntarios_campanhas?id=eq.${inscricao.campanha_id}&select=nome&limit=1`
+                ).catch(() => []);
+                if (camps[0]) campanhaNome = camps[0].nome;
+            }
 
-        const { data: atribuidos } = await sb
-            .from('voluntarios_atribuicoes')
-            .select(`
-        id, status, data_contato, inscricao_id,
-        voluntarios_inscricoes (
-          id, membro_id, status,
-          disponibilidade_sabado_manha, disponibilidade_sabado_tarde,
-          disponibilidade_domingo_manha, disponibilidade_domingo_tarde,
-          membros ( nome, telemovel, email ),
-          voluntarios_areas_interesse ( ordem, motivo, ministerios(nome) )
-        )
-      `)
-            .eq('ministerio_id', atr.ministerio_id)
-            .eq('link_token', token);
+            // 5. Buscar TODAS as atribuições deste ministério que estão na mesma campanha
+            //    (pode haver mais de um candidato enviado ao mesmo líder)
+            let todasAtribs = [];
+            if (inscricao?.campanha_id) {
+                // Buscar todas as inscrições desta campanha
+                const todasIns = await sbGet(
+                    `voluntarios_inscricoes?campanha_id=eq.${inscricao.campanha_id}&select=id`
+                ).catch(() => []);
 
-        // Na verdade, o link é único por token, então mostramos apenas os candidatos
-        // para o ministério desta campanha. Fazer query separada:
-        const { data: todos } = await sb
-            .from('voluntarios_atribuicoes')
-            .select(`
-        id, status, data_contato,
-        voluntarios_inscricoes (
-          id,
-          disponibilidade_sabado_manha, disponibilidade_sabado_tarde,
-          disponibilidade_domingo_manha, disponibilidade_domingo_tarde,
-          membros ( nome, telemovel, email ),
-          voluntarios_areas_interesse ( ordem, motivo, ministerios(nome) )
-        )
-      `)
-            .eq('ministerio_id', atr.ministerio_id);
+                if (todasIns.length) {
+                    const insIds = todasIns.map(i => i.id).join(',');
+                    // Buscar atribuições para este ministério dentro dessas inscrições
+                    todasAtribs = await sbGet(
+                        `voluntarios_atribuicoes?inscricao_id=in.(${insIds})&ministerio_id=eq.${atrib.ministerio_id}&select=id,status,data_contato,prazo_contato,inscricao_id`
+                    ).catch(() => []);
+                }
+            } else {
+                // Fallback: só esta atribuição
+                todasAtribs = [atrib];
+            }
 
-        candidatos = (todos || []).filter(t =>
-            // filtrar pela mesma campanha — precisamos do campanha_id via join
-            true // simplificado; filtrar via campanha_id no join se disponível
-        );
+            // 6. Enriquecer cada atribuição com dados da inscrição + membro + áreas
+            if (todasAtribs.length) {
+                const insIds2 = todasAtribs.map(a => a.inscricao_id).join(',');
 
-        renderPage(atr, prazo);
-        renderCandidatos();
+                const [inscData, areasData] = await Promise.all([
+                    sbGet(`voluntarios_inscricoes?id=in.(${insIds2})&select=id,membro_id,disponibilidade_sabado_manha,disponibilidade_sabado_tarde,disponibilidade_domingo_manha,disponibilidade_domingo_tarde`).catch(() => []),
+                    sbGet(`voluntarios_areas_interesse?inscricao_id=in.(${insIds2})&select=inscricao_id,ordem,motivo,ministerios(id,nome)&order=ordem`).catch(() => []),
+                ]);
+
+                // Buscar membros
+                const memIds = [...new Set(inscData.map(i => i.membro_id))].join(',');
+                const membros = memIds
+                    ? await sbGet(`membros?id=in.(${memIds})&select=id,nome,email,telefone`).catch(() => [])
+                    : [];
+
+                const inscMap  = Object.fromEntries(inscData.map(i => [i.id, i]));
+                const membMap  = Object.fromEntries(membros.map(m => [m.id, m]));
+                const areasMap = {};
+                areasData.forEach(a => {
+                    if (!areasMap[a.inscricao_id]) areasMap[a.inscricao_id] = [];
+                    areasMap[a.inscricao_id].push(a);
+                });
+
+                candidatos = todasAtribs.map(a => ({
+                    ...a,
+                    _inscricao: inscMap[a.inscricao_id] || null,
+                    _membro:    membMap[inscMap[a.inscricao_id]?.membro_id] || null,
+                    _areas:     (areasMap[a.inscricao_id] || []).sort((x,y) => x.ordem - y.ordem),
+                }));
+            }
+
+            // 7. Render
+            document.getElementById('ministerio-nome').textContent = ministerio?.nome || 'Ministério';
+            document.getElementById('campanha-info').textContent   = campanhaNome;
+
+            renderPrazo(atrib);
+            renderContadores();
+            renderCandidatos();
+
+            document.getElementById('state-loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+        } catch(e) {
+            console.error('Erro ao carregar:', e);
+            showError();
+        }
     }
 
-    function renderPage(atr, prazo) {
-        document.getElementById('ministerio-nome').textContent =
-            atr.ministerios?.nome || 'Ministério';
-        document.getElementById('campanha-info').textContent =
-            atr.voluntarios_inscricoes?.voluntarios_campanhas?.nome || 'Campanha de Voluntários';
+    // ============================================================
+    // RENDER PRAZO
+    // ============================================================
+    function renderPrazo(atrib) {
+        const prazoEl = document.getElementById('prazo-display');
+        const barEl   = document.getElementById('prazo-bar');
 
-        // Prazo
-        if (prazo) {
-            document.getElementById('prazo-display').textContent =
-                prazo.toLocaleDateString('pt-PT');
-
-            const hoje    = new Date();
-            const diffMs  = prazo - hoje;
-            const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-            const bar      = document.getElementById('deadline-bar');
-
-            if (diffDias > 3) {
-                bar.className = 'deadline-bar deadline-ok';
-                bar.textContent = `Tem ${diffDias} dias para efectuar os contactos.`;
-            } else if (diffDias > 0) {
-                bar.className = 'deadline-bar deadline-warn';
-                bar.textContent = `Prazo a terminar — restam ${diffDias} dia(s). Efectue os contactos pendentes.`;
-            } else {
-                bar.className = 'deadline-bar deadline-over';
-                bar.textContent = 'O prazo para contacto terminou. Os candidatos não contactados foram devolvidos à gestão.';
-            }
-        } else {
-            document.getElementById('deadline-bar').style.display = 'none';
+        if (!atrib.prazo_contato) {
+            prazoEl.textContent = '—';
+            return;
         }
 
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('content').classList.remove('hidden');
+        const prazo    = new Date(atrib.prazo_contato);
+        const hoje     = new Date();
+        const diffDias = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
+
+        prazoEl.textContent = prazo.toLocaleDateString('pt-PT');
+
+        barEl.style.display = 'flex';
+
+        if (diffDias > 3) {
+            barEl.className = 'prazo-bar prazo-ok';
+            barEl.innerHTML = `<div class="prazo-dot"></div> Tem ${diffDias} dias para efectuar os contactos.`;
+        } else if (diffDias > 0) {
+            barEl.className = 'prazo-bar prazo-warn';
+            barEl.innerHTML = `<div class="prazo-dot"></div> Prazo a terminar — restam ${diffDias} dia(s). Efectue os contactos pendentes.`;
+        } else {
+            barEl.className = 'prazo-bar prazo-over';
+            barEl.innerHTML = `<div class="prazo-dot"></div> O prazo terminou. Os candidatos não contactados serão devolvidos à gestão.`;
+        }
     }
 
-    function renderCandidatos() {
-        const lista    = document.getElementById('lista-candidatos');
-        const total    = candidatos.length;
+    // ============================================================
+    // RENDER CONTADORES
+    // ============================================================
+    function renderContadores() {
+        const total       = candidatos.length;
         const contactados = candidatos.filter(c => c.status === 'contatado').length;
+        const pendentes   = candidatos.filter(c => c.status === 'aguardando').length;
 
         document.getElementById('total-candidatos').textContent  = total;
         document.getElementById('total-contactados').textContent = contactados;
+        document.getElementById('total-pendentes').textContent   = pendentes;
+    }
 
-        if (!total) {
-            lista.innerHTML = '<div class="card-empty">Nenhum candidato atribuído.</div>';
+    // ============================================================
+    // RENDER CANDIDATOS
+    // ============================================================
+    function renderCandidatos() {
+        const lista = document.getElementById('lista-candidatos');
+
+        if (!candidatos.length) {
+            lista.innerHTML = `
+        <div class="state-center">
+          <div class="state-icon">—</div>
+          <div class="state-title">Nenhum candidato</div>
+          <div class="state-sub">Não há candidatos atribuídos a este ministério nesta campanha.</div>
+        </div>`;
             return;
         }
 
         lista.innerHTML = candidatos.map(c => {
-            const ins     = c.voluntarios_inscricoes;
-            const membro  = ins?.membros;
-            const areas   = (ins?.voluntarios_areas_interesse || []).sort((a,b) => a.ordem - b.ordem);
-            const dispArr = [];
-            if (ins?.disponibilidade_sabado_manha)  dispArr.push('Sábado Manhã');
-            if (ins?.disponibilidade_sabado_tarde)  dispArr.push('Sábado Tarde');
-            if (ins?.disponibilidade_domingo_manha) dispArr.push('Domingo Manhã');
-            if (ins?.disponibilidade_domingo_tarde) dispArr.push('Domingo Tarde');
+            const m     = c._membro;
+            const ins   = c._inscricao;
+            const areas = c._areas;
 
-            const tel     = membro?.telemovel?.replace(/\s/g, '') || '';
-            const whatsUrl = tel ? `https://wa.me/351${tel.replace('+351', '')}` : null;
+            const disp = [
+                ins?.disponibilidade_sabado_manha  && 'Sábado Manhã',
+                ins?.disponibilidade_sabado_tarde  && 'Sábado Tarde',
+                ins?.disponibilidade_domingo_manha && 'Domingo Manhã',
+                ins?.disponibilidade_domingo_tarde && 'Domingo Tarde',
+            ].filter(Boolean);
+
+            // WhatsApp — campo correto é telefone
+            const tel = (m?.telefone || '').replace(/[\s\-]/g, '');
+            const telDisplay = m?.telefone || '—';
+            const whatsUrl = tel
+                ? `https://wa.me/351${tel.replace(/^\+351/, '').replace(/^00351/, '')}`
+                : null;
+
+            // Motivo para este ministério (área correspondente ou a 1ª)
+            const area1 = areas.find(a => a.ordem === 1);
+            const motivo = area1?.motivo || '—';
 
             const badge = c.status === 'contatado'
                 ? '<span class="badge badge-ok">Contactado</span>'
                 : '<span class="badge badge-warn">Pendente</span>';
 
-            // Motivo para este ministério
-            const area1 = areas.find(a => a.ordem === 1);
-            const motivoTexto = area1?.motivo || '—';
+            const areasStr = areas.map(a => `${a.ordem}. ${a.ministerios?.nome || '—'}`).join('  ·  ');
 
             return `
         <div class="person-card ${c.status === 'contatado' ? 'contacted' : ''}" id="card-${c.id}">
           <div class="person-header">
-            <div>
-              <div class="person-name">${membro?.nome || '—'}</div>
-              <div class="person-meta">
-                ${areas.map(a => `${a.ordem}. ${a.ministerios?.nome || '—'}`).join(' &nbsp;|&nbsp; ')}
-              </div>
+            <div style="flex:1;min-width:0">
+              <div class="person-name">${m?.nome || '—'}</div>
+              <div class="person-areas">${areasStr}</div>
             </div>
-            <div>${badge}</div>
+            <div id="badge-${c.id}">${badge}</div>
           </div>
 
-          <div class="person-body">
+          <div class="person-grid">
             <div class="person-field">
-              <small>Telemóvel</small>
-              <span>${membro?.telemovel || '—'}</span>
+              <small>Telefone</small>
+              <span>${telDisplay}</span>
             </div>
             <div class="person-field">
               <small>E-mail</small>
-              <span>${membro?.email || '—'}</span>
+              <span style="font-size:0.82rem">${m?.email || '—'}</span>
             </div>
           </div>
 
-          <div style="margin-bottom:10px;">
-            <small style="display:block;font-size:0.76rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Motivação</small>
-            <div class="motivo-box">${motivoTexto}</div>
+          <div style="margin-bottom:10px">
+            <div style="font-family:'Cinzel',serif;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Motivação</div>
+            <div class="motivo-box">${motivo}</div>
           </div>
 
-          <div class="disponibilidade-tags">
-            ${dispArr.map(d => `<span class="tag">${d}</span>`).join('')}
-          </div>
+          ${disp.length ? `
+            <div class="disp-tags">
+              ${disp.map(d => `<span class="disp-tag">${d}</span>`).join('')}
+            </div>` : ''}
 
-          <div class="btn-row">
+          <div class="btn-row" id="btns-${c.id}">
             ${whatsUrl
-                ? `<a href="${whatsUrl}" target="_blank" class="btn btn-whats">WhatsApp</a>`
+                ? `<a href="${whatsUrl}" target="_blank" rel="noopener" class="btn btn-whats">WhatsApp</a>`
                 : ''}
             ${c.status !== 'contatado'
                 ? `<button class="btn btn-teal" onclick="marcarContacto('${c.id}', this)">Marcar Contactado</button>`
-                : `<span style="font-size:0.84rem;color:var(--ok);align-self:center;">
-                   Contactado em ${new Date(c.data_contato).toLocaleDateString('pt-PT')}
-                 </span>`
+                : `<span style="font-size:0.82rem;color:var(--ok)">Contactado em ${new Date(c.data_contato).toLocaleDateString('pt-PT')}</span>`
             }
           </div>
-        </div>
-      `;
+        </div>`;
         }).join('');
     }
 
-    async function marcarContacto(atribuicaoId, btn) {
+    // ============================================================
+    // MARCAR CONTACTADO
+    // ============================================================
+    async function marcarContacto(atribId, btn) {
         btn.disabled = true;
         btn.textContent = 'A guardar...';
 
         const agora = new Date().toISOString();
 
-        const { error } = await sb
-            .from('voluntarios_atribuicoes')
-            .update({ status: 'contatado', data_contato: agora })
-            .eq('id', atribuicaoId);
+        try {
+            await sbPatch(`voluntarios_atribuicoes?id=eq.${atribId}`, {
+                status: 'contatado',
+                data_contato: agora
+            });
 
-        if (error) {
+            // Actualizar estado local
+            const c = candidatos.find(x => x.id === atribId);
+            if (c) { c.status = 'contatado'; c.data_contato = agora; }
+
+            // Actualizar UI do card sem re-render completo
+            const badgeEl = document.getElementById(`badge-${atribId}`);
+            const btnsEl  = document.getElementById(`btns-${atribId}`);
+            const card    = document.getElementById(`card-${atribId}`);
+
+            if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-ok">Contactado</span>';
+            if (btnsEl)  {
+                // Guardar o whatsapp link se existia
+                const wapLink = btnsEl.querySelector('a.btn-whats');
+                btnsEl.innerHTML = (wapLink ? wapLink.outerHTML + ' ' : '') +
+                    `<span style="font-size:0.82rem;color:var(--ok)">Contactado em ${new Date(agora).toLocaleDateString('pt-PT')}</span>`;
+            }
+            if (card) card.classList.add('contacted');
+
+            renderContadores();
+
+        } catch(e) {
+            console.error(e);
             btn.disabled = false;
             btn.textContent = 'Marcar Contactado';
             alert('Erro ao guardar. Tente novamente.');
-            return;
         }
-
-        // Atualizar local
-        const c = candidatos.find(x => x.id === atribuicaoId);
-        if (c) { c.status = 'contatado'; c.data_contato = agora; }
-
-        // Re-render card
-        const card = document.getElementById(`card-${atribuicaoId}`);
-        card.classList.add('contacted');
-        card.querySelector('.badge').outerHTML = '<span class="badge badge-ok">Contactado</span>';
-        btn.closest('.btn-row').innerHTML = `
-      <span style="font-size:0.84rem;color:var(--ok);align-self:center;">
-        Contactado em ${new Date(agora).toLocaleDateString('pt-PT')}
-      </span>`;
-
-        // Atualizar contadores
-        const contactados = candidatos.filter(c => c.status === 'contatado').length;
-        document.getElementById('total-contactados').textContent = contactados;
     }
 
+    // ============================================================
+    // MOSTRAR ERRO
+    // ============================================================
     function showError() {
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('error-screen').classList.remove('hidden');
+        document.getElementById('state-loading').style.display = 'none';
+        document.getElementById('state-error').style.display  = 'block';
     }
 
-    async function getCampanhaId(inscricaoId) {
-        const { data } = await sb
-            .from('voluntarios_inscricoes')
-            .select('campanha_id')
-            .eq('id', inscricaoId)
-            .single();
-        return data?.campanha_id;
-    }
-
+    // ============================================================
+    // ARRANCAR
+    // ============================================================
     init();
 </script>
+
 </body>
 </html>

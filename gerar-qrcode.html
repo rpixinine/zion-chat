@@ -3,47 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de QR Code — Admin</title>
+    <title>Gerador de QR Code </title>
 
     <!-- Favicon -->
     <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
-
+    
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
     <style>
         :root {
-            --primary:        #009098;
-            --primary-light:  #00adb6;
-            --primary-dark:   #006b70;
-            --primary-faint:  rgba(0, 144, 152, 0.08);
-            --primary-soft:   rgba(0, 144, 152, 0.15);
-            --border:         rgba(0, 144, 152, 0.2);
-            --border-strong:  rgba(0, 144, 152, 0.4);
-            --bg-page:        #F4F6F7;
-            --bg-card:        #FFFFFF;
-            --bg-input:       #F8FAFA;
-            --bg-footer:      #EEF1F2;
-            --text-main:      #111111;
-            --text-muted:     #555555;
-            --text-faint:     #888888;
-            --shadow:         0 8px 40px rgba(0, 100, 105, 0.12);
-            --shadow-sm:      0 2px 10px rgba(0, 100, 105, 0.08);
-            --shadow-hover:   0 4px 18px rgba(0, 144, 152, 0.18);
-            --font-title:     'Cinzel', serif;
-            --font-body:      'Lato', sans-serif;
-            --radius-sm:      6px;
-            --radius-md:      10px;
-            --radius-lg:      14px;
+            --navy:          #02161e;
+            --navy-card:     #071e28;
+            --navy-light:    #0d2d3a;
+            --navy-border:   #1a3d4d;
+            --teal:          #009098;
+            --teal-dark:     #006b70;
+            --teal-glow:     rgba(0, 144, 152, .18);
+            --teal-faint:    rgba(0, 144, 152, .08);
+            --text-main:     #e8f4f5;
+            --text-muted:    #7fa8b5;
+            --text-faint:    #4a7a8a;
+            --gold:          #c9a84c;
+            --red:           #ef5350;
+            --green:         #43a047;
+            --shadow:        0 8px 40px rgba(0, 0, 0, .4);
+            --shadow-sm:     0 2px 10px rgba(0, 0, 0, .25);
+            --font-title:    'Cinzel', serif;
+            --font-body:     'Lato', sans-serif;
+            --r:             10px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: var(--font-body);
-            background: var(--bg-page);
+            background: var(--navy);
             color: var(--text-main);
             min-height: 100vh;
             font-size: 14px;
@@ -51,8 +47,8 @@
 
         /* HEADER */
         header {
-            background: var(--bg-card);
-            border-bottom: 2px solid var(--primary);
+            background: var(--navy-card);
+            border-bottom: 1px solid var(--navy-border);
             padding: 0 32px;
             height: 56px;
             display: flex;
@@ -62,154 +58,157 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            overflow: hidden;
         }
-
+        header::before {
+            content: '';
+            position: absolute;
+            top: -40px; left: 50%;
+            transform: translateX(-50%);
+            width: 400px; height: 120px;
+            background: radial-gradient(ellipse, var(--teal-glow) 0%, transparent 70%);
+            pointer-events: none;
+        }
         .header-logo {
             font-family: var(--font-title);
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 600;
-            color: var(--primary);
-            letter-spacing: 2px;
-        }
-
-        .header-sep {
-            width: 1px;
-            height: 20px;
-            background: var(--border);
-        }
-
-        .header-sub {
-            font-size: 12px;
-            font-weight: 300;
-            color: var(--text-muted);
-            letter-spacing: 1.5px;
+            color: var(--teal);
+            letter-spacing: 3px;
             text-transform: uppercase;
+        }
+        .header-sep {
+            width: 1px; height: 20px;
+            background: var(--navy-border);
+        }
+        .header-sub {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-faint);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .gold-strip {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
         }
 
         /* LAYOUT */
         .workspace {
             display: grid;
-            grid-template-columns: 400px 1fr;
+            grid-template-columns: 380px 1fr;
             min-height: calc(100vh - 56px);
         }
 
         /* FORM PANEL */
         .form-panel {
-            background: var(--bg-card);
-            border-right: 1px solid var(--border);
-            padding: 32px 28px;
+            background: var(--navy-card);
+            border-right: 1px solid var(--navy-border);
+            padding: 28px 24px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 22px;
+            gap: 20px;
         }
 
         .section-title {
             font-family: var(--font-title);
-            font-size: 12px;
+            font-size: 9px;
             font-weight: 600;
-            letter-spacing: 2px;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
-            color: var(--primary);
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
+            color: var(--text-faint);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--navy-border);
         }
 
         .field {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 7px;
         }
 
         label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             color: var(--text-muted);
         }
-
-        label .req { color: var(--primary); }
+        label .req { color: var(--teal); }
 
         input[type="text"],
         input[type="url"],
         textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            border: 1px solid var(--navy-border);
+            border-radius: var(--r);
             font-family: var(--font-body);
             font-size: 14px;
             color: var(--text-main);
-            background: var(--bg-input);
+            background: var(--navy-light);
             transition: border-color .2s, box-shadow .2s;
             outline: none;
             resize: none;
         }
-
         input:focus, textarea:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-faint);
-            background: var(--bg-card);
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px var(--teal-glow);
+            background: var(--navy);
         }
-
-        textarea { min-height: 84px; line-height: 1.6; }
+        input::placeholder, textarea::placeholder { color: var(--text-faint); }
+        textarea { min-height: 80px; line-height: 1.6; }
 
         /* Image upload */
         .img-upload-area {
-            border: 1px dashed var(--border-strong);
-            border-radius: var(--radius-md);
-            padding: 20px;
+            border: 1px dashed var(--navy-border);
+            border-radius: var(--r);
+            padding: 18px;
             text-align: center;
             cursor: pointer;
             transition: all .2s;
             position: relative;
-            background: var(--bg-input);
+            background: var(--navy-light);
         }
-
         .img-upload-area:hover {
-            border-color: var(--primary);
-            background: var(--primary-faint);
+            border-color: var(--teal);
+            background: var(--teal-faint);
         }
-
         .img-upload-area input[type="file"] {
             position: absolute;
-            inset: 0;
-            opacity: 0;
+            inset: 0; opacity: 0;
             cursor: pointer;
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
         }
-
         .upload-label {
-            font-size: 13px;
-            color: var(--text-muted);
+            font-size: 12px;
+            color: var(--text-faint);
             line-height: 1.6;
             pointer-events: none;
         }
-
-        .upload-label strong { color: var(--primary); }
+        .upload-label strong { color: var(--teal); }
 
         .img-preview {
             display: none;
             margin-top: 10px;
             position: relative;
         }
-
         .img-preview img {
             max-width: 100%;
-            max-height: 90px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
+            max-height: 80px;
+            border-radius: var(--r);
+            border: 1px solid var(--navy-border);
             object-fit: contain;
             display: block;
             margin: 0 auto;
         }
-
         .btn-remove-img {
             position: absolute;
             top: 4px; right: 4px;
-            background: var(--text-main);
+            background: rgba(239,83,80,.85);
             color: #fff;
             border: none;
             border-radius: 50%;
@@ -217,56 +216,59 @@
             cursor: pointer;
             font-size: 10px;
             display: flex; align-items: center; justify-content: center;
-            transition: background .2s;
+            transition: background .15s;
         }
-
-        .btn-remove-img:hover { background: #c0392b; }
+        .btn-remove-img:hover { background: var(--red); }
 
         /* Size selector */
         .size-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            gap: 7px;
         }
-
         .size-btn {
-            padding: 9px;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
-            border-radius: var(--radius-sm);
+            padding: 10px 6px;
+            border: 1px solid var(--navy-border);
+            background: var(--navy-light);
+            border-radius: var(--r);
             font-size: 10px;
-            font-family: var(--font-body);
-            font-weight: 700;
+            font-family: var(--font-title);
+            font-weight: 600;
             letter-spacing: 1px;
             text-transform: uppercase;
             cursor: pointer;
             text-align: center;
-            transition: all .2s;
+            transition: all .15s;
             color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
-
-        .size-desc{
-            font-size:6px;
-            opacity:0.7;
+        .size-desc {
+            font-family: var(--font-body);
+            font-size: 9px;
+            opacity: .6;
+            font-weight: 400;
+            letter-spacing: 0;
+            text-transform: none;
         }
-
         .size-btn.active,
         .size-btn:hover {
-            border-color: var(--primary);
-            background: var(--primary-faint);
-            color: var(--primary-dark);
+            border-color: var(--teal);
+            background: var(--teal-faint);
+            color: var(--teal);
         }
 
         /* Generate */
         .btn-generate {
             width: 100%;
             padding: 13px;
-            background: var(--primary);
+            background: var(--teal);
             color: #fff;
             border: none;
-            border-radius: var(--radius-sm);
+            border-radius: var(--r);
             font-family: var(--font-title);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             letter-spacing: 2.5px;
             text-transform: uppercase;
@@ -274,171 +276,143 @@
             transition: all .2s;
             margin-top: 4px;
         }
-
         .btn-generate:hover {
-            background: var(--primary-dark);
-            box-shadow: var(--shadow-hover);
+            background: var(--teal-dark);
+            box-shadow: 0 4px 20px var(--teal-glow);
         }
-
         .btn-generate:active { transform: scale(.98); }
 
         /* PREVIEW PANEL */
         .preview-panel {
-            background: var(--bg-page);
+            background: var(--navy);
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 40px 36px;
+            padding: 36px 32px;
             gap: 18px;
             overflow-y: auto;
         }
-
         .preview-label {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 2px;
+            font-family: var(--font-title);
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
             color: var(--text-faint);
             align-self: flex-start;
         }
 
-        /* QR CARD */
+        /* QR CARD — mantida a estetica clara para imprimir bem */
         .qr-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
+            background: #fff;
+            border-radius: 14px;
             box-shadow: var(--shadow);
             width: 100%;
-            max-width: 440px;
-            border: 1px solid var(--border);
+            max-width: 420px;
             overflow: hidden;
+            border: 1px solid var(--navy-border);
         }
-
         .card-top-bar {
-            background: var(--primary);
+            background: var(--teal);
             padding: 12px 22px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-
         .bar-brand {
             font-family: var(--font-title);
             font-size: 11px;
             font-weight: 600;
             letter-spacing: 3px;
-            color: rgba(255,255,255,0.9);
+            color: rgba(255,255,255,.9);
         }
-
         .bar-dots { display: flex; gap: 5px; }
         .bar-dot {
             width: 6px; height: 6px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,.3);
         }
-
         .card-body {
-            padding: 36px 40px 28px;
+            padding: 32px 36px 24px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            background: #fff;
         }
-
-        .card-logo { display: none; margin-bottom: 18px; }
+        .card-logo { display: none; margin-bottom: 16px; }
         .card-logo img { max-width: 110px; max-height: 70px; object-fit: contain; }
         .card-logo.visible { display: block; }
 
         .card-title {
             font-family: var(--font-title);
-            font-size: 21px;
+            font-size: 20px;
             font-weight: 600;
-            color: var(--text-main);
+            color: #111;
             text-align: center;
             letter-spacing: 1px;
             line-height: 1.3;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
-
-        .card-title.empty {
-            color: var(--border-strong);
-            font-weight: 400;
-            font-size: 16px;
-        }
-
+        .card-title.empty { color: #ccc; font-weight: 400; font-size: 16px; }
         .card-divider {
-            width: 36px;
-            height: 2px;
-            background: var(--primary);
+            width: 36px; height: 2px;
+            background: var(--teal);
             opacity: .6;
             border-radius: 2px;
-            margin: 8px auto 16px;
+            margin: 6px auto 14px;
         }
-
         .card-message {
             font-size: 13px;
-            color: var(--text-muted);
+            color: #555;
             text-align: center;
             line-height: 1.7;
-            margin-bottom: 26px;
-            max-width: 320px;
+            margin-bottom: 24px;
+            max-width: 300px;
             font-weight: 300;
         }
-
-        .card-message.empty {
-            color: var(--border-strong);
-            font-style: italic;
-        }
+        .card-message.empty { color: #ccc; font-style: italic; }
 
         .card-qr {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 18px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            background: var(--bg-input);
-            min-width: 156px;
-            min-height: 156px;
+            padding: 16px;
+            border: 1px solid rgba(0,144,152,.2);
+            border-radius: 10px;
+            background: #f8fafa;
+            min-width: 150px;
+            min-height: 150px;
         }
-
         .qr-placeholder {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
         }
-
         .ph-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 4px;
-            width: 60px;
-            height: 60px;
+            width: 60px; height: 60px;
         }
-
-        .ph-cell {
-            border-radius: 2px;
-            background: var(--border);
-        }
-
-        .ph-cell.on { background: var(--primary-soft); }
-
+        .ph-cell { border-radius: 2px; background: rgba(0,144,152,.12); }
+        .ph-cell.on { background: rgba(0,144,152,.25); }
         .qr-placeholder p {
             font-size: 10px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: var(--text-faint);
+            color: #bbb;
         }
 
         .card-footer-area {
-            padding: 14px 40px 18px;
-            border-top: 1px solid var(--border);
-            background: var(--bg-footer);
+            padding: 12px 36px 16px;
+            border-top: 1px solid rgba(0,144,152,.15);
+            background: #f4f6f7;
             text-align: center;
         }
-
         .card-footer-text {
             font-size: 11px;
-            color: var(--text-faint);
+            color: #999;
             letter-spacing: 1.5px;
             text-transform: uppercase;
         }
@@ -449,52 +423,50 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             width: 100%;
-            max-width: 440px;
+            max-width: 420px;
         }
-
         .btn-action {
-            padding: 10px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            font-family: var(--font-body);
-            font-size: 11px;
-            font-weight: 700;
+            padding: 11px;
+            border-radius: var(--r);
+            border: 1px solid var(--navy-border);
+            background: var(--navy-card);
+            font-family: var(--font-title);
+            font-size: 9px;
+            font-weight: 600;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             cursor: pointer;
-            transition: all .2s;
+            transition: all .15s;
             color: var(--text-muted);
         }
-
         .btn-action:hover {
-            border-color: var(--primary);
-            color: var(--primary-dark);
-            background: var(--primary-faint);
+            border-color: var(--teal);
+            color: var(--teal);
+            background: var(--teal-faint);
         }
-
         .btn-action.primary {
-            background: var(--primary);
-            border-color: var(--primary);
+            background: var(--teal);
+            border-color: var(--teal);
             color: #fff;
         }
-
         .btn-action.primary:hover {
-            background: var(--primary-dark);
-            border-color: var(--primary-dark);
+            background: var(--teal-dark);
+            border-color: var(--teal-dark);
         }
 
         /* Toast */
         .toast {
             position: fixed;
             bottom: 24px; right: 24px;
-            background: var(--bg-card);
-            color: var(--primary-dark);
+            background: var(--navy-card);
+            color: var(--teal);
             padding: 10px 18px;
-            border-radius: var(--radius-sm);
+            border-radius: var(--r);
             font-size: 13px;
             font-weight: 700;
-            border-left: 3px solid var(--primary);
+            border-left: 3px solid var(--teal);
+            border: 1px solid var(--navy-border);
+            border-left: 3px solid var(--teal);
             box-shadow: var(--shadow);
             opacity: 0;
             transform: translateY(8px);
@@ -502,7 +474,6 @@
             pointer-events: none;
             z-index: 999;
         }
-
         .toast.show { opacity: 1; transform: translateY(0); }
 
         @media print {
@@ -511,26 +482,26 @@
             .preview-panel { padding: 0; background: white; }
             .qr-card { box-shadow: none; max-width: 100%; }
         }
-
         @media (max-width: 860px) {
             .workspace { grid-template-columns: 1fr; }
-            .form-panel { border-right: none; border-bottom: 1px solid var(--border); }
+            .form-panel { border-right: none; border-bottom: 1px solid var(--navy-border); }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <span class="header-logo">Administrador</span>
+    <span class="header-logo">Zion Lisboa</span>
     <div class="header-sep"></div>
     <span class="header-sub">Gerador de QR Code</span>
+    <div class="gold-strip"></div>
 </header>
 
 <div class="workspace">
 
     <aside class="form-panel">
 
-        <div class="section-title">Configurar Cartão</div>
+        <div class="section-title">Configurar Cartao</div>
 
         <div class="field">
             <label>Link / URL <span class="req">*</span></label>
@@ -550,39 +521,35 @@
         </div>
 
         <div class="field">
-            <label>Título</label>
-            <input type="text" id="inp-title" placeholder="Ex: Processo de Admissão" maxlength="80" />
+            <label>Titulo</label>
+            <input type="text" id="inp-title" placeholder="Ex: Processo de Admissao" maxlength="80" />
         </div>
 
         <div class="field">
-            <label>Mensagem / Descrição</label>
-            <textarea id="inp-message" placeholder="Descreva o processo ou instruções para o utilizador..."></textarea>
+            <label>Mensagem / Descricao</label>
+            <textarea id="inp-message" placeholder="Descreve o processo ou instrucoes para o utilizador..."></textarea>
         </div>
 
         <div class="field">
-            <label>Rodapé</label>
-            <input type="text" id="inp-footer" value="© 2026 Zion Lisboa" maxlength="80" />
+            <label>Rodape</label>
+            <input type="text" id="inp-footer" value="Zion Lisboa" maxlength="80" />
         </div>
 
         <div class="field">
             <label>Tamanho do QR Code</label>
             <div class="size-row">
-
                 <button class="size-btn" data-size="128">
                     Pequeno
-                    <span class="size-desc">128px (largura/altura)</span>
+                    <span class="size-desc">128 px</span>
                 </button>
-
                 <button class="size-btn active" data-size="180">
-                    Médio
-                    <span class="size-desc">180px (largura/altura)</span>
+                    Medio
+                    <span class="size-desc">180 px</span>
                 </button>
-
                 <button class="size-btn" data-size="240">
                     Grande
-                    <span class="size-desc">240px (largura/altura)</span>
+                    <span class="size-desc">240 px</span>
                 </button>
-
             </div>
         </div>
 
@@ -592,7 +559,7 @@
 
     <main class="preview-panel">
 
-        <p class="preview-label">Pré-visualização</p>
+        <p class="preview-label">Pre-visualizacao</p>
 
         <div class="qr-card">
 
@@ -611,9 +578,9 @@
                     <img id="card-logo-img" src="" alt="Imagem" />
                 </div>
 
-                <div class="card-title empty" id="card-title">Título do processo</div>
+                <div class="card-title empty" id="card-title">Titulo do cartao</div>
                 <div class="card-divider"></div>
-                <div class="card-message empty" id="card-message">A descrição do processo aparecerá aqui...</div>
+                <div class="card-message empty" id="card-message">A descricao aparecera aqui...</div>
 
                 <div class="card-qr">
                     <div class="qr-placeholder" id="qr-placeholder">
@@ -631,7 +598,7 @@
             </div>
 
             <div class="card-footer-area">
-                <p class="card-footer-text" id="card-footer">© 2026 Zion Lisboa</p>
+                <p class="card-footer-text" id="card-footer">Zion Lisboa</p>
             </div>
 
         </div>
@@ -648,34 +615,34 @@
 <div class="toast" id="toast"></div>
 
 <script>
-    let logoDataUrl = null;
+    let logoDataUrl  = null;
     let selectedSize = 180;
 
     document.getElementById('inp-title').addEventListener('input', e => {
         const el = document.getElementById('card-title');
         if (e.target.value.trim()) { el.textContent = e.target.value; el.classList.remove('empty'); }
-        else { el.textContent = 'Título do processo'; el.classList.add('empty'); }
+        else { el.textContent = 'Titulo do cartao'; el.classList.add('empty'); }
     });
 
     document.getElementById('inp-message').addEventListener('input', e => {
         const el = document.getElementById('card-message');
         if (e.target.value.trim()) { el.textContent = e.target.value; el.classList.remove('empty'); }
-        else { el.textContent = 'A descrição do processo aparecerá aqui...'; el.classList.add('empty'); }
+        else { el.textContent = 'A descricao aparecera aqui...'; el.classList.add('empty'); }
     });
 
     document.getElementById('inp-footer').addEventListener('input', e => {
-        document.getElementById('card-footer').textContent = e.target.value || '© 2026 Zion Lisboa';
+        document.getElementById('card-footer').textContent = e.target.value || 'Zion Lisboa';
     });
 
-    document.getElementById('inp-image').addEventListener('change', function() {
+    document.getElementById('inp-image').addEventListener('change', function () {
         const file = this.files[0];
         if (!file) return;
         const r = new FileReader();
         r.onload = e => {
             logoDataUrl = e.target.result;
-            document.getElementById('img-thumb').src = logoDataUrl;
+            document.getElementById('img-thumb').src       = logoDataUrl;
             document.getElementById('img-preview').style.display = 'block';
-            document.getElementById('card-logo-img').src = logoDataUrl;
+            document.getElementById('card-logo-img').src   = logoDataUrl;
             document.getElementById('card-logo').classList.add('visible');
         };
         r.readAsDataURL(file);
@@ -683,14 +650,14 @@
 
     document.getElementById('btn-remove-img').addEventListener('click', () => {
         logoDataUrl = null;
-        document.getElementById('img-thumb').src = '';
-        document.getElementById('img-preview').style.display = 'none';
+        document.getElementById('img-thumb').src                 = '';
+        document.getElementById('img-preview').style.display     = 'none';
         document.getElementById('card-logo').classList.remove('visible');
-        document.getElementById('inp-image').value = '';
+        document.getElementById('inp-image').value               = '';
     });
 
     document.querySelectorAll('.size-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             selectedSize = parseInt(this.dataset.size);
@@ -699,21 +666,21 @@
 
     document.getElementById('btn-generate').addEventListener('click', () => {
         const url = document.getElementById('inp-url').value.trim();
-        if (!url) { showToast('Insere um link válido antes de gerar.'); return; }
+        if (!url) { showToast('Insere um link valido antes de gerar.'); return; }
 
         const title  = document.getElementById('inp-title').value.trim();
         const msg    = document.getElementById('inp-message').value.trim();
         const footer = document.getElementById('inp-footer').value.trim();
 
         const titleEl = document.getElementById('card-title');
-        titleEl.textContent = title || 'Título do processo';
+        titleEl.textContent = title || 'Titulo do cartao';
         title ? titleEl.classList.remove('empty') : titleEl.classList.add('empty');
 
         const msgEl = document.getElementById('card-message');
-        msgEl.textContent = msg || 'A descrição do processo aparecerá aqui...';
+        msgEl.textContent = msg || 'A descricao aparecera aqui...';
         msg ? msgEl.classList.remove('empty') : msgEl.classList.add('empty');
 
-        document.getElementById('card-footer').textContent = footer || '© 2026 Zion Lisboa';
+        document.getElementById('card-footer').textContent = footer || 'Zion Lisboa';
 
         const container = document.getElementById('qr-output');
         container.innerHTML = '';
@@ -721,15 +688,15 @@
         container.style.display = 'block';
 
         new QRCode(container, {
-            text: url,
-            width: selectedSize,
-            height: selectedSize,
-            colorDark: '#111111',
-            colorLight: '#F8FAFA',
+            text:         url,
+            width:        selectedSize,
+            height:       selectedSize,
+            colorDark:    '#02161e',
+            colorLight:   '#F8FAFA',
             correctLevel: QRCode.CorrectLevel.H
         });
 
-        showToast('QR Code gerado com sucesso.');
+        showToast('QR Code gerado.');
     });
 
     document.getElementById('btn-copy-link').addEventListener('click', () => {
@@ -746,27 +713,29 @@
 
         const title   = document.getElementById('inp-title').value.trim();
         const message = document.getElementById('inp-message').value.trim();
-        const footer  = document.getElementById('inp-footer').value.trim() || '© 2026 Zion Lisboa';
+        const footer  = document.getElementById('inp-footer').value.trim() || 'Zion Lisboa';
         const pad     = 36;
         const cardW   = Math.max(qrCanvas.width + pad * 2, 320);
-        const logoH   = logoDataUrl ? 96 : 0;
-        const titleH  = title ? 50 : 0;
-        const divH    = title ? 22 : 0;
+        const logoH   = logoDataUrl ? 100 : 0;
+        const titleH  = title   ? 52 : 0;
+        const divH    = title   ? 22 : 0;
         const msgH    = message ? (Math.ceil(message.length / 38) * 22 + 18) : 0;
         const footH   = 50;
         const cardH   = 42 + pad + logoH + titleH + divH + msgH + qrCanvas.height + pad + footH;
 
         const cvs = document.createElement('canvas');
-        cvs.width = cardW; cvs.height = cardH;
-        const ctx = cvs.getContext('2d');
+        cvs.width  = cardW;
+        cvs.height = cardH;
+        const ctx  = cvs.getContext('2d');
 
+        /* Fundo branco — card imprimivel */
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, cardW, cardH);
 
+        /* Barra topo */
         ctx.fillStyle = '#009098';
         ctx.fillRect(0, 0, cardW, 42);
-
-        ctx.fillStyle = 'rgba(255,255,255,0.88)';
+        ctx.fillStyle = 'rgba(255,255,255,.88)';
         ctx.font = '600 11px serif';
         ctx.textAlign = 'left';
         ctx.fillText('ZION LISBOA', 20, 26);
@@ -812,28 +781,29 @@
             ctx.drawImage(qrCanvas, (cardW - qrCanvas.width) / 2, y);
             y += qrCanvas.height + pad;
 
-            ctx.fillStyle = '#EEF1F2';
+            ctx.fillStyle = '#f4f6f7';
             ctx.fillRect(0, y, cardW, cardH - y);
-            ctx.strokeStyle = 'rgba(0,144,152,0.2)';
+
+            ctx.strokeStyle = 'rgba(0,144,152,.2)';
             ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cardW, y); ctx.stroke();
 
-            ctx.fillStyle = '#888888';
+            ctx.fillStyle = '#999999';
             ctx.font = '400 11px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(footer.toUpperCase(), cardW / 2, y + 26);
 
-            const a = document.createElement('a');
+            const a   = document.createElement('a');
             a.download = 'qrcode-zion.png';
-            a.href = cvs.toDataURL('image/png');
+            a.href     = cvs.toDataURL('image/png');
             a.click();
             showToast('Imagem guardada.');
         };
 
         if (logoDataUrl) {
-            const img = new Image();
+            const img  = new Image();
             img.onload = () => doDraw(img);
-            img.src = logoDataUrl;
+            img.src    = logoDataUrl;
         } else {
             doDraw(null);
         }

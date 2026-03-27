@@ -125,7 +125,9 @@
     .vl-alert-i { background: var(--primary-faint); border: 1px solid var(--border); color: var(--primary-dark); }
 
     .vl-modal-overlay {
-        position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.82);
+        backdrop-filter: blur(4px);
         display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px;
     }
     .vl-modal {
@@ -309,106 +311,117 @@
             catch (_) { return typeof val === 'string' ? [val] : []; }
         }
 
+        // Estado dos filtros — mantido fora do DOM para não perder foco
+        let _vl_q = '', _vl_min = '', _vl_idi = '';
+
         function vl_renderAtivosFiltrado() {
-            const q      = (document.getElementById('vl-search-nome')?.value || '').toLowerCase();
-            const filtMin = document.getElementById('vl-filter-min')?.value || '';
-            const filtIdi = document.getElementById('vl-filter-idi')?.value || '';
+            // Ler do DOM se os inputs existirem, senão usar estado interno
+            const elNome = document.getElementById('vl-search-nome');
+            const elMin  = document.getElementById('vl-filter-min');
+            const elIdi  = document.getElementById('vl-filter-idi');
+            if (elNome) _vl_q   = elNome.value;
+            if (elMin)  _vl_min = elMin.value;
+            if (elIdi)  _vl_idi = elIdi.value;
+
+            const q       = _vl_q.toLowerCase();
+            const filtMin = _vl_min;
+            const filtIdi = _vl_idi;
 
             let lista = [...vl_ativosCache];
             if (q)       lista = lista.filter(m => m.nome.toLowerCase().includes(q));
             if (filtMin) lista = lista.filter(m => m._ministerios.some(mn => mn.id === filtMin));
             if (filtIdi) lista = lista.filter(m => m._idiomasArr.includes(filtIdi));
 
-            const minOpts = vl_ministeriosList.map(mn =>
-                `<option value="${mn.id}" ${filtMin === mn.id ? 'selected' : ''}>${mn.nome}</option>`
-            ).join('');
-            const idiOpts = vl_idiomasList.map(i =>
-                `<option value="${i}" ${filtIdi === i ? 'selected' : ''}>${i}</option>`
-            ).join('');
+            // Render inicial — cria estrutura fixa com inputs e zona de tabela separada
+            if (!document.getElementById('vl-ativos-wrap')) {
+                const minOpts = vl_ministeriosList.map(mn =>
+                    `<option value="${mn.id}">${mn.nome}</option>`
+                ).join('');
+                const idiOpts = vl_idiomasList.map(i =>
+                    `<option value="${i}">${i}</option>`
+                ).join('');
 
-            const filtros = `
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
-        <input class="vl-input" id="vl-search-nome" placeholder="Pesquisar nome..."
-          value="${q}" oninput="vl_renderAtivosFiltrado()"
-          style="flex:2;min-width:160px;max-width:260px">
-        <select class="vl-select" id="vl-filter-min" onchange="vl_renderAtivosFiltrado()"
-          style="flex:1;min-width:150px">
-          <option value="">Todos os ministérios</option>${minOpts}
-        </select>
-        <select class="vl-select" id="vl-filter-idi" onchange="vl_renderAtivosFiltrado()"
-          style="flex:1;min-width:130px">
-          <option value="">Todos os idiomas</option>${idiOpts}
-        </select>
-        ${q||filtMin||filtIdi
-                ? `<button class="vl-btn vl-btn-m" onclick="vl_limparFiltros()" style="white-space:nowrap">Limpar</button>`
-                : ''}
-      </div>`;
-
-            const stats = `
-      <div class="vl-stat-row">
-        <div class="vl-stat">
-          <div class="vl-stat-num" style="color:var(--primary-dark)">${vl_ativosCache.length}</div>
-          <div class="vl-stat-label">Total</div>
-        </div>
-        <div class="vl-stat">
-          <div class="vl-stat-num" style="color:var(--primary-dark)">${lista.length}</div>
-          <div class="vl-stat-label">Filtrados</div>
-        </div>
-      </div>`;
-
-            const tabela = !lista.length
-                ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum voluntário encontrado com estes filtros.</div>'
-                : `<div class="vl-card" style="padding:0;overflow:hidden;">
-          <table class="vl-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Ministérios</th>
-                <th>Contacto</th>
-                <th>Idiomas</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lista.map(v => {
-                    const tel     = v.telefone || '—';
-                    const idiomas = v._idiomasArr.join(', ') || '—';
-                    const minsStr = v._ministerios.map(mn => mn.nome).join(', ') || '—';
-                    return `<tr>
-                  <td><strong style="font-size:12px">${v.nome}</strong></td>
-                  <td style="font-size:11px;color:var(--text-faint)">${minsStr}</td>
-                  <td>
-                    <div style="font-size:11px">${tel}</div>
-                    <div style="font-size:10px;color:var(--text-faint)">${v.email || ''}</div>
-                  </td>
-                  <td style="font-size:11px;color:var(--text-faint)">${idiomas}</td>
-                  <td>
-                    <div style="display:flex;gap:5px">
-                      <button class="vl-btn vl-btn-o" onclick="vl_abrirPerfil('${v.id}')">Perfil</button>
-                      <button class="vl-btn vl-btn-d" onclick="vl_removerVoluntario('${v.id}','${v.nome.replace(/'/g,"\\'")}')">Remover</button>
-                    </div>
-                  </td>
-                </tr>`;
-                }).join('')}
-            </tbody>
-          </table>
-        </div>`;
-
-            // Manter scroll position ao re-renderizar só a lista
-            const existing = document.getElementById('vl-ativos-body');
-            if (existing) {
-                existing.innerHTML = filtros + stats + tabela;
-            } else {
                 vl_c().innerHTML = `
         <div class="vl-toolbar">
           <span class="vl-toolbar-title">Voluntários Ativos</span>
           <button class="vl-btn vl-btn-p" onclick="vl_abrirRegistarVoluntario()">Registar Voluntário</button>
         </div>
-        <div id="vl-ativos-body">${filtros}${stats}${tabela}</div>`;
+        <div id="vl-ativos-wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+            <input class="vl-input" id="vl-search-nome" placeholder="Pesquisar nome..."
+              oninput="vl_renderAtivosFiltrado()"
+              style="flex:2;min-width:160px;max-width:260px">
+            <select class="vl-select" id="vl-filter-min" onchange="vl_renderAtivosFiltrado()"
+              style="flex:1;min-width:150px">
+              <option value="">Todos os ministérios</option>${minOpts}
+            </select>
+            <select class="vl-select" id="vl-filter-idi" onchange="vl_renderAtivosFiltrado()"
+              style="flex:1;min-width:130px">
+              <option value="">Todos os idiomas</option>${idiOpts}
+            </select>
+            <button class="vl-btn vl-btn-m" id="vl-btn-limpar"
+              onclick="vl_limparFiltros()" style="display:none;white-space:nowrap">Limpar</button>
+          </div>
+          <div class="vl-stat-row">
+            <div class="vl-stat"><div class="vl-stat-num" id="vl-stat-total" style="color:var(--primary-dark)">0</div><div class="vl-stat-label">Total</div></div>
+            <div class="vl-stat"><div class="vl-stat-num" id="vl-stat-show" style="color:var(--primary-dark)">0</div><div class="vl-stat-label">A mostrar</div></div>
+          </div>
+          <div id="vl-ativos-tabela"></div>
+        </div>`;
             }
+
+            // Actualizar contadores e botão limpar — sem tocar nos inputs (sem perda de foco)
+            const elTotal = document.getElementById('vl-stat-total');
+            const elShow  = document.getElementById('vl-stat-show');
+            const elLimpar = document.getElementById('vl-btn-limpar');
+            if (elTotal)  elTotal.textContent  = vl_ativosCache.length;
+            if (elShow)   elShow.textContent   = lista.length;
+            if (elLimpar) elLimpar.style.display = (q || filtMin || filtIdi) ? '' : 'none';
+
+            // Actualizar apenas a tabela
+            const tabEl = document.getElementById('vl-ativos-tabela');
+            if (!tabEl) return;
+
+            if (!lista.length) {
+                tabEl.innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum voluntário encontrado.</div>';
+                return;
+            }
+
+            tabEl.innerHTML = `
+      <div class="vl-card" style="padding:0;overflow:hidden;">
+        <table class="vl-table">
+          <thead>
+            <tr><th>Nome</th><th>Ministérios</th><th>Contacto</th><th>Idiomas</th><th></th></tr>
+          </thead>
+          <tbody>
+            ${lista.map(v => {
+                const tel     = v.telefone || '—';
+                const idiomas = v._idiomasArr.join(', ') || '—';
+                const minsStr = v._ministerios.map(mn => mn.nome).join(', ') || '—';
+                const nEsc    = v.nome.replace(/'/g, "\\'");
+                return `<tr>
+                <td><strong style="font-size:12px">${v.nome}</strong></td>
+                <td style="font-size:11px;color:var(--text-faint)">${minsStr}</td>
+                <td>
+                  <div style="font-size:11px">${tel}</div>
+                  <div style="font-size:10px;color:var(--text-faint)">${v.email || ''}</div>
+                </td>
+                <td style="font-size:11px;color:var(--text-faint)">${idiomas}</td>
+                <td>
+                  <div style="display:flex;gap:5px">
+                    <button class="vl-btn vl-btn-o" onclick="vl_abrirPerfil('${v.id}')">Perfil</button>
+                    <button class="vl-btn vl-btn-d" onclick="vl_removerVoluntario('${v.id}','${nEsc}')">Remover</button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
         }
 
         function vl_limparFiltros() {
+            _vl_q = ''; _vl_min = ''; _vl_idi = '';
             const n = document.getElementById('vl-search-nome');
             const m = document.getElementById('vl-filter-min');
             const i = document.getElementById('vl-filter-idi');
@@ -483,7 +496,7 @@
       <div class="vl-modal" style="max-width:500px">
         <div class="vl-modal-title">${vol.nome}</div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:14px">
           <div>
             <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1px;color:var(--text-faint);margin-bottom:2px">Telefone</div>
             <div style="font-size:12px">${tel}</div>
@@ -496,6 +509,23 @@
             <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1px;color:var(--text-faint);margin-bottom:2px">Idiomas</div>
             <div style="font-size:12px">${idiomas}</div>
           </div>
+        </div>
+
+        <div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);
+          text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">
+          Função de Voluntário
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+          <select class="vl-select" id="vl-perfil-funcao">
+            <option value="">— Sem função definida —</option>
+            <option value="Voluntário" ${vol.funcao_voluntario === 'Voluntário' ? 'selected' : ''}>Voluntário</option>
+            <option value="Auxiliar"   ${vol.funcao_voluntario === 'Auxiliar'   ? 'selected' : ''}>Auxiliar</option>
+            <option value="Coordenador" ${vol.funcao_voluntario === 'Coordenador' ? 'selected' : ''}>Coordenador</option>
+            <option value="Lider"      ${vol.funcao_voluntario === 'Lider'      ? 'selected' : ''}>Lider</option>
+            <option value="Co-lider"   ${vol.funcao_voluntario === 'Co-lider'   ? 'selected' : ''}>Co-lider</option>
+            <option value="Professor"  ${vol.funcao_voluntario === 'Professor'  ? 'selected' : ''}>Professor</option>
+          </select>
+          <button class="vl-btn vl-btn-p" onclick="vl_guardarFuncao('${membroId}')">Guardar</button>
         </div>
 
         <div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);
@@ -569,6 +599,21 @@
         async function vl_removerVoluntarioModal(membroId, nome) {
             document.getElementById('vl-perfil-modal')?.remove();
             await vl_removerVoluntario(membroId, nome);
+        }
+
+        async function vl_guardarFuncao(membroId) {
+            const funcao = document.getElementById('vl-perfil-funcao')?.value || null;
+            try {
+                await sb(`membros?id=eq.${membroId}`, {
+                    method: 'PATCH', body: JSON.stringify({ funcao_voluntario: funcao || null })
+                });
+                const vol = vl_ativosCache.find(m => m.id === membroId);
+                if (vol) vol.funcao_voluntario = funcao;
+                const btns = document.querySelectorAll('#vl-perfil-modal button');
+                btns.forEach(b => { if (b.textContent === 'Guardar') { b.textContent = 'Guardado!'; setTimeout(() => { b.textContent = 'Guardar'; }, 1500); } });
+            } catch (e) {
+                alert('Erro: ' + (e?.message || JSON.stringify(e)));
+            }
         }
 
         // ══════════════════════════════════════════════════════
@@ -1054,6 +1099,7 @@
         window.vl_removerMinisterioModal    = vl_removerMinisterioModal;
         window.vl_adicionarMinisterioModal  = vl_adicionarMinisterioModal;
         window.vl_removerVoluntarioModal    = vl_removerVoluntarioModal;
+        window.vl_guardarFuncao             = vl_guardarFuncao;
 
         vl_init();
 

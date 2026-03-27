@@ -3,7 +3,7 @@
 const APP_URL = process.env.APP_URL || "https://chat.zionlisboa.pt";
 
 // ── Wrapper base ──────────────────────────────────────────────────────────────
-function emailBase({ titulo, corpo, rodape = '' }) {
+function emailBase({titulo, corpo, rodape = ''}) {
     return `<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -44,7 +44,16 @@ function emailBase({ titulo, corpo, rodape = '' }) {
               <img src="${APP_URL}/assets/logo-zion-branca.svg"
                    alt="ZION"
                    width="130" height="48"
-                   style="display:block;margin:0 auto 10px;width:130px;height:auto;max-height:48px;border:0;outline:none;text-decoration:none;color:#ffffff;font-family:Georgia,serif;font-size:24px;font-weight:700;letter-spacing:10px;">
+                   style="display:block;margin:0 auto 10px;
+                   width:130px; !important;
+                   max-height:48px; !important;
+                   outline:none;
+                   text-decoration:none;
+                   color:#ffffff;
+                   font-family:Georgia,serif;
+                   font-size:24px;
+                   font-weight:700;
+                   letter-spacing:10px;">
               <p style="margin:8px 0 0;font-family:Arial,sans-serif;font-size:10px;letter-spacing:4px;color:rgba(255,255,255,0.50);text-transform:uppercase;text-align:center;">Lisboa &middot; Portugal</p>
 
             </td>
@@ -98,7 +107,7 @@ function emailBotao(url, texto) {
 }
 
 // ── Email: Boas-vindas ────────────────────────────────────────────────────────
-export function emailBoasVindas({ nome, tipo }) {
+export function emailBoasVindas({nome, tipo}) {
     const primeiroNome = (nome || '').split(' ')[0];
     const eMembro = tipo === 'membro';
 
@@ -147,7 +156,7 @@ export function emailBoasVindas({ nome, tipo }) {
 }
 
 // ── Email: Recuperação de password ────────────────────────────────────────────
-export function emailRecuperacaoPassword({ nome, resetUrl }) {
+export function emailRecuperacaoPassword({nome, resetUrl}) {
     const primeiroNome = (nome || '').split(' ')[0];
 
     const corpo = `
@@ -191,16 +200,13 @@ export function emailRecuperacaoPassword({ nome, resetUrl }) {
 
 
 // ── Email: Confirmação de Inscrição em Evento ─────────────────────────────────
-export function emailConfirmacaoInscricao({ nome, evento, data, local, valor, posicao, identificador }) {
+export function emailConfirmacaoInscricao({nome, evento, data, local, valor, posicao, identificador}) {
     const primeiroNome = (nome || '').split(' ')[0];
-    const gratuito     = !valor || Number(valor) === 0;
-    const valorStr     = gratuito ? 'Gratuito' : `${Number(valor).toFixed(2)} €`;
+    const gratuito = !valor || Number(valor) === 0;
+    const valorStr = gratuito ? 'Gratuito' : `${Number(valor).toFixed(2)} €`;
 
-    // QR Code via API pública — funciona em todos os clientes de email
-    // O identificador é o email ou telemóvel (o que a pessoa usou para se inscrever)
-    // É exactamente o que presenca.html usa para fazer o check-in
-    const qrData      = encodeURIComponent(identificador);
-    const qrUrl       = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&color=005f65&bgcolor=ffffff&data=${qrData}`;
+    const qrData = encodeURIComponent(identificador);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&color=005f65&bgcolor=ffffff&data=${qrData}`;
 
     const corpo = `
       <!-- Saudação -->
@@ -322,4 +328,4 @@ export function emailConfirmacaoInscricao({ nome, evento, data, local, valor, po
     };
 }
 
-export { APP_URL };
+export {APP_URL};

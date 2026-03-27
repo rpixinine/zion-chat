@@ -1,0 +1,902 @@
+/**
+* ZION LISBOA — MÓDULO VOLUNTÁRIOS (Admin)
+* Uso: VoluntariosModule.render(containerElement, supabaseClient)
+*
+* Abas:
+*   1. Voluntários Ativos  — lista de voluntários confirmados
+*   2. Novas Inscrições    — candidatos pendentes + fluxo de aprovação/distribuição
+*   3. Campanhas           — criação e gestão de campanhas + links
+*/
+
+window.VoluntariosModule = (() => {
+
+// ─────────────────────────────────────────────────────────────
+// ESTADO DO MÓDULO
+// ─────────────────────────────────────────────────────────────
+let sb             = null;
+let container      = null;
+let abaAtiva       = 'ativos';
+let campanhaFiltro = null; // campanha selecionada na aba Inscrições
+
+// ─────────────────────────────────────────────────────────────
+// ESTILOS (injetados uma vez)
+// ─────────────────────────────────────────────────────────────
+const CSS = `
+.vol-module * { box-sizing: border-box; }
+
+.vol-module {
+--teal: #009098; --teal-d: #006e74;
+--bg:   #02161e; --surface: #0a2330;
+--border: #1a3a4a; --text: #e8f0f3;
+--muted: #6b9aaa;
+--ok: #3aaa6c; --warn: #d4992a; --error: #e05252;
+font-family: 'Lato', sans-serif;
+color: var(--text);
+}
+
+/* TABS */
+.vol-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.vol-tab {
+padding: 10px 20px; font-size: 0.86rem; font-weight: 700;
+letter-spacing: 0.04em; text-transform: uppercase;
+background: none; border: none; color: var(--muted);
+cursor: pointer; border-bottom: 2px solid transparent;
+margin-bottom: -1px; transition: color 0.2s, border-color 0.2s;
+}
+.vol-tab:hover   { color: var(--text); }
+.vol-tab.active  { color: var(--teal); border-bottom-color: var(--teal); }
+
+/* TABLES */
+.vol-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.vol-table th {
+text-align: left; font-size: 0.76rem; font-weight: 700;
+letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+.vol-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.vol-table tr:last-child td { border-bottom: none; }
+.vol-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* CARDS */
+.vol-card {
+background: var(--surface); border: 1px solid var(--border);
+border-radius: 10px; padding: 24px; margin-bottom: 16px;
+}
+.vol-card-title {
+font-family: 'Cinzel', serif; font-size: 0.92rem; font-weight: 600;
+color: var(--teal); margin-bottom: 16px; padding-bottom: 12px;
+border-bottom: 1px solid var(--border); letter-spacing: 0.03em;
+}
+
+/* BADGES */
+.vol-badge {
+display: inline-block; font-size: 0.72rem; font-weight: 700;
+letter-spacing: 0.04em; text-transform: uppercase;
+padding: 2px 8px; border-radius: 4px;
+}
+.badge-pendente    { background: rgba(107,154,170,0.15); color: var(--muted); border: 1px solid var(--muted); }
+.badge-atribuicao  { background: rgba(212,153,42,0.15); color: var(--warn); border: 1px solid var(--warn); }
+.badge-aprovado    { background: rgba(58,170,108,0.15); color: var(--ok);   border: 1px solid var(--ok); }
+.badge-recusado    { background: rgba(224,82,82,0.15); color: var(--error); border: 1px solid var(--error); }
+.badge-sem_retorno { background: rgba(224,82,82,0.08); color: var(--error); border: 1px solid var(--error); }
+.badge-ativo       { background: rgba(58,170,108,0.15); color: var(--ok);   border: 1px solid var(--ok); }
+.badge-rascunho    { background: rgba(107,154,170,0.1); color: var(--muted); border: 1px solid var(--muted); }
+.badge-encerrado   { background: rgba(107,154,170,0.1); color: var(--muted); border: 1px solid var(--muted); }
+
+/* BUTTONS */
+.vol-btn {
+display: inline-flex; align-items: center; gap: 6px;
+border: none; border-radius: 6px;
+font-family: 'Lato', sans-serif; font-size: 0.82rem; font-weight: 700;
+letter-spacing: 0.04em; text-transform: uppercase;
+padding: 8px 16px; cursor: pointer; transition: background 0.2s, opacity 0.2s;
+}
+.vol-btn-teal    { background: var(--teal); color: #fff; }
+.vol-btn-teal:hover { background: var(--teal-d); }
+.vol-btn-outline { background: transparent; border: 1px solid var(--teal); color: var(--teal); }
+.vol-btn-outline:hover { background: rgba(0,144,152,0.1); }
+.vol-btn-muted   { background: var(--border); color: var(--muted); }
+.vol-btn-danger  { background: rgba(224,82,82,0.15); color: var(--error); border: 1px solid var(--error); }
+.vol-btn-danger:hover { background: rgba(224,82,82,0.25); }
+.vol-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.vol-btn-sm { padding: 5px 12px; font-size: 0.76rem; }
+
+/* FORMS */
+.vol-field { margin-bottom: 16px; }
+.vol-label {
+display: block; font-size: 0.76rem; font-weight: 700;
+letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+margin-bottom: 6px;
+}
+.vol-input, .vol-select, .vol-textarea {
+width: 100%; background: var(--bg); border: 1px solid var(--border);
+border-radius: 6px; color: var(--text);
+font-family: 'Lato', sans-serif; font-size: 0.9rem;
+padding: 9px 12px; outline: none; transition: border-color 0.2s;
+}
+.vol-input:focus, .vol-select:focus, .vol-textarea:focus { border-color: var(--teal); }
+.vol-select option { background: var(--bg); }
+.vol-textarea { resize: vertical; min-height: 80px; }
+
+.vol-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.vol-row .vol-field { flex: 1; min-width: 160px; margin-bottom: 0; }
+
+/* GRID */
+.vol-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+@media (max-width: 600px) { .vol-grid-2 { grid-template-columns: 1fr; } }
+
+/* MISC */
+.vol-sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.vol-empty { text-align: center; padding: 48px; color: var(--muted); font-size: 0.9rem; }
+.vol-alert {
+padding: 10px 16px; border-radius: 6px; font-size: 0.88rem; margin-bottom: 16px;
+}
+.vol-alert-error   { background: rgba(224,82,82,0.1);  border: 1px solid var(--error); color: var(--error); }
+.vol-alert-success { background: rgba(58,170,108,0.1); border: 1px solid var(--ok);    color: var(--ok); }
+.vol-alert-info    { background: rgba(0,144,152,0.1);  border: 1px solid var(--teal);  color: var(--teal); }
+
+.vol-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.vol-topbar-title { font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 600; color: var(--teal); }
+
+.vol-link-box {
+display: flex; align-items: center; gap: 8px;
+background: var(--bg); border: 1px solid var(--border);
+border-radius: 6px; padding: 8px 12px; margin-top: 8px;
+}
+.vol-link-box code {
+flex: 1; font-size: 0.8rem; color: var(--muted); overflow: hidden;
+white-space: nowrap; text-overflow: ellipsis; font-family: monospace;
+}
+
+.vol-expand-row { cursor: pointer; }
+.vol-expand-body { background: var(--bg); }
+.vol-expand-body td { padding: 16px 14px; }
+.vol-hidden { display: none; }
+
+.vol-tag {
+display: inline-block; font-size: 0.76rem; padding: 2px 8px;
+border-radius: 4px; background: rgba(0,144,152,0.08);
+border: 1px solid var(--border); color: var(--muted); margin: 2px;
+}
+
+.vol-modal-overlay {
+position: fixed; inset: 0; background: rgba(2,22,30,0.85);
+display: flex; align-items: center; justify-content: center;
+z-index: 9999; padding: 16px;
+}
+.vol-modal {
+background: var(--surface); border: 1px solid var(--border);
+border-radius: 12px; padding: 28px; width: 100%; max-width: 520px;
+max-height: 90vh; overflow-y: auto;
+}
+.vol-modal-title {
+font-family: 'Cinzel', serif; font-size: 1rem; color: var(--teal);
+margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.vol-modal-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+`;
+
+function injectStyles() {
+if (document.getElementById('vol-styles')) return;
+const s = document.createElement('style');
+s.id = 'vol-styles';
+s.textContent = CSS;
+document.head.appendChild(s);
+}
+
+// ─────────────────────────────────────────────────────────────
+// RENDER PRINCIPAL
+// ─────────────────────────────────────────────────────────────
+function render(el, supabaseClient) {
+container = el;
+sb        = supabaseClient;
+injectStyles();
+
+container.innerHTML = `
+<div class="vol-module">
+    <div class="vol-tabs">
+        <button class="vol-tab active" data-tab="ativos"    onclick="VoluntariosModule._tab('ativos')">Voluntários Ativos</button>
+        <button class="vol-tab"        data-tab="inscricoes" onclick="VoluntariosModule._tab('inscricoes')">Novas Inscrições</button>
+        <button class="vol-tab"        data-tab="campanhas"  onclick="VoluntariosModule._tab('campanhas')">Campanhas</button>
+    </div>
+    <div id="vol-content"></div>
+</div>
+`;
+
+renderAtivos();
+}
+
+function _tab(nome) {
+abaAtiva = nome;
+container.querySelectorAll('.vol-tab').forEach(t => {
+t.classList.toggle('active', t.dataset.tab === nome);
+});
+if (nome === 'ativos')     renderAtivos();
+if (nome === 'inscricoes') renderInscricoes();
+if (nome === 'campanhas')  renderCampanhas();
+}
+
+function content() { return document.getElementById('vol-content'); }
+
+// ─────────────────────────────────────────────────────────────
+// ABA 1 — VOLUNTÁRIOS ATIVOS
+// ─────────────────────────────────────────────────────────────
+async function renderAtivos() {
+content().innerHTML = '<div class="vol-empty">A carregar...</div>';
+
+const { data, error } = await sb
+.from('voluntarios')
+.select(`
+id, data_inicio, status,
+membros ( id, nome, email, telemovel, idiomas ),
+ministerios ( id, nome, pilares(nome) )
+`)
+.order('created_at', { ascending: false });
+
+if (error) { content().innerHTML = '<div class="vol-empty">Erro ao carregar voluntários.</div>'; return; }
+
+const rows = data || [];
+
+content().innerHTML = `
+<div class="vol-topbar">
+    <span class="vol-topbar-title">Voluntários Ativos (${rows.length})</span>
+    <button class="vol-btn vol-btn-teal" onclick="VoluntariosModule._novoVoluntario()">Registar Voluntário</button>
+</div>
+
+${!rows.length ? '<div class="vol-empty">Nenhum voluntário registado.</div>' : `
+<div class="vol-card" style="padding:0;overflow:hidden;">
+    <table class="vol-table">
+        <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Ministério / Pilar</th>
+            <th>Contacto</th>
+            <th>Idiomas</th>
+            <th>Desde</th>
+            <th>Estado</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        ${rows.map(v => {
+        const m      = v.membros;
+        const min    = v.ministerios;
+        const idiomas = (m?.idiomas || []).join(', ') || '—';
+        return `
+        <tr>
+            <td><strong>${m?.nome || '—'}</strong></td>
+            <td>
+                ${min?.nome || '—'}
+                <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">${min?.pilares?.nome || ''}</div>
+            </td>
+            <td>
+                <div style="font-size:0.85rem;">${m?.telemovel || '—'}</div>
+                <div style="font-size:0.8rem;color:var(--muted);">${m?.email || ''}</div>
+            </td>
+            <td style="font-size:0.84rem;color:var(--muted);">${idiomas}</td>
+            <td style="font-size:0.84rem;color:var(--muted);">${v.data_inicio || '—'}</td>
+            <td><span class="vol-badge badge-${v.status}">${v.status}</span></td>
+            <td>
+                <button class="vol-btn vol-btn-muted vol-btn-sm"
+                        onclick="VoluntariosModule._editarVoluntario('${v.id}')">Editar</button>
+            </td>
+        </tr>
+        `;
+        }).join('')}
+        </tbody>
+    </table>
+</div>
+`}
+`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ABA 2 — NOVAS INSCRIÇÕES
+// ─────────────────────────────────────────────────────────────
+async function renderInscricoes() {
+content().innerHTML = '<div class="vol-empty">A carregar...</div>';
+
+// Buscar campanhas para filtro
+const { data: campanhas } = await sb
+.from('voluntarios_campanhas')
+.select('id, nome, status')
+.order('created_at', { ascending: false });
+
+const opcoesCampanhas = (campanhas || []).map(c =>
+`<option value="${c.id}" ${campanhaFiltro === c.id ? 'selected' : ''}>${c.nome} (${c.status})</option>`
+).join('');
+
+// Buscar inscrições
+let query = sb
+.from('voluntarios_inscricoes')
+.select(`
+id, status, created_at,
+disponibilidade_sabado_manha, disponibilidade_sabado_tarde,
+disponibilidade_domingo_manha, disponibilidade_domingo_tarde,
+voluntarios_campanhas ( id, nome ),
+membros ( id, nome, email, telemovel ),
+voluntarios_areas_interesse (
+ordem, motivo, ministerios( id, nome )
+)
+`)
+.order('created_at', { ascending: false });
+
+if (campanhaFiltro) query = query.eq('campanha_id', campanhaFiltro);
+
+const { data, error } = await query;
+const rows = data || [];
+
+content().innerHTML = `
+<div class="vol-topbar">
+    <span class="vol-topbar-title">Novas Inscrições (${rows.length})</span>
+    <div class="vol-row">
+        <div class="vol-field">
+            <select class="vol-select" onchange="VoluntariosModule._filtrarCampanha(this.value)">
+                <option value="">Todas as campanhas</option>
+                ${opcoesCampanhas}
+            </select>
+        </div>
+        ${campanhaFiltro ? `
+        <button class="vol-btn vol-btn-teal"
+                onclick="VoluntariosModule._distribuirTodos('${campanhaFiltro}')">
+            Distribuir por Area
+        </button>
+        ` : ''}
+    </div>
+</div>
+
+<div id="vol-alert-ins"></div>
+
+${!rows.length ? '<div class="vol-empty">Nenhuma inscrição encontrada.</div>' : `
+<div class="vol-card" style="padding:0;overflow:hidden;">
+    <table class="vol-table" id="vol-ins-table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Nome</th>
+            <th>Campanha</th>
+            <th>1a Escolha</th>
+            <th>2a Escolha</th>
+            <th>3a Escolha</th>
+            <th>Disponibilidade</th>
+            <th>Estado</th>
+            <th>Acoes</th>
+        </tr>
+        </thead>
+        <tbody>
+        ${rows.map(ins => renderInscricaoRow(ins)).join('')}
+        </tbody>
+    </table>
+</div>
+`}
+`;
+}
+
+function renderInscricaoRow(ins) {
+const m     = ins.membros;
+const areas = (ins.voluntarios_areas_interesse || []).sort((a, b) => a.ordem - b.ordem);
+const a1    = areas.find(a => a.ordem === 1);
+const a2    = areas.find(a => a.ordem === 2);
+const a3    = areas.find(a => a.ordem === 3);
+
+const disp = [];
+if (ins.disponibilidade_sabado_manha)  disp.push('Sáb M');
+if (ins.disponibilidade_sabado_tarde)  disp.push('Sáb T');
+if (ins.disponibilidade_domingo_manha) disp.push('Dom M');
+if (ins.disponibilidade_domingo_tarde) disp.push('Dom T');
+
+const data = new Date(ins.created_at).toLocaleDateString('pt-PT');
+
+return `
+<tr class="vol-expand-row" id="row-${ins.id}">
+    <td><button class="vol-btn vol-btn-muted vol-btn-sm" onclick="VoluntariosModule._toggleDetalhe('${ins.id}')">+</button></td>
+    <td>
+        <strong>${m?.nome || '—'}</strong>
+        <div style="font-size:0.78rem;color:var(--muted);">${data}</div>
+    </td>
+    <td style="font-size:0.84rem;">${ins.voluntarios_campanhas?.nome || '—'}</td>
+    <td style="font-size:0.84rem;">${a1?.ministerios?.nome || '—'}</td>
+    <td style="font-size:0.84rem;color:var(--muted);">${a2?.ministerios?.nome || '—'}</td>
+    <td style="font-size:0.84rem;color:var(--muted);">${a3?.ministerios?.nome || '—'}</td>
+    <td>${disp.map(d => `<span class="vol-tag">${d}</span>`).join('')}</td>
+    <td><span class="vol-badge badge-${ins.status}">${ins.status.replace('_', ' ')}</span></td>
+    <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${ins.status === 'pendente' ? `
+            <button class="vol-btn vol-btn-outline vol-btn-sm"
+                    onclick="VoluntariosModule._distribuirInscricao('${ins.id}')">Distribuir</button>
+            <button class="vol-btn vol-btn-danger vol-btn-sm"
+                    onclick="VoluntariosModule._recusarInscricao('${ins.id}')">Recusar</button>
+            ` : ''}
+            ${ins.status === 'sem_retorno' ? `
+            <button class="vol-btn vol-btn-outline vol-btn-sm"
+                    onclick="VoluntariosModule._distribuirInscricao('${ins.id}')">Redistribuir</button>
+            ` : ''}
+            ${ins.status === 'em_atribuicao' ? `
+            <button class="vol-btn vol-btn-teal vol-btn-sm"
+                    onclick="VoluntariosModule._aprovarInscricao('${ins.id}')">Aprovar</button>
+            ` : ''}
+        </div>
+    </td>
+</tr>
+<tr id="detalhe-${ins.id}" class="vol-hidden vol-expand-body">
+    <td colspan="9">
+        <div class="vol-grid-2" style="margin-bottom:12px;">
+            <div><small class="vol-label">E-mail</small><span style="font-size:0.9rem;">${m?.email || '—'}</span></div>
+            <div><small class="vol-label">Telemóvel</small><span style="font-size:0.9rem;">${m?.telemovel || '—'}</span></div>
+        </div>
+        ${areas.map(a => `
+        <div style="margin-bottom:10px;">
+            <small class="vol-label">${a.ordem}a Escolha — ${a.ministerios?.nome || '—'}</small>
+            <div style="font-size:0.88rem;color:var(--muted);line-height:1.6;font-style:italic;">${a.motivo || '—'}</div>
+        </div>
+        `).join('')}
+    </td>
+</tr>
+`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ABA 3 — CAMPANHAS
+// ─────────────────────────────────────────────────────────────
+async function renderCampanhas() {
+content().innerHTML = '<div class="vol-empty">A carregar...</div>';
+
+const { data, error } = await sb
+.from('voluntarios_campanhas')
+.select('*')
+.order('created_at', { ascending: false });
+
+const rows = data || [];
+const base = `${location.origin}/voluntarios-captacao.html`;
+
+content().innerHTML = `
+<div class="vol-topbar">
+    <span class="vol-topbar-title">Campanhas</span>
+    <button class="vol-btn vol-btn-teal" onclick="VoluntariosModule._novaCampanha()">Nova Campanha</button>
+</div>
+
+<div id="vol-alert-camp"></div>
+
+${!rows.length ? '<div class="vol-empty">Nenhuma campanha criada.</div>' : rows.map(c => {
+const hoje    = new Date().toISOString().slice(0, 10);
+const aberta  = c.status === 'ativo' && hoje >= c.data_inicio && hoje <= c.data_fim;
+const link    = `${base}?c=${c.slug}`;
+
+return `
+<div class="vol-card">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
+        <div>
+            <div style="font-size:1rem;font-weight:700;margin-bottom:4px;">${c.nome}</div>
+            <div style="font-size:0.84rem;color:var(--muted);">${c.data_inicio} a ${c.data_fim}</div>
+        </div>
+        <span class="vol-badge badge-${c.status}">${c.status}</span>
+    </div>
+
+    ${c.descricao ? `<p style="font-size:0.88rem;color:var(--muted);margin-bottom:12px;">${c.descricao}</p>` : ''}
+
+    <div class="vol-link-box">
+        <code>${link}</code>
+        <button class="vol-btn vol-btn-muted vol-btn-sm" onclick="navigator.clipboard.writeText('${link}')">Copiar</button>
+    </div>
+
+    <hr class="vol-sep" />
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${c.status === 'rascunho' ? `
+        <button class="vol-btn vol-btn-teal vol-btn-sm"
+                onclick="VoluntariosModule._alterarStatusCampanha('${c.id}', 'ativo')">Ativar</button>
+        ` : ''}
+        ${c.status === 'ativo' ? `
+        <button class="vol-btn vol-btn-danger vol-btn-sm"
+                onclick="VoluntariosModule._alterarStatusCampanha('${c.id}', 'encerrado')">Encerrar</button>
+        ` : ''}
+        ${c.status === 'encerrado' ? `
+        <button class="vol-btn vol-btn-outline vol-btn-sm"
+                onclick="VoluntariosModule._gerarLinksLideres('${c.id}')">Gerar Links de Líderes</button>
+        ` : ''}
+        <button class="vol-btn vol-btn-muted vol-btn-sm"
+                onclick="VoluntariosModule._editarCampanha('${c.id}')">Editar</button>
+    </div>
+</div>
+`;
+}).join('')}
+`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ACÇÕES — INSCRIÇÕES
+// ─────────────────────────────────────────────────────────────
+function _toggleDetalhe(id) {
+const row = document.getElementById(`detalhe-${id}`);
+row.classList.toggle('vol-hidden');
+const btn = document.querySelector(`#row-${id} button`);
+if (btn) btn.textContent = row.classList.contains('vol-hidden') ? '+' : '−';
+}
+
+function _filtrarCampanha(id) {
+campanhaFiltro = id || null;
+renderInscricoes();
+}
+
+async function _recusarInscricao(id) {
+if (!confirm('Confirmar recusa desta inscrição?')) return;
+await sb.from('voluntarios_inscricoes').update({ status: 'recusado' }).eq('id', id);
+renderInscricoes();
+}
+
+async function _aprovarInscricao(id) {
+if (!confirm('Confirmar aprovação? Isto marcará o candidato como voluntário ativo.')) return;
+
+// Buscar inscrição + 1a área
+const { data: ins } = await sb
+.from('voluntarios_inscricoes')
+.select('membro_id, voluntarios_areas_interesse(ordem, ministerio_id)')
+.eq('id', id)
+.single();
+
+if (!ins) return;
+
+const area1 = (ins.voluntarios_areas_interesse || []).find(a => a.ordem === 1);
+if (!area1) { alert('Nenhuma área de interesse encontrada.'); return; }
+
+// Inserir em voluntarios
+await sb.from('voluntarios').upsert({
+membro_id: ins.membro_id, ministerio_id: area1.ministerio_id, inscricao_id: id
+}, { onConflict: 'membro_id,ministerio_id' });
+
+await sb.from('voluntarios_inscricoes').update({ status: 'aprovado' }).eq('id', id);
+renderInscricoes();
+}
+
+function _distribuirInscricao(id) {
+// Abre modal para selecionar ministério e definir prazo
+_abrirModalDistribuir(id);
+}
+
+async function _distribuirTodos(campanhaId) {
+const pendentes = await sb
+.from('voluntarios_inscricoes')
+.select('id')
+.eq('campanha_id', campanhaId)
+.eq('status', 'pendente');
+
+if (!pendentes.data?.length) {
+alert('Nenhuma inscrição pendente nesta campanha.');
+return;
+}
+
+if (!confirm(`Distribuir ${pendentes.data.length} inscrição(ões) pendente(s) para os líderes?`)) return;
+
+// Para cada inscrição pendente, criar atribuição com a 1a área e prazo de 7 dias
+const prazo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+for (const ins of pendentes.data) {
+const { data: areas } = await sb
+.from('voluntarios_areas_interesse')
+.select('ministerio_id, ordem')
+.eq('inscricao_id', ins.id)
+.order('ordem');
+
+const a1 = areas?.[0];
+if (!a1) continue;
+
+await sb.from('voluntarios_atribuicoes').insert({
+inscricao_id: ins.id, ministerio_id: a1.ministerio_id, prazo_contato: prazo
+});
+
+await sb.from('voluntarios_inscricoes')
+.update({ status: 'em_atribuicao' })
+.eq('id', ins.id);
+}
+
+showAlertIns('success', 'Inscrições distribuídas. Os links dos líderes estão disponíveis nas campanhas.');
+renderInscricoes();
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL — DISTRIBUIR INSCRIÇÃO INDIVIDUAL
+// ─────────────────────────────────────────────────────────────
+async function _abrirModalDistribuir(inscricaoId) {
+// Buscar ministérios disponíveis (via áreas de interesse)
+const { data: areas } = await sb
+.from('voluntarios_areas_interesse')
+.select('ordem, ministerios(id, nome)')
+.eq('inscricao_id', inscricaoId)
+.order('ordem');
+
+const opcoesAreas = (areas || []).map(a =>
+`<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`
+).join('');
+
+const prazoDefault = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+const overlay = document.createElement('div');
+overlay.className = 'vol-modal-overlay';
+overlay.innerHTML = `
+<div class="vol-modal">
+    <div class="vol-modal-title">Distribuir Inscrição</div>
+
+    <div class="vol-field">
+        <label class="vol-label">Ministério de destino</label>
+        <select class="vol-select" id="modal-ministerio">
+            ${opcoesAreas}
+        </select>
+    </div>
+
+    <div class="vol-field">
+        <label class="vol-label">Prazo para contacto do líder</label>
+        <input type="date" class="vol-input" id="modal-prazo" value="${prazoDefault}" min="${new Date().toISOString().slice(0,10)}" />
+    </div>
+
+    <div id="modal-alert"></div>
+
+    <div class="vol-modal-footer">
+        <button class="vol-btn vol-btn-muted" onclick="this.closest('.vol-modal-overlay').remove()">Cancelar</button>
+        <button class="vol-btn vol-btn-teal" onclick="VoluntariosModule._confirmarDistribuir('${inscricaoId}', this)">Confirmar</button>
+    </div>
+</div>
+`;
+document.body.appendChild(overlay);
+}
+
+async function _confirmarDistribuir(inscricaoId, btn) {
+const ministerioId = document.getElementById('modal-ministerio').value;
+const prazo        = document.getElementById('modal-prazo').value;
+
+if (!ministerioId || !prazo) {
+document.getElementById('modal-alert').innerHTML =
+'<div class="vol-alert vol-alert-error">Preencha todos os campos.</div>';
+return;
+}
+
+btn.disabled     = true;
+btn.textContent  = 'A guardar...';
+
+const prazoISO = new Date(prazo).toISOString();
+
+const { error } = await sb.from('voluntarios_atribuicoes').insert({
+inscricao_id: inscricaoId, ministerio_id: ministerioId, prazo_contato: prazoISO
+});
+
+if (error) {
+document.getElementById('modal-alert').innerHTML =
+'<div class="vol-alert vol-alert-error">Erro ao guardar. Verifique se já existe uma atribuição para esta área.</div>';
+btn.disabled    = false;
+btn.textContent = 'Confirmar';
+return;
+}
+
+await sb.from('voluntarios_inscricoes')
+.update({ status: 'em_atribuicao' })
+.eq('id', inscricaoId);
+
+btn.closest('.vol-modal-overlay').remove();
+renderInscricoes();
+}
+
+// ─────────────────────────────────────────────────────────────
+// ACÇÕES — CAMPANHAS
+// ─────────────────────────────────────────────────────────────
+function _novaCampanha() {
+const overlay = document.createElement('div');
+overlay.className = 'vol-modal-overlay';
+overlay.innerHTML = `
+<div class="vol-modal">
+    <div class="vol-modal-title">Nova Campanha</div>
+
+    <div class="vol-field">
+        <label class="vol-label">Nome da campanha</label>
+        <input type="text" class="vol-input" id="nc-nome" placeholder="Ex: Novos Voluntarios Abril 2026" />
+    </div>
+
+    <div class="vol-field">
+        <label class="vol-label">Descricao (opcional)</label>
+        <textarea class="vol-textarea" id="nc-desc"></textarea>
+    </div>
+
+    <div class="vol-row">
+        <div class="vol-field">
+            <label class="vol-label">Data de inicio</label>
+            <input type="date" class="vol-input" id="nc-inicio" />
+        </div>
+        <div class="vol-field">
+            <label class="vol-label">Data de fim</label>
+            <input type="date" class="vol-input" id="nc-fim" />
+        </div>
+    </div>
+
+    <div id="nc-alert"></div>
+
+    <div class="vol-modal-footer">
+        <button class="vol-btn vol-btn-muted" onclick="this.closest('.vol-modal-overlay').remove()">Cancelar</button>
+        <button class="vol-btn vol-btn-teal" onclick="VoluntariosModule._guardarCampanha(this)">Criar Campanha</button>
+    </div>
+</div>
+`;
+document.body.appendChild(overlay);
+}
+
+async function _guardarCampanha(btn) {
+const nome   = document.getElementById('nc-nome').value.trim();
+const desc   = document.getElementById('nc-desc').value.trim();
+const inicio = document.getElementById('nc-inicio').value;
+const fim    = document.getElementById('nc-fim').value;
+
+if (!nome || !inicio || !fim) {
+document.getElementById('nc-alert').innerHTML =
+'<div class="vol-alert vol-alert-error">Preencha nome, data de inicio e data de fim.</div>';
+return;
+}
+
+if (fim < inicio) {
+document.getElementById('nc-alert').innerHTML =
+'<div class="vol-alert vol-alert-error">A data de fim nao pode ser anterior ao inicio.</div>';
+return;
+}
+
+const slug = nome.toLowerCase()
+.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+btn.disabled = true; btn.textContent = 'A criar...';
+
+const { error } = await sb.from('voluntarios_campanhas').insert({
+nome, descricao: desc || null, data_inicio: inicio, data_fim: fim,
+slug, status: 'rascunho'
+});
+
+if (error) {
+document.getElementById('nc-alert').innerHTML =
+`<div class="vol-alert vol-alert-error">Erro: ${error.message}</div>`;
+btn.disabled = false; btn.textContent = 'Criar Campanha';
+return;
+}
+
+btn.closest('.vol-modal-overlay').remove();
+renderCampanhas();
+}
+
+async function _alterarStatusCampanha(id, novoStatus) {
+const msg = {
+ativo: 'Ativar esta campanha? O link ficara acessivel ao público.',
+encerrado: 'Encerrar esta campanha? O link deixara de aceitar inscricoes.'
+}[novoStatus];
+
+if (!confirm(msg)) return;
+
+await sb.from('voluntarios_campanhas').update({ status: novoStatus }).eq('id', id);
+renderCampanhas();
+}
+
+async function _gerarLinksLideres(campanhaId) {
+// Buscar todas as atribuições desta campanha
+const { data: atribuicoes } = await sb
+.from('voluntarios_atribuicoes')
+.select(`
+id, link_token, ministerio_id,
+ministerios(nome),
+voluntarios_inscricoes!inner(campanha_id)
+`)
+.eq('voluntarios_inscricoes.campanha_id', campanhaId);
+
+if (!atribuicoes?.length) {
+alert('Nenhuma atribuicao encontrada para esta campanha. Distribua primeiro as inscricoes.');
+return;
+}
+
+// Agrupar por ministério — um link por ministério
+const porMinisterio = {};
+atribuicoes.forEach(a => {
+if (!porMinisterio[a.ministerio_id]) {
+porMinisterio[a.ministerio_id] = { nome: a.ministerios?.nome, token: a.link_token };
+}
+});
+
+const base = `${location.origin}/voluntarios-lider.html`;
+
+const overlay = document.createElement('div');
+overlay.className = 'vol-modal-overlay';
+overlay.innerHTML = `
+<div class="vol-modal" style="max-width:600px;">
+    <div class="vol-modal-title">Links de Lideres por Area</div>
+    <p style="font-size:0.88rem;color:var(--muted);margin-bottom:20px;">
+        Envie o link correspondente a cada lider de ministerio. O lider tem 7 dias para efectuar os contactos.
+    </p>
+
+    ${Object.entries(porMinisterio).map(([mid, info]) => `
+    <div style="margin-bottom:16px;">
+        <div class="vol-label">${info.nome}</div>
+        <div class="vol-link-box">
+            <code>${base}?t=${info.token}</code>
+            <button class="vol-btn vol-btn-muted vol-btn-sm"
+                    onclick="navigator.clipboard.writeText('${base}?t=${info.token}')">Copiar</button>
+        </div>
+    </div>
+    `).join('')}
+
+    <div class="vol-modal-footer">
+        <button class="vol-btn vol-btn-teal" onclick="this.closest('.vol-modal-overlay').remove()">Fechar</button>
+    </div>
+</div>
+`;
+document.body.appendChild(overlay);
+}
+
+function _editarCampanha(id) {
+// Implementar edição se necessário
+alert('Funcionalidade de edicao em desenvolvimento.');
+}
+
+// ─────────────────────────────────────────────────────────────
+// ACÇÕES — VOLUNTÁRIOS ATIVOS
+// ─────────────────────────────────────────────────────────────
+function _novoVoluntario() {
+alert('Funcionalidade de registo manual em desenvolvimento.');
+}
+
+function _editarVoluntario(id) {
+alert('Funcionalidade de edicao em desenvolvimento.');
+}
+
+// ─────────────────────────────────────────────────────────────
+// UTILITÁRIOS
+// ─────────────────────────────────────────────────────────────
+function showAlertIns(type, msg) {
+const el = document.getElementById('vol-alert-ins');
+if (!el) return;
+el.innerHTML = `<div class="vol-alert vol-alert-${type}">${msg}</div>`;
+setTimeout(() => { if (el) el.innerHTML = ''; }, 5000);
+}
+
+// ─────────────────────────────────────────────────────────────
+// JOB — VERIFICAR PRAZOS EXPIRADOS (chamar periodicamente)
+// ─────────────────────────────────────────────────────────────
+async function verificarPrazosExpirados() {
+const agora = new Date().toISOString();
+
+const { data: expirados } = await sb
+.from('voluntarios_atribuicoes')
+.select('id, inscricao_id')
+.eq('status', 'aguardando')
+.lt('prazo_contato', agora);
+
+if (!expirados?.length) return;
+
+for (const a of expirados) {
+await sb.from('voluntarios_atribuicoes')
+.update({ status: 'sem_retorno' })
+.eq('id', a.id);
+
+await sb.from('voluntarios_inscricoes')
+.update({ status: 'sem_retorno' })
+.eq('id', a.inscricao_id);
+}
+
+console.log(`[Voluntários] ${expirados.length} atribuição(ões) marcada(s) como sem retorno.`);
+}
+
+// ─────────────────────────────────────────────────────────────
+// API PÚBLICA
+// ─────────────────────────────────────────────────────────────
+return {
+render,
+_tab,
+_toggleDetalhe,
+_filtrarCampanha,
+_recusarInscricao,
+_aprovarInscricao,
+_distribuirInscricao,
+_distribuirTodos,
+_confirmarDistribuir,
+_novaCampanha,
+_guardarCampanha,
+_alterarStatusCampanha,
+_gerarLinksLideres,
+_editarCampanha,
+_novoVoluntario,
+_editarVoluntario,
+verificarPrazosExpirados,
+};
+
+})();

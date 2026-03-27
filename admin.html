@@ -812,6 +812,45 @@
     }
 
 
+    // ── AUTO-REFRESH ─────────────────────────────────────────────────────────────
+    // Recarrega os dados do módulo activo a cada 30 segundos
+    // Útil para ver alterações feitas por outros utilizadores sem recarregar a página
+
+    const AUTO_REFRESH_MS = 30_000; // 30 segundos — ajustar conforme necessário
+    let _autoRefreshTimer = null;
+
+    function iniciarAutoRefresh() {
+        pararAutoRefresh();
+        _autoRefreshTimer = setInterval(async () => {
+            // Só atualiza se não houver nada aberto (drawer fechado)
+            const drawerAberto = !document.getElementById('overlay')?.classList.contains('hidden');
+            if (drawerAberto) return;
+
+            try {
+                const reInitMap = {
+                    'membros':      () => { if (window.mb_init) mb_init(); },
+                    'voluntarios':  () => { if (window.vl_init) vl_init(); },
+                    'ministerios':  () => { if (window.min_renderSide) { min_minAtivo = null; min_renderSide(); } },
+                    'eventos':      () => { evAtivo = null; evSetTab(0); },
+                    'keola':        () => { if (window.kl_init) kl_init(); },
+                    'financeiro':   () => { if (window.fin_init) fin_init(); },
+                    'fornecedores': () => { if (window.fn_init) fn_init(); },
+                    'salas':        () => { if (window.sl_init) sl_init(); },
+                    'cursos':       () => { if (window.cz_renderSidebar) { cz_cursoAtivo = null; cz_turmaAtiva = null; cz_renderSidebar(); } },
+                    'dashboard':    () => { if (window.db_init) db_init(); },
+                };
+
+                const refresh = reInitMap[secaoAtiva];
+                if (refresh) refresh();
+            } catch (_) { /* silencioso — não interromper o utilizador */ }
+        }, AUTO_REFRESH_MS);
+    }
+
+    function pararAutoRefresh() {
+        if (_autoRefreshTimer) { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
+    }
+
+
     // ── INIT ──────────────────────────────────────────────────────────────────
     async function init() {
         document.getElementById('top-user').textContent =
@@ -889,6 +928,7 @@
             'salas', 'cursos', 'keola', 'loja', 'eventos', 'fornecedores', 'financeiro', 'configuracoes']
             .find(s => perm(s, 'ver')) || 'membros';
         await setSecao(primeiraVisivel);
+        iniciarAutoRefresh();
     }
 
     // ── SECÇÕES ───────────────────────────────────────────────────────────────

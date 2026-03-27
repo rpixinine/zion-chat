@@ -1,373 +1,179 @@
 <style>
-    /* ══════════════════════════════════════════════════════
-       VOLUNTÁRIOS MODULE
-       Layout: abas no topo + conteúdo principal
-       3 abas: Voluntários Ativos / Novas Inscrições / Campanhas
-       ══════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════
+     VOLUNTÁRIOS MODULE
+     ══════════════════════════════════════════════════════ */
+  .vl-wrap {
+    display: flex; flex-direction: column;
+    height: 100%; min-height: 0; overflow: hidden;
+    font-family: var(--font-body); background: var(--bg-page);
+  }
+  .vl-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--bg-card); flex-shrink: 0;
+  }
+  .vl-tab {
+    padding: 10px 18px; font-family: var(--font-title);
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-faint); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    border-top: none; border-left: none; border-right: none;
+    background: none; transition: all 0.12s; white-space: nowrap;
+  }
+  .vl-tab:hover  { color: var(--primary-dark); }
+  .vl-tab.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
 
-    .vl-wrap {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        min-height: 0;
-        overflow: hidden;
-        font-family: var(--font-body);
-        background: var(--bg-page);
-    }
+  .vl-content { flex: 1; overflow-y: auto; padding: 16px; }
 
-    /* ── TABS ─────────────────────────────────────────── */
-    .vl-tabs {
-        display: flex;
-        border-bottom: 1px solid var(--border);
-        background: var(--bg-card);
-        flex-shrink: 0;
-    }
+  .vl-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .vl-toolbar-title {
+    font-family: var(--font-title); font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--primary-dark);
+  }
 
-    .vl-tab {
-        padding: 10px 20px;
-        font-family: var(--font-title);
-        font-size: 9px;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        color: var(--text-faint);
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        border-top: none; border-left: none; border-right: none;
-        background: none;
-        transition: all 0.12s;
-        white-space: nowrap;
-    }
+  .vl-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; margin-bottom: 10px;
+  }
+  .vl-card-title {
+    font-family: var(--font-title); font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-faint);
+    margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid var(--border);
+  }
 
-    .vl-tab:hover   { color: var(--primary-dark); }
-    .vl-tab.active  { color: var(--primary-dark); border-bottom-color: var(--primary); }
+  .vl-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .vl-table th {
+    text-align: left; font-family: var(--font-title); font-size: 8px;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint);
+    padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--bg-input);
+  }
+  .vl-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .vl-table tr:last-child td { border-bottom: none; }
+  .vl-table tr:hover td { background: var(--primary-faint); }
 
-    /* ── CONTENT AREA ─────────────────────────────────── */
-    .vl-content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-    }
+  .vl-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-family: var(--font-title); font-size: 8px; letter-spacing: 1px;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .vl-b-pendente    { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
+  .vl-b-em_atribuicao { background: rgba(212,153,42,0.12); color: #d4992a; border: 1px solid rgba(212,153,42,0.3); }
+  .vl-b-aprovado    { background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
+  .vl-b-recusado    { background: rgba(198,40,40,0.1); color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
+  .vl-b-sem_retorno { background: rgba(198,40,40,0.08); color: #c62828; border: 1px solid rgba(198,40,40,0.2); }
+  .vl-b-ativo       { background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
+  .vl-b-inativo     { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
+  .vl-b-rascunho    { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
+  .vl-b-encerrado   { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
 
-    /* ── TOOLBAR ──────────────────────────────────────── */
-    .vl-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-    }
+  .vl-btn {
+    padding: 6px 12px; border-radius: 8px; border: none;
+    font-family: var(--font-title); font-size: 9px; letter-spacing: 1px;
+    text-transform: uppercase; cursor: pointer; transition: all 0.12s; white-space: nowrap;
+  }
+  .vl-btn-p { background: var(--primary); color: #fff; }
+  .vl-btn-p:hover { background: var(--primary-dark); }
+  .vl-btn-o { background: var(--primary-faint); color: var(--primary-dark); border: 1px solid var(--border); }
+  .vl-btn-o:hover { border-color: var(--primary); }
+  .vl-btn-m { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
+  .vl-btn-m:hover { color: var(--text-main); border-color: var(--primary); }
+  .vl-btn-d { background: rgba(198,40,40,0.08); color: #c62828; border: 1px solid rgba(198,40,40,0.25); }
+  .vl-btn-d:hover { background: rgba(198,40,40,0.15); }
+  .vl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .vl-toolbar-title {
-        font-family: var(--font-title);
-        font-size: 11px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: var(--primary-dark);
-    }
+  .vl-field { margin-bottom: 10px; }
+  .vl-label {
+    display: block; font-family: var(--font-title); font-size: 8px;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px;
+  }
+  .vl-input, .vl-select, .vl-textarea {
+    width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-main); font-family: var(--font-body);
+    font-size: 12px; padding: 7px 10px; outline: none; transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+  .vl-input:focus, .vl-select:focus, .vl-textarea:focus { border-color: var(--primary); }
+  .vl-textarea { resize: vertical; min-height: 65px; }
+  .vl-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .vl-row .vl-field { flex: 1; min-width: 130px; margin-bottom: 0; }
+  .vl-g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
 
-    /* ── CARDS ────────────────────────────────────────── */
-    .vl-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 12px;
-    }
+  .vl-link-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; margin-top: 5px;
+  }
+  .vl-link-box code {
+    flex: 1; font-size: 10px; color: var(--text-faint);
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: monospace;
+  }
 
-    .vl-card-title {
-        font-family: var(--font-title);
-        font-size: 9px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: var(--text-faint);
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--border);
-    }
+  .vl-expand-body td { background: var(--bg-input); padding: 11px 10px; }
+  .vl-hidden { display: none; }
 
-    /* ── TABLES ───────────────────────────────────────── */
-    .vl-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
-    }
+  .vl-tag {
+    display: inline-block; font-size: 9px; padding: 2px 7px; border-radius: 20px;
+    background: var(--primary-faint); border: 1px solid var(--border);
+    color: var(--primary-dark); margin: 1px; font-family: var(--font-title); letter-spacing: 0.5px;
+  }
 
-    .vl-table th {
-        text-align: left;
-        font-family: var(--font-title);
-        font-size: 8px;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        color: var(--text-faint);
-        padding: 8px 10px;
-        border-bottom: 1px solid var(--border);
-        background: var(--bg-input);
-    }
+  .vl-alert { padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
+  .vl-alert-e { background: rgba(198,40,40,0.1); border: 1px solid rgba(198,40,40,0.3); color: #c62828; }
+  .vl-alert-s { background: rgba(46,125,50,0.1); border: 1px solid rgba(46,125,50,0.3); color: #2e7d32; }
+  .vl-alert-i { background: var(--primary-faint); border: 1px solid var(--border); color: var(--primary-dark); }
 
-    .vl-table td {
-        padding: 10px 10px;
-        border-bottom: 1px solid var(--border);
-        vertical-align: top;
-        font-size: 12px;
-        color: var(--text-main);
-    }
+  .vl-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px;
+  }
+  .vl-modal {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px; width: 100%; max-width: 460px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .vl-modal-title {
+    font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--primary-dark);
+    margin-bottom: 14px; padding-bottom: 9px; border-bottom: 1px solid var(--border);
+  }
+  .vl-modal-footer {
+    display: flex; gap: 8px; justify-content: flex-end;
+    margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border);
+  }
 
-    .vl-table tr:last-child td { border-bottom: none; }
-    .vl-table tr:hover td { background: var(--primary-faint); }
+  .vl-empty { text-align: center; padding: 44px 20px; color: var(--text-faint); font-size: 12px; }
+  .vl-empty-icon { font-size: 24px; margin-bottom: 8px; opacity: 0.35; }
 
-    /* ── BADGES ───────────────────────────────────────── */
-    .vl-badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 20px;
-        font-family: var(--font-title);
-        font-size: 8px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
+  .vl-stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .vl-stat {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 14px; text-align: center; flex: 1; min-width: 90px;
+  }
+  .vl-stat-num { font-family: var(--font-title); font-size: 20px; font-weight: 700; }
+  .vl-stat-label { font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 
-    .vl-badge-pendente    { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
-    .vl-badge-atribuicao  { background: rgba(212,153,42,0.12); color: #d4992a; border: 1px solid rgba(212,153,42,0.3); }
-    .vl-badge-aprovado    { background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
-    .vl-badge-recusado    { background: rgba(198,40,40,0.1); color: #c62828; border: 1px solid rgba(198,40,40,0.3); }
-    .vl-badge-sem_retorno { background: rgba(198,40,40,0.08); color: #c62828; border: 1px solid rgba(198,40,40,0.2); }
-    .vl-badge-em_atribuicao { background: rgba(212,153,42,0.12); color: #d4992a; border: 1px solid rgba(212,153,42,0.3); }
-    .vl-badge-ativo       { background: rgba(46,125,50,0.1); color: #2e7d32; border: 1px solid rgba(46,125,50,0.3); }
-    .vl-badge-inativo     { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
-    .vl-badge-rascunho    { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
-    .vl-badge-encerrado   { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
+  .vl-campanha-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; margin-bottom: 8px;
+  }
+  .vl-campanha-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .vl-campanha-nome { font-family: var(--font-title); font-size: 10px; letter-spacing: 1px; color: var(--text-main); }
+  .vl-campanha-datas { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+  .vl-sep { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .vl-btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
 
-    /* ── BUTTONS ──────────────────────────────────────── */
-    .vl-btn {
-        padding: 6px 14px;
-        border-radius: 8px;
-        border: none;
-        font-family: var(--font-title);
-        font-size: 9px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: all 0.12s;
-        white-space: nowrap;
-    }
-
-    .vl-btn-primary { background: var(--primary); color: #fff; }
-    .vl-btn-primary:hover { background: var(--primary-dark); }
-    .vl-btn-outline { background: var(--primary-faint); color: var(--primary-dark); border: 1px solid var(--border); }
-    .vl-btn-outline:hover { border-color: var(--primary); }
-    .vl-btn-muted   { background: var(--bg-input); color: var(--text-faint); border: 1px solid var(--border); }
-    .vl-btn-muted:hover { color: var(--text-main); border-color: var(--primary); }
-    .vl-btn-danger  { background: rgba(198,40,40,0.08); color: #c62828; border: 1px solid rgba(198,40,40,0.25); }
-    .vl-btn-danger:hover { background: rgba(198,40,40,0.15); }
-    .vl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* ── FORM ELEMENTS ────────────────────────────────── */
-    .vl-field { margin-bottom: 12px; }
-
-    .vl-label {
-        display: block;
-        font-family: var(--font-title);
-        font-size: 8px;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        color: var(--text-faint);
-        margin-bottom: 5px;
-    }
-
-    .vl-input, .vl-select, .vl-textarea {
-        width: 100%;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        color: var(--text-main);
-        font-family: var(--font-body);
-        font-size: 12px;
-        padding: 7px 10px;
-        outline: none;
-        transition: border-color 0.15s;
-        box-sizing: border-box;
-    }
-
-    .vl-input:focus, .vl-select:focus, .vl-textarea:focus { border-color: var(--primary); }
-    .vl-textarea { resize: vertical; min-height: 70px; }
-
-    .vl-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
-    .vl-row .vl-field { flex: 1; min-width: 140px; margin-bottom: 0; }
-
-    .vl-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
-
-    /* ── LINK BOX ─────────────────────────────────────── */
-    .vl-link-box {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 7px 10px;
-        margin-top: 6px;
-    }
-
-    .vl-link-box code {
-        flex: 1;
-        font-size: 11px;
-        color: var(--text-faint);
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        font-family: monospace;
-    }
-
-    /* ── EXPAND ROW ───────────────────────────────────── */
-    .vl-expand-body td { background: var(--bg-input); padding: 12px 10px; }
-    .vl-hidden { display: none; }
-
-    .vl-tag {
-        display: inline-block;
-        font-size: 9px;
-        padding: 2px 7px;
-        border-radius: 20px;
-        background: var(--primary-faint);
-        border: 1px solid var(--border);
-        color: var(--primary-dark);
-        margin: 1px;
-        font-family: var(--font-title);
-        letter-spacing: 0.5px;
-    }
-
-    /* ── ALERT ────────────────────────────────────────── */
-    .vl-alert {
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 12px;
-        margin-bottom: 12px;
-    }
-    .vl-alert-error   { background: rgba(198,40,40,0.1); border: 1px solid rgba(198,40,40,0.3); color: #c62828; }
-    .vl-alert-success { background: rgba(46,125,50,0.1); border: 1px solid rgba(46,125,50,0.3); color: #2e7d32; }
-    .vl-alert-info    { background: var(--primary-faint); border: 1px solid var(--border); color: var(--primary-dark); }
-
-    /* ── MODAL ────────────────────────────────────────── */
-    .vl-modal-overlay {
-        position: fixed; inset: 0;
-        background: rgba(0,0,0,0.55);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 9999; padding: 16px;
-    }
-
-    .vl-modal {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 24px;
-        width: 100%; max-width: 480px;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    .vl-modal-title {
-        font-family: var(--font-title);
-        font-size: 11px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: var(--primary-dark);
-        margin-bottom: 16px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .vl-modal-footer {
-        display: flex;
-        gap: 8px;
-        justify-content: flex-end;
-        margin-top: 16px;
-        padding-top: 12px;
-        border-top: 1px solid var(--border);
-    }
-
-    /* ── EMPTY ────────────────────────────────────────── */
-    .vl-empty {
-        text-align: center;
-        padding: 48px 24px;
-        color: var(--text-faint);
-        font-size: 12px;
-    }
-
-    .vl-empty-icon {
-        font-size: 28px;
-        margin-bottom: 10px;
-        opacity: 0.4;
-    }
-
-    /* ── CAMPANHA CARD ────────────────────────────────── */
-    .vl-campanha-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 10px;
-        transition: border-color 0.12s;
-    }
-
-    .vl-campanha-card:hover { border-color: var(--primary); }
-
-    .vl-campanha-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-
-    .vl-campanha-nome {
-        font-family: var(--font-title);
-        font-size: 11px;
-        letter-spacing: 1px;
-        color: var(--text-main);
-    }
-
-    .vl-campanha-datas {
-        font-size: 11px;
-        color: var(--text-faint);
-        margin-top: 2px;
-    }
-
-    .vl-sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
-
-    .vl-btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    /* Stat bar */
-    .vl-stat-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-bottom: 14px;
-    }
-
-    .vl-stat {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 12px 16px;
-        text-align: center;
-        flex: 1;
-        min-width: 100px;
-    }
-
-    .vl-stat-num {
-        font-family: var(--font-title);
-        font-size: 22px;
-        font-weight: 700;
-    }
-
-    .vl-stat-label {
-        font-size: 10px;
-        color: var(--text-faint);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-top: 2px;
-    }
+  /* Modal form layout */
+  .vl-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .vl-form-full { grid-column: 1 / -1; }
+  .vl-form-section {
+    font-family: var(--font-title); font-size: 8px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-faint);
+    padding: 8px 0 5px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
+    grid-column: 1 / -1;
+  }
+  .vl-form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; grid-column: 1 / -1; }
 </style>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -375,697 +181,635 @@
      ═══════════════════════════════════════════════════════ -->
 <div class="vl-wrap" id="vl-wrap">
 
-    <!-- TABS -->
-    <div class="vl-tabs">
-        <button class="vl-tab active" id="vl-tab-ativos"      onclick="vl_setTab('ativos')">Voluntários Ativos</button>
-        <button class="vl-tab"        id="vl-tab-inscricoes"  onclick="vl_setTab('inscricoes')">Novas Inscrições</button>
-        <button class="vl-tab"        id="vl-tab-campanhas"   onclick="vl_setTab('campanhas')">Campanhas</button>
-    </div>
+  <div class="vl-tabs">
+    <button class="vl-tab active" id="vl-tab-ativos"     onclick="vl_setTab('ativos')">Voluntários Ativos</button>
+    <button class="vl-tab"        id="vl-tab-inscricoes" onclick="vl_setTab('inscricoes')">Novas Inscrições</button>
+    <button class="vl-tab"        id="vl-tab-campanhas"  onclick="vl_setTab('campanhas')">Campanhas</button>
+  </div>
 
-    <!-- CONTENT -->
-    <div class="vl-content" id="vl-content">
-        <div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>
-    </div>
+  <div class="vl-content" id="vl-content">
+    <div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>
+  </div>
 
 </div>
 
 <script>
-    (function () {
+(function () {
 
-        // ══════════════════════════════════════════════════════
-        // HELPER sb() — igual ao padrão do admin
-        // ══════════════════════════════════════════════════════
-        function sb(path, opts = {}) {
-            return fetch(`${SUPA_URL}/rest/v1/${path}`, {
-                ...opts,
-                headers: {
-                    'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
-                    'Content-Type': 'application/json', 'Prefer': 'return=representation',
-                    ...opts.headers,
-                },
-            }).then(async r => {
-                if (!r.ok) { const e = await r.json().catch(() => {}); throw e; }
-                const txt = await r.text();
-                return txt ? JSON.parse(txt) : [];
-            });
-        }
+  // ══════════════════════════════════════════════════════
+  // HELPER — mesmo padrão do admin
+  // ══════════════════════════════════════════════════════
+  function sb(path, opts = {}) {
+    return fetch(`${SUPA_URL}/rest/v1/${path}`, {
+      ...opts,
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+        'Content-Type': 'application/json', 'Prefer': 'return=representation',
+        ...opts.headers,
+      },
+    }).then(async r => {
+      if (!r.ok) { const e = await r.json().catch(() => {}); throw e; }
+      const txt = await r.text(); return txt ? JSON.parse(txt) : [];
+    });
+  }
 
-        // ══════════════════════════════════════════════════════
-        // ESTADO
-        // ══════════════════════════════════════════════════════
-        let vl_tab       = 'ativos';
-        let vl_campFiltro = null;
+  // ══════════════════════════════════════════════════════
+  // ESTADO
+  // ══════════════════════════════════════════════════════
+  let vl_tabAtiva   = 'ativos';
+  let vl_campFiltro = null;
+  let vl_membrosCache = [];   // para o modal de registar voluntário
 
-        // ══════════════════════════════════════════════════════
-        // INIT
-        // ══════════════════════════════════════════════════════
-        async function vl_init() {
-            vl_verificarPrazos();
-            vl_renderAtivos();
-        }
+  // ══════════════════════════════════════════════════════
+  // INIT
+  // ══════════════════════════════════════════════════════
+  async function vl_init() {
+    try {
+      vl_membrosCache = await sb('membros?select=id,nome,e_voluntario&ativo=eq.true&order=nome') || [];
+    } catch (_) {}
+    vl_verificarPrazos();
+    vl_renderAtivos();
+  }
 
-        // ══════════════════════════════════════════════════════
-        // TABS
-        // ══════════════════════════════════════════════════════
-        function vl_setTab(tab) {
-            vl_tab = tab;
-            ['ativos','inscricoes','campanhas'].forEach(t => {
-                document.getElementById(`vl-tab-${t}`)?.classList.toggle('active', t === tab);
-            });
-            if (tab === 'ativos')     vl_renderAtivos();
-            if (tab === 'inscricoes') vl_renderInscricoes();
-            if (tab === 'campanhas')  vl_renderCampanhas();
-        }
+  // ══════════════════════════════════════════════════════
+  // TABS
+  // ══════════════════════════════════════════════════════
+  function vl_setTab(tab) {
+    vl_tabAtiva = tab;
+    ['ativos','inscricoes','campanhas'].forEach(t => {
+      document.getElementById(`vl-tab-${t}`)?.classList.toggle('active', t === tab);
+    });
+    if (tab === 'ativos')     vl_renderAtivos();
+    if (tab === 'inscricoes') vl_renderInscricoes();
+    if (tab === 'campanhas')  vl_renderCampanhas();
+  }
 
-        function content() { return document.getElementById('vl-content'); }
+  function vl_c() { return document.getElementById('vl-content'); }
 
-        // ══════════════════════════════════════════════════════
-        // ABA 1 — VOLUNTÁRIOS ATIVOS
-        // ══════════════════════════════════════════════════════
-        async function vl_renderAtivos() {
-            content().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
+  // ══════════════════════════════════════════════════════
+  // ABA 1 — VOLUNTÁRIOS ATIVOS
+  // Mostra membros com e_voluntario=true (campo existente em membros)
+  // ══════════════════════════════════════════════════════
+  async function vl_renderAtivos() {
+    vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
 
-            let rows = [];
-            try {
-                rows = await sb(
-                    'voluntarios?select=id,data_inicio,status,' +
-                    'membros(id,nome,email,telefone,Idiomas),' +
-                    'ministerios(id,nome)&order=created_at.desc'
-                ) || [];
-            } catch (e) {
-                content().innerHTML = `<div class="vl-alert vl-alert-error">Erro ao carregar: ${e?.message || JSON.stringify(e)}</div>`;
-                return;
-            }
+    let rows = [];
+    try {
+      // Buscar membros voluntários com os seus ministérios
+      rows = await sb(
+        'membros?e_voluntario=eq.true&ativo=eq.true' +
+        '&select=id,nome,email,telefone,telemovel,idiomas' +
+        '&order=nome'
+      ) || [];
 
-            const stats = `
+      // Buscar ministérios de cada voluntário
+      if (rows.length) {
+        const ids = rows.map(m => m.id).join(',');
+        const mins = await sb(
+          `membro_ministerios?membro_id=in.(${ids})&ativo=eq.true&select=membro_id,papel,ministerios(id,nome)`
+        ).catch(() => []);
+
+        const minsMap = {};
+        (mins || []).forEach(v => {
+          if (!minsMap[v.membro_id]) minsMap[v.membro_id] = [];
+          minsMap[v.membro_id].push(v.ministerios?.nome || '—');
+        });
+
+        rows = rows.map(r => ({ ...r, _ministerios: (minsMap[r.id] || []).join(', ') || '—' }));
+      }
+    } catch (e) {
+      vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro ao carregar: ${e?.message || JSON.stringify(e)}</div>`;
+      return;
+    }
+
+    const stats = `
       <div class="vl-stat-row">
-        <div class="vl-stat">
-          <div class="vl-stat-num" style="color:var(--primary-dark)">${rows.length}</div>
-          <div class="vl-stat-label">Total Ativos</div>
-        </div>
-        <div class="vl-stat">
-          <div class="vl-stat-num" style="color:#2e7d32">${rows.filter(r=>r.status==='ativo').length}</div>
-          <div class="vl-stat-label">Confirmados</div>
-        </div>
+        <div class="vl-stat"><div class="vl-stat-num" style="color:var(--primary-dark)">${rows.length}</div><div class="vl-stat-label">Total Voluntários</div></div>
       </div>`;
 
-            const tabela = !rows.length
-                ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum voluntário registado.</div>'
-                : `<div class="vl-card" style="padding:0;overflow:hidden;">
+    const tabela = !rows.length
+      ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum membro marcado como voluntário.</div>'
+      : `<div class="vl-card" style="padding:0;overflow:hidden;">
           <table class="vl-table">
             <thead>
               <tr>
                 <th>Nome</th>
-                <th>Ministério</th>
+                <th>Ministérios</th>
                 <th>Contacto</th>
                 <th>Idiomas</th>
-                <th>Desde</th>
-                <th>Estado</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               ${rows.map(v => {
-                    const m = v.membros;
-                    const min = v.ministerios;
-                    const Idiomas = (() => {
-                        try { const a = JSON.parse(m?.Idiomas || '[]'); return Array.isArray(a) ? a.join(', ') : (m?.Idiomas || '—'); }
-                        catch (_) { return m?.Idiomas || '—'; }
-                    })();
-                    return `<tr>
-                  <td><strong>${m?.nome || '—'}</strong></td>
-                  <td>${min?.nome || '—'}</td>
+                const tel = v.telefone || v.telemovel || '—';
+                const idiomas = (() => {
+                  try { const a = typeof v.idiomas === 'string' ? JSON.parse(v.idiomas) : v.idiomas; return Array.isArray(a) ? a.join(', ') : '—'; }
+                  catch (_) { return v.idiomas || '—'; }
+                })();
+                return `<tr>
+                  <td><strong>${v.nome}</strong></td>
+                  <td style="font-size:11px;color:var(--text-faint)">${v._ministerios}</td>
                   <td>
-                    <div>${m?.telefone || '—'}</div>
-                    <div style="font-size:10px;color:var(--text-faint)">${m?.email || ''}</div>
+                    <div style="font-size:11px">${tel}</div>
+                    <div style="font-size:10px;color:var(--text-faint)">${v.email || ''}</div>
                   </td>
-                  <td style="color:var(--text-faint)">${Idiomas}</td>
-                  <td style="color:var(--text-faint)">${v.data_inicio || '—'}</td>
-                  <td><span class="vl-badge vl-badge-${v.status}">${v.status}</span></td>
+                  <td style="font-size:11px;color:var(--text-faint)">${idiomas}</td>
                   <td>
-                    <button class="vl-btn vl-btn-muted" onclick="vl_editarVoluntario('${v.id}')">Editar</button>
+                    <button class="vl-btn vl-btn-m" onclick="mb_selectMembro && mb_selectMembro('${v.id}')">Ver Perfil</button>
                   </td>
                 </tr>`;
-                }).join('')}
+              }).join('')}
             </tbody>
           </table>
         </div>`;
 
-            content().innerHTML = `
+    vl_c().innerHTML = `
       <div class="vl-toolbar">
         <span class="vl-toolbar-title">Voluntários Ativos</span>
-        <button class="vl-btn vl-btn-primary" onclick="vl_novoVoluntario()">Registar Voluntário</button>
+        <button class="vl-btn vl-btn-p" onclick="vl_abrirRegistarVoluntario()">Registar Voluntário</button>
       </div>
       ${stats}
       ${tabela}`;
-        }
+  }
 
-        // ══════════════════════════════════════════════════════
-        // ABA 2 — NOVAS INSCRIÇÕES
-        // ══════════════════════════════════════════════════════
-        async function vl_renderInscricoes() {
-            content().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
+  // ══════════════════════════════════════════════════════
+  // ABA 2 — NOVAS INSCRIÇÕES
+  // ══════════════════════════════════════════════════════
+  async function vl_renderInscricoes() {
+    vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
 
-            let campanhas = [], rows = [];
-            try {
-                campanhas = await sb('voluntarios_campanhas?select=id,nome,status&order=created_at.desc') || [];
-
-                let path = 'voluntarios_inscricoes?select=id,status,created_at,' +
+    let campanhas = [], inscricoes = [];
+    try {
+      campanhas   = await sb('voluntarios_campanhas?select=id,nome,status&order=created_at.desc') || [];
+      let path    = 'voluntarios_inscricoes?select=id,status,created_at,campanha_id,membro_id,' +
                     'disponibilidade_sabado_manha,disponibilidade_sabado_tarde,' +
-                    'disponibilidade_domingo_manha,disponibilidade_domingo_tarde,' +
-                    'voluntarios_campanhas(id,nome),' +
-                    'membros(id,nome,email,telefone),' +
-                    'voluntarios_areas_interesse(ordem,motivo,ministerios(id,nome))' +
+                    'disponibilidade_domingo_manha,disponibilidade_domingo_tarde' +
                     '&order=created_at.desc';
+      if (vl_campFiltro) path += `&campanha_id=eq.${vl_campFiltro}`;
+      inscricoes = await sb(path) || [];
+    } catch (e) {
+      vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || JSON.stringify(e)}</div>`;
+      return;
+    }
 
-                if (vl_campFiltro) path += `&campanha_id=eq.${vl_campFiltro}`;
-                rows = await sb(path) || [];
-            } catch (e) {
-                content().innerHTML = `<div class="vl-alert vl-alert-error">Erro ao carregar: ${e?.message || JSON.stringify(e)}</div>`;
-                return;
-            }
+    // Enriquecer inscrições com dados separados para evitar join
+    if (inscricoes.length) {
+      const memIds = [...new Set(inscricoes.map(i => i.membro_id))].join(',');
+      const campIds = [...new Set(inscricoes.map(i => i.campanha_id))].join(',');
+      const insIds  = inscricoes.map(i => i.id).join(',');
 
-            const campOpts = campanhas.map(c =>
-                `<option value="${c.id}" ${vl_campFiltro === c.id ? 'selected' : ''}>${c.nome} (${c.status})</option>`
-            ).join('');
+      const [membsData, campsData, areasData] = await Promise.all([
+        sb(`membros?id=in.(${memIds})&select=id,nome,email,telefone,telemovel`).catch(() => []),
+        sb(`voluntarios_campanhas?id=in.(${campIds})&select=id,nome`).catch(() => []),
+        sb(`voluntarios_areas_interesse?inscricao_id=in.(${insIds})&select=inscricao_id,ordem,motivo,ministerio_id,ministerios(id,nome)&order=ordem`).catch(() => []),
+      ]);
 
-            const pendentes = rows.filter(r => r.status === 'pendente').length;
-            const stats = `
+      const membMap = Object.fromEntries((membsData || []).map(m => [m.id, m]));
+      const campMap = Object.fromEntries((campsData || []).map(c => [c.id, c]));
+      const areasMap = {};
+      (areasData || []).forEach(a => {
+        if (!areasMap[a.inscricao_id]) areasMap[a.inscricao_id] = [];
+        areasMap[a.inscricao_id].push(a);
+      });
+
+      inscricoes = inscricoes.map(i => ({
+        ...i,
+        _membro:   membMap[i.membro_id] || null,
+        _campanha: campMap[i.campanha_id] || null,
+        _areas:    (areasMap[i.id] || []).sort((a,b) => a.ordem - b.ordem),
+      }));
+    }
+
+    const pendentes = inscricoes.filter(i => i.status === 'pendente').length;
+    const campOpts = campanhas.map(c =>
+      `<option value="${c.id}" ${vl_campFiltro === c.id ? 'selected' : ''}>${c.nome} (${c.status})</option>`
+    ).join('');
+
+    const stats = `
       <div class="vl-stat-row">
-        <div class="vl-stat"><div class="vl-stat-num" style="color:var(--primary-dark)">${rows.length}</div><div class="vl-stat-label">Total</div></div>
+        <div class="vl-stat"><div class="vl-stat-num" style="color:var(--primary-dark)">${inscricoes.length}</div><div class="vl-stat-label">Total</div></div>
         <div class="vl-stat"><div class="vl-stat-num" style="color:#d4992a">${pendentes}</div><div class="vl-stat-label">Pendentes</div></div>
-        <div class="vl-stat"><div class="vl-stat-num" style="color:#2e7d32">${rows.filter(r=>r.status==='aprovado').length}</div><div class="vl-stat-label">Aprovados</div></div>
-        <div class="vl-stat"><div class="vl-stat-num" style="color:#c62828">${rows.filter(r=>r.status==='sem_retorno').length}</div><div class="vl-stat-label">Sem Retorno</div></div>
+        <div class="vl-stat"><div class="vl-stat-num" style="color:#2e7d32">${inscricoes.filter(i=>i.status==='aprovado').length}</div><div class="vl-stat-label">Aprovados</div></div>
+        <div class="vl-stat"><div class="vl-stat-num" style="color:#c62828">${inscricoes.filter(i=>i.status==='sem_retorno').length}</div><div class="vl-stat-label">Sem Retorno</div></div>
       </div>`;
 
-            const tabela = !rows.length
-                ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma inscrição encontrada.</div>'
-                : `<div class="vl-card" style="padding:0;overflow:hidden;">
+    const tabela = !inscricoes.length
+      ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma inscrição encontrada.</div>'
+      : `<div class="vl-card" style="padding:0;overflow:hidden;">
           <table class="vl-table" id="vl-ins-table">
             <thead>
-              <tr>
-                <th></th>
-                <th>Nome</th>
-                <th>Campanha</th>
-                <th>1a Escolha</th>
-                <th>2a Escolha</th>
-                <th>3a Escolha</th>
-                <th>Disponibilidade</th>
-                <th>Estado</th>
-                <th>Acoes</th>
-              </tr>
+              <tr><th></th><th>Nome</th><th>Campanha</th><th>1a Escolha</th><th>2a / 3a Escolha</th><th>Disponib.</th><th>Estado</th><th>Acoes</th></tr>
             </thead>
-            <tbody>
-              ${rows.map(ins => vl_renderInscricaoRow(ins)).join('')}
-            </tbody>
+            <tbody>${inscricoes.map(i => vl_renderRow(i)).join('')}</tbody>
           </table>
         </div>`;
 
-            content().innerHTML = `
+    vl_c().innerHTML = `
       <div class="vl-toolbar">
-        <span class="vl-toolbar-title">Novas Inscrições (${rows.length})</span>
+        <span class="vl-toolbar-title">Novas Inscrições (${inscricoes.length})</span>
         <div class="vl-row">
           <div class="vl-field">
             <select class="vl-select" onchange="vl_filtrarCampanha(this.value)">
-              <option value="">Todas as campanhas</option>
-              ${campOpts}
+              <option value="">Todas as campanhas</option>${campOpts}
             </select>
           </div>
-          ${vl_campFiltro && pendentes > 0 ? `
-            <button class="vl-btn vl-btn-primary" onclick="vl_distribuirTodos('${vl_campFiltro}')">
-              Distribuir Pendentes (${pendentes})
-            </button>` : ''}
+          ${vl_campFiltro && pendentes > 0
+            ? `<button class="vl-btn vl-btn-p" onclick="vl_distribuirTodos('${vl_campFiltro}')">Distribuir Pendentes (${pendentes})</button>`
+            : ''}
         </div>
       </div>
       <div id="vl-alert-ins"></div>
-      ${stats}
-      ${tabela}`;
-        }
+      ${stats}${tabela}`;
+  }
 
-        function vl_renderInscricaoRow(ins) {
-            const m = ins.membros;
-            const areas = (ins.voluntarios_areas_interesse || []).sort((a,b) => a.ordem - b.ordem);
-            const a1 = areas.find(a => a.ordem === 1);
-            const a2 = areas.find(a => a.ordem === 2);
-            const a3 = areas.find(a => a.ordem === 3);
+  function vl_renderRow(ins) {
+    const m = ins._membro;
+    const a1 = ins._areas.find(a => a.ordem === 1);
+    const a2 = ins._areas.find(a => a.ordem === 2);
+    const a3 = ins._areas.find(a => a.ordem === 3);
+    const disp = [
+      ins.disponibilidade_sabado_manha  && 'Sáb M',
+      ins.disponibilidade_sabado_tarde  && 'Sáb T',
+      ins.disponibilidade_domingo_manha && 'Dom M',
+      ins.disponibilidade_domingo_tarde && 'Dom T',
+    ].filter(Boolean);
 
-            const disp = [];
-            if (ins.disponibilidade_sabado_manha)  disp.push('Sáb M');
-            if (ins.disponibilidade_sabado_tarde)  disp.push('Sáb T');
-            if (ins.disponibilidade_domingo_manha) disp.push('Dom M');
-            if (ins.disponibilidade_domingo_tarde) disp.push('Dom T');
+    const botoes = ins.status === 'pendente' ? `
+      <button class="vl-btn vl-btn-o" onclick="vl_abrirDistribuir('${ins.id}')">Distribuir</button>
+      <button class="vl-btn vl-btn-d" onclick="vl_recusar('${ins.id}')">Recusar</button>` :
+    ins.status === 'sem_retorno' ? `
+      <button class="vl-btn vl-btn-o" onclick="vl_abrirDistribuir('${ins.id}')">Redistribuir</button>` :
+    ins.status === 'em_atribuicao' ? `
+      <button class="vl-btn vl-btn-p" onclick="vl_aprovar('${ins.id}')">Aprovar</button>` : '';
 
-            const data = new Date(ins.created_at).toLocaleDateString('pt-PT');
-
-            const botoes = (() => {
-                if (ins.status === 'pendente') return `
-        <button class="vl-btn vl-btn-outline" onclick="vl_abrirDistribuir('${ins.id}')">Distribuir</button>
-        <button class="vl-btn vl-btn-danger"  onclick="vl_recusar('${ins.id}')">Recusar</button>`;
-                if (ins.status === 'sem_retorno') return `
-        <button class="vl-btn vl-btn-outline" onclick="vl_abrirDistribuir('${ins.id}')">Redistribuir</button>`;
-                if (ins.status === 'em_atribuicao') return `
-        <button class="vl-btn vl-btn-primary" onclick="vl_aprovar('${ins.id}')">Aprovar</button>`;
-                return '';
-            })();
-
-            return `
+    return `
       <tr id="vl-row-${ins.id}">
-        <td><button class="vl-btn vl-btn-muted" style="padding:3px 8px;font-size:10px" onclick="vl_toggleDetalhe('${ins.id}')">+</button></td>
+        <td><button class="vl-btn vl-btn-m" style="padding:2px 7px;font-size:9px" onclick="vl_toggle('${ins.id}')">+</button></td>
         <td>
-          <strong>${m?.nome || '—'}</strong>
-          <div style="font-size:10px;color:var(--text-faint)">${data}</div>
+          <strong style="font-size:12px">${m?.nome || '—'}</strong>
+          <div style="font-size:10px;color:var(--text-faint)">${new Date(ins.created_at).toLocaleDateString('pt-PT')}</div>
         </td>
-        <td style="font-size:11px">${ins.voluntarios_campanhas?.nome || '—'}</td>
+        <td style="font-size:11px">${ins._campanha?.nome || '—'}</td>
         <td style="font-size:11px">${a1?.ministerios?.nome || '—'}</td>
-        <td style="font-size:11px;color:var(--text-faint)">${a2?.ministerios?.nome || '—'}</td>
-        <td style="font-size:11px;color:var(--text-faint)">${a3?.ministerios?.nome || '—'}</td>
+        <td style="font-size:11px;color:var(--text-faint)">
+          ${a2?.ministerios?.nome || '—'}<br>
+          <span style="font-size:10px">${a3?.ministerios?.nome || ''}</span>
+        </td>
         <td>${disp.map(d => `<span class="vl-tag">${d}</span>`).join('')}</td>
-        <td><span class="vl-badge vl-badge-${ins.status}">${ins.status.replace('_',' ')}</span></td>
+        <td><span class="vl-badge vl-b-${ins.status}">${ins.status.replace('_',' ')}</span></td>
         <td><div style="display:flex;gap:4px;flex-wrap:wrap">${botoes}</div></td>
       </tr>
       <tr id="vl-det-${ins.id}" class="vl-hidden vl-expand-body">
-        <td colspan="9">
-          <div class="vl-grid-2" style="margin-bottom:10px">
+        <td colspan="8">
+          <div class="vl-g2" style="margin-bottom:9px">
             <div><span style="font-size:10px;color:var(--text-faint)">E-mail</span><br><span style="font-size:12px">${m?.email || '—'}</span></div>
-            <div><span style="font-size:10px;color:var(--text-faint)">Telemóvel</span><br><span style="font-size:12px">${m?.telefone || '—'}</span></div>
+            <div><span style="font-size:10px;color:var(--text-faint)">Telemóvel</span><br><span style="font-size:12px">${m?.telefone || m?.telemovel || '—'}</span></div>
           </div>
-          ${areas.map(a => `
-            <div style="margin-bottom:8px">
-              <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:3px">${a.ordem}a Escolha — ${a.ministerios?.nome || '—'}</div>
-              <div style="font-size:12px;color:var(--text-main);font-style:italic">${a.motivo || '—'}</div>
+          ${ins._areas.map(a => `
+            <div style="margin-bottom:7px">
+              <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1px;color:var(--text-faint);margin-bottom:2px">${a.ordem}a Escolha — ${a.ministerios?.nome || '—'}</div>
+              <div style="font-size:12px;font-style:italic;color:var(--text-main)">${a.motivo || '—'}</div>
             </div>`).join('')}
         </td>
       </tr>`;
-        }
+  }
 
-        // ══════════════════════════════════════════════════════
-        // ABA 3 — CAMPANHAS
-        // ══════════════════════════════════════════════════════
-        async function vl_renderCampanhas() {
-            content().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
+  // ══════════════════════════════════════════════════════
+  // ABA 3 — CAMPANHAS
+  // ══════════════════════════════════════════════════════
+  async function vl_renderCampanhas() {
+    vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
+    let rows = [];
+    try { rows = await sb('voluntarios_campanhas?select=*&order=created_at.desc') || []; }
+    catch (e) { vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`; return; }
 
-            let rows = [];
-            try {
-                rows = await sb('voluntarios_campanhas?select=*&order=created_at.desc') || [];
-            } catch (e) {
-                content().innerHTML = `<div class="vl-alert vl-alert-error">Erro: ${e?.message || JSON.stringify(e)}</div>`;
-                return;
-            }
+    const base = `${location.origin}/voluntarios-captacao.html`;
 
-            const base = `${location.origin}/voluntarios-captacao.html`;
-
-            const cards = !rows.length
-                ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma campanha criada.</div>'
-                : rows.map(c => {
-                    const link = `${base}?c=${c.slug}`;
-                    return `
+    const cards = !rows.length
+      ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma campanha criada.</div>'
+      : rows.map(c => {
+          const link = `${base}?c=${c.slug}`;
+          return `
             <div class="vl-campanha-card">
               <div class="vl-campanha-header">
                 <div>
                   <div class="vl-campanha-nome">${c.nome}</div>
                   <div class="vl-campanha-datas">${c.data_inicio} até ${c.data_fim}</div>
-                  ${c.descricao ? `<div style="font-size:11px;color:var(--text-faint);margin-top:4px">${c.descricao}</div>` : ''}
+                  ${c.descricao ? `<div style="font-size:11px;color:var(--text-faint);margin-top:3px">${c.descricao}</div>` : ''}
                 </div>
-                <span class="vl-badge vl-badge-${c.status}">${c.status}</span>
+                <span class="vl-badge vl-b-${c.status}">${c.status}</span>
               </div>
-
               <div class="vl-link-box">
                 <code>${link}</code>
-                <button class="vl-btn vl-btn-muted" style="padding:4px 10px;font-size:9px"
+                <button class="vl-btn vl-btn-m" style="padding:3px 9px;font-size:8px"
                   onclick="navigator.clipboard.writeText('${link}');this.textContent='Copiado!'">Copiar</button>
               </div>
-
               <hr class="vl-sep">
-
               <div class="vl-btn-row">
-                ${c.status === 'rascunho' ? `
-                  <button class="vl-btn vl-btn-primary" onclick="vl_statusCampanha('${c.id}','ativo')">Ativar</button>` : ''}
-                ${c.status === 'ativo' ? `
-                  <button class="vl-btn vl-btn-danger" onclick="vl_statusCampanha('${c.id}','encerrado')">Encerrar</button>` : ''}
-                ${c.status === 'encerrado' ? `
-                  <button class="vl-btn vl-btn-outline" onclick="vl_gerarLinks('${c.id}')">Gerar Links de Líderes</button>` : ''}
-                <button class="vl-btn vl-btn-muted" onclick="vl_editarCampanha('${c.id}')">Editar</button>
-                <button class="vl-btn vl-btn-muted" onclick="vl_campFiltro='${c.id}';vl_setTab('inscricoes')">
-                  Ver Inscrições
-                </button>
+                ${c.status === 'rascunho' ? `<button class="vl-btn vl-btn-p" onclick="vl_statusCampanha('${c.id}','ativo')">Ativar</button>` : ''}
+                ${c.status === 'ativo'    ? `<button class="vl-btn vl-btn-d" onclick="vl_statusCampanha('${c.id}','encerrado')">Encerrar</button>` : ''}
+                ${c.status === 'encerrado'? `<button class="vl-btn vl-btn-o" onclick="vl_gerarLinks('${c.id}')">Gerar Links de Líderes</button>` : ''}
+                <button class="vl-btn vl-btn-m" onclick="vl_campFiltro='${c.id}';vl_setTab('inscricoes')">Ver Inscrições</button>
               </div>
             </div>`;
-                }).join('');
+        }).join('');
 
-            content().innerHTML = `
+    vl_c().innerHTML = `
       <div class="vl-toolbar">
         <span class="vl-toolbar-title">Campanhas</span>
-        <button class="vl-btn vl-btn-primary" onclick="vl_novaCampanha()">Nova Campanha</button>
+        <button class="vl-btn vl-btn-p" onclick="vl_novaCampanha()">Nova Campanha</button>
       </div>
       <div id="vl-alert-camp"></div>
       ${cards}`;
-        }
+  }
 
-        // ══════════════════════════════════════════════════════
-        // ACÇÕES — INSCRIÇÕES
-        // ══════════════════════════════════════════════════════
-        function vl_toggleDetalhe(id) {
-            const row = document.getElementById(`vl-det-${id}`);
-            if (!row) return;
-            row.classList.toggle('vl-hidden');
-            const btn = document.querySelector(`#vl-row-${id} button`);
-            if (btn) btn.textContent = row.classList.contains('vl-hidden') ? '+' : '−';
-        }
+  // ══════════════════════════════════════════════════════
+  // ACÇÕES INSCRIÇÕES
+  // ══════════════════════════════════════════════════════
+  function vl_toggle(id) {
+    const row = document.getElementById(`vl-det-${id}`);
+    if (!row) return;
+    row.classList.toggle('vl-hidden');
+    const btn = document.querySelector(`#vl-row-${id} button`);
+    if (btn) btn.textContent = row.classList.contains('vl-hidden') ? '+' : '−';
+  }
 
-        function vl_filtrarCampanha(id) {
-            vl_campFiltro = id || null;
-            vl_renderInscricoes();
-        }
+  function vl_filtrarCampanha(id) { vl_campFiltro = id || null; vl_renderInscricoes(); }
 
-        async function vl_recusar(id) {
-            if (!confirm('Confirmar recusa desta inscrição?')) return;
-            try {
-                await sb(`voluntarios_inscricoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'recusado' }) });
-                vl_renderInscricoes();
-            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-        }
+  async function vl_recusar(id) {
+    if (!confirm('Confirmar recusa?')) return;
+    try {
+      await sb(`voluntarios_inscricoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'recusado' }) });
+      vl_renderInscricoes();
+    } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+  }
 
-        async function vl_aprovar(id) {
-            if (!confirm('Confirmar aprovação? O candidato será registado como voluntário ativo.')) return;
-            try {
-                const ins = await sb(
-                    `voluntarios_inscricoes?id=eq.${id}&select=membro_id,voluntarios_areas_interesse(ordem,ministerio_id)`
-                ).then(r => r[0]);
-                if (!ins) return;
+  async function vl_aprovar(id) {
+    if (!confirm('Aprovar? O candidato ficará registado como voluntário.')) return;
+    try {
+      const ins = await sb(`voluntarios_inscricoes?id=eq.${id}&select=membro_id`).then(r => r[0]);
+      if (!ins) return;
 
-                const area1 = (ins.voluntarios_areas_interesse || []).find(a => a.ordem === 1);
-                if (!area1) { alert('Área de interesse não encontrada.'); return; }
+      const areas = await sb(
+        `voluntarios_areas_interesse?inscricao_id=eq.${id}&select=ministerio_id,ordem&order=ordem&limit=1`
+      ).catch(() => []);
+      const a1 = areas?.[0];
+      if (!a1) { alert('Área não encontrada.'); return; }
 
-                // Upsert em voluntarios
-                await sb('voluntarios', {
-                    method: 'POST',
-                    headers: { 'Prefer': 'return=representation,resolution=merge-duplicates' },
-                    body: JSON.stringify({ membro_id: ins.membro_id, ministerio_id: area1.ministerio_id, inscricao_id: id, status: 'ativo' })
-                });
+      // Marcar membro como voluntário
+      await sb(`membros?id=eq.${ins.membro_id}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
+      // Atualizar status da inscrição
+      await sb(`voluntarios_inscricoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'aprovado' }) });
 
-                await sb(`voluntarios_inscricoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'aprovado' }) });
-                vl_renderInscricoes();
-            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-        }
+      vl_renderInscricoes();
+    } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+  }
 
-        async function vl_distribuirTodos(campanhaId) {
-            const pendentes = await sb(
-                `voluntarios_inscricoes?campanha_id=eq.${campanhaId}&status=eq.pendente&select=id`
-            ).catch(() => []);
+  async function vl_distribuirTodos(campanhaId) {
+    const pendentes = await sb(
+      `voluntarios_inscricoes?campanha_id=eq.${campanhaId}&status=eq.pendente&select=id`
+    ).catch(() => []);
+    if (!pendentes.length) { alert('Nenhuma inscrição pendente.'); return; }
+    if (!confirm(`Distribuir ${pendentes.length} inscrição(ões)?`)) return;
 
-            if (!pendentes?.length) { alert('Nenhuma inscrição pendente.'); return; }
-            if (!confirm(`Distribuir ${pendentes.length} inscrição(ões) pendente(s)?`)) return;
+    const prazo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    for (const ins of pendentes) {
+      const areas = await sb(`voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem&limit=1`).catch(() => []);
+      const a1 = areas?.[0];
+      if (!a1) continue;
+      await sb('voluntarios_atribuicoes', { method: 'POST', body: JSON.stringify({ inscricao_id: ins.id, ministerio_id: a1.ministerio_id, prazo_contato: prazo }) }).catch(() => {});
+      await sb(`voluntarios_inscricoes?id=eq.${ins.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' }) });
+    }
+    const el = document.getElementById('vl-alert-ins');
+    if (el) { el.innerHTML = '<div class="vl-alert vl-alert-s">Inscrições distribuídas.</div>'; setTimeout(() => { el.innerHTML = ''; }, 4000); }
+    vl_renderInscricoes();
+  }
 
-            const prazo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  // ══════════════════════════════════════════════════════
+  // MODAL — DISTRIBUIR INDIVIDUAL
+  // ══════════════════════════════════════════════════════
+  async function vl_abrirDistribuir(inscricaoId) {
+    const areas = await sb(
+      `voluntarios_areas_interesse?inscricao_id=eq.${inscricaoId}&select=ordem,ministerios(id,nome)&order=ordem`
+    ).catch(() => []);
+    const prazoDefault = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
+    const opts = (areas || []).map(a => `<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`).join('');
 
-            for (const ins of pendentes) {
-                const areas = await sb(
-                    `voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem`
-                ).catch(() => []);
-                const a1 = areas?.[0];
-                if (!a1) continue;
-
-                await sb('voluntarios_atribuicoes', {
-                    method: 'POST',
-                    body: JSON.stringify({ inscricao_id: ins.id, ministerio_id: a1.ministerio_id, prazo_contato: prazo })
-                }).catch(() => {});
-
-                await sb(`voluntarios_inscricoes?id=eq.${ins.id}`, {
-                    method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' })
-                });
-            }
-
-            vl_showAlert('ins', 'success', 'Inscrições distribuídas. Os links dos líderes estão disponíveis nas campanhas.');
-            vl_renderInscricoes();
-        }
-
-        // ══════════════════════════════════════════════════════
-        // MODAL — DISTRIBUIR INDIVIDUAL
-        // ══════════════════════════════════════════════════════
-        async function vl_abrirDistribuir(inscricaoId) {
-            const areas = await sb(
-                `voluntarios_areas_interesse?inscricao_id=eq.${inscricaoId}&select=ordem,ministerios(id,nome)&order=ordem`
-            ).catch(() => []);
-
-            const prazoDefault = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-            const opts = (areas || []).map(a =>
-                `<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`
-            ).join('');
-
-            const overlay = document.createElement('div');
-            overlay.className = 'vl-modal-overlay';
-            overlay.innerHTML = `
+    const ov = document.createElement('div');
+    ov.className = 'vl-modal-overlay';
+    ov.innerHTML = `
       <div class="vl-modal">
         <div class="vl-modal-title">Distribuir Inscrição</div>
-        <div class="vl-field">
-          <label class="vl-label">Ministério de destino</label>
-          <select class="vl-select" id="vl-dist-min">${opts}</select>
-        </div>
-        <div class="vl-field">
-          <label class="vl-label">Prazo para contacto do líder</label>
-          <input type="date" class="vl-input" id="vl-dist-prazo" value="${prazoDefault}" min="${new Date().toISOString().slice(0,10)}">
-        </div>
+        <div class="vl-field"><label class="vl-label">Ministério de destino</label><select class="vl-select" id="vl-dist-min">${opts}</select></div>
+        <div class="vl-field"><label class="vl-label">Prazo do líder</label><input type="date" class="vl-input" id="vl-dist-prazo" value="${prazoDefault}" min="${new Date().toISOString().slice(0,10)}"></div>
         <div id="vl-dist-alert"></div>
         <div class="vl-modal-footer">
-          <button class="vl-btn vl-btn-muted" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
-          <button class="vl-btn vl-btn-primary" id="vl-dist-btn" onclick="vl_confirmarDistribuir('${inscricaoId}', this)">Confirmar</button>
+          <button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
+          <button class="vl-btn vl-btn-p" onclick="vl_confirmarDistribuir('${inscricaoId}',this)">Confirmar</button>
         </div>
       </div>`;
-            document.body.appendChild(overlay);
-        }
+    document.body.appendChild(ov);
+  }
 
-        async function vl_confirmarDistribuir(inscricaoId, btn) {
-            const ministerioId = document.getElementById('vl-dist-min')?.value;
-            const prazo        = document.getElementById('vl-dist-prazo')?.value;
-            const alertEl      = document.getElementById('vl-dist-alert');
+  async function vl_confirmarDistribuir(id, btn) {
+    const min   = document.getElementById('vl-dist-min')?.value;
+    const prazo = document.getElementById('vl-dist-prazo')?.value;
+    const alEl  = document.getElementById('vl-dist-alert');
+    if (!min || !prazo) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Preencha todos os campos.</div>'; return; }
+    btn.disabled = true; btn.textContent = 'A guardar...';
+    try {
+      await sb('voluntarios_atribuicoes', { method: 'POST', body: JSON.stringify({ inscricao_id: id, ministerio_id: min, prazo_contato: new Date(prazo).toISOString() }) });
+      await sb(`voluntarios_inscricoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' }) });
+      btn.closest('.vl-modal-overlay').remove();
+      vl_renderInscricoes();
+    } catch (e) {
+      if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || 'Verifique se já existe atribuição.'}</div>`;
+      btn.disabled = false; btn.textContent = 'Confirmar';
+    }
+  }
 
-            if (!ministerioId || !prazo) {
-                if (alertEl) alertEl.innerHTML = '<div class="vl-alert vl-alert-error">Preencha todos os campos.</div>';
-                return;
-            }
+  // ══════════════════════════════════════════════════════
+  // REGISTAR VOLUNTÁRIO (modal)
+  // ══════════════════════════════════════════════════════
+  async function vl_abrirRegistarVoluntario() {
+    // Buscar membros que ainda não são voluntários
+    const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
+    const opts = naoVols.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
 
-            btn.disabled = true; btn.textContent = 'A guardar...';
+    const ov = document.createElement('div');
+    ov.className = 'vl-modal-overlay';
+    ov.innerHTML = `
+      <div class="vl-modal">
+        <div class="vl-modal-title">Registar Voluntário</div>
+        <p style="font-size:11px;color:var(--text-faint);margin-bottom:14px">
+          Seleciona um membro para marcar como voluntário. Isto é um registo direto sem passar pelo processo de inscrição.
+        </p>
+        <div class="vl-field">
+          <label class="vl-label">Membro</label>
+          <select class="vl-select" id="vl-reg-mem">
+            <option value="">Selecionar membro...</option>${opts}
+          </select>
+        </div>
+        <div id="vl-reg-alert"></div>
+        <div class="vl-modal-footer">
+          <button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
+          <button class="vl-btn vl-btn-p" onclick="vl_confirmarRegistar(this)">Registar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+  }
 
-            try {
-                await sb('voluntarios_atribuicoes', {
-                    method: 'POST',
-                    body: JSON.stringify({ inscricao_id: inscricaoId, ministerio_id: ministerioId, prazo_contato: new Date(prazo).toISOString() })
-                });
-                await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`, {
-                    method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' })
-                });
-                btn.closest('.vl-modal-overlay').remove();
-                vl_renderInscricoes();
-            } catch (e) {
-                if (alertEl) alertEl.innerHTML = `<div class="vl-alert vl-alert-error">Erro: ${e?.message || 'Verifique se já existe atribuição para esta área.'}</div>`;
-                btn.disabled = false; btn.textContent = 'Confirmar';
-            }
-        }
+  async function vl_confirmarRegistar(btn) {
+    const memId = document.getElementById('vl-reg-mem')?.value;
+    const alEl  = document.getElementById('vl-reg-alert');
+    if (!memId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>'; return; }
+    btn.disabled = true; btn.textContent = 'A guardar...';
+    try {
+      await sb(`membros?id=eq.${memId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
+      // Atualizar cache local
+      const idx = vl_membrosCache.findIndex(m => m.id === memId);
+      if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
+      btn.closest('.vl-modal-overlay').remove();
+      vl_renderAtivos();
+    } catch (e) {
+      if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+      btn.disabled = false; btn.textContent = 'Registar';
+    }
+  }
 
-        // ══════════════════════════════════════════════════════
-        // ACÇÕES — CAMPANHAS
-        // ══════════════════════════════════════════════════════
-        function vl_novaCampanha() {
-            const overlay = document.createElement('div');
-            overlay.className = 'vl-modal-overlay';
-            overlay.innerHTML = `
+  // ══════════════════════════════════════════════════════
+  // ACÇÕES CAMPANHAS
+  // ══════════════════════════════════════════════════════
+  function vl_novaCampanha() {
+    const ov = document.createElement('div');
+    ov.className = 'vl-modal-overlay';
+    ov.innerHTML = `
       <div class="vl-modal">
         <div class="vl-modal-title">Nova Campanha</div>
-        <div class="vl-field">
-          <label class="vl-label">Nome da campanha</label>
-          <input type="text" class="vl-input" id="nc-nome" placeholder="Ex: Novos Voluntários Abril 2026">
-        </div>
-        <div class="vl-field">
-          <label class="vl-label">Descrição (opcional)</label>
-          <textarea class="vl-textarea" id="nc-desc"></textarea>
-        </div>
+        <div class="vl-field"><label class="vl-label">Nome</label><input type="text" class="vl-input" id="nc-nome" placeholder="Ex: Novos Voluntários Abril 2026"></div>
+        <div class="vl-field"><label class="vl-label">Descrição (opcional)</label><textarea class="vl-textarea" id="nc-desc"></textarea></div>
         <div class="vl-row">
-          <div class="vl-field">
-            <label class="vl-label">Data de início</label>
-            <input type="date" class="vl-input" id="nc-inicio">
-          </div>
-          <div class="vl-field">
-            <label class="vl-label">Data de fim</label>
-            <input type="date" class="vl-input" id="nc-fim">
-          </div>
+          <div class="vl-field"><label class="vl-label">Data início</label><input type="date" class="vl-input" id="nc-inicio"></div>
+          <div class="vl-field"><label class="vl-label">Data fim</label><input type="date" class="vl-input" id="nc-fim"></div>
         </div>
         <div id="nc-alert"></div>
         <div class="vl-modal-footer">
-          <button class="vl-btn vl-btn-muted" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
-          <button class="vl-btn vl-btn-primary" onclick="vl_guardarCampanha(this)">Criar Campanha</button>
+          <button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
+          <button class="vl-btn vl-btn-p" onclick="vl_guardarCampanha(this)">Criar</button>
         </div>
       </div>`;
-            document.body.appendChild(overlay);
-        }
+    document.body.appendChild(ov);
+  }
 
-        async function vl_guardarCampanha(btn) {
-            const nome   = document.getElementById('nc-nome')?.value.trim();
-            const desc   = document.getElementById('nc-desc')?.value.trim();
-            const inicio = document.getElementById('nc-inicio')?.value;
-            const fim    = document.getElementById('nc-fim')?.value;
-            const alertEl = document.getElementById('nc-alert');
+  async function vl_guardarCampanha(btn) {
+    const nome   = document.getElementById('nc-nome')?.value.trim();
+    const desc   = document.getElementById('nc-desc')?.value.trim();
+    const inicio = document.getElementById('nc-inicio')?.value;
+    const fim    = document.getElementById('nc-fim')?.value;
+    const alEl   = document.getElementById('nc-alert');
 
-            if (!nome || !inicio || !fim) {
-                if (alertEl) alertEl.innerHTML = '<div class="vl-alert vl-alert-error">Preencha nome, data de início e de fim.</div>';
-                return;
-            }
-            if (fim < inicio) {
-                if (alertEl) alertEl.innerHTML = '<div class="vl-alert vl-alert-error">A data de fim não pode ser anterior ao início.</div>';
-                return;
-            }
+    if (!nome || !inicio || !fim) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Preencha nome, início e fim.</div>'; return; }
+    if (fim < inicio) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Data de fim anterior ao início.</div>'; return; }
 
-            const slug = nome.toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    btn.disabled = true; btn.textContent = 'A criar...';
 
-            btn.disabled = true; btn.textContent = 'A criar...';
+    try {
+      await sb('voluntarios_campanhas', { method: 'POST', body: JSON.stringify({ nome, descricao: desc || null, data_inicio: inicio, data_fim: fim, slug, status: 'rascunho' }) });
+      btn.closest('.vl-modal-overlay').remove();
+      vl_renderCampanhas();
+    } catch (e) {
+      if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || JSON.stringify(e)}</div>`;
+      btn.disabled = false; btn.textContent = 'Criar';
+    }
+  }
 
-            try {
-                await sb('voluntarios_campanhas', {
-                    method: 'POST',
-                    body: JSON.stringify({ nome, descricao: desc || null, data_inicio: inicio, data_fim: fim, slug, status: 'rascunho' })
-                });
-                btn.closest('.vl-modal-overlay').remove();
-                vl_renderCampanhas();
-            } catch (e) {
-                if (alertEl) alertEl.innerHTML = `<div class="vl-alert vl-alert-error">Erro: ${e?.message || JSON.stringify(e)}</div>`;
-                btn.disabled = false; btn.textContent = 'Criar Campanha';
-            }
-        }
+  async function vl_statusCampanha(id, novoStatus) {
+    const msgs = { ativo: 'Ativar campanha?', encerrado: 'Encerrar campanha?' };
+    if (!confirm(msgs[novoStatus])) return;
+    try {
+      await sb(`voluntarios_campanhas?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) });
+      vl_renderCampanhas();
+    } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+  }
 
-        async function vl_statusCampanha(id, novoStatus) {
-            const msgs = {
-                ativo:     'Ativar esta campanha? O link ficará acessível ao público.',
-                encerrado: 'Encerrar esta campanha? O link deixará de aceitar inscrições.'
-            };
-            if (!confirm(msgs[novoStatus])) return;
-            try {
-                await sb(`voluntarios_campanhas?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) });
-                vl_renderCampanhas();
-            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-        }
+  async function vl_gerarLinks(campanhaId) {
+    // Buscar inscrições da campanha para obter atribuições
+    const inscIds = await sb(`voluntarios_inscricoes?campanha_id=eq.${campanhaId}&select=id`).catch(() => []);
+    if (!inscIds.length) { alert('Nenhuma inscrição nesta campanha.'); return; }
 
-        async function vl_gerarLinks(campanhaId) {
-            let atribuicoes = [];
-            try {
-                // Buscar atribuições com inscrições desta campanha
-                atribuicoes = await sb(
-                    `voluntarios_atribuicoes?select=id,link_token,ministerio_id,ministerios(nome),` +
-                    `voluntarios_inscricoes!inner(campanha_id)` +
-                    `&voluntarios_inscricoes.campanha_id=eq.${campanhaId}`
-                ) || [];
-            } catch (e) {
-                // fallback: buscar por campanha via inscricoes separadamente
-                try {
-                    const inscIds = await sb(
-                        `voluntarios_inscricoes?campanha_id=eq.${campanhaId}&select=id`
-                    ) || [];
-                    if (inscIds.length) {
-                        const ids = inscIds.map(i => i.id).join(',');
-                        atribuicoes = await sb(
-                            `voluntarios_atribuicoes?inscricao_id=in.(${ids})&select=id,link_token,ministerio_id,ministerios(nome)`
-                        ) || [];
-                    }
-                } catch (_) {}
-            }
+    const ids = inscIds.map(i => i.id).join(',');
+    const atribuicoes = await sb(
+      `voluntarios_atribuicoes?inscricao_id=in.(${ids})&select=id,link_token,ministerio_id,ministerios(nome)`
+    ).catch(() => []);
 
-            if (!atribuicoes.length) {
-                alert('Nenhuma atribuição encontrada. Distribua primeiro as inscrições.');
-                return;
-            }
+    if (!atribuicoes.length) { alert('Nenhuma atribuição encontrada. Distribua primeiro as inscrições.'); return; }
 
-            // Um token por ministério
-            const porMin = {};
-            atribuicoes.forEach(a => {
-                if (!porMin[a.ministerio_id]) porMin[a.ministerio_id] = { nome: a.ministerios?.nome, token: a.link_token };
-            });
+    const porMin = {};
+    atribuicoes.forEach(a => {
+      if (!porMin[a.ministerio_id]) porMin[a.ministerio_id] = { nome: a.ministerios?.nome, token: a.link_token };
+    });
 
-            const base = `${location.origin}/voluntarios-lider.html`;
-            const overlay = document.createElement('div');
-            overlay.className = 'vl-modal-overlay';
-            overlay.innerHTML = `
-      <div class="vl-modal" style="max-width:560px">
-        <div class="vl-modal-title">Links por Ministério — Enviar aos Líderes</div>
-        <p style="font-size:11px;color:var(--text-faint);margin-bottom:16px">
-          O líder tem 7 dias para efectuar os contactos. Após esse prazo os candidatos não contactados regressam à gestão.
+    const base = `${location.origin}/voluntarios-lider.html`;
+    const ov = document.createElement('div');
+    ov.className = 'vl-modal-overlay';
+    ov.innerHTML = `
+      <div class="vl-modal" style="max-width:540px">
+        <div class="vl-modal-title">Links por Ministério</div>
+        <p style="font-size:11px;color:var(--text-faint);margin-bottom:14px">
+          Envie o link ao líder de cada ministério. O líder tem 7 dias para contactar os candidatos.
         </p>
-        ${Object.entries(porMin).map(([, info]) => `
-          <div style="margin-bottom:12px">
-            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:5px">${info.nome}</div>
+        ${Object.entries(porMin).map(([,info]) => `
+          <div style="margin-bottom:10px">
+            <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1px;color:var(--text-faint);margin-bottom:4px">${info.nome}</div>
             <div class="vl-link-box">
               <code>${base}?t=${info.token}</code>
-              <button class="vl-btn vl-btn-muted" style="padding:4px 10px;font-size:9px"
+              <button class="vl-btn vl-btn-m" style="padding:3px 9px;font-size:8px"
                 onclick="navigator.clipboard.writeText('${base}?t=${info.token}');this.textContent='Copiado!'">Copiar</button>
             </div>
           </div>`).join('')}
         <div class="vl-modal-footer">
-          <button class="vl-btn vl-btn-primary" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button>
+          <button class="vl-btn vl-btn-p" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button>
         </div>
       </div>`;
-            document.body.appendChild(overlay);
-        }
+    document.body.appendChild(ov);
+  }
 
-        function vl_editarCampanha(id) {
-            alert('Edição de campanha em desenvolvimento.');
-        }
+  // ══════════════════════════════════════════════════════
+  // VERIFICAR PRAZOS EXPIRADOS
+  // ══════════════════════════════════════════════════════
+  async function vl_verificarPrazos() {
+    try {
+      const agora = new Date().toISOString();
+      const exp = await sb(`voluntarios_atribuicoes?status=eq.aguardando&prazo_contato=lt.${agora}&select=id,inscricao_id`).catch(() => []);
+      for (const a of exp) {
+        await sb(`voluntarios_atribuicoes?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
+        await sb(`voluntarios_inscricoes?id=eq.${a.inscricao_id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
+      }
+    } catch (_) {}
+  }
 
-        // ══════════════════════════════════════════════════════
-        // VOLUNTÁRIOS — ACÇÕES
-        // ══════════════════════════════════════════════════════
-        function vl_novoVoluntario() { alert('Registo manual de voluntário em desenvolvimento.'); }
-        function vl_editarVoluntario(id) { alert('Edição de voluntário em desenvolvimento.'); }
+  // ══════════════════════════════════════════════════════
+  // EXPOR NO WINDOW
+  // ══════════════════════════════════════════════════════
+  window.vl_init                = vl_init;
+  window.vl_setTab              = vl_setTab;
+  window.vl_toggle              = vl_toggle;
+  window.vl_filtrarCampanha     = vl_filtrarCampanha;
+  window.vl_recusar             = vl_recusar;
+  window.vl_aprovar             = vl_aprovar;
+  window.vl_distribuirTodos     = vl_distribuirTodos;
+  window.vl_abrirDistribuir     = vl_abrirDistribuir;
+  window.vl_confirmarDistribuir = vl_confirmarDistribuir;
+  window.vl_abrirRegistarVoluntario = vl_abrirRegistarVoluntario;
+  window.vl_confirmarRegistar   = vl_confirmarRegistar;
+  window.vl_novaCampanha        = vl_novaCampanha;
+  window.vl_guardarCampanha     = vl_guardarCampanha;
+  window.vl_statusCampanha      = vl_statusCampanha;
+  window.vl_gerarLinks          = vl_gerarLinks;
 
-        // ══════════════════════════════════════════════════════
-        // VERIFICAR PRAZOS EXPIRADOS
-        // ══════════════════════════════════════════════════════
-        async function vl_verificarPrazos() {
-            try {
-                const agora = new Date().toISOString();
-                const expirados = await sb(
-                    `voluntarios_atribuicoes?status=eq.aguardando&prazo_contato=lt.${agora}&select=id,inscricao_id`
-                ) || [];
-                for (const a of expirados) {
-                    await sb(`voluntarios_atribuicoes?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
-                    await sb(`voluntarios_inscricoes?id=eq.${a.inscricao_id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
-                }
-                if (expirados.length) console.log(`[Voluntários] ${expirados.length} prazo(s) expirado(s) marcado(s).`);
-            } catch (_) {}
-        }
+  vl_init();
 
-        // ══════════════════════════════════════════════════════
-        // UTILITÁRIOS
-        // ══════════════════════════════════════════════════════
-        function vl_showAlert(zone, type, msg) {
-            const el = document.getElementById(`vl-alert-${zone}`);
-            if (!el) return;
-            el.innerHTML = `<div class="vl-alert vl-alert-${type}">${msg}</div>`;
-            setTimeout(() => { if (el) el.innerHTML = ''; }, 5000);
-        }
-
-        // ══════════════════════════════════════════════════════
-        // EXPOR FUNÇÕES NO WINDOW (necessário — IIFE)
-        // ══════════════════════════════════════════════════════
-        window.vl_setTab             = vl_setTab;
-        window.vl_toggleDetalhe      = vl_toggleDetalhe;
-        window.vl_filtrarCampanha    = vl_filtrarCampanha;
-        window.vl_recusar            = vl_recusar;
-        window.vl_aprovar            = vl_aprovar;
-        window.vl_distribuirTodos    = vl_distribuirTodos;
-        window.vl_abrirDistribuir    = vl_abrirDistribuir;
-        window.vl_confirmarDistribuir= vl_confirmarDistribuir;
-        window.vl_novaCampanha       = vl_novaCampanha;
-        window.vl_guardarCampanha    = vl_guardarCampanha;
-        window.vl_statusCampanha     = vl_statusCampanha;
-        window.vl_gerarLinks         = vl_gerarLinks;
-        window.vl_editarCampanha     = vl_editarCampanha;
-        window.vl_novoVoluntario     = vl_novoVoluntario;
-        window.vl_editarVoluntario   = vl_editarVoluntario;
-
-        // ══════════════════════════════════════════════════════
-        // ARRANCAR
-        // ══════════════════════════════════════════════════════
-        window.vl_init = vl_init;
-        vl_init();
-
-    })();
+})();
 </script>

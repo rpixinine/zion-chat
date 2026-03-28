@@ -234,155 +234,155 @@
 </div>
 
 <script>
-(function () {
+    (function () {
 
-    // ══════════════════════════════════════════════════════
-    // HELPER
-    // ══════════════════════════════════════════════════════
-    function sb(path, opts = {}) {
-        return fetch(`${SUPA_URL}/rest/v1/${path}`, {
-            ...opts,
-            headers: {
-                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
-                'Content-Type': 'application/json', 'Prefer': 'return=representation',
-                ...opts.headers,
-            },
-        }).then(async r => {
-            if (!r.ok) { const e = await r.json().catch(() => {}); throw e; }
-            const txt = await r.text(); return txt ? JSON.parse(txt) : [];
-        });
-    }
-
-    function fmt(dt) {
-        if (!dt) return '—';
-        return new Date(dt).toLocaleString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-    }
-    function fmtD(dt) {
-        if (!dt) return '—';
-        return new Date(dt).toLocaleDateString('pt-PT');
-    }
-
-    // ══════════════════════════════════════════════════════
-    // ESTADO GLOBAL
-    // ══════════════════════════════════════════════════════
-    let vl_tabAtiva   = 'ativos';
-    let vl_campFiltro = null;
-    let vl_membrosCache = [];
-
-    // ══════════════════════════════════════════════════════
-    // INIT
-    // ══════════════════════════════════════════════════════
-    async function vl_init() {
-        try {
-            vl_membrosCache = await sb('membros?select=id,nome,e_voluntario&ativo=eq.true&order=nome') || [];
-        } catch (_) {}
-        vl_verificarPrazos();
-        vl_renderAtivos();
-    }
-
-    // ══════════════════════════════════════════════════════
-    // TABS
-    // ══════════════════════════════════════════════════════
-    function vl_setTab(tab) {
-        vl_tabAtiva = tab;
-        ['ativos','inscricoes','campanhas'].forEach(t => {
-            document.getElementById(`vl-tab-${t}`)?.classList.toggle('active', t === tab);
-        });
-        if (tab === 'ativos')     vl_renderAtivos();
-        if (tab === 'inscricoes') vl_renderInscricoes();
-        if (tab === 'campanhas')  vl_renderCampanhas();
-    }
-
-    function vl_c() { return document.getElementById('vl-content'); }
-
-    // ══════════════════════════════════════════════════════
-    // ABA 1 — VOLUNTÁRIOS ATIVOS
-    // ══════════════════════════════════════════════════════
-    let vl_ativosCache     = [];
-    let vl_ministeriosList = [];
-    let vl_idiomasList     = [];
-
-    async function vl_renderAtivos() {
-        vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
-
-        try {
-            // Incluir nacionalidade no fetch
-            const membros = await sb(
-                'membros?e_voluntario=eq.true&ativo=eq.true' +
-                '&select=id,nome,email,telefone,Idiomas,nacionalidade,funcao_voluntario&order=nome'
-            ) || [];
-
-            let minsMap = {};
-            let minsRaw = [];
-            if (membros.length) {
-                const ids = membros.map(m => m.id).join(',');
-                minsRaw = await sb(
-                    `membro_ministerios?membro_id=in.(${ids})&ativo=eq.true` +
-                    `&select=id,membro_id,papel,ministerios(id,nome)`
-                ).catch(() => []);
-                (minsRaw || []).forEach(v => {
-                    if (!minsMap[v.membro_id]) minsMap[v.membro_id] = [];
-                    minsMap[v.membro_id].push({ id: v.ministerios?.id, nome: v.ministerios?.nome, papel: v.papel, vinc_id: v.id });
-                });
-            }
-
-            vl_ativosCache = membros.map(m => ({
-                ...m,
-                _ministerios:  minsMap[m.id] || [],
-                _idiomasArr:   vl_parseIdiomas(m.Idiomas),
-                _nacionalidade: m.nacionalidade || null,
-            }));
-
-            const minSet = new Map();
-            minsRaw.forEach(v => { if (v.ministerios?.id) minSet.set(v.ministerios.id, v.ministerios.nome); });
-            vl_ministeriosList = [...minSet.entries()].map(([id, nome]) => ({ id, nome })).sort((a,b) => a.nome.localeCompare(b.nome));
-
-            const idSet = new Set();
-            vl_ativosCache.forEach(m => m._idiomasArr.forEach(i => idSet.add(i)));
-            vl_idiomasList = [...idSet].sort();
-
-        } catch (e) {
-            vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro ao carregar: ${e?.message || JSON.stringify(e)}</div>`;
-            return;
+        // ══════════════════════════════════════════════════════
+        // HELPER
+        // ══════════════════════════════════════════════════════
+        function sb(path, opts = {}) {
+            return fetch(`${SUPA_URL}/rest/v1/${path}`, {
+                ...opts,
+                headers: {
+                    'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+                    'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                    ...opts.headers,
+                },
+            }).then(async r => {
+                if (!r.ok) { const e = await r.json().catch(() => {}); throw e; }
+                const txt = await r.text(); return txt ? JSON.parse(txt) : [];
+            });
         }
 
-        vl_renderAtivosFiltrado();
-    }
+        function fmt(dt) {
+            if (!dt) return '—';
+            return new Date(dt).toLocaleString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        }
+        function fmtD(dt) {
+            if (!dt) return '—';
+            return new Date(dt).toLocaleDateString('pt-PT');
+        }
 
-    function vl_parseIdiomas(val) {
-        if (!val) return [];
-        try { const a = typeof val === 'string' ? JSON.parse(val) : val; return Array.isArray(a) ? a : []; }
-        catch (_) { return typeof val === 'string' ? [val] : []; }
-    }
+        // ══════════════════════════════════════════════════════
+        // ESTADO GLOBAL
+        // ══════════════════════════════════════════════════════
+        let vl_tabAtiva   = 'ativos';
+        let vl_campFiltro = null;
+        let vl_membrosCache = [];
 
-    let _vl_q = '', _vl_min = '', _vl_idi = '';
+        // ══════════════════════════════════════════════════════
+        // INIT
+        // ══════════════════════════════════════════════════════
+        async function vl_init() {
+            try {
+                vl_membrosCache = await sb('membros?select=id,nome,e_voluntario&ativo=eq.true&order=nome') || [];
+            } catch (_) {}
+            vl_verificarPrazos();
+            vl_renderAtivos();
+        }
 
-    function vl_renderAtivosFiltrado() {
-        const elNome = document.getElementById('vl-search-nome');
-        const elMin  = document.getElementById('vl-filter-min');
-        const elIdi  = document.getElementById('vl-filter-idi');
-        if (elNome) _vl_q   = elNome.value;
-        if (elMin)  _vl_min = elMin.value;
-        if (elIdi)  _vl_idi = elIdi.value;
+        // ══════════════════════════════════════════════════════
+        // TABS
+        // ══════════════════════════════════════════════════════
+        function vl_setTab(tab) {
+            vl_tabAtiva = tab;
+            ['ativos','inscricoes','campanhas'].forEach(t => {
+                document.getElementById(`vl-tab-${t}`)?.classList.toggle('active', t === tab);
+            });
+            if (tab === 'ativos')     vl_renderAtivos();
+            if (tab === 'inscricoes') vl_renderInscricoes();
+            if (tab === 'campanhas')  vl_renderCampanhas();
+        }
 
-        const q       = _vl_q.toLowerCase();
-        const filtMin = _vl_min;
-        const filtIdi = _vl_idi;
+        function vl_c() { return document.getElementById('vl-content'); }
 
-        let lista = [...vl_ativosCache];
-        if (q)       lista = lista.filter(m => m.nome.toLowerCase().includes(q));
-        if (filtMin) lista = lista.filter(m => m._ministerios.some(mn => mn.id === filtMin));
-        if (filtIdi) lista = lista.filter(m => m._idiomasArr.includes(filtIdi));
+        // ══════════════════════════════════════════════════════
+        // ABA 1 — VOLUNTÁRIOS ATIVOS
+        // ══════════════════════════════════════════════════════
+        let vl_ativosCache     = [];
+        let vl_ministeriosList = [];
+        let vl_idiomasList     = [];
 
-        if (!document.getElementById('vl-ativos-wrap')) {
-            const minOpts = vl_ministeriosList.map(mn =>
-                `<option value="${mn.id}">${mn.nome}</option>`
-            ).join('');
-            const idiOpts = vl_idiomasList.map(i =>
-                `<option value="${i}">${i}</option>`
-            ).join('');
+        async function vl_renderAtivos() {
+            vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
 
-            vl_c().innerHTML = `
+            try {
+                // Incluir nacionalidade no fetch
+                const membros = await sb(
+                    'membros?e_voluntario=eq.true&ativo=eq.true' +
+                    '&select=id,nome,email,telefone,Idiomas,nacionalidade,funcao_voluntario&order=nome'
+                ) || [];
+
+                let minsMap = {};
+                let minsRaw = [];
+                if (membros.length) {
+                    const ids = membros.map(m => m.id).join(',');
+                    minsRaw = await sb(
+                        `membro_ministerios?membro_id=in.(${ids})&ativo=eq.true` +
+                        `&select=id,membro_id,papel,ministerios(id,nome)`
+                    ).catch(() => []);
+                    (minsRaw || []).forEach(v => {
+                        if (!minsMap[v.membro_id]) minsMap[v.membro_id] = [];
+                        minsMap[v.membro_id].push({ id: v.ministerios?.id, nome: v.ministerios?.nome, papel: v.papel, vinc_id: v.id });
+                    });
+                }
+
+                vl_ativosCache = membros.map(m => ({
+                    ...m,
+                    _ministerios:  minsMap[m.id] || [],
+                    _idiomasArr:   vl_parseIdiomas(m.Idiomas),
+                    _nacionalidade: m.nacionalidade || null,
+                }));
+
+                const minSet = new Map();
+                minsRaw.forEach(v => { if (v.ministerios?.id) minSet.set(v.ministerios.id, v.ministerios.nome); });
+                vl_ministeriosList = [...minSet.entries()].map(([id, nome]) => ({ id, nome })).sort((a,b) => a.nome.localeCompare(b.nome));
+
+                const idSet = new Set();
+                vl_ativosCache.forEach(m => m._idiomasArr.forEach(i => idSet.add(i)));
+                vl_idiomasList = [...idSet].sort();
+
+            } catch (e) {
+                vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro ao carregar: ${e?.message || JSON.stringify(e)}</div>`;
+                return;
+            }
+
+            vl_renderAtivosFiltrado();
+        }
+
+        function vl_parseIdiomas(val) {
+            if (!val) return [];
+            try { const a = typeof val === 'string' ? JSON.parse(val) : val; return Array.isArray(a) ? a : []; }
+            catch (_) { return typeof val === 'string' ? [val] : []; }
+        }
+
+        let _vl_q = '', _vl_min = '', _vl_idi = '';
+
+        function vl_renderAtivosFiltrado() {
+            const elNome = document.getElementById('vl-search-nome');
+            const elMin  = document.getElementById('vl-filter-min');
+            const elIdi  = document.getElementById('vl-filter-idi');
+            if (elNome) _vl_q   = elNome.value;
+            if (elMin)  _vl_min = elMin.value;
+            if (elIdi)  _vl_idi = elIdi.value;
+
+            const q       = _vl_q.toLowerCase();
+            const filtMin = _vl_min;
+            const filtIdi = _vl_idi;
+
+            let lista = [...vl_ativosCache];
+            if (q)       lista = lista.filter(m => m.nome.toLowerCase().includes(q));
+            if (filtMin) lista = lista.filter(m => m._ministerios.some(mn => mn.id === filtMin));
+            if (filtIdi) lista = lista.filter(m => m._idiomasArr.includes(filtIdi));
+
+            if (!document.getElementById('vl-ativos-wrap')) {
+                const minOpts = vl_ministeriosList.map(mn =>
+                    `<option value="${mn.id}">${mn.nome}</option>`
+                ).join('');
+                const idiOpts = vl_idiomasList.map(i =>
+                    `<option value="${i}">${i}</option>`
+                ).join('');
+
+                vl_c().innerHTML = `
 <div class="vl-toolbar">
   <span class="vl-toolbar-title">Voluntários Ativos</span>
   <button class="vl-btn vl-btn-p" onclick="vl_abrirRegistarVoluntario()">Registar Voluntário</button>
@@ -409,24 +409,24 @@
   </div>
   <div id="vl-ativos-tabela"></div>
 </div>`;
-        }
+            }
 
-        const elTotal  = document.getElementById('vl-stat-total');
-        const elShow   = document.getElementById('vl-stat-show');
-        const elLimpar = document.getElementById('vl-btn-limpar');
-        if (elTotal)  elTotal.textContent  = vl_ativosCache.length;
-        if (elShow)   elShow.textContent   = lista.length;
-        if (elLimpar) elLimpar.style.display = (q || filtMin || filtIdi) ? '' : 'none';
+            const elTotal  = document.getElementById('vl-stat-total');
+            const elShow   = document.getElementById('vl-stat-show');
+            const elLimpar = document.getElementById('vl-btn-limpar');
+            if (elTotal)  elTotal.textContent  = vl_ativosCache.length;
+            if (elShow)   elShow.textContent   = lista.length;
+            if (elLimpar) elLimpar.style.display = (q || filtMin || filtIdi) ? '' : 'none';
 
-        const tabEl = document.getElementById('vl-ativos-tabela');
-        if (!tabEl) return;
+            const tabEl = document.getElementById('vl-ativos-tabela');
+            if (!tabEl) return;
 
-        if (!lista.length) {
-            tabEl.innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum voluntário encontrado.</div>';
-            return;
-        }
+            if (!lista.length) {
+                tabEl.innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum voluntário encontrado.</div>';
+                return;
+            }
 
-        tabEl.innerHTML = `
+            tabEl.innerHTML = `
 <div class="vl-card" style="padding:0;overflow:hidden;">
   <table class="vl-table">
     <thead>
@@ -434,12 +434,12 @@
     </thead>
     <tbody>
       ${lista.map(v => {
-          const tel     = v.telefone || '—';
-          const idiomas = v._idiomasArr.join(', ') || '—';
-          const minsStr = v._ministerios.map(mn => mn.nome).join(', ') || '—';
-          const nac     = v._nacionalidade || '';
-          const nEsc    = v.nome.replace(/'/g, "\\'");
-          return `<tr>
+                const tel     = v.telefone || '—';
+                const idiomas = v._idiomasArr.join(', ') || '—';
+                const minsStr = v._ministerios.map(mn => mn.nome).join(', ') || '—';
+                const nac     = v._nacionalidade || '';
+                const nEsc    = v.nome.replace(/'/g, "\\'");
+                return `<tr>
             <td><strong style="font-size:12px">${v.nome}</strong></td>
             <td style="font-size:11px;color:var(--text-faint)">${minsStr}</td>
             <td>
@@ -457,50 +457,50 @@
               </div>
             </td>
           </tr>`;
-      }).join('')}
+            }).join('')}
     </tbody>
   </table>
 </div>`;
-    }
+        }
 
-    function vl_limparFiltros() {
-        _vl_q = ''; _vl_min = ''; _vl_idi = '';
-        const n = document.getElementById('vl-search-nome');
-        const m = document.getElementById('vl-filter-min');
-        const i = document.getElementById('vl-filter-idi');
-        if (n) n.value = '';
-        if (m) m.value = '';
-        if (i) i.value = '';
-        vl_renderAtivosFiltrado();
-    }
-
-    // ── Remover voluntário ────────────────────────────────
-    async function vl_removerVoluntario(membroId, nome) {
-        if (!confirm(`Remover ${nome} da lista de voluntários?\nO perfil do membro não será alterado.`)) return;
-        try {
-            await sb(`membros?id=eq.${membroId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: false }) });
-            vl_ativosCache = vl_ativosCache.filter(m => m.id !== membroId);
-            const idx = vl_membrosCache.findIndex(m => m.id === membroId);
-            if (idx >= 0) vl_membrosCache[idx].e_voluntario = false;
+        function vl_limparFiltros() {
+            _vl_q = ''; _vl_min = ''; _vl_idi = '';
+            const n = document.getElementById('vl-search-nome');
+            const m = document.getElementById('vl-filter-min');
+            const i = document.getElementById('vl-filter-idi');
+            if (n) n.value = '';
+            if (m) m.value = '';
+            if (i) i.value = '';
             vl_renderAtivosFiltrado();
-        } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-    }
+        }
 
-    // ══════════════════════════════════════════════════════
-    // MODAL PERFIL — com 3 abas: Perfil / Ministérios / Anotações
-    // ══════════════════════════════════════════════════════
-    async function vl_abrirPerfil(membroId) {
-        const vol = vl_ativosCache.find(m => m.id === membroId);
-        if (!vol) return;
+        // ── Remover voluntário ────────────────────────────────
+        async function vl_removerVoluntario(membroId, nome) {
+            if (!confirm(`Remover ${nome} da lista de voluntários?\nO perfil do membro não será alterado.`)) return;
+            try {
+                await sb(`membros?id=eq.${membroId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: false }) });
+                vl_ativosCache = vl_ativosCache.filter(m => m.id !== membroId);
+                const idx = vl_membrosCache.findIndex(m => m.id === membroId);
+                if (idx >= 0) vl_membrosCache[idx].e_voluntario = false;
+                vl_renderAtivosFiltrado();
+            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+        }
 
-        let todosMin = [];
-        try {
-            todosMin = await sb('ministerios?ativo=eq.true&select=id,nome,tipo&order=tipo,nome') || [];
-        } catch (_) {}
+        // ══════════════════════════════════════════════════════
+        // MODAL PERFIL — com 3 abas: Perfil / Ministérios / Anotações
+        // ══════════════════════════════════════════════════════
+        async function vl_abrirPerfil(membroId) {
+            const vol = vl_ativosCache.find(m => m.id === membroId);
+            if (!vol) return;
 
-        const minsAtuais = vol._ministerios;
-        const minsHtml = minsAtuais.length
-            ? minsAtuais.map(mn => `
+            let todosMin = [];
+            try {
+                todosMin = await sb('ministerios?ativo=eq.true&select=id,nome,tipo&order=tipo,nome') || [];
+            } catch (_) {}
+
+            const minsAtuais = vol._ministerios;
+            const minsHtml = minsAtuais.length
+                ? minsAtuais.map(mn => `
 <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;
   background:var(--bg-input);border:1px solid var(--border);border-radius:8px;margin-bottom:4px">
   <div style="flex:1">
@@ -510,33 +510,33 @@
   <button class="vl-btn vl-btn-d" style="padding:3px 9px;font-size:8px"
     onclick="vl_removerMinisterioModal('${mn.vinc_id}','${membroId}')">Remover</button>
 </div>`).join('')
-            : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Sem ministérios associados.</div>';
+                : '<div style="font-size:12px;color:var(--text-faint);padding:4px 0">Sem ministérios associados.</div>';
 
-        const minGrupos = {};
-        todosMin.forEach(m => {
-            const g = m.tipo === 'ministerio' ? 'Ministérios' : m.tipo === 'area_equipa' ? 'Áreas de Equipa' : (m.tipo || 'Outros');
-            if (!minGrupos[g]) minGrupos[g] = [];
-            minGrupos[g].push(m);
-        });
-        const minOpts = Object.entries(minGrupos).map(([g, items]) =>
-            `<optgroup label="${g}">${items.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}</optgroup>`
-        ).join('');
+            const minGrupos = {};
+            todosMin.forEach(m => {
+                const g = m.tipo === 'ministerio' ? 'Ministérios' : m.tipo === 'area_equipa' ? 'Áreas de Equipa' : (m.tipo || 'Outros');
+                if (!minGrupos[g]) minGrupos[g] = [];
+                minGrupos[g].push(m);
+            });
+            const minOpts = Object.entries(minGrupos).map(([g, items]) =>
+                `<optgroup label="${g}">${items.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}</optgroup>`
+            ).join('');
 
-        const papeisOpts = [
-            ['','— Função —'],['Auxiliar','Auxiliar'],['Co-liderArea','Co-lider de Área'],
-            ['Core','Core'],['LiderArea','Lider de Área'],['LiderEquipa','Lider de Equipa'],
-            ['Lider','Lider de Ministério'],['Office','Office'],['Presbitério','Presbitério'],
-        ].map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+            const papeisOpts = [
+                ['','— Função —'],['Voluntario','Voluntario'],['Auxiliar','Auxiliar'],['Co-liderArea','Co-lider de Área'],
+                ['Core','Core'],['LiderArea','Lider de Área'],['LiderEquipa','Lider de Equipa'],
+                ['Lider','Lider de Ministério'],['Office','Office'],['Presbitério','Presbitério'],
+            ].map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
 
-        const tel      = vol.telefone || '—';
-        const idiomas  = vol._idiomasArr.join(', ') || '—';
-        const nac      = vol._nacionalidade || '—';
-        const funcaoSel = (v) => vol.funcao_voluntario === v ? 'selected' : '';
+            const tel      = vol.telefone || '—';
+            const idiomas  = vol._idiomasArr.join(', ') || '—';
+            const nac      = vol._nacionalidade || '—';
+            const funcaoSel = (v) => vol.funcao_voluntario === v ? 'selected' : '';
 
-        const ov = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.id = 'vl-perfil-modal';
-        ov.innerHTML = `
+            const ov = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.id = 'vl-perfil-modal';
+            ov.innerHTML = `
 <div class="vl-modal" style="max-width:520px">
   <div class="vl-modal-title">${vol.nome}</div>
 
@@ -608,10 +608,10 @@
       <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
         <div class="vl-label" style="margin:0;white-space:nowrap">Nova anotação</div>
         <select class="vl-select" id="vl-anot-tipo" style="flex:1;max-width:150px">
-          <option value="anotacao">📋 Anotação</option>
-          <option value="feedback">💬 Feedback</option>
-          <option value="interacao">🤝 Interação</option>
-          <option value="conversa">☎️ Conversa</option>
+          <option value="anotacao">Anotação</option>
+          <option value="feedback">Feedback</option>
+          <option value="interacao">Interação</option>
+          <option value="conversa">Conversa</option>
         </select>
       </div>
       <textarea class="vl-textarea" id="vl-anot-texto"
@@ -633,34 +633,34 @@
     <button class="vl-btn vl-btn-p" onclick="document.getElementById('vl-perfil-modal').remove()">Fechar</button>
   </div>
 </div>`;
-        document.body.appendChild(ov);
-    }
+            document.body.appendChild(ov);
+        }
 
-    // Troca de aba dentro do modal de perfil
-    function vl_mostrarTabPerfil(tab, membroId) {
-        ['perfil','ministerios','anotacoes'].forEach(t => {
-            document.getElementById(`vl-pt-${t}`)?.classList.toggle('active', t === tab);
-            document.getElementById(`vl-tc-${t}`)?.classList.toggle('active', t === tab);
-        });
-        if (tab === 'anotacoes') vl_carregarAnotacoes(membroId);
-    }
+        // Troca de aba dentro do modal de perfil
+        function vl_mostrarTabPerfil(tab, membroId) {
+            ['perfil','ministerios','anotacoes'].forEach(t => {
+                document.getElementById(`vl-pt-${t}`)?.classList.toggle('active', t === tab);
+                document.getElementById(`vl-tc-${t}`)?.classList.toggle('active', t === tab);
+            });
+            if (tab === 'anotacoes') vl_carregarAnotacoes(membroId);
+        }
 
-    // ── Anotações ─────────────────────────────────────────
-    async function vl_carregarAnotacoes(membroId) {
-        const el = document.getElementById('vl-anot-lista');
-        if (!el) return;
-        el.innerHTML = '<div class="vl-empty" style="padding:20px"><div class="vl-empty-icon">—</div>A carregar...</div>';
-        try {
-            const rows = await sb(
-                `voluntarios_anotacoes?membro_id=eq.${membroId}&order=created_at.desc`
-            ) || [];
-            if (!rows.length) {
-                el.innerHTML = '<div class="vl-empty" style="padding:24px"><div class="vl-empty-icon">💬</div>Sem anotações ainda. Regista a primeira interação acima.</div>';
-                return;
-            }
-            const tipoIcons = { anotacao: '📋', feedback: '💬', interacao: '🤝', conversa: '☎️' };
-            const tipoBadge = { anotacao: 'vl-b-anotacao', feedback: 'vl-b-feedback', interacao: 'vl-b-interacao', conversa: 'vl-b-conversa' };
-            el.innerHTML = rows.map(r => `
+        // ── Anotações ─────────────────────────────────────────
+        async function vl_carregarAnotacoes(membroId) {
+            const el = document.getElementById('vl-anot-lista');
+            if (!el) return;
+            el.innerHTML = '<div class="vl-empty" style="padding:20px"><div class="vl-empty-icon">—</div>A carregar...</div>';
+            try {
+                const rows = await sb(
+                    `voluntarios_anotacoes?membro_id=eq.${membroId}&order=created_at.desc`
+                ) || [];
+                if (!rows.length) {
+                    el.innerHTML = '<div class="vl-empty" style="padding:24px"><div class="vl-empty-icon">💬</div>Sem anotações ainda. Regista a primeira interação acima.</div>';
+                    return;
+                }
+                const tipoIcons = { anotacao: '📋', feedback: '💬', interacao: '🤝', conversa: '☎️' };
+                const tipoBadge = { anotacao: 'vl-b-anotacao', feedback: 'vl-b-feedback', interacao: 'vl-b-interacao', conversa: 'vl-b-conversa' };
+                el.innerHTML = rows.map(r => `
 <div class="vl-anot-item">
   <div class="vl-anot-meta">
     <span class="vl-badge ${tipoBadge[r.tipo] || 'vl-b-anotacao'}">
@@ -670,160 +670,160 @@
   </div>
   <div class="vl-anot-texto">${r.texto.replace(/</g,'&lt;')}</div>
 </div>`).join('');
-        } catch (e) {
-            el.innerHTML = `<div class="vl-alert vl-alert-e">Erro ao carregar: ${e?.message}</div>`;
+            } catch (e) {
+                el.innerHTML = `<div class="vl-alert vl-alert-e">Erro ao carregar: ${e?.message}</div>`;
+            }
         }
-    }
 
-    async function vl_salvarAnotacao(membroId, btn) {
-        const tipo  = document.getElementById('vl-anot-tipo')?.value || 'anotacao';
-        const texto = document.getElementById('vl-anot-texto')?.value?.trim();
-        if (!texto) {
-            alert('Escreve o conteúdo da anotação antes de guardar.');
-            return;
+        async function vl_salvarAnotacao(membroId, btn) {
+            const tipo  = document.getElementById('vl-anot-tipo')?.value || 'anotacao';
+            const texto = document.getElementById('vl-anot-texto')?.value?.trim();
+            if (!texto) {
+                alert('Escreve o conteúdo da anotação antes de guardar.');
+                return;
+            }
+            btn.disabled = true; btn.textContent = 'A guardar...';
+            try {
+                await sb('voluntarios_anotacoes', {
+                    method: 'POST',
+                    body: JSON.stringify({ membro_id: membroId, tipo, texto })
+                });
+                const txtEl = document.getElementById('vl-anot-texto');
+                if (txtEl) txtEl.value = '';
+                btn.textContent = 'Guardado!';
+                setTimeout(() => { btn.disabled = false; btn.textContent = 'Guardar Anotação'; }, 1200);
+                vl_carregarAnotacoes(membroId);
+            } catch (e) {
+                alert('Erro: ' + (e?.message || JSON.stringify(e)));
+                btn.disabled = false; btn.textContent = 'Guardar Anotação';
+            }
         }
-        btn.disabled = true; btn.textContent = 'A guardar...';
-        try {
-            await sb('voluntarios_anotacoes', {
-                method: 'POST',
-                body: JSON.stringify({ membro_id: membroId, tipo, texto })
-            });
-            const txtEl = document.getElementById('vl-anot-texto');
-            if (txtEl) txtEl.value = '';
-            btn.textContent = 'Guardado!';
-            setTimeout(() => { btn.disabled = false; btn.textContent = 'Guardar Anotação'; }, 1200);
-            vl_carregarAnotacoes(membroId);
-        } catch (e) {
-            alert('Erro: ' + (e?.message || JSON.stringify(e)));
-            btn.disabled = false; btn.textContent = 'Guardar Anotação';
-        }
-    }
 
-    // ── Ministérios no modal ──────────────────────────────
-    async function vl_removerMinisterioModal(vincId, membroId) {
-        if (!confirm('Remover este ministério do voluntário?')) return;
-        try {
-            await sb(`membro_ministerios?id=eq.${vincId}`, { method: 'PATCH', body: JSON.stringify({ ativo: false }) });
+        // ── Ministérios no modal ──────────────────────────────
+        async function vl_removerMinisterioModal(vincId, membroId) {
+            if (!confirm('Remover este ministério do voluntário?')) return;
+            try {
+                await sb(`membro_ministerios?id=eq.${vincId}`, { method: 'PATCH', body: JSON.stringify({ ativo: false }) });
+                const vol = vl_ativosCache.find(m => m.id === membroId);
+                if (vol) vol._ministerios = vol._ministerios.filter(mn => mn.vinc_id !== vincId);
+                document.getElementById('vl-perfil-modal')?.remove();
+                vl_abrirPerfil(membroId);
+                vl_renderAtivosFiltrado();
+            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+        }
+
+        async function vl_adicionarMinisterioModal(membroId) {
+            const minId = document.getElementById('vl-perfil-add-min')?.value;
+            const papel = document.getElementById('vl-perfil-add-papel')?.value || null;
+            const alEl  = document.getElementById('vl-perfil-alert');
+            if (!minId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um ministério.</div>'; return; }
+
             const vol = vl_ativosCache.find(m => m.id === membroId);
-            if (vol) vol._ministerios = vol._ministerios.filter(mn => mn.vinc_id !== vincId);
+            if (vol?._ministerios.some(mn => mn.id === minId)) {
+                if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Já associado.</div>';
+                return;
+            }
+
+            try {
+                await sb('membro_ministerios', {
+                    method: 'POST',
+                    body: JSON.stringify({ membro_id: membroId, ministerio_id: minId, papel: papel || null, ativo: true })
+                });
+                document.getElementById('vl-perfil-modal')?.remove();
+                await vl_renderAtivos();
+                vl_abrirPerfil(membroId);
+            } catch (e) {
+                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+            }
+        }
+
+        async function vl_removerVoluntarioModal(membroId, nome) {
             document.getElementById('vl-perfil-modal')?.remove();
-            vl_abrirPerfil(membroId);
-            vl_renderAtivosFiltrado();
-        } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-    }
-
-    async function vl_adicionarMinisterioModal(membroId) {
-        const minId = document.getElementById('vl-perfil-add-min')?.value;
-        const papel = document.getElementById('vl-perfil-add-papel')?.value || null;
-        const alEl  = document.getElementById('vl-perfil-alert');
-        if (!minId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um ministério.</div>'; return; }
-
-        const vol = vl_ativosCache.find(m => m.id === membroId);
-        if (vol?._ministerios.some(mn => mn.id === minId)) {
-            if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Já associado.</div>';
-            return;
+            await vl_removerVoluntario(membroId, nome);
         }
 
-        try {
-            await sb('membro_ministerios', {
-                method: 'POST',
-                body: JSON.stringify({ membro_id: membroId, ministerio_id: minId, papel: papel || null, ativo: true })
-            });
-            document.getElementById('vl-perfil-modal')?.remove();
-            await vl_renderAtivos();
-            vl_abrirPerfil(membroId);
-        } catch (e) {
-            if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
-        }
-    }
-
-    async function vl_removerVoluntarioModal(membroId, nome) {
-        document.getElementById('vl-perfil-modal')?.remove();
-        await vl_removerVoluntario(membroId, nome);
-    }
-
-    async function vl_guardarFuncao(membroId) {
-        const funcao = document.getElementById('vl-perfil-funcao')?.value || null;
-        try {
-            await sb(`membros?id=eq.${membroId}`, {
-                method: 'PATCH', body: JSON.stringify({ funcao_voluntario: funcao || null })
-            });
-            const vol = vl_ativosCache.find(m => m.id === membroId);
-            if (vol) vol.funcao_voluntario = funcao;
-            const btns = document.querySelectorAll('#vl-perfil-modal button');
-            btns.forEach(b => { if (b.textContent === 'Guardar') { b.textContent = 'Guardado!'; setTimeout(() => { b.textContent = 'Guardar'; }, 1500); } });
-        } catch (e) {
-            alert('Erro: ' + (e?.message || JSON.stringify(e)));
-        }
-    }
-
-    // ══════════════════════════════════════════════════════
-    // ABA 2 — NOVAS INSCRIÇÕES
-    // ══════════════════════════════════════════════════════
-    let _ins_cache   = [];
-    let _ins_todos_ministerios = [];
-    let _ins_q       = '';
-    let _ins_status  = '';
-    let _ins_escolha = '';
-    let _ins_min     = '';
-
-    async function vl_renderInscricoes() {
-        vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
-
-        let campanhas = [], inscricoes = [];
-        try {
-            campanhas = await sb('voluntarios_campanhas?select=id,nome,status&order=created_at.desc') || [];
-            // Incluir motivo_rejeicao
-            let path = 'voluntarios_inscricoes?select=id,status,created_at,campanha_id,membro_id,motivo_rejeicao,' +
-                'disponibilidade_sabado_manha,disponibilidade_sabado_tarde,' +
-                'disponibilidade_domingo_manha,disponibilidade_domingo_tarde&order=created_at.desc';
-            if (vl_campFiltro) path += `&campanha_id=eq.${vl_campFiltro}`;
-            inscricoes = await sb(path) || [];
-        } catch(e) {
-            vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`; return;
+        async function vl_guardarFuncao(membroId) {
+            const funcao = document.getElementById('vl-perfil-funcao')?.value || null;
+            try {
+                await sb(`membros?id=eq.${membroId}`, {
+                    method: 'PATCH', body: JSON.stringify({ funcao_voluntario: funcao || null })
+                });
+                const vol = vl_ativosCache.find(m => m.id === membroId);
+                if (vol) vol.funcao_voluntario = funcao;
+                const btns = document.querySelectorAll('#vl-perfil-modal button');
+                btns.forEach(b => { if (b.textContent === 'Guardar') { b.textContent = 'Guardado!'; setTimeout(() => { b.textContent = 'Guardar'; }, 1500); } });
+            } catch (e) {
+                alert('Erro: ' + (e?.message || JSON.stringify(e)));
+            }
         }
 
-        if (inscricoes.length) {
-            const insIds  = inscricoes.map(i => i.id).join(',');
-            const memIds  = [...new Set(inscricoes.map(i => i.membro_id))].join(',');
-            const campIds = [...new Set(inscricoes.map(i => i.campanha_id))].join(',');
+        // ══════════════════════════════════════════════════════
+        // ABA 2 — NOVAS INSCRIÇÕES
+        // ══════════════════════════════════════════════════════
+        let _ins_cache   = [];
+        let _ins_todos_ministerios = [];
+        let _ins_q       = '';
+        let _ins_status  = '';
+        let _ins_escolha = '';
+        let _ins_min     = '';
 
-            const [membsD, campsD, areasD, atribD] = await Promise.all([
-                sb(`membros?id=in.(${memIds})&select=id,nome,email,telefone`).catch(() => []),
-                sb(`voluntarios_campanhas?id=in.(${campIds})&select=id,nome`).catch(() => []),
-                sb(`voluntarios_areas_interesse?inscricao_id=in.(${insIds})&select=inscricao_id,ordem,motivo,ministerio_id,ministerios(id,nome)&order=ordem`).catch(() => []),
-                sb(`voluntarios_atribuicoes?inscricao_id=in.(${insIds})&select=id,inscricao_id,ministerio_id,link_token,status,prazo_contato,data_contato,ministerios(id,nome)&order=created_at.desc`).catch(() => []),
-            ]);
+        async function vl_renderInscricoes() {
+            vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
 
-            const membMap  = Object.fromEntries((membsD||[]).map(m => [m.id, m]));
-            const campMap  = Object.fromEntries((campsD||[]).map(c => [c.id, c]));
-            const areasMap = {};
-            (areasD||[]).forEach(a => { if(!areasMap[a.inscricao_id]) areasMap[a.inscricao_id]=[]; areasMap[a.inscricao_id].push(a); });
-            const atribMap = {};
-            (atribD||[]).forEach(a => { if(!atribMap[a.inscricao_id]) atribMap[a.inscricao_id]=[]; atribMap[a.inscricao_id].push(a); });
+            let campanhas = [], inscricoes = [];
+            try {
+                campanhas = await sb('voluntarios_campanhas?select=id,nome,status&order=created_at.desc') || [];
+                // Incluir motivo_rejeicao
+                let path = 'voluntarios_inscricoes?select=id,status,created_at,campanha_id,membro_id,motivo_rejeicao,' +
+                    'disponibilidade_sabado_manha,disponibilidade_sabado_tarde,' +
+                    'disponibilidade_domingo_manha,disponibilidade_domingo_tarde&order=created_at.desc';
+                if (vl_campFiltro) path += `&campanha_id=eq.${vl_campFiltro}`;
+                inscricoes = await sb(path) || [];
+            } catch(e) {
+                vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`; return;
+            }
 
-            inscricoes = inscricoes.map(i => ({
-                ...i,
-                _membro:      membMap[i.membro_id] || null,
-                _campanha:    campMap[i.campanha_id] || null,
-                _areas:       (areasMap[i.id]||[]).sort((a,b)=>a.ordem-b.ordem),
-                _atribuicoes: atribMap[i.id] || [],
-            }));
-        }
+            if (inscricoes.length) {
+                const insIds  = inscricoes.map(i => i.id).join(',');
+                const memIds  = [...new Set(inscricoes.map(i => i.membro_id))].join(',');
+                const campIds = [...new Set(inscricoes.map(i => i.campanha_id))].join(',');
 
-        _ins_cache = inscricoes;
+                const [membsD, campsD, areasD, atribD] = await Promise.all([
+                    sb(`membros?id=in.(${memIds})&select=id,nome,email,telefone`).catch(() => []),
+                    sb(`voluntarios_campanhas?id=in.(${campIds})&select=id,nome`).catch(() => []),
+                    sb(`voluntarios_areas_interesse?inscricao_id=in.(${insIds})&select=inscricao_id,ordem,motivo,ministerio_id,ministerios(id,nome)&order=ordem`).catch(() => []),
+                    sb(`voluntarios_atribuicoes?inscricao_id=in.(${insIds})&select=id,inscricao_id,ministerio_id,link_token,status,prazo_contato,data_contato,ministerios(id,nome)&order=created_at.desc`).catch(() => []),
+                ]);
 
-        const minSet = new Map();
-        inscricoes.forEach(i => i._areas.forEach(a => { if(a.ministerios?.id) minSet.set(a.ministerios.id, a.ministerios.nome); }));
-        _ins_todos_ministerios = [...minSet.entries()].map(([id,nome])=>({id,nome})).sort((a,b)=>a.nome.localeCompare(b.nome));
+                const membMap  = Object.fromEntries((membsD||[]).map(m => [m.id, m]));
+                const campMap  = Object.fromEntries((campsD||[]).map(c => [c.id, c]));
+                const areasMap = {};
+                (areasD||[]).forEach(a => { if(!areasMap[a.inscricao_id]) areasMap[a.inscricao_id]=[]; areasMap[a.inscricao_id].push(a); });
+                const atribMap = {};
+                (atribD||[]).forEach(a => { if(!atribMap[a.inscricao_id]) atribMap[a.inscricao_id]=[]; atribMap[a.inscricao_id].push(a); });
 
-        const campOpts = campanhas.map(c =>
-            `<option value="${c.id}" ${vl_campFiltro===c.id?'selected':''}>${c.nome} (${c.status})</option>`
-        ).join('');
+                inscricoes = inscricoes.map(i => ({
+                    ...i,
+                    _membro:      membMap[i.membro_id] || null,
+                    _campanha:    campMap[i.campanha_id] || null,
+                    _areas:       (areasMap[i.id]||[]).sort((a,b)=>a.ordem-b.ordem),
+                    _atribuicoes: atribMap[i.id] || [],
+                }));
+            }
 
-        const pendentes = inscricoes.filter(i => i.status==='pendente').length;
+            _ins_cache = inscricoes;
 
-        vl_c().innerHTML = `
+            const minSet = new Map();
+            inscricoes.forEach(i => i._areas.forEach(a => { if(a.ministerios?.id) minSet.set(a.ministerios.id, a.ministerios.nome); }));
+            _ins_todos_ministerios = [...minSet.entries()].map(([id,nome])=>({id,nome})).sort((a,b)=>a.nome.localeCompare(b.nome));
+
+            const campOpts = campanhas.map(c =>
+                `<option value="${c.id}" ${vl_campFiltro===c.id?'selected':''}>${c.nome} (${c.status})</option>`
+            ).join('');
+
+            const pendentes = inscricoes.filter(i => i.status==='pendente').length;
+
+            vl_c().innerHTML = `
 <div class="vl-toolbar">
   <span class="vl-toolbar-title">Novas Inscrições</span>
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
@@ -831,8 +831,8 @@
       <option value="">Todas as campanhas</option>${campOpts}
     </select>
     ${vl_campFiltro && pendentes > 0
-        ? `<button class="vl-btn vl-btn-p" onclick="vl_distribuirTodos('${vl_campFiltro}')">Distribuir Pendentes (${pendentes})</button>`
-        : ''}
+                ? `<button class="vl-btn vl-btn-p" onclick="vl_distribuirTodos('${vl_campFiltro}')">Distribuir Pendentes (${pendentes})</button>`
+                : ''}
   </div>
 </div>
 
@@ -864,40 +864,40 @@
 <div id="ins-stats-wrap"></div>
 <div id="ins-tabela-wrap"></div>`;
 
-        vl_filtrarInscricoes();
-    }
-
-    function vl_filtrarInscricoes() {
-        const elQ  = document.getElementById('ins-q');
-        const elSt = document.getElementById('ins-status');
-        const elEs = document.getElementById('ins-escolha');
-        const elMi = document.getElementById('ins-min');
-        if (elQ)  _ins_q       = elQ.value;
-        if (elSt) _ins_status  = elSt.value;
-        if (elEs) _ins_escolha = elEs.value;
-        if (elMi) _ins_min     = elMi.value;
-
-        const q  = _ins_q.toLowerCase();
-        let lista = [..._ins_cache];
-        if (q)           lista = lista.filter(i => (i._membro?.nome||'').toLowerCase().includes(q));
-        if (_ins_status) lista = lista.filter(i => i.status === _ins_status);
-        if (_ins_escolha || _ins_min) {
-            lista = lista.filter(i => {
-                const ordens = _ins_escolha ? [parseInt(_ins_escolha)] : [1,2,3];
-                return ordens.some(ord => {
-                    const a = i._areas.find(x => x.ordem === ord);
-                    if (!a) return false;
-                    if (_ins_min && a.ministerio_id !== _ins_min) return false;
-                    return true;
-                });
-            });
+            vl_filtrarInscricoes();
         }
 
-        const limparBtn = document.getElementById('ins-limpar-btn');
-        if (limparBtn) limparBtn.style.display = (q||_ins_status||_ins_escolha||_ins_min) ? '' : 'none';
+        function vl_filtrarInscricoes() {
+            const elQ  = document.getElementById('ins-q');
+            const elSt = document.getElementById('ins-status');
+            const elEs = document.getElementById('ins-escolha');
+            const elMi = document.getElementById('ins-min');
+            if (elQ)  _ins_q       = elQ.value;
+            if (elSt) _ins_status  = elSt.value;
+            if (elEs) _ins_escolha = elEs.value;
+            if (elMi) _ins_min     = elMi.value;
 
-        const statsEl = document.getElementById('ins-stats-wrap');
-        if (statsEl) statsEl.innerHTML = `
+            const q  = _ins_q.toLowerCase();
+            let lista = [..._ins_cache];
+            if (q)           lista = lista.filter(i => (i._membro?.nome||'').toLowerCase().includes(q));
+            if (_ins_status) lista = lista.filter(i => i.status === _ins_status);
+            if (_ins_escolha || _ins_min) {
+                lista = lista.filter(i => {
+                    const ordens = _ins_escolha ? [parseInt(_ins_escolha)] : [1,2,3];
+                    return ordens.some(ord => {
+                        const a = i._areas.find(x => x.ordem === ord);
+                        if (!a) return false;
+                        if (_ins_min && a.ministerio_id !== _ins_min) return false;
+                        return true;
+                    });
+                });
+            }
+
+            const limparBtn = document.getElementById('ins-limpar-btn');
+            if (limparBtn) limparBtn.style.display = (q||_ins_status||_ins_escolha||_ins_min) ? '' : 'none';
+
+            const statsEl = document.getElementById('ins-stats-wrap');
+            if (statsEl) statsEl.innerHTML = `
 <div class="vl-stat-row">
   <div class="vl-stat"><div class="vl-stat-num" style="color:var(--primary-dark)">${_ins_cache.length}</div><div class="vl-stat-label">Total</div></div>
   <div class="vl-stat"><div class="vl-stat-num" style="color:#d4992a">${_ins_cache.filter(i=>i.status==='pendente').length}</div><div class="vl-stat-label">Pendentes</div></div>
@@ -907,14 +907,14 @@
   <div class="vl-stat"><div class="vl-stat-num" style="color:#c62828">${_ins_cache.filter(i=>i.status==='sem_retorno').length}</div><div class="vl-stat-label">Sem Retorno</div></div>
 </div>`;
 
-        const tabEl = document.getElementById('ins-tabela-wrap');
-        if (!tabEl) return;
-        if (!lista.length) {
-            tabEl.innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma inscrição encontrada.</div>';
-            return;
-        }
+            const tabEl = document.getElementById('ins-tabela-wrap');
+            if (!tabEl) return;
+            if (!lista.length) {
+                tabEl.innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma inscrição encontrada.</div>';
+                return;
+            }
 
-        tabEl.innerHTML = `
+            tabEl.innerHTML = `
 <div class="vl-card" style="padding:0;overflow:hidden;">
   <table class="vl-table">
     <thead>
@@ -932,51 +932,51 @@
     <tbody>${lista.map(i => vl_renderRow(i)).join('')}</tbody>
   </table>
 </div>`;
-    }
+        }
 
-    function vl_limparFiltrosIns() {
-        _ins_q=''; _ins_status=''; _ins_escolha=''; _ins_min='';
-        ['ins-q','ins-status','ins-escolha','ins-min'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-        vl_filtrarInscricoes();
-    }
+        function vl_limparFiltrosIns() {
+            _ins_q=''; _ins_status=''; _ins_escolha=''; _ins_min='';
+            ['ins-q','ins-status','ins-escolha','ins-min'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            vl_filtrarInscricoes();
+        }
 
-    function vl_renderRow(ins) {
-        const m    = ins._membro;
-        const a1   = ins._areas.find(a => a.ordem === 1);
-        const a2   = ins._areas.find(a => a.ordem === 2);
-        const a3   = ins._areas.find(a => a.ordem === 3);
-        const disp = [
-            ins.disponibilidade_sabado_manha  && 'Sáb M',
-            ins.disponibilidade_sabado_tarde  && 'Sáb T',
-            ins.disponibilidade_domingo_manha && 'Dom M',
-            ins.disponibilidade_domingo_tarde && 'Dom T',
-        ].filter(Boolean);
+        function vl_renderRow(ins) {
+            const m    = ins._membro;
+            const a1   = ins._areas.find(a => a.ordem === 1);
+            const a2   = ins._areas.find(a => a.ordem === 2);
+            const a3   = ins._areas.find(a => a.ordem === 3);
+            const disp = [
+                ins.disponibilidade_sabado_manha  && 'Sáb M',
+                ins.disponibilidade_sabado_tarde  && 'Sáb T',
+                ins.disponibilidade_domingo_manha && 'Dom M',
+                ins.disponibilidade_domingo_tarde && 'Dom T',
+            ].filter(Boolean);
 
-        const atribs     = ins._atribuicoes || [];
-        const atribAtual = atribs[0] || null;
+            const atribs     = ins._atribuicoes || [];
+            const atribAtual = atribs[0] || null;
 
-        let atribCol = '<span style="color:var(--text-faint);font-size:10px">—</span>';
-        if (atribAtual) {
-            const statusAtrib = {
-                aguardando:  { label: 'Aguarda contacto', cor: '#1565c0' },
-                contatado:   { label: 'Líder contactou',  cor: '#2e7d32' },
-                sem_retorno: { label: 'Sem retorno do líder', cor: '#c62828' },
-            }[atribAtual.status] || { label: atribAtual.status, cor: 'var(--text-faint)' };
+            let atribCol = '<span style="color:var(--text-faint);font-size:10px">—</span>';
+            if (atribAtual) {
+                const statusAtrib = {
+                    aguardando:  { label: 'Aguarda contacto', cor: '#1565c0' },
+                    contatado:   { label: 'Líder contactou',  cor: '#2e7d32' },
+                    sem_retorno: { label: 'Sem retorno do líder', cor: '#c62828' },
+                }[atribAtual.status] || { label: atribAtual.status, cor: 'var(--text-faint)' };
 
-            atribCol = `
+                atribCol = `
 <div style="font-size:11px;font-weight:600">${atribAtual.ministerios?.nome || '—'}</div>
 <div style="font-size:9px;color:${statusAtrib.cor};margin-top:1px">${statusAtrib.label}</div>
 ${atribAtual.prazo_contato ? `<div style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(atribAtual.prazo_contato)}</div>` : ''}`;
-        }
+            }
 
-        const historicoHtml = atribs.length > 0
-            ? atribs.map(a => {
-                const st  = { aguardando:'Aguarda', contatado:'Líder contactou', sem_retorno:'Sem retorno' }[a.status] || a.status;
-                const cor = { aguardando:'#1565c0', contatado:'#2e7d32', sem_retorno:'#c62828' }[a.status] || 'var(--text-faint)';
-                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+            const historicoHtml = atribs.length > 0
+                ? atribs.map(a => {
+                    const st  = { aguardando:'Aguarda', contatado:'Líder contactou', sem_retorno:'Sem retorno' }[a.status] || a.status;
+                    const cor = { aguardando:'#1565c0', contatado:'#2e7d32', sem_retorno:'#c62828' }[a.status] || 'var(--text-faint)';
+                    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
   <div style="flex:1">
     <span style="font-size:11px;font-weight:600">${a.ministerios?.nome||'—'}</span>
     <span style="font-size:9px;color:${cor};margin-left:6px">${st}</span>
@@ -984,40 +984,40 @@ ${atribAtual.prazo_contato ? `<div style="font-size:9px;color:var(--text-faint)"
   ${a.prazo_contato ? `<span style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(a.prazo_contato)}</span>` : ''}
   ${a.data_contato  ? `<span style="font-size:9px;color:#2e7d32">Contactado: ${fmtD(a.data_contato)}</span>` : ''}
 </div>`;
-            }).join('')
-            : '<div style="font-size:11px;color:var(--text-faint)">Sem atribuições.</div>';
+                }).join('')
+                : '<div style="font-size:11px;color:var(--text-faint)">Sem atribuições.</div>';
 
-        // Motivo de rejeição — aparece no expand se existir
-        const motivoHtml = ins.motivo_rejeicao
-            ? `<div class="vl-motivo-box">
+            // Motivo de rejeição — aparece no expand se existir
+            const motivoHtml = ins.motivo_rejeicao
+                ? `<div class="vl-motivo-box">
                 <div class="vl-motivo-label">Motivo da rejeição</div>
                 <div class="vl-motivo-texto">${ins.motivo_rejeicao.replace(/</g,'&lt;')}</div>
                </div>`
-            : '';
+                : '';
 
-        // ── Botões de ação por status ─────────────────────
-        const base    = `${location.origin}/voluntarios-lider.html`;
-        const nomeEsc = (m?.nome || '').replace(/'/g,"\\'");
-        let botoes    = '';
+            // ── Botões de ação por status ─────────────────────
+            const base    = `${location.origin}/voluntarios-lider.html`;
+            const nomeEsc = (m?.nome || '').replace(/'/g,"\\'");
+            let botoes    = '';
 
-        if (ins.status === 'pendente') {
-            botoes = `
+            if (ins.status === 'pendente') {
+                botoes = `
 <button class="vl-btn vl-btn-o" onclick="vl_abrirDistribuir('${ins.id}')">Distribuir</button>
 <button class="vl-btn vl-btn-d" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>`;
-        } else if (ins.status === 'em_atribuicao') {
-            const token    = atribAtual?.link_token || '';
-            const linkLider = token ? `${base}?t=${token}` : '';
-            botoes = `
+            } else if (ins.status === 'em_atribuicao') {
+                const token    = atribAtual?.link_token || '';
+                const linkLider = token ? `${base}?t=${token}` : '';
+                botoes = `
 <button class="vl-btn vl-btn-p" onclick="vl_aprovar('${ins.id}')">Aprovar</button>
 ${linkLider ? `<button class="vl-btn vl-btn-o" onclick="vl_mostrarLinkLider('${linkLider}','${(atribAtual?.ministerios?.nome||'').replace(/'/g,"\\'")}')">Link Líder</button>` : ''}
 <button class="vl-btn vl-btn-d" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>`;
-        } else if (ins.status === 'sem_retorno') {
-            botoes = `
+            } else if (ins.status === 'sem_retorno') {
+                botoes = `
 <button class="vl-btn vl-btn-o" onclick="vl_abrirDistribuir('${ins.id}')">Redistribuir</button>
 <button class="vl-btn vl-btn-d" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>`;
-        }
+            }
 
-        return `
+            return `
 <tr id="vl-row-${ins.id}">
   <td style="width:30px">
     <button class="vl-btn vl-btn-m" style="padding:2px 7px;font-size:9px" onclick="vl_toggle('${ins.id}')">+</button>
@@ -1063,16 +1063,16 @@ ${linkLider ? `<button class="vl-btn vl-btn-o" onclick="vl_mostrarLinkLider('${l
     ${historicoHtml}
   </td>
 </tr>`;
-    }
+        }
 
-    // ══════════════════════════════════════════════════════
-    // REJEITAR COM MOTIVO
-    // ══════════════════════════════════════════════════════
-    function vl_abrirRejeitar(inscricaoId, nome) {
-        const ov = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.id = 'vl-rejeitar-modal';
-        ov.innerHTML = `
+        // ══════════════════════════════════════════════════════
+        // REJEITAR COM MOTIVO
+        // ══════════════════════════════════════════════════════
+        function vl_abrirRejeitar(inscricaoId, nome) {
+            const ov = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.id = 'vl-rejeitar-modal';
+            ov.innerHTML = `
 <div class="vl-modal" style="max-width:440px">
   <div class="vl-modal-title">Rejeitar Inscrição${nome ? ' — ' + nome : ''}</div>
   <p style="font-size:11px;color:var(--text-faint);margin-bottom:12px">
@@ -1089,41 +1089,41 @@ ${linkLider ? `<button class="vl-btn vl-btn-o" onclick="vl_mostrarLinkLider('${l
     <button class="vl-btn vl-btn-d" onclick="vl_confirmarRejeitar('${inscricaoId}', this)">Confirmar Rejeição</button>
   </div>
 </div>`;
-        document.body.appendChild(ov);
-        setTimeout(() => document.getElementById('vl-rej-motivo')?.focus(), 80);
-    }
-
-    async function vl_confirmarRejeitar(inscricaoId, btn) {
-        const motivo = document.getElementById('vl-rej-motivo')?.value?.trim();
-        const alEl   = document.getElementById('vl-rej-alert');
-        if (!motivo) {
-            if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">O motivo é obrigatório para registar a rejeição.</div>';
-            return;
+            document.body.appendChild(ov);
+            setTimeout(() => document.getElementById('vl-rej-motivo')?.focus(), 80);
         }
-        btn.disabled = true; btn.textContent = 'A rejeitar...';
-        try {
-            await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'recusado', motivo_rejeicao: motivo })
-            });
-            // Atualizar cache
-            const idx = _ins_cache.findIndex(i => i.id === inscricaoId);
-            if (idx >= 0) { _ins_cache[idx].status = 'recusado'; _ins_cache[idx].motivo_rejeicao = motivo; }
-            document.getElementById('vl-rejeitar-modal')?.remove();
-            vl_filtrarInscricoes();
-        } catch (e) {
-            if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || JSON.stringify(e)}</div>`;
-            btn.disabled = false; btn.textContent = 'Confirmar Rejeição';
-        }
-    }
 
-    // ══════════════════════════════════════════════════════
-    // LINK LÍDER
-    // ══════════════════════════════════════════════════════
-    function vl_mostrarLinkLider(link, ministerioNome) {
-        const ov = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.innerHTML = `
+        async function vl_confirmarRejeitar(inscricaoId, btn) {
+            const motivo = document.getElementById('vl-rej-motivo')?.value?.trim();
+            const alEl   = document.getElementById('vl-rej-alert');
+            if (!motivo) {
+                if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">O motivo é obrigatório para registar a rejeição.</div>';
+                return;
+            }
+            btn.disabled = true; btn.textContent = 'A rejeitar...';
+            try {
+                await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: 'recusado', motivo_rejeicao: motivo })
+                });
+                // Atualizar cache
+                const idx = _ins_cache.findIndex(i => i.id === inscricaoId);
+                if (idx >= 0) { _ins_cache[idx].status = 'recusado'; _ins_cache[idx].motivo_rejeicao = motivo; }
+                document.getElementById('vl-rejeitar-modal')?.remove();
+                vl_filtrarInscricoes();
+            } catch (e) {
+                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || JSON.stringify(e)}</div>`;
+                btn.disabled = false; btn.textContent = 'Confirmar Rejeição';
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // LINK LÍDER
+        // ══════════════════════════════════════════════════════
+        function vl_mostrarLinkLider(link, ministerioNome) {
+            const ov = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.innerHTML = `
 <div class="vl-modal" style="max-width:480px">
   <div class="vl-modal-title">Link do Líder — ${ministerioNome}</div>
   <p style="font-size:11px;color:var(--text-faint);margin-bottom:12px">
@@ -1141,24 +1141,24 @@ ${linkLider ? `<button class="vl-btn vl-btn-o" onclick="vl_mostrarLinkLider('${l
     <button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button>
   </div>
 </div>`;
-        document.body.appendChild(ov);
-    }
+            document.body.appendChild(ov);
+        }
 
-    // ══════════════════════════════════════════════════════
-    // ABA 3 — CAMPANHAS
-    // ══════════════════════════════════════════════════════
-    async function vl_renderCampanhas() {
-        vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
-        let rows = [];
-        try { rows = await sb('voluntarios_campanhas?select=*&order=created_at.desc') || []; }
-        catch (e) { vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`; return; }
+        // ══════════════════════════════════════════════════════
+        // ABA 3 — CAMPANHAS
+        // ══════════════════════════════════════════════════════
+        async function vl_renderCampanhas() {
+            vl_c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
+            let rows = [];
+            try { rows = await sb('voluntarios_campanhas?select=*&order=created_at.desc') || []; }
+            catch (e) { vl_c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`; return; }
 
-        const base  = `${location.origin}/voluntarios-captacao.html`;
-        const cards = !rows.length
-            ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma campanha criada.</div>'
-            : rows.map(c => {
-                const link = `${base}?c=${c.slug}`;
-                return `
+            const base  = `${location.origin}/voluntarios-captacao.html`;
+            const cards = !rows.length
+                ? '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma campanha criada.</div>'
+                : rows.map(c => {
+                    const link = `${base}?c=${c.slug}`;
+                    return `
 <div class="vl-campanha-card">
   <div class="vl-campanha-header">
     <div>
@@ -1181,88 +1181,88 @@ ${linkLider ? `<button class="vl-btn vl-btn-o" onclick="vl_mostrarLinkLider('${l
     <button class="vl-btn vl-btn-m" onclick="vl_campFiltro='${c.id}';vl_setTab('inscricoes')">Ver Inscrições</button>
   </div>
 </div>`;
-            }).join('');
+                }).join('');
 
-        vl_c().innerHTML = `
+            vl_c().innerHTML = `
 <div class="vl-toolbar">
   <span class="vl-toolbar-title">Campanhas</span>
   <button class="vl-btn vl-btn-p" onclick="vl_novaCampanha()">Nova Campanha</button>
 </div>
 <div id="vl-alert-camp"></div>
 ${cards}`;
-    }
-
-    // ══════════════════════════════════════════════════════
-    // ACÇÕES INSCRIÇÕES
-    // ══════════════════════════════════════════════════════
-    function vl_toggle(id) {
-        const row = document.getElementById(`vl-det-${id}`);
-        if (!row) return;
-        row.classList.toggle('vl-hidden');
-        const btn = document.querySelector(`#vl-row-${id} button`);
-        if (btn) btn.textContent = row.classList.contains('vl-hidden') ? '+' : '−';
-    }
-
-    function vl_filtrarCampanha(id) { vl_campFiltro = id || null; vl_renderInscricoes(); }
-
-    async function vl_aprovar(inscricaoId) {
-        const ins = _ins_cache.find(i => i.id === inscricaoId);
-        if (!ins) { vl_renderInscricoes(); return; }
-
-        const atrib         = (ins._atribuicoes||[]).find(a => a.status === 'contatado') || ins._atribuicoes?.[0];
-        const ministerioAprov = atrib?.ministerios?.nome || ins._areas.find(a=>a.ordem===1)?.ministerios?.nome || '—';
-
-        if (!confirm(`Aprovar ${ins._membro?.nome||'este candidato'} como voluntário na área "${ministerioAprov}"?\n\nIsto irá:\n• Marcar o membro como voluntário\n• Associar ao ministério ${ministerioAprov}`)) return;
-
-        try {
-            const ministerioId = atrib?.ministerio_id || ins._areas.find(a=>a.ordem===1)?.ministerio_id;
-            await sb(`membros?id=eq.${ins.membro_id}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
-            if (ministerioId) {
-                const jaAssoc = await sb(`membro_ministerios?membro_id=eq.${ins.membro_id}&ministerio_id=eq.${ministerioId}&ativo=eq.true&select=id&limit=1`).catch(()=>[]);
-                if (!jaAssoc.length) {
-                    await sb('membro_ministerios', { method:'POST', body: JSON.stringify({ membro_id: ins.membro_id, ministerio_id: ministerioId, papel: 'Voluntário', ativo: true }) }).catch(()=>{});
-                }
-            }
-            await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`, { method: 'PATCH', body: JSON.stringify({ status: 'aprovado' }) });
-            const idx = _ins_cache.findIndex(i => i.id === inscricaoId);
-            if (idx >= 0) _ins_cache[idx].status = 'aprovado';
-            vl_filtrarInscricoes();
-        } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-    }
-
-    async function vl_distribuirTodos(campanhaId) {
-        const pendentes = await sb(
-            `voluntarios_inscricoes?campanha_id=eq.${campanhaId}&status=eq.pendente&select=id`
-        ).catch(() => []);
-        if (!pendentes.length) { alert('Nenhuma inscrição pendente.'); return; }
-        if (!confirm(`Distribuir ${pendentes.length} inscrição(ões)?`)) return;
-
-        const prazo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-        for (const ins of pendentes) {
-            const areas = await sb(`voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem&limit=1`).catch(() => []);
-            const a1 = areas?.[0];
-            if (!a1) continue;
-            await sb('voluntarios_atribuicoes', { method: 'POST', body: JSON.stringify({ inscricao_id: ins.id, ministerio_id: a1.ministerio_id, prazo_contato: prazo }) }).catch(() => {});
-            await sb(`voluntarios_inscricoes?id=eq.${ins.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' }) });
         }
-        const el = document.getElementById('vl-alert-ins');
-        if (el) { el.innerHTML = '<div class="vl-alert vl-alert-s">Inscrições distribuídas.</div>'; setTimeout(() => { el.innerHTML = ''; }, 4000); }
-        vl_renderInscricoes();
-    }
 
-    // ══════════════════════════════════════════════════════
-    // DISTRIBUIR INDIVIDUAL
-    // ══════════════════════════════════════════════════════
-    async function vl_abrirDistribuir(inscricaoId) {
-        const areas = await sb(
-            `voluntarios_areas_interesse?inscricao_id=eq.${inscricaoId}&select=ordem,ministerios(id,nome)&order=ordem`
-        ).catch(() => []);
-        const prazoDefault = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
-        const opts = (areas || []).map(a => `<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`).join('');
+        // ══════════════════════════════════════════════════════
+        // ACÇÕES INSCRIÇÕES
+        // ══════════════════════════════════════════════════════
+        function vl_toggle(id) {
+            const row = document.getElementById(`vl-det-${id}`);
+            if (!row) return;
+            row.classList.toggle('vl-hidden');
+            const btn = document.querySelector(`#vl-row-${id} button`);
+            if (btn) btn.textContent = row.classList.contains('vl-hidden') ? '+' : '−';
+        }
 
-        const ov = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.innerHTML = `
+        function vl_filtrarCampanha(id) { vl_campFiltro = id || null; vl_renderInscricoes(); }
+
+        async function vl_aprovar(inscricaoId) {
+            const ins = _ins_cache.find(i => i.id === inscricaoId);
+            if (!ins) { vl_renderInscricoes(); return; }
+
+            const atrib         = (ins._atribuicoes||[]).find(a => a.status === 'contatado') || ins._atribuicoes?.[0];
+            const ministerioAprov = atrib?.ministerios?.nome || ins._areas.find(a=>a.ordem===1)?.ministerios?.nome || '—';
+
+            if (!confirm(`Aprovar ${ins._membro?.nome||'este candidato'} como voluntário na área "${ministerioAprov}"?\n\nIsto irá:\n• Marcar o membro como voluntário\n• Associar ao ministério ${ministerioAprov}`)) return;
+
+            try {
+                const ministerioId = atrib?.ministerio_id || ins._areas.find(a=>a.ordem===1)?.ministerio_id;
+                await sb(`membros?id=eq.${ins.membro_id}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
+                if (ministerioId) {
+                    const jaAssoc = await sb(`membro_ministerios?membro_id=eq.${ins.membro_id}&ministerio_id=eq.${ministerioId}&ativo=eq.true&select=id&limit=1`).catch(()=>[]);
+                    if (!jaAssoc.length) {
+                        await sb('membro_ministerios', { method:'POST', body: JSON.stringify({ membro_id: ins.membro_id, ministerio_id: ministerioId, papel: 'Voluntário', ativo: true }) }).catch(()=>{});
+                    }
+                }
+                await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`, { method: 'PATCH', body: JSON.stringify({ status: 'aprovado' }) });
+                const idx = _ins_cache.findIndex(i => i.id === inscricaoId);
+                if (idx >= 0) _ins_cache[idx].status = 'aprovado';
+                vl_filtrarInscricoes();
+            } catch(e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+        }
+
+        async function vl_distribuirTodos(campanhaId) {
+            const pendentes = await sb(
+                `voluntarios_inscricoes?campanha_id=eq.${campanhaId}&status=eq.pendente&select=id`
+            ).catch(() => []);
+            if (!pendentes.length) { alert('Nenhuma inscrição pendente.'); return; }
+            if (!confirm(`Distribuir ${pendentes.length} inscrição(ões)?`)) return;
+
+            const prazo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            for (const ins of pendentes) {
+                const areas = await sb(`voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem&limit=1`).catch(() => []);
+                const a1 = areas?.[0];
+                if (!a1) continue;
+                await sb('voluntarios_atribuicoes', { method: 'POST', body: JSON.stringify({ inscricao_id: ins.id, ministerio_id: a1.ministerio_id, prazo_contato: prazo }) }).catch(() => {});
+                await sb(`voluntarios_inscricoes?id=eq.${ins.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' }) });
+            }
+            const el = document.getElementById('vl-alert-ins');
+            if (el) { el.innerHTML = '<div class="vl-alert vl-alert-s">Inscrições distribuídas.</div>'; setTimeout(() => { el.innerHTML = ''; }, 4000); }
+            vl_renderInscricoes();
+        }
+
+        // ══════════════════════════════════════════════════════
+        // DISTRIBUIR INDIVIDUAL
+        // ══════════════════════════════════════════════════════
+        async function vl_abrirDistribuir(inscricaoId) {
+            const areas = await sb(
+                `voluntarios_areas_interesse?inscricao_id=eq.${inscricaoId}&select=ordem,ministerios(id,nome)&order=ordem`
+            ).catch(() => []);
+            const prazoDefault = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
+            const opts = (areas || []).map(a => `<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`).join('');
+
+            const ov = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.innerHTML = `
 <div class="vl-modal">
   <div class="vl-modal-title">Distribuir Inscrição</div>
   <div class="vl-field"><label class="vl-label">Ministério de destino</label><select class="vl-select" id="vl-dist-min">${opts}</select></div>
@@ -1273,36 +1273,36 @@ ${cards}`;
     <button class="vl-btn vl-btn-p" onclick="vl_confirmarDistribuir('${inscricaoId}',this)">Confirmar</button>
   </div>
 </div>`;
-        document.body.appendChild(ov);
-    }
-
-    async function vl_confirmarDistribuir(id, btn) {
-        const min   = document.getElementById('vl-dist-min')?.value;
-        const prazo = document.getElementById('vl-dist-prazo')?.value;
-        const alEl  = document.getElementById('vl-dist-alert');
-        if (!min || !prazo) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Preencha todos os campos.</div>'; return; }
-        btn.disabled = true; btn.textContent = 'A guardar...';
-        try {
-            await sb('voluntarios_atribuicoes', { method: 'POST', body: JSON.stringify({ inscricao_id: id, ministerio_id: min, prazo_contato: new Date(prazo).toISOString() }) });
-            await sb(`voluntarios_inscricoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' }) });
-            btn.closest('.vl-modal-overlay').remove();
-            vl_renderInscricoes();
-        } catch (e) {
-            if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || 'Verifique se já existe atribuição.'}</div>`;
-            btn.disabled = false; btn.textContent = 'Confirmar';
+            document.body.appendChild(ov);
         }
-    }
 
-    // ══════════════════════════════════════════════════════
-    // REGISTAR VOLUNTÁRIO DIRETO
-    // ══════════════════════════════════════════════════════
-    async function vl_abrirRegistarVoluntario() {
-        const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
-        const opts    = naoVols.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
+        async function vl_confirmarDistribuir(id, btn) {
+            const min   = document.getElementById('vl-dist-min')?.value;
+            const prazo = document.getElementById('vl-dist-prazo')?.value;
+            const alEl  = document.getElementById('vl-dist-alert');
+            if (!min || !prazo) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Preencha todos os campos.</div>'; return; }
+            btn.disabled = true; btn.textContent = 'A guardar...';
+            try {
+                await sb('voluntarios_atribuicoes', { method: 'POST', body: JSON.stringify({ inscricao_id: id, ministerio_id: min, prazo_contato: new Date(prazo).toISOString() }) });
+                await sb(`voluntarios_inscricoes?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'em_atribuicao' }) });
+                btn.closest('.vl-modal-overlay').remove();
+                vl_renderInscricoes();
+            } catch (e) {
+                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || 'Verifique se já existe atribuição.'}</div>`;
+                btn.disabled = false; btn.textContent = 'Confirmar';
+            }
+        }
 
-        const ov = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.innerHTML = `
+        // ══════════════════════════════════════════════════════
+        // REGISTAR VOLUNTÁRIO DIRETO
+        // ══════════════════════════════════════════════════════
+        async function vl_abrirRegistarVoluntario() {
+            const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
+            const opts    = naoVols.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
+
+            const ov = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.innerHTML = `
 <div class="vl-modal">
   <div class="vl-modal-title">Registar Voluntário</div>
   <p style="font-size:11px;color:var(--text-faint);margin-bottom:14px">
@@ -1320,33 +1320,33 @@ ${cards}`;
     <button class="vl-btn vl-btn-p" onclick="vl_confirmarRegistar(this)">Registar</button>
   </div>
 </div>`;
-        document.body.appendChild(ov);
-    }
-
-    async function vl_confirmarRegistar(btn) {
-        const memId = document.getElementById('vl-reg-mem')?.value;
-        const alEl  = document.getElementById('vl-reg-alert');
-        if (!memId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>'; return; }
-        btn.disabled = true; btn.textContent = 'A guardar...';
-        try {
-            await sb(`membros?id=eq.${memId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
-            const idx = vl_membrosCache.findIndex(m => m.id === memId);
-            if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
-            btn.closest('.vl-modal-overlay').remove();
-            vl_renderAtivos();
-        } catch (e) {
-            if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
-            btn.disabled = false; btn.textContent = 'Registar';
+            document.body.appendChild(ov);
         }
-    }
 
-    // ══════════════════════════════════════════════════════
-    // ACÇÕES CAMPANHAS
-    // ══════════════════════════════════════════════════════
-    function vl_novaCampanha() {
-        const ov = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.innerHTML = `
+        async function vl_confirmarRegistar(btn) {
+            const memId = document.getElementById('vl-reg-mem')?.value;
+            const alEl  = document.getElementById('vl-reg-alert');
+            if (!memId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>'; return; }
+            btn.disabled = true; btn.textContent = 'A guardar...';
+            try {
+                await sb(`membros?id=eq.${memId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
+                const idx = vl_membrosCache.findIndex(m => m.id === memId);
+                if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
+                btn.closest('.vl-modal-overlay').remove();
+                vl_renderAtivos();
+            } catch (e) {
+                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+                btn.disabled = false; btn.textContent = 'Registar';
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // ACÇÕES CAMPANHAS
+        // ══════════════════════════════════════════════════════
+        function vl_novaCampanha() {
+            const ov = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.innerHTML = `
 <div class="vl-modal">
   <div class="vl-modal-title">Nova Campanha</div>
   <div class="vl-field"><label class="vl-label">Nome</label><input type="text" class="vl-input" id="nc-nome" placeholder="Ex: Novos Voluntários Abril 2026"></div>
@@ -1361,61 +1361,61 @@ ${cards}`;
     <button class="vl-btn vl-btn-p" onclick="vl_guardarCampanha(this)">Criar</button>
   </div>
 </div>`;
-        document.body.appendChild(ov);
-    }
-
-    async function vl_guardarCampanha(btn) {
-        const nome   = document.getElementById('nc-nome')?.value.trim();
-        const desc   = document.getElementById('nc-desc')?.value.trim();
-        const inicio = document.getElementById('nc-inicio')?.value;
-        const fim    = document.getElementById('nc-fim')?.value;
-        const alEl   = document.getElementById('nc-alert');
-
-        if (!nome || !inicio || !fim) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Preencha nome, início e fim.</div>'; return; }
-        if (fim < inicio) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Data de fim anterior ao início.</div>'; return; }
-
-        const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-        btn.disabled = true; btn.textContent = 'A criar...';
-
-        try {
-            await sb('voluntarios_campanhas', { method: 'POST', body: JSON.stringify({ nome, descricao: desc || null, data_inicio: inicio, data_fim: fim, slug, status: 'rascunho' }) });
-            btn.closest('.vl-modal-overlay').remove();
-            vl_renderCampanhas();
-        } catch (e) {
-            if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || JSON.stringify(e)}</div>`;
-            btn.disabled = false; btn.textContent = 'Criar';
+            document.body.appendChild(ov);
         }
-    }
 
-    async function vl_statusCampanha(id, novoStatus) {
-        const msgs = { ativo: 'Ativar campanha?', encerrado: 'Encerrar campanha?' };
-        if (!confirm(msgs[novoStatus])) return;
-        try {
-            await sb(`voluntarios_campanhas?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) });
-            vl_renderCampanhas();
-        } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-    }
+        async function vl_guardarCampanha(btn) {
+            const nome   = document.getElementById('nc-nome')?.value.trim();
+            const desc   = document.getElementById('nc-desc')?.value.trim();
+            const inicio = document.getElementById('nc-inicio')?.value;
+            const fim    = document.getElementById('nc-fim')?.value;
+            const alEl   = document.getElementById('nc-alert');
 
-    async function vl_gerarLinks(campanhaId) {
-        const inscIds = await sb(`voluntarios_inscricoes?campanha_id=eq.${campanhaId}&select=id`).catch(() => []);
-        if (!inscIds.length) { alert('Nenhuma inscrição nesta campanha.'); return; }
+            if (!nome || !inicio || !fim) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Preencha nome, início e fim.</div>'; return; }
+            if (fim < inicio) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Data de fim anterior ao início.</div>'; return; }
 
-        const ids         = inscIds.map(i => i.id).join(',');
-        const atribuicoes = await sb(
-            `voluntarios_atribuicoes?inscricao_id=in.(${ids})&select=id,link_token,ministerio_id,ministerios(nome)`
-        ).catch(() => []);
+            const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+            btn.disabled = true; btn.textContent = 'A criar...';
 
-        if (!atribuicoes.length) { alert('Nenhuma atribuição encontrada. Distribua primeiro as inscrições.'); return; }
+            try {
+                await sb('voluntarios_campanhas', { method: 'POST', body: JSON.stringify({ nome, descricao: desc || null, data_inicio: inicio, data_fim: fim, slug, status: 'rascunho' }) });
+                btn.closest('.vl-modal-overlay').remove();
+                vl_renderCampanhas();
+            } catch (e) {
+                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message || JSON.stringify(e)}</div>`;
+                btn.disabled = false; btn.textContent = 'Criar';
+            }
+        }
 
-        const porMin = {};
-        atribuicoes.forEach(a => {
-            if (!porMin[a.ministerio_id]) porMin[a.ministerio_id] = { nome: a.ministerios?.nome, token: a.link_token };
-        });
+        async function vl_statusCampanha(id, novoStatus) {
+            const msgs = { ativo: 'Ativar campanha?', encerrado: 'Encerrar campanha?' };
+            if (!confirm(msgs[novoStatus])) return;
+            try {
+                await sb(`voluntarios_campanhas?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) });
+                vl_renderCampanhas();
+            } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+        }
 
-        const base = `${location.origin}/voluntarios-lider.html`;
-        const ov   = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.innerHTML = `
+        async function vl_gerarLinks(campanhaId) {
+            const inscIds = await sb(`voluntarios_inscricoes?campanha_id=eq.${campanhaId}&select=id`).catch(() => []);
+            if (!inscIds.length) { alert('Nenhuma inscrição nesta campanha.'); return; }
+
+            const ids         = inscIds.map(i => i.id).join(',');
+            const atribuicoes = await sb(
+                `voluntarios_atribuicoes?inscricao_id=in.(${ids})&select=id,link_token,ministerio_id,ministerios(nome)`
+            ).catch(() => []);
+
+            if (!atribuicoes.length) { alert('Nenhuma atribuição encontrada. Distribua primeiro as inscrições.'); return; }
+
+            const porMin = {};
+            atribuicoes.forEach(a => {
+                if (!porMin[a.ministerio_id]) porMin[a.ministerio_id] = { nome: a.ministerios?.nome, token: a.link_token };
+            });
+
+            const base = `${location.origin}/voluntarios-lider.html`;
+            const ov   = document.createElement('div');
+            ov.className = 'vl-modal-overlay';
+            ov.innerHTML = `
 <div class="vl-modal" style="max-width:540px">
   <div class="vl-modal-title">Links por Ministério</div>
   <p style="font-size:11px;color:var(--text-faint);margin-bottom:14px">
@@ -1434,60 +1434,60 @@ ${cards}`;
     <button class="vl-btn vl-btn-p" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button>
   </div>
 </div>`;
-        document.body.appendChild(ov);
-    }
+            document.body.appendChild(ov);
+        }
 
-    // ══════════════════════════════════════════════════════
-    // VERIFICAR PRAZOS EXPIRADOS
-    // ══════════════════════════════════════════════════════
-    async function vl_verificarPrazos() {
-        try {
-            const agora = new Date().toISOString();
-            const exp   = await sb(`voluntarios_atribuicoes?status=eq.aguardando&prazo_contato=lt.${agora}&select=id,inscricao_id`).catch(() => []);
-            for (const a of exp) {
-                await sb(`voluntarios_atribuicoes?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
-                await sb(`voluntarios_inscricoes?id=eq.${a.inscricao_id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
-            }
-        } catch (_) {}
-    }
+        // ══════════════════════════════════════════════════════
+        // VERIFICAR PRAZOS EXPIRADOS
+        // ══════════════════════════════════════════════════════
+        async function vl_verificarPrazos() {
+            try {
+                const agora = new Date().toISOString();
+                const exp   = await sb(`voluntarios_atribuicoes?status=eq.aguardando&prazo_contato=lt.${agora}&select=id,inscricao_id`).catch(() => []);
+                for (const a of exp) {
+                    await sb(`voluntarios_atribuicoes?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
+                    await sb(`voluntarios_inscricoes?id=eq.${a.inscricao_id}`, { method: 'PATCH', body: JSON.stringify({ status: 'sem_retorno' }) });
+                }
+            } catch (_) {}
+        }
 
-    // ══════════════════════════════════════════════════════
-    // EXPOR NO WINDOW
-    // ══════════════════════════════════════════════════════
-    window.vl_init                    = vl_init;
-    window.vl_setTab                  = vl_setTab;
-    window.vl_toggle                  = vl_toggle;
-    window.vl_filtrarCampanha         = vl_filtrarCampanha;
-    window.vl_aprovar                 = vl_aprovar;
-    window.vl_distribuirTodos         = vl_distribuirTodos;
-    window.vl_filtrarInscricoes       = vl_filtrarInscricoes;
-    window.vl_limparFiltrosIns        = vl_limparFiltrosIns;
-    window.vl_mostrarLinkLider        = vl_mostrarLinkLider;
-    window.vl_abrirDistribuir         = vl_abrirDistribuir;
-    window.vl_confirmarDistribuir     = vl_confirmarDistribuir;
-    window.vl_abrirRegistarVoluntario = vl_abrirRegistarVoluntario;
-    window.vl_confirmarRegistar       = vl_confirmarRegistar;
-    window.vl_novaCampanha            = vl_novaCampanha;
-    window.vl_guardarCampanha         = vl_guardarCampanha;
-    window.vl_statusCampanha          = vl_statusCampanha;
-    window.vl_gerarLinks              = vl_gerarLinks;
-    // Ativos
-    window.vl_renderAtivosFiltrado    = vl_renderAtivosFiltrado;
-    window.vl_limparFiltros           = vl_limparFiltros;
-    window.vl_removerVoluntario       = vl_removerVoluntario;
-    window.vl_abrirPerfil             = vl_abrirPerfil;
-    window.vl_mostrarTabPerfil        = vl_mostrarTabPerfil;
-    window.vl_carregarAnotacoes       = vl_carregarAnotacoes;
-    window.vl_salvarAnotacao          = vl_salvarAnotacao;
-    window.vl_removerMinisterioModal  = vl_removerMinisterioModal;
-    window.vl_adicionarMinisterioModal= vl_adicionarMinisterioModal;
-    window.vl_removerVoluntarioModal  = vl_removerVoluntarioModal;
-    window.vl_guardarFuncao           = vl_guardarFuncao;
-    // Rejeitar
-    window.vl_abrirRejeitar           = vl_abrirRejeitar;
-    window.vl_confirmarRejeitar       = vl_confirmarRejeitar;
+        // ══════════════════════════════════════════════════════
+        // EXPOR NO WINDOW
+        // ══════════════════════════════════════════════════════
+        window.vl_init                    = vl_init;
+        window.vl_setTab                  = vl_setTab;
+        window.vl_toggle                  = vl_toggle;
+        window.vl_filtrarCampanha         = vl_filtrarCampanha;
+        window.vl_aprovar                 = vl_aprovar;
+        window.vl_distribuirTodos         = vl_distribuirTodos;
+        window.vl_filtrarInscricoes       = vl_filtrarInscricoes;
+        window.vl_limparFiltrosIns        = vl_limparFiltrosIns;
+        window.vl_mostrarLinkLider        = vl_mostrarLinkLider;
+        window.vl_abrirDistribuir         = vl_abrirDistribuir;
+        window.vl_confirmarDistribuir     = vl_confirmarDistribuir;
+        window.vl_abrirRegistarVoluntario = vl_abrirRegistarVoluntario;
+        window.vl_confirmarRegistar       = vl_confirmarRegistar;
+        window.vl_novaCampanha            = vl_novaCampanha;
+        window.vl_guardarCampanha         = vl_guardarCampanha;
+        window.vl_statusCampanha          = vl_statusCampanha;
+        window.vl_gerarLinks              = vl_gerarLinks;
+        // Ativos
+        window.vl_renderAtivosFiltrado    = vl_renderAtivosFiltrado;
+        window.vl_limparFiltros           = vl_limparFiltros;
+        window.vl_removerVoluntario       = vl_removerVoluntario;
+        window.vl_abrirPerfil             = vl_abrirPerfil;
+        window.vl_mostrarTabPerfil        = vl_mostrarTabPerfil;
+        window.vl_carregarAnotacoes       = vl_carregarAnotacoes;
+        window.vl_salvarAnotacao          = vl_salvarAnotacao;
+        window.vl_removerMinisterioModal  = vl_removerMinisterioModal;
+        window.vl_adicionarMinisterioModal= vl_adicionarMinisterioModal;
+        window.vl_removerVoluntarioModal  = vl_removerVoluntarioModal;
+        window.vl_guardarFuncao           = vl_guardarFuncao;
+        // Rejeitar
+        window.vl_abrirRejeitar           = vl_abrirRejeitar;
+        window.vl_confirmarRejeitar       = vl_confirmarRejeitar;
 
-    vl_init();
+        vl_init();
 
-})();
+    })();
 </script>

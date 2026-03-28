@@ -703,10 +703,11 @@
         function _presNome(p) {
             if (p.membros?.nome) return p.membros.nome;
             try {
-                return JSON.parse(p.observacoes || '{}').nome || '(Visitante)';
-            } catch {
-                return '(Visitante)';
-            }
+                const obs = JSON.parse(p.observacoes || '{}');
+                if (obs.nome) return obs.nome;
+                if (obs.email) return obs.email; 
+            } catch {}
+            return '(Visitante)';
         }
 
         function _presObs(p) {
@@ -1026,20 +1027,30 @@
                         }
                     } else {
                         /* Visitante: guarda nome/email em observacoes */
-                        await _sb('evento_presencas', {
-                            method: 'POST',
-                            body: JSON.stringify([{
-                                evento_id: evAtivo.id,
-                                membro_id: null,
-                                status: 'pendente',
-                                observacoes: JSON.stringify({
-                                    nome: insc.nome,
-                                    email: insc.email,
-                                    inscricao_id: insc.id,
-                                    tipo: 'visitante'
-                                })
-                            }])
-                        }).catch(e => console.warn('Presença visitante não adicionada:', e));
+                        /* Verifica duplicado por inscricao_id antes de inserir */
+                        const existingVisit = await _sb(
+                            `evento_presencas?evento_id=eq.${evAtivo.id}&membro_id=is.null&select=id,observacoes`
+                        ).catch(() => []) || [];
+                        const jaAdicionado = existingVisit.some(p => {
+                            try { return JSON.parse(p.observacoes || '{}').inscricao_id === inscricaoId; }
+                            catch { return false; }
+                        });
+                        if (!jaAdicionado) {
+                            await _sb('evento_presencas', {
+                                method: 'POST',
+                                body: JSON.stringify([{
+                                    evento_id: evAtivo.id,
+                                    membro_id: null,
+                                    status: 'pendente',
+                                    observacoes: JSON.stringify({
+                                        nome: insc.nome,
+                                        email: insc.email,
+                                        inscricao_id: insc.id,
+                                        tipo: 'visitante'
+                                    })
+                                }])
+                            }); /* SEM .catch silencioso — erro sobe para o try/catch principal e aparece no alert */
+                        }
                     }
                 }
 

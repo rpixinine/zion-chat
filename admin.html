@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="css/components.css">
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="api/base/db.js"></script>
+
     <style>
         .welcome-card {
             display: flex;
@@ -589,6 +591,9 @@
         <!-- voluntarios (solo) -->
         <div class="nav-item" onclick="loadModule('voluntarios')" data-secao="voluntarios">Voluntários</div>
 
+        <!-- novos membros (solo) -->
+        <div class="nav-item" onclick="loadModule('novos')" data-secao="novos">Novos Membros</div>
+
         <!-- Book Café -->
         <div class="nav-group" id="ng-cafe">
             <div class="nav-group-label" onclick="toggleNavGroup('ng-cafe',event)">
@@ -711,11 +716,15 @@
 </div>
 
 <script>
+
+    //auth e base
     ZionAuth.protect();
+    //const sb = ZionDB.query;
     const currentUser = ZionAuth.getUser();
     const SUPA_URL = window.SUPABASE_URL || '';
     const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
+    //Variaveis globais
     let secaoAtiva = 'membros';
     let subTabAtiva = 0;
     let registos = [];
@@ -724,6 +733,51 @@
     let links_cache = [];
     let ministeriosCache = [];
     let cursosCache = [];
+    let userPerms = {};
+    let _autoRefreshTimer = null;
+    let membroMinisteriosData = [];
+    let configData = [];
+    let eventosData = [];
+    let presencasData = [];
+    let lideresMinisterios = {};
+    let presSearchQ = '';
+    let eventoAtivo = null;
+    let eventoSubTab = 0;
+    let motivoPresencaId = null;
+    let fornecedoresData = [];
+    let eventoParticipantesSel = [];
+    let visitantes = [];
+
+    let keolaComponentesCache = {}; // kit_id -> [{componente_id, quantidade, unidade, stock, nome}]
+    let keolaKitItensTemp = []; // componentes em edição no formulário
+
+    let finTab = 0; // 0=Faturas 1=Contas a Pagar 2=Contas a Receber
+    let comprasData = [];
+    let contasPagarData = [];
+    let contasReceberData = [];
+    let produtosCache = [];
+    let compraItensTemp = []; // itens em edição
+    let utilizadoresData = [];
+    let finFiltros = {
+        fornecedor_id: '', status: '', mes: '', categoria: '',
+    };
+
+    const STATUS_EVENTO = {
+        aberto: {label: 'Aberto', cls: 'badge-green'},
+        em_curso: {label: 'Em Curso', cls: 'badge-primary'},
+        concluido: {label: 'Concluído', cls: 'badge-gray'},
+        cancelado: {label: 'Cancelado', cls: 'badge-red'},
+    };
+    const TIPOS_EVENTO = []; // preenchido no init via syncTiposEvento
+    const AUTO_REFRESH_MS = 30_000; // 30 segundos — ajustar conforme necessário
+    const SECOES = {
+        loja: {tabela: 'loja_produtos', orderBy: 'categoria,nome', campos: camposLoja},
+    };
+    const TIPOS_EVENTO_DEFAULT = [
+        'Reunião de Líderes', 'Culto Especial', 'Conferência', 'Retiro',
+        'Treinamento', 'Workshop', 'Conferência de Jovens', 'Encontro de Casais',
+        'Culto de Oração', 'Seminário', 'Outro',
+    ];
 
     // ── REGISTRO_MODULOS — fonte única de verdade para permissões ─────────────
     const REGISTRO_MODULOS = [
@@ -744,20 +798,9 @@
         {secao: 'configuracoes', label: 'Configurações', acoes: ['ver', 'criar', 'editar', 'eliminar']},
         {secao: 'utilizadores', label: 'Utilizadores', acoes: ['ver', 'criar', 'editar', 'eliminar']},
         {secao: 'voluntarios', label: 'Voluntários', acoes: ['ver', 'criar', 'editar', 'eliminar']},
+        {secao: 'novos', label: 'Novos Membros', acoes: ['ver', 'criar', 'editar', 'eliminar']},
     ];
-
-    function gerarColunasSQL() {
-        const adds = [];
-        REGISTRO_MODULOS.forEach(mod => {
-            mod.acoes.forEach(acao => {
-                adds.push(`  ADD COLUMN IF NOT EXISTS ${acao}_${mod.secao} BOOLEAN DEFAULT FALSE`);
-            });
-        });
-        console.log('ALTER TABLE usuarios\n' + adds.join(',\n') + ';');
-    }
-
-    // ── PERMISSÕES DO UTILIZADOR ──────────────────────────────────────────────
-    let userPerms = {};
+    const TODAS_SECOES = REGISTRO_MODULOS.map(m => ({key: m.secao, label: m.label}));
 
     // acção: 'ver' | 'criar' | 'editar' | 'eliminar'
     function perm(secao, accao = 'ver') {
@@ -772,12 +815,6 @@
     }
 
     // ── TIPOS DE EVENTO (carregados dinamicamente do localStorage) ────────────
-    // Definido mais abaixo em TIPOS DE EVENTO — gestão na tela,
-    // mas precisamos do array disponível para buildFormEvento.
-    // Usamos uma proxy: getTiposEvento() é definida mais abaixo;
-    // buildFormEvento chama getTiposEvento() directamente em vez deste array.
-    const TIPOS_EVENTO = []; // preenchido no init via syncTiposEvento
-
     function syncTiposEvento() {
         try {
             const saved = localStorage.getItem('zion_tipos_evento');
@@ -811,14 +848,7 @@
         return txt ? JSON.parse(txt) : [];
     }
 
-
     // ── AUTO-REFRESH ─────────────────────────────────────────────────────────────
-    // Recarrega os dados do módulo activo a cada 30 segundos
-    // Útil para ver alterações feitas por outros utilizadores sem recarregar a página
-
-    const AUTO_REFRESH_MS = 30_000; // 30 segundos — ajustar conforme necessário
-    let _autoRefreshTimer = null;
-
     function iniciarAutoRefresh() {
         pararAutoRefresh();
         _autoRefreshTimer = setInterval(async () => {
@@ -828,28 +858,62 @@
 
             try {
                 const reInitMap = {
-                    'membros':      () => { if (window.mb_init) mb_init(); },
-                    'voluntarios':  () => { if (window.vl_init) vl_init(); },
-                    'ministerios':  () => { if (window.min_renderSide) { min_minAtivo = null; min_renderSide(); } },
-                    'eventos':      () => { evAtivo = null; evSetTab(0); },
-                    'keola':        () => { if (window.kl_init) kl_init(); },
-                    'financeiro':   () => { if (window.fin_init) fin_init(); },
-                    'fornecedores': () => { if (window.fn_init) fn_init(); },
-                    'salas':        () => { if (window.sl_init) sl_init(); },
-                    'cursos':       () => { if (window.cz_renderSidebar) { cz_cursoAtivo = null; cz_turmaAtiva = null; cz_renderSidebar(); } },
-                    'dashboard':    () => { if (window.db_init) db_init(); },
+                    'membros': () => {
+                        if (window.mb_init) mb_init();
+                    },
+                    'novos': () => {
+                        if (window.vl_init) vl_init();
+                    },
+                    'voluntarios': () => {
+                        if (window.vl_init) vl_init();
+                    },
+                    'ministerios': () => {
+                        if (window.min_renderSide) {
+                            min_minAtivo = null;
+                            min_renderSide();
+                        }
+                    },
+                    'eventos': () => {
+                        evAtivo = null;
+                        evSetTab(0);
+                    },
+                    'keola': () => {
+                        if (window.kl_init) kl_init();
+                    },
+                    'financeiro': () => {
+                        if (window.fin_init) fin_init();
+                    },
+                    'fornecedores': () => {
+                        if (window.fn_init) fn_init();
+                    },
+                    'salas': () => {
+                        if (window.sl_init) sl_init();
+                    },
+                    'cursos': () => {
+                        if (window.cz_renderSidebar) {
+                            cz_cursoAtivo = null;
+                            cz_turmaAtiva = null;
+                            cz_renderSidebar();
+                        }
+                    },
+                    'dashboard': () => {
+                        if (window.db_init) db_init();
+                    },
                 };
 
                 const refresh = reInitMap[secaoAtiva];
                 if (refresh) refresh();
-            } catch (_) { /* silencioso — não interromper o utilizador */ }
+            } catch (_) { /* silencioso — não interromper o utilizador */
+            }
         }, AUTO_REFRESH_MS);
     }
 
     function pararAutoRefresh() {
-        if (_autoRefreshTimer) { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
+        if (_autoRefreshTimer) {
+            clearInterval(_autoRefreshTimer);
+            _autoRefreshTimer = null;
+        }
     }
-
 
     // ── INIT ──────────────────────────────────────────────────────────────────
     async function init() {
@@ -923,11 +987,19 @@
 
         membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
         syncTiposEvento();
+
         // Ir para a primeira secção visível
-        const primeiraVisivel = ['dashboard', 'membros', 'pastores', 'links', 'cultos', 'ministerios',
-            'salas', 'cursos', 'keola', 'loja', 'eventos', 'fornecedores', 'financeiro', 'configuracoes']
-            .find(s => perm(s, 'ver')) || 'membros';
-        await setSecao(primeiraVisivel);
+        const primeiraVisivel = [
+            'dashboard', 'membros', 'novos', 'pastores', 'links',
+            'cultos', 'ministerios', 'salas', 'cursos', 'keola',
+            'loja', 'eventos', 'fornecedores', 'financeiro', 'configuracoes'
+        ].find(s => perm(s, 'ver')) || 'dashboard';
+
+        if (primeiraVisivel === 'loja' || primeiraVisivel === 'tipos_evento') {
+            await setSecao(primeiraVisivel);
+        } else {
+            await loadModule(primeiraVisivel);
+        }
         iniciarAutoRefresh();
     }
 
@@ -956,7 +1028,7 @@
         };
         const sl = document.getElementById('secao-label');
         if (sl) sl.textContent = nomes[secao] || 'Cadastros';
-        const idx = ['dashboard', 'membros', 'pastores', 'links', 'cultos', 'ministerios', 'salas',
+        const idx = ['dashboard', 'membros', 'novos', 'pastores', 'links', 'cultos', 'ministerios', 'salas',
             'cursos', 'keola', 'loja', 'eventos', 'tipos_evento', 'fornecedores', 'financeiro', 'utilizadores', 'configuracoes'];
         const ni = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
         if (ni) ni.classList.add('active');
@@ -966,6 +1038,7 @@
     async function carregarSecao() {
         document.getElementById('main-content').innerHTML =
             '<div class="loading"><div class="spin"></div>A carregar...</div>';
+
         if (secaoAtiva === 'dashboard') {
             renderDashboardGeral();
             return;
@@ -1005,11 +1078,6 @@
         }
         renderSecao();
     }
-
-    // ── CONFIG DAS SECÇÕES ────────────────────────────────────────────────────
-    const SECOES = {
-        loja: {tabela: 'loja_produtos', orderBy: 'categoria,nome', campos: camposLoja},
-    };
 
     // ── RENDER SECÇÃO ─────────────────────────────────────────────────────────
     function getQ() {
@@ -1836,7 +1904,6 @@
     }
 
     // ── SUB-ITEMS ─────────────────────────────────────────────────────────────
-    let membroMinisteriosData = [];
 
     async function carregarMembroMinisterios(membroId) {
         const items = await sb(`membro_ministerios?select=*,ministerios(id,nome,tipo)&membro_id=eq.${membroId}&ativo=eq.true&order=id`) || [];
@@ -2271,11 +2338,7 @@
         if (e.key === 'Escape') closeDrawer();
     });
 
-    // ══════════════════════════════════════════════════════════════════════════
     // CONFIGURAÇÕES
-    // ══════════════════════════════════════════════════════════════════════════
-    let configData = [];
-
     async function carregarConfiguracoes() {
         configData = await sb('configuracoes?select=*&order=chave') || [];
         renderConfiguracoes();
@@ -2402,51 +2465,7 @@
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
     // CAMPOS DAS SECÇÕES
-    // ══════════════════════════════════════════════════════════════════════════
-    function camposSalas() {
-        return [
-            {key: 'nome', label: 'Nome', ph: 'Ex: Sala Principal', full: true},
-            {key: 'espaco', label: 'Espaço', ph: 'Ex: Piso 1'},
-            {key: 'capacidade', label: 'Capacidade', type: 'number', ph: '20'},
-            {key: 'hora_inicio', label: 'Hora Abertura', type: 'time'},
-            {key: 'hora_fim', label: 'Hora Fecho', type: 'time'},
-            {key: 'descricao', label: 'Descrição', type: 'textarea', ph: '...', full: true},
-            {key: 'aviso_entrega', label: 'Aviso Entrega', type: 'textarea', ph: '...', full: true},
-            {key: 'foto_url', label: 'Foto', type: 'image', bucket: 'imagens', full: true},
-            {key: 'google_calendar_id', label: 'Google Calendar ID', ph: 'calendar@...', full: true},
-            {type: 'section', label: 'Equipamentos'},
-            {key: 'tem_som', label: 'Som', type: 'checkbox'},
-            {key: 'tem_iluminacao', label: 'Iluminação', type: 'checkbox'},
-            {key: 'tem_projecao', label: 'Projeção', type: 'checkbox'},
-            {key: 'tem_mesas', label: 'Mesas', type: 'checkbox'},
-            {key: 'tem_cadeiras', label: 'Cadeiras', type: 'checkbox'},
-            {key: 'ativo', label: 'Ativo', type: 'checkbox', default: true},
-        ];
-    }
-
-    function camposKeola() {
-        return [
-            {key: 'nome', label: 'Nome', ph: 'Ex: Café Especial', full: true},
-            {
-                key: 'categoria', label: 'Categoria', type: 'select', options: [
-                    {v: 'almoco', l: 'Refeições'}, {v: 'bebidas', l: 'Bebidas Frescas'}, {
-                        v: 'sumos',
-                        l: 'Bebidas Quentes'
-                    },
-                    {v: 'snacks', l: 'Salgados'}, {v: 'sobremesas', l: 'Doces'}, {v: 'outro', l: 'Outros'}
-                ]
-            },
-            {key: 'descricao', label: 'Descrição', type: 'textarea', ph: 'Breve descrição...', full: true},
-            {key: 'preco', label: 'Preço (€)', type: 'number', ph: '0.00'},
-            {key: 'ordem', label: 'Ordem', type: 'number', ph: '1'},
-            {key: 'imagem_url', label: 'Foto do Produto', type: 'image', bucket: 'imagens', full: true},
-            {key: 'disponivel', label: 'Disponível', type: 'checkbox', default: true},
-            {key: 'especial_hoje', label: 'Especial Hoje', type: 'checkbox'},
-        ];
-    }
-
     function camposLoja() {
         return [
             // ── IDENTIFICAÇÃO ─────────────────────────────────────────────────────
@@ -2559,26 +2578,7 @@
         ];
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
     // EVENTOS — COMPLETAMENTE REESCRITO
-    // ══════════════════════════════════════════════════════════════════════════
-    const STATUS_EVENTO = {
-        aberto: {label: 'Aberto', cls: 'badge-green'},
-        em_curso: {label: 'Em Curso', cls: 'badge-primary'},
-        concluido: {label: 'Concluído', cls: 'badge-gray'},
-        cancelado: {label: 'Cancelado', cls: 'badge-red'},
-    };
-
-    let eventosData = [];
-    let presencasData = [];
-    let lideresMinisterios = {};
-    let presSearchQ = '';
-    let eventoAtivo = null;
-    let eventoSubTab = 0;
-
-    // Participantes seleccionados para novo evento (array de {id, nome})
-    let eventoParticipantesSel = [];
-
     function renderEventos() {
         const q = getQ();
         const filtroSt = document.getElementById('evt-filtro-status')?.value || '';
@@ -3057,8 +3057,6 @@
         renderPresencas();
     }
 
-    let motivoPresencaId = null;
-
     function abrirMotivo(presencaId, nome) {
         motivoPresencaId = presencaId;
         document.getElementById('drawer-title').textContent = `Motivo — ${nome}`;
@@ -3184,11 +3182,6 @@
     // ══════════════════════════════════════════════════════════════════════════
     // TIPOS DE EVENTO — gestão na tela
     // ══════════════════════════════════════════════════════════════════════════
-    const TIPOS_EVENTO_DEFAULT = [
-        'Reunião de Líderes', 'Culto Especial', 'Conferência', 'Retiro',
-        'Treinamento', 'Workshop', 'Conferência de Jovens', 'Encontro de Casais',
-        'Culto de Oração', 'Seminário', 'Outro',
-    ];
 
     function getTiposEvento() {
         try {
@@ -3294,10 +3287,6 @@
         [lista[idx], lista[novo]] = [lista[novo], lista[idx]];
         saveTiposEvento(lista);
         renderTiposEvento();
-    }
-
-    function camposEventos() {
-        return [];
     }
 
     // ── RELATÓRIO PDF (com gráficos) ──────────────────────────────────────────
@@ -3488,19 +3477,13 @@
         win.document.close();
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
     // DASHBOARD GERAL
-    // ══════════════════════════════════════════════════════════════════════════
     function renderDashboardGeral() {
         loadModule('dashboard');
     }
 
 
-    // ══════════════════════════════════════════════════════════════════════════
     // MÓDULO FINANCEIRO — FORNECEDORES
-    // ══════════════════════════════════════════════════════════════════════════
-    let fornecedoresData = [];
-
     async function carregarFornecedores() {
         fornecedoresData = await sb('fornecedores?select=*&order=nome') || [];
         renderFornecedores();
@@ -3664,20 +3647,7 @@
         await carregarFornecedores();
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
     // MÓDULO FINANCEIRO — ECRÃ PRINCIPAL (3 abas)
-    // ══════════════════════════════════════════════════════════════════════════
-    let finTab = 0; // 0=Faturas 1=Contas a Pagar 2=Contas a Receber
-    let comprasData = [];
-    let contasPagarData = [];
-    let contasReceberData = [];
-    let produtosCache = [];
-
-    // Filtros
-    let finFiltros = {
-        fornecedor_id: '', status: '', mes: '', categoria: '',
-    };
-
     async function carregarFinanceiro() {
         finTab = finTab || 0;
         await Promise.all([
@@ -3803,8 +3773,6 @@
     }
 
     // ── FORM COMPRA (entrada de fatura) ──────────────────────────────────────
-    let compraItensTemp = []; // itens em edição
-
     async function abrirFormCompra(id) {
         const compra = id ? comprasData.find(x => x.id === id) : null;
         // Carregar produtos (loja + keola)
@@ -4673,11 +4641,7 @@
         }
     }
 
-
-    // ══════════════════════════════════════════════════════════════════════════
     // PERMISSÕES — NAV HIDE + GUARD
-    // ══════════════════════════════════════════════════════════════════════════
-
     function aplicarPermissoesNav() {
         const navParaSecao = {'lista-compras': 'lista_compras'};
 
@@ -4699,7 +4663,6 @@
             if (!visivel) group.style.display = 'none';
         });
     }
-
 
     // Aplica guard nos botões de acção da secção activa
     function aplicarPermissoesSecao(secao) {
@@ -4726,14 +4689,6 @@
             }
         });
     }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // GESTÃO DE UTILIZADORES
-    // ══════════════════════════════════════════════════════════════════════════
-    let utilizadoresData = [];
-
-    // TODAS_SECOES deriva de REGISTRO_MODULOS automaticamente
-    const TODAS_SECOES = REGISTRO_MODULOS.map(m => ({key: m.secao, label: m.label}));
 
     async function carregarUtilizadores() {
         utilizadoresData = await sb('usuarios?select=*&order=nome') || [];
@@ -4990,77 +4945,7 @@
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // KEOLA MELHORADO — CAMPOS + KIT SYSTEM
-    // ══════════════════════════════════════════════════════════════════════════
-
-    // Override da função camposKeola com campos completos
-    // (a função original será sobreposta por esta)
-    function camposKeola() {
-        return [
-            {type: 'section', label: 'Identificação'},
-            {key: 'nome', label: 'Nome *', ph: 'Ex: Bitoque, Café, Sumo', full: true},
-            {
-                key: 'tipo_item', label: 'Tipo de Item', type: 'select', options: [
-                    {v: 'componente', l: 'Componente (ingrediente / matéria-prima)'},
-                    {v: 'venda', l: 'Item de Venda (produto final)'},
-                    {v: 'kit', l: 'Kit / Prato (montado com componentes)'},
-                ]
-            },
-            {
-                key: 'categoria', label: 'Categoria', type: 'select', options: [
-                    {v: 'almoco', l: 'Refeições'}, {v: 'bebidas', l: 'Bebidas Frescas'}, {
-                        v: 'sumos',
-                        l: 'Bebidas Quentes'
-                    },
-                    {v: 'snacks', l: 'Salgados'}, {v: 'sobremesas', l: 'Doces'}, {v: 'outro', l: 'Outros'}
-                ]
-            },
-            {
-                key: 'tipo_comida', label: 'Tipo de Comida', type: 'select', options: [
-                    {v: '', l: '— Nenhum —'}, {v: 'carne', l: 'Carne'}, {v: 'peixe', l: 'Peixe'},
-                    {v: 'vegetariano', l: 'Vegetariano'}, {v: 'vegan', l: 'Vegan'},
-                    {v: 'sem_gluten', l: 'Sem Glúten'}, {v: 'sobremesa', l: 'Sobremesa'},
-                    {v: 'bebida', l: 'Bebida'}, {v: 'outro', l: 'Outro'},
-                ]
-            },
-            {key: 'descricao', label: 'Descrição', type: 'textarea', ph: 'Breve descrição...', full: true},
-
-            {type: 'section', label: 'Preços'},
-            {key: 'preco', label: 'Preço de Venda (€)', type: 'number', ph: '0.00'},
-            // Nota: componentes não têm preço de venda — ocultado via JS no injectKitPanel
-            {key: 'preco_custo', label: 'Custo Unitário (€/un · €/g · €/kg · €/l)', type: 'number', ph: '0.0000'},
-            {key: 'iva_pct', label: 'IVA (%)', type: 'number', ph: '13'},
-
-            {type: 'section', label: 'Stock'},
-            {
-                key: 'unidade', label: 'Unidade de Stock', type: 'select', options: [
-                    {v: 'un', l: 'Unidade (un)'}, {v: 'g', l: 'Gramas (g)'}, {v: 'kg', l: 'Quilograma (kg)'},
-                    {v: 'ml', l: 'Mililitro (ml)'}, {v: 'l', l: 'Litro (l)'},
-                ]
-            },
-            {key: 'stock', label: 'Stock Actual', type: 'number', ph: '0'},
-            {key: 'stock_minimo', label: 'Stock Mínimo (alerta)', type: 'number', ph: '0'},
-            {key: 'controlar_estoque', label: 'Controlar Estoque', type: 'checkbox', default: true},
-            {key: 'venda_sem_estoque', label: 'Vender sem Estoque', type: 'checkbox'},
-
-            {key: 'alergenos', label: 'Alérgenos', ph: 'Glúten, Lactose, Soja...', full: true},
-            {key: 'ordem', label: 'Ordem no Menu', type: 'number', ph: '1'},
-            {key: 'imagem_url', label: 'Foto', type: 'image', bucket: 'imagens', full: true},
-            {key: 'mostrar_pdv', label: 'Mostrar no PDV', type: 'checkbox', default: true},
-            {key: 'disponivel', label: 'Disponível', type: 'checkbox', default: true},
-            {key: 'especial_hoje', label: 'Especial Hoje', type: 'checkbox'},
-        ];
-    }
-
-    // Override do renderSecao para Keola — adicionar botão Kit e painel de componentes
-    const _renderSecaoOriginal = typeof renderSecao === 'function' ? renderSecao : null;
-
-    // Hook: após abrir drawer para keola, mostrar/esconder secção kit
-    const _buildFormOriginal = typeof buildForm === 'function' ? buildForm : null;
-
-    // ── Keola custom render após guard padrão ────────────────────────────────
-    // Adiciona o botão "Montar Pratos" aos kits na listagem
+    // KEOLA MELHORADO — CAMPOS + KIT SYSTEM - Adiciona o botão "Montar Pratos" aos kits na listagem
     function patchKeolaRow(r) {
         if (r.tipo_item !== 'kit') return '';
         const maxKits = calcularMaxKits(r.id);
@@ -5068,8 +4953,6 @@
     }
 
     // Cache de componentes para calcular max kits
-    let keolaComponentesCache = {}; // kit_id -> [{componente_id, quantidade, unidade, stock, nome}]
-
     async function carregarComponentesCache() {
         const comps = await sb('keola_kit_componentes?select=*,keola_menu!keola_kit_componentes_componente_id_fkey(id,nome,stock,unidade)').catch(() => []);
         keolaComponentesCache = {};
@@ -5218,8 +5101,6 @@
     }
 
     // ── Painel de componentes no drawer de edição Keola ──────────────────────
-    let keolaKitItensTemp = []; // componentes em edição no formulário
-
     async function abrirKeolaComCustom(id) {
         // Carregar componentes do kit se for edição
         keolaKitItensTemp = [];
@@ -5385,21 +5266,6 @@
         await carregarComponentesCache();
     }
 
-    // Patch: interceptar o btn-save do keola para guardar também os componentes
-    function patchKeolaSave(itemId) {
-        const btn = document.getElementById('btn-save');
-        if (!btn) return;
-        const originalOnclick = btn.getAttribute('onclick');
-        btn.setAttribute('onclick', '');
-        btn.onclick = async function () {
-            // Executar o save original
-            btn.setAttribute('onclick', originalOnclick);
-            btn.click();
-            // Aguardar o registo ser criado/atualizado
-            // O save original fecha o drawer — interceptamos antes disso
-        };
-    }
-
     //new process
     function toggleNavGroup(id, e) {
         e.stopPropagation();
@@ -5531,16 +5397,13 @@
         resetar();
     })();
 
-
     init();
-    // ══════════════════════════════════════════════════════════════════════
+
     // MODULE LOADER — carrega módulos externos em modules/nome
-    // ══════════════════════════════════════════════════════════════════════
     let moduleCache = {};
-    let moduleScriptLoaded = {};  // track which modules had their script executed
+    let moduleScriptLoaded = {};
 
     async function loadModule(nome) {
-        // Guard de permissão
         const _navParaSecao = {'lista-compras': 'lista_compras'};
         const _secaoNome = _navParaSecao[nome] || nome;
         if (!userPerms.e_admin && !perm(_secaoNome, 'ver')) {

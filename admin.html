@@ -75,7 +75,7 @@
         .nav-app-drop.open .nav-drop-menu {
             display: flex;
         }
-        
+
 
         /* ── NAV HIERÁRQUICO ─────────────────────────────────────────────────── */
         .nav-group {
@@ -171,7 +171,7 @@
             background: var(--border);
             margin: 4px 0;
         }
-        
+
 
         /* Item solo (sem grupo) mantém o estilo original */
         .nav-item {
@@ -285,8 +285,8 @@
                 <div class="nav-sub-item" onclick="loadModule('keola');closeAllNavGroups()" data-secao="keola">
                     <span class="nav-sub-icon"></span> PRODUTOS KEOLA
                 </div>
-                <div class="nav-sub-item" onclick="setSecao('loja');closeAllNavGroups()" data-secao="loja">
-                    <span class="nav-sub-icon"></span> PRODUTOS LOJA
+                <div class="nav-sub-item" onclick="loadModule('loja');closeAllNavGroups()" data-secao="loja">
+                    <span class="nav-sub-icon"></span> PRODUTOS BOOKS STORE
                 </div>
                 <div class="nav-sub-item" onclick="loadModule('lista-compras');closeAllNavGroups()"
                      data-secao="lista-compras">
@@ -319,7 +319,7 @@
                 </div>
                 <div class="nav-sub-item" onclick="loadModule('financeiro-relatorios');closeAllNavGroups()"
                      data-secao="financeiro-relatorios">
-                    <span class="nav-sub-icon"></span> RELATORIOS
+                    <span class="nav-sub-icon"></span> RELATÓRIOS
                 </div>
             </div>
         </div>
@@ -338,7 +338,7 @@
 
                 <div class="nav-sub-item" onclick="loadModule('utilizadores');closeAllNavGroups()"
                      data-secao="utilizadores" id="nav-utilizadores">
-                    <span class="nav-sub-icon"></span> UTILIZADORES
+                    <span class="nav-sub-icon"></span> USUÁRIOS
                 </div>
 
                 <div class="nav-sub-divider"></div>
@@ -357,10 +357,8 @@
                                 class="nav-sub-icon"></span> APP</a>
                         <a href="pdv" target="_blank" class="nav-sub-item" onclick="closeAllNavGroups()"><span
                                 class="nav-sub-icon"></span> PDV</a>
-                        <a href="kds" target="_blank" class="nav-sub-item" onclick="closeAllNavGroups()"><span
-                                class="nav-sub-icon"></span> KDS</a>
                         <a href="gerar-qrcode" target="_blank" class="nav-sub-item" onclick="closeAllNavGroups()"><span
-                                class="nav-sub-icon"></span> QRCODE</a>
+                                class="nav-sub-icon"></span> GERAR QRCODE</a>
                         <a href="relogio-oracao" target="_blank" class="nav-sub-item"
                            onclick="closeAllNavGroups()"><span class="nav-sub-icon"></span> RELÓGIO DE ORAÇÃO</a>
                         <a href="sala-oracao" target="_blank" class="nav-sub-item" onclick="closeAllNavGroups()"><span
@@ -372,7 +370,7 @@
                         <a href="meu-perfil" target="_blank" class="nav-sub-item" onclick="closeAllNavGroups()"><span
                                 class="nav-sub-icon"></span> MEU PERFIL</a>
                         <a href="voluntarios" target="_blank" class="nav-sub-item" onclick="closeAllNavGroups()"><span
-                                class="nav-sub-icon"></span> PERFIL VOLUNTARIOS</a>
+                                class="nav-sub-icon"></span> PERFIL VOLUNTÁRIOS</a>
                     </div>
                 </div>
 
@@ -420,16 +418,11 @@
 
     //Variaveis globais
     let secaoAtiva = 'membros';
-    let registos = [];
-    let filtroInativo = false;
     let membros = [];
     let userPerms = {};
     let _autoRefreshTimer = null;
 
     const AUTO_REFRESH_MS = 30_000;
-    const SECOES = {
-        loja: {tabela: 'loja_produtos', orderBy: 'categoria,nome', campos: camposLoja},
-    };
 
     const REGISTRO_MODULOS = [
         {secao: 'dashboard', label: 'Dashboard', acoes: ['ver', 'criar', 'editar', 'eliminar']},
@@ -465,6 +458,31 @@
     function btnGuard(secao, accao) {
         if (perm(secao, accao)) return '';
         return 'disabled title="Sem permissão" style="opacity:0.35;cursor:not-allowed"';
+    }
+    // Aplica guard nos botões de acção da secção activa
+    function aplicarPermissoesSecao(secao) {
+        // Botão Novo
+        document.querySelectorAll('.btn-new').forEach(btn => {
+            if (!perm(secao, 'criar')) {
+                btn.style.display = 'none';
+            }
+        });
+        // Botões Editar
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            if (!perm(secao, 'editar')) {
+                btn.disabled = true;
+                btn.style.opacity = '0.35';
+                btn.title = 'Sem permissão para editar';
+            }
+        });
+        // Botões Toggle/Delete/Inativar
+        document.querySelectorAll('.btn-toggle').forEach(btn => {
+            if (!perm(secao, 'eliminar')) {
+                btn.disabled = true;
+                btn.style.opacity = '0.35';
+                btn.title = 'Sem permissão';
+            }
+        });
     }
 
     // ── SUPABASE ──────────────────────────────────────────────────────────────
@@ -546,6 +564,10 @@
                     'dashboard': () => {
                         if (window.db_init) db_init();
                     },
+                    'loja': function () {
+                        if (typeof lj_init === 'function') lj_init();
+                    },
+
                 };
 
                 const refresh = reInitMap[secaoAtiva];
@@ -643,309 +665,9 @@
             'configuracoes'
         ].find(s => perm(s, 'ver')) || 'dashboard';
 
-        if (primeiraVisivel === 'loja' || primeiraVisivel === 'tipos_evento') {
-            await setSecao(primeiraVisivel);
-        } else {
-            await loadModule(primeiraVisivel);
-        }
+        await loadModule(primeiraVisivel);
+
         iniciarAutoRefresh();
-    }
-
-    // ── SECÇÕES ───────────────────────────────────────────────────────────────
-    async function setSecao(secao) {
-        // Reset main-content styles that loadModule may have set
-        const mc = document.getElementById('main-content');
-        if (mc) {
-            mc.style.height = '';
-            mc.style.overflow = '';
-            mc.style.padding = '';
-            mc.style.display = '';
-            mc.style.flexDirection = '';
-        }
-        secaoAtiva = secao;
-        filtroInativo = false;
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-        const nomes = {
-            dashboard: 'Dashboard',
-            membros: 'Membros',
-            pastores: 'Pastores',
-            links: 'Links',
-            cultos: 'Cultos',
-            ministerios: 'Ministérios',
-            salas: 'Salas',
-            cursos: 'Cursos ZAO',
-            keola: 'Keola — Menu',
-            loja: 'Loja',
-            eventos: 'Eventos',
-            tipos_evento: 'Tipos de Evento',
-            configuracoes: 'Configurações',
-            fornecedores: 'Fornecedores',
-            'financeiro-receber': 'Contas a Receber',
-            'financeiro-pagar': 'Contas a Pagar',
-            'financeiro-faturas': 'Lançamento de Faturas',
-            'financeiro-relatorios': 'Relatórios Financeiros',
-            utilizadores: 'Gestão de Utilizadores',
-        };
-        const sl = document.getElementById('secao-label');
-
-        if (sl) sl.textContent = nomes[secao] || 'Cadastros';
-
-        const idx = ['dashboard', 'membros', 'novos', 'pastores', 'links', 'cultos', 'ministerios', 'salas',
-            'cursos', 'keola', 'loja', 'eventos', 'tipos_evento', 'fornecedores', 'financeiro-receber',
-            'finacneiro-pagar', 'financeiro-faturas', 'financeiro-relatorios', 'utilizadores', 'configuracoes'];
-
-        const ni = document.querySelectorAll('.nav-item')[idx.indexOf(secao)];
-        if (ni) ni.classList.add('active');
-        await carregarSecao();
-    }
-
-    async function carregarSecao() {
-        document.getElementById('main-content').innerHTML =
-            '<div class="loading"><div class="spin"></div>A carregar...</div>';
-
-        if (secaoAtiva === 'dashboard') {
-            renderDashboardGeral();
-            return;
-        }
-
-        const cfg = SECOES[secaoAtiva];
-
-        registos = await sb(`${cfg.tabela}?select=*&order=${cfg.orderBy || 'nome'}`) || [];
-
-        renderSecao();
-    }
-
-    // ── RENDER SECÇÃO ─────────────────────────────────────────────────────────
-    function getQ() {
-        const el = document.getElementById('toolbar-search-input');
-        return el ? el.value.toLowerCase() : '';
-    }
-
-    function restoreSearch(q) {
-        const el = document.getElementById('toolbar-search-input');
-        if (el && q) {
-            el.value = q;
-            el.focus();
-            el.setSelectionRange(q.length, q.length);
-        }
-    }
-
-    async function renderSecao() {
-        const cfg = SECOES[secaoAtiva];
-        if (!cfg) return;
-        const ativoKey = cfg.ativoKey || 'ativo';
-        const q = getQ();
-
-        let lista = [...registos];
-        if (!filtroInativo) lista = lista.filter(r => r[ativoKey] !== false);
-        else lista = lista.filter(r => r[ativoKey] === false);
-        if (q) lista = lista.filter(r =>
-            (r.nome || r.categoria || r.titulo || '').toLowerCase().includes(q)
-        );
-
-        let html = `
-    <div class="section-toolbar" style="position:sticky;top:0;z-index:10">
-        <input class="toolbar-search" id="toolbar-search-input"
-               placeholder="Pesquisar..." oninput="handleSearch()" value="">
-        <button class="toolbar-filter ${filtroInativo ? 'active' : ''}" onclick="toggleFiltroInativo()">Inativos</button>
-        <button class="btn-new" onclick="abrirForm(null)" ${btnGuard(secaoAtiva, 'criar')}>+ Novo</button>
-    </div>`;
-
-        if (!lista.length) {
-            html += `<div class="empty"><div class="empty-icon">—</div>
-        <div class="empty-txt">${filtroInativo ? 'Nenhum registo inativo.' : 'Nenhum registo. Clica em + Novo.'}</div></div>`;
-            document.getElementById('main-content').innerHTML = html;
-            restoreSearch(q);
-            return;
-        }
-
-        html += '<div class="admin-list">';
-        lista.forEach((r, i) => {
-            const ativo = r[ativoKey] !== false;
-            const imgUrl = r.foto_url || r.imagem_url;
-            let fotoHtml;
-            if (imgUrl) {
-                const ini = (r.nome || r.categoria || '-')[0];
-                fotoHtml = `<div class="admin-row-foto" style="overflow:hidden;padding:0">
-            <img src="${imgUrl}" alt="${r.nome || ''}"
-                 style="width:100%;height:100%;object-fit:cover"
-                 onerror="this.parentElement.style.padding='';this.parentElement.innerHTML='${ini}'">
-            </div>`;
-            } else {
-                fotoHtml = `<div class="admin-row-foto">${(r.nome || r.categoria || '-')[0]}</div>`;
-            }
-            const sub = buildSub(r);
-            const badges = buildBadges(r);
-            html += `
-        <div class="admin-row ${ativo ? '' : 'inativo'}" style="animation-delay:${Math.min(i, 12) * 0.02}s">
-            ${fotoHtml}
-            <div class="admin-row-info">
-                <div class="admin-row-nome">${r.nome || r.categoria || '—'}</div>
-                ${sub ? `<div class="admin-row-sub">${sub}</div>` : ''}
-                ${badges ? `<div class="admin-row-badges">${badges}</div>` : ''}
-            </div>
-            <div class="admin-row-actions">
-                <button class="btn-edit" onclick="abrirForm('${r.id}')" ${btnGuard(secaoAtiva, 'editar')}>Editar</button>
-                <button class="btn-toggle ${ativo ? 'ativo' : 'inativo'}"
-                        onclick="toggleAtivo('${r.id}','${ativoKey}',${ativo})" ${btnGuard(secaoAtiva, 'eliminar')}>
-                    ${ativo ? 'Inativar' : 'Ativar'}
-                </button>
-            </div>
-        </div>`;
-        });
-        html += '</div>';
-        document.getElementById('main-content').innerHTML = html;
-        restoreSearch(q);
-    }
-
-    function buildSub(r) {
-        const s = secaoAtiva;
-        if (s === 'membros') return [r.tipo, r.zona, r.genero].filter(Boolean).join(' · ');
-        if (s === 'pastores') return [r.cargo, r.email].filter(Boolean).join(' — ');
-        if (s === 'links') return [r.tipo, r.zona, r.dia].filter(Boolean).join(' · ');
-        if (s === 'cultos') return [r.dia_semana, r.hora_inicio].filter(Boolean).join(' — ');
-        if (s === 'ministerios') return [r.tipo ? '[' + r.tipo + ']' : null, r.descricao?.substring(0, 50)].filter(Boolean).join(' — ');
-        if (s === 'salas') return [r.espaco, r.capacidade ? r.capacidade + ' pessoas' : null].filter(Boolean).join(' · ');
-        if (s === 'cursos') return [r.carga_horaria, r.gratuito ? 'Gratuito' : r.valor ? '€' + r.valor : null].filter(Boolean).join(' · ');
-        if (s === 'keola') {
-            const TIPO_LABEL = {componente: 'Componente', venda: 'Venda', kit: 'Kit', normal: 'Normal'};
-            const tipoStr = TIPO_LABEL[r.tipo_item] || r.tipo_item || '';
-            const stockStr = r.stock != null ? `Stock: ${r.stock} ${r.unidade || 'un'}` : '';
-            const precoStr = r.tipo_item !== 'componente' && r.preco ? '€' + Number(r.preco).toFixed(2) : '';
-            return [tipoStr, r.categoria, precoStr, stockStr].filter(Boolean).join(' · ');
-        }
-        if (s === 'loja') return [r.categoria, r.preco ? '€' + Number(r.preco).toFixed(2) : null].filter(Boolean).join(' · ');
-        return '';
-    }
-
-    function buildBadges(r) {
-        const b = [];
-        if (r.e_lider) b.push(`<span class="badge badge-primary">Líder</span>`);
-        if (r.e_presbitero) b.push(`<span class="badge badge-primary">Presbítero</span>`);
-        if (r.e_voluntario) b.push(`<span class="badge badge-green">Voluntário</span>`);
-        if (r.e_lider_link) b.push(`<span class="badge badge-primary">Líder Link</span>`);
-        if (r.e_lider_area) b.push(`<span class="badge badge-primary">Líder Área</span>`);
-        if (r.e_lider_pilar) b.push(`<span class="badge badge-primary">Líder Pilar</span>`);
-        if (r.professor) b.push(`<span class="badge badge-green">Professor</span>`);
-        if (r.e_admin) b.push(`<span class="badge badge-red">Admin</span>`);
-        if (r.online) b.push(`<span class="badge badge-primary">Online</span>`);
-        if (r.recorrente) b.push(`<span class="badge badge-green">Recorrente</span>`);
-        if (r.gratuito) b.push(`<span class="badge badge-green">Gratuito</span>`);
-        if (r.especial_hoje) b.push(`<span class="badge badge-primary">Especial hoje</span>`);
-        if (r.destaque) b.push(`<span class="badge badge-primary">Destaque</span>`);
-        // Keola badges
-        if (r.tipo_item === 'componente') b.push(`<span class="badge badge-gray">Componente</span>`);
-        if (r.tipo_item === 'kit') b.push(`<span class="badge badge-primary">Kit</span>`);
-        if (r.tipo_item === 'venda') b.push(`<span class="badge badge-green">Venda</span>`);
-        if (r.mostrar_pdv === false) b.push(`<span class="badge badge-gray">Oculto no PDV</span>`);
-        if (r.stock != null && r.stock_minimo != null && r.stock <= r.stock_minimo && r.stock_minimo > 0)
-            b.push(`<span class="badge badge-red">⚠ Stock baixo</span>`);
-        if (r.disponivel === false || r.ativo === false) b.push(`<span class="badge badge-gray">Inativo</span>`);
-        return b.join('');
-    }
-
-    function toggleFiltroInativo() {
-        filtroInativo = !filtroInativo;
-        renderSecao();
-    }
-
-    // ── TOGGLE ATIVO ──────────────────────────────────────────────────────────
-    async function toggleAtivo(id, key, ativoAtual) {
-        try {
-            await sb(`${SECOES[secaoAtiva].tabela}?id=eq.${id}`,
-                {method: 'PATCH', body: JSON.stringify({[key]: !ativoAtual})});
-            await carregarSecao();
-        } catch (e) {
-            alert('Erro ao alterar estado.');
-        }
-    }
-
-    // ── FORM ──────────────────────────────────────────────────────────────────
-    async function abrirForm(id) {
-        const cfg = SECOES[secaoAtiva];
-        const registo = id ? registos.find(r => r.id === id) : null;
-        const isNovo = !registo;
-
-        document.getElementById('drawer-title').textContent =
-            isNovo ? `Novo — ${cfg.label || secaoAtiva}` : 'Editar';
-        document.getElementById('drawer-body').innerHTML = buildForm(cfg, registo);
-
-        // Aplicar guard de permissões nos campos do form
-        setTimeout(() => aplicarPermissoesSecao(secaoAtiva), 50);
-        document.getElementById('overlay').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-
-    }
-
-    function buildForm(cfg, r) {
-        const campos = typeof cfg.campos === 'function' ? cfg.campos(r) : cfg.campos;
-        let html = `<div class="form-grid"><div class="msg-form" id="form-msg"></div>`;
-        campos.forEach(c => {
-
-            if (c.type === 'section') {
-                html += `<div class="form-section-title">${c.label}</div>`;
-                return;
-            }
-            const val = r?.[c.key] ?? c.default ?? '';
-            const fc = c.full ? 'form-full' : '';
-            if (c.type === 'checkbox') {
-                html += `<div class="form-group ${fc}"><label class="form-toggle">
-                <input type="checkbox" id="f_${c.key}" ${val ? 'checked' : ''}><span>${c.label}</span></label></div>`;
-            } else if (c.type === 'select') {
-                const opts = c.options.map(o => `<option value="${o.v}" ${val == o.v ? 'selected' : ''}>${o.l}</option>`).join('');
-                html += `<div class="form-group ${fc}"><label class="form-label">${c.label}</label>
-                <select class="form-select" id="f_${c.key}"><option value="">-- Seleciona --</option>${opts}</select></div>`;
-            } else if (c.type === 'textarea') {
-                html += `<div class="form-group ${fc}"><label class="form-label">${c.label}</label>
-                <textarea class="form-textarea" id="f_${c.key}" placeholder="${c.ph || ''}">${val}</textarea></div>`;
-            } else if (c.type === 'image') {
-                html += buildImageUpload(c.key, c.label, val, c.bucket || 'imagens');
-            } else {
-                html += `<div class="form-group ${fc}"><label class="form-label">${c.label}</label>
-                <input class="form-input" id="f_${c.key}" type="${c.type || 'text'}" placeholder="${c.ph || ''}" value="${val}"></div>`;
-            }
-        });
-
-        html += `<div class="form-actions">
-        <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
-        <button class="btn-save" id="btn-save" onclick="salvar('${r?.id || ''}')">Guardar</button>
-    </div></div>`;
-        return html;
-    }
-
-    async function salvar(id) {
-        const cfg = SECOES[secaoAtiva];
-        const isNovo = !id;
-        const campos = typeof cfg.campos === 'function' ? cfg.campos(null) : cfg.campos;
-        const body = {};
-        campos.forEach(c => {
-            if (c.type === 'section') return;
-            if (c.type === 'custom-cursos') return;
-            if (c.key && c.key.startsWith('_')) return;
-            const el = document.getElementById(`f_${c.key}`);
-            if (!el) return;
-            if (c.type === 'checkbox') body[c.key] = el.checked;
-            else if (c.type === 'number') body[c.key] = el.value ? Number(el.value) : null;
-            else body[c.key] = el.value || null;
-        });
-        if (cfg.ativoKey && !(cfg.ativoKey in body) && isNovo) body[cfg.ativoKey] = true;
-        if (!('ativo' in body) && isNovo && cfg.tabela !== 'keola_menu') body.ativo = true;
-        const btn = document.getElementById('btn-save');
-        btn.disabled = true;
-        btn.textContent = 'A guardar...';
-        try {
-            if (isNovo) await sb(cfg.tabela, {method: 'POST', body: JSON.stringify(body)});
-            else await sb(`${cfg.tabela}?id=eq.${id}`, {method: 'PATCH', body: JSON.stringify(body)});
-            showFormMsg('Guardado com sucesso!', 'success');
-
-            await carregarSecao();
-            setTimeout(closeDrawer, 800);
-        } catch (e) {
-            showFormMsg(`Erro: ${e?.message || e?.details || JSON.stringify(e)}`, 'error');
-            btn.disabled = false;
-            btn.textContent = 'Guardar';
-        }
     }
 
     function showFormMsg(txt, tipo) {
@@ -1163,123 +885,6 @@
         if (e.key === 'Escape') closeDrawer();
     });
 
-    // CAMPOS DAS SECÇÕES
-    function camposLoja() {
-        return [
-            // ── IDENTIFICAÇÃO ─────────────────────────────────────────────────────
-            {type: 'section', label: 'Identificação'},
-            {key: 'nome', label: 'Nome *', ph: 'Ex: Bíblia NVI Capa Dura', full: true},
-            {
-                key: 'categoria', label: 'Categoria', type: 'select', options: [
-                    {v: 'Livros', l: 'Livros'}, {v: 'Biblia', l: 'Bíblias'}, {v: 'Vestuario', l: 'Vestuário'},
-                    {v: 'Acessorios', l: 'Acessórios'}, {v: 'Musica', l: 'Música'}, {v: 'Decoracao', l: 'Decoração'},
-                    {v: 'Infantil', l: 'Infantil'}, {v: 'Papelaria', l: 'Papelaria'}, {v: 'Outros', l: 'Outros'},
-                ]
-            },
-            {key: 'subcategoria', label: 'Subcategoria', ph: 'Ex: Devocionais'},
-            {key: 'descricao', label: 'Descrição', type: 'textarea', ph: 'Descrição do produto...', full: true},
-            {key: 'sku', label: 'SKU', ph: 'Ex: BIB-NVI-001'},
-            {key: 'codigo_barras', label: 'Cód. Barras', ph: 'Ex: 7891234567890'},
-            {key: 'marca', label: 'Marca', ph: 'Ex: Editora Vida'},
-            {key: 'fornecedor', label: 'Fornecedor', ph: 'Ex: Distribuidora X'},
-            {key: 'tags', label: 'Tags', ph: 'livro, bíblia, nvi (separado por vírgula)', full: true},
-            {key: 'modelo', label: 'Modelo', ph: 'Ex: Standard'},
-
-            // ── PREÇOS ────────────────────────────────────────────────────────────
-            {type: 'section', label: 'Preços'},
-            {key: 'preco', label: 'Preço de Venda (€)', type: 'number', ph: '0.00'},
-            {key: 'preco_custo', label: 'Preço de Custo (€)', type: 'number', ph: '0.00'},
-            {key: 'preco_promocional', label: 'Preço Promo (€)', type: 'number', ph: '0.00'},
-            {key: 'desconto_pct', label: 'Desconto (%)', type: 'number', ph: '0'},
-            {key: 'margem_lucro', label: 'Margem Lucro (%)', type: 'number', ph: '0'},
-            {key: 'data_inicio_promo', label: 'Início Promoção', type: 'date'},
-            {key: 'data_fim_promo', label: 'Fim Promoção', type: 'date'},
-
-            // ── ESTOQUE ───────────────────────────────────────────────────────────
-            {type: 'section', label: 'Estoque'},
-            {key: 'stock', label: 'Estoque Actual', type: 'number', ph: '0'},
-            {key: 'stock_minimo', label: 'Estoque Mínimo', type: 'number', ph: '0'},
-            {key: 'stock_maximo', label: 'Estoque Máximo', type: 'number', ph: '0'},
-            {key: 'localizacao', label: 'Localização', ph: 'Ex: Prateleira A2'},
-            {key: 'controlar_estoque', label: 'Controlar Estoque', type: 'checkbox', default: true},
-            {key: 'venda_sem_estoque', label: 'Vender sem Estoque', type: 'checkbox'},
-
-            // ── VARIAÇÕES ─────────────────────────────────────────────────────────
-            {type: 'section', label: 'Variações (Roupa / Produto)'},
-            {key: 'cor', label: 'Cor', ph: 'Ex: Azul, Preto'},
-            {key: 'tamanho', label: 'Tamanho', ph: 'Ex: M, G, 42'},
-            {
-                key: 'genero', label: 'Género', type: 'select', options: [
-                    {v: '', l: '--'}, {v: 'masculino', l: 'Masculino'}, {v: 'feminino', l: 'Feminino'},
-                    {v: 'unissex', l: 'Unissex'}, {v: 'infantil', l: 'Infantil'},
-                ]
-            },
-            {key: 'material', label: 'Material', ph: 'Ex: Algodão 100%'},
-            {key: 'tipo_tecido', label: 'Tipo Tecido', ph: 'Ex: Jersey, Flanela'},
-            {
-                key: 'estacao', label: 'Estação', type: 'select', options: [
-                    {v: '', l: '--'}, {v: 'verao', l: 'Verão'}, {v: 'inverno', l: 'Inverno'}, {
-                        v: 'primavera',
-                        l: 'Primavera'
-                    }, {v: 'outono', l: 'Outono'}, {v: 'todas', l: 'Todas'},
-                ]
-            },
-            {key: 'voltagem', label: 'Voltagem', ph: 'Ex: 110V / 220V'},
-            {key: 'edicao', label: 'Edição', ph: 'Ex: 1ª Edição'},
-            {key: 'sku_variacao', label: 'SKU Variação', ph: 'Ex: BIB-NVI-001-AZ-G'},
-            {key: 'preco_variacao', label: 'Preço Variação (€)', type: 'number', ph: '0.00'},
-            {key: 'estoque_variacao', label: 'Estoque Variação', type: 'number', ph: '0'},
-
-            // ── LIVROS / BÍBLIAS ──────────────────────────────────────────────────
-            {type: 'section', label: 'Livros & Bíblias'},
-            {key: 'autor', label: 'Autor', ph: 'Ex: Charles Spurgeon'},
-            {key: 'editora', label: 'Editora', ph: 'Ex: Editora Vida Nova'},
-            {key: 'isbn', label: 'ISBN', ph: 'Ex: 978-85-000-0000-0'},
-            {key: 'num_paginas', label: 'Nº de Páginas', type: 'number', ph: '0'},
-            {key: 'ano_publicacao', label: 'Ano Publicação', type: 'number', ph: '2024'},
-            {
-                key: 'idioma', label: 'Idioma', type: 'select', options: [
-                    {v: '', l: '--'}, {v: 'portugues', l: 'Português'}, {v: 'ingles', l: 'Inglês'},
-                    {v: 'espanhol', l: 'Espanhol'}, {v: 'outro', l: 'Outro'},
-                ]
-            },
-            {
-                key: 'tipo_capa', label: 'Tipo de Capa', type: 'select', options: [
-                    {v: '', l: '--'}, {v: 'dura', l: 'Capa Dura'}, {v: 'brochura', l: 'Brochura'}, {
-                        v: 'flexivel',
-                        l: 'Flexível'
-                    },
-                ]
-            },
-
-            // ── ENVIO / DIMENSÕES ─────────────────────────────────────────────────
-            {type: 'section', label: 'Dimensões & Envio'},
-            {key: 'peso', label: 'Peso (kg)', type: 'number', ph: '0.00'},
-            {key: 'altura', label: 'Altura (cm)', type: 'number', ph: '0'},
-            {key: 'largura', label: 'Largura (cm)', type: 'number', ph: '0'},
-            {key: 'comprimento', label: 'Comprimento (cm)', type: 'number', ph: '0'},
-            {key: 'frete_gratis', label: 'Frete Grátis', type: 'checkbox'},
-            {key: 'classe_envio', label: 'Classe Envio', ph: 'Ex: Standard, Expresso'},
-
-            // ── IMAGEM & DESTAQUE ─────────────────────────────────────────────────
-            {type: 'section', label: 'Imagem & Visibilidade'},
-            {key: 'imagem_url', label: 'Imagem', type: 'image', bucket: 'imagens', full: true},
-            {key: 'data_lancamento', label: 'Data Lançamento', type: 'date'},
-            {key: 'ordem', label: 'Ordem Exibição', type: 'number', ph: '1'},
-            {key: 'mostrar_pdv', label: 'Mostrar no PDV', type: 'checkbox', default: true},
-            {key: 'disponivel', label: 'Disponível', type: 'checkbox', default: true},
-            {key: 'ativo', label: 'Ativo', type: 'checkbox', default: true},
-            {key: 'destaque', label: 'Destaque', type: 'checkbox'},
-            {key: 'novo_lancamento', label: 'Novo Lançamento', type: 'checkbox'},
-            {key: 'mais_vendido', label: 'Mais Vendido', type: 'checkbox'},
-            {key: 'frete_gratis', label: 'Frete Grátis', type: 'checkbox'},
-        ];
-    }
-
-    // DASHBOARD GERAL
-    function renderDashboardGeral() {
-        loadModule('dashboard');
-    }
 
     // ── configurarcoes e utilizadores ──────────────────────────────────────────────
     // PERMISSÕES — NAV HIDE + GUARD
@@ -1302,32 +907,6 @@
             const visivel = [...group.querySelectorAll('.nav-sub-item[data-secao]')]
                 .some(el => el.style.display !== 'none');
             if (!visivel) group.style.display = 'none';
-        });
-    }
-
-    // Aplica guard nos botões de acção da secção activa
-    function aplicarPermissoesSecao(secao) {
-        // Botão Novo
-        document.querySelectorAll('.btn-new').forEach(btn => {
-            if (!perm(secao, 'criar')) {
-                btn.style.display = 'none';
-            }
-        });
-        // Botões Editar
-        document.querySelectorAll('.btn-edit').forEach(btn => {
-            if (!perm(secao, 'editar')) {
-                btn.disabled = true;
-                btn.style.opacity = '0.35';
-                btn.title = 'Sem permissão para editar';
-            }
-        });
-        // Botões Toggle/Delete/Inativar
-        document.querySelectorAll('.btn-toggle').forEach(btn => {
-            if (!perm(secao, 'eliminar')) {
-                btn.disabled = true;
-                btn.style.opacity = '0.35';
-                btn.title = 'Sem permissão';
-            }
         });
     }
 
@@ -1591,6 +1170,9 @@
                     },
                     'keola': () => {
                         if (typeof kl_init === 'function') kl_init();
+                    },
+                    'loja': function () {
+                        if (typeof lj_init === 'function') lj_init();
                     },
                     'eventos': () => {
                         if (typeof evSetTab === 'function') evSetTab(0);

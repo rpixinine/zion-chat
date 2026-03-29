@@ -738,16 +738,12 @@
 
     //Variaveis globais
     let secaoAtiva = 'membros';
-    let subTabAtiva = 0;
     let registos = [];
     let filtroInativo = false;
     let membros = [];
-    let links_cache = [];
-    let ministeriosCache = [];
-    let cursosCache = [];
     let userPerms = {};
     let _autoRefreshTimer = null;
-    
+
     const AUTO_REFRESH_MS = 30_000;
     const SECOES = {
         loja: {tabela: 'loja_produtos', orderBy: 'categoria,nome', campos: camposLoja},
@@ -986,7 +982,6 @@
         }
         secaoAtiva = secao;
         filtroInativo = false;
-        subTabAtiva = 0;
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
         const nomes = {
@@ -1173,11 +1168,6 @@
         renderSecao();
     }
 
-    async function setSubTab(idx) {
-        subTabAtiva = idx;
-        renderSecao();
-    }
-
     // ── TOGGLE ATIVO ──────────────────────────────────────────────────────────
     async function toggleAtivo(id, key, ativoAtual) {
         try {
@@ -1194,23 +1184,23 @@
         const cfg = SECOES[secaoAtiva];
         const registo = id ? registos.find(r => r.id === id) : null;
         const isNovo = !registo;
-        
+
         document.getElementById('drawer-title').textContent =
             isNovo ? `Novo — ${cfg.label || secaoAtiva}` : 'Editar';
         document.getElementById('drawer-body').innerHTML = buildForm(cfg, registo);
-        
+
         // Aplicar guard de permissões nos campos do form
         setTimeout(() => aplicarPermissoesSecao(secaoAtiva), 50);
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        
+
     }
 
     function buildForm(cfg, r) {
         const campos = typeof cfg.campos === 'function' ? cfg.campos(r) : cfg.campos;
         let html = `<div class="form-grid"><div class="msg-form" id="form-msg"></div>`;
         campos.forEach(c => {
-            
+
             if (c.type === 'section') {
                 html += `<div class="form-section-title">${c.label}</div>`;
                 return;
@@ -1234,7 +1224,7 @@
                 <input class="form-input" id="f_${c.key}" type="${c.type || 'text'}" placeholder="${c.ph || ''}" value="${val}"></div>`;
             }
         });
-        
+
         html += `<div class="form-actions">
         <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
         <button class="btn-save" id="btn-save" onclick="salvar('${r?.id || ''}')">Guardar</button>

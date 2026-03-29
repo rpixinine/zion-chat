@@ -1,0 +1,813 @@
+<style>
+    /* ── FATURAS EMITIDAS ─────────────────────────────────────── */
+    .fem-wrap { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+
+    .fem-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; padding:12px 16px 6px; flex-shrink:0; }
+    .fem-kpi  { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+    .fem-kpi-val   { font-family:var(--font-title); font-size:19px; font-weight:700; line-height:1; color:var(--text); }
+    .fem-kpi-label { font-size:9px; color:var(--text-faint); margin-top:4px; text-transform:uppercase; letter-spacing:1px; }
+    .fem-kpi-sub   { font-size:10px; color:var(--text-faint); margin-top:3px; }
+
+    .fem-filter-bar { display:flex; gap:6px; padding:8px 16px; flex-wrap:wrap; align-items:center; background:var(--bg-input); border-bottom:1px solid var(--border); flex-shrink:0; }
+    .fem-filter-label { font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+    .fem-filter-bar select,.fem-filter-bar input[type=date] { font-size:11px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg-card); color:var(--text); }
+    .fem-filter-bar input[type=text] { font-size:11px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg-card); color:var(--text); width:140px; }
+    .fem-filter-clear { font-size:10px; color:var(--text-faint); cursor:pointer; background:none; border:1px solid var(--border); border-radius:5px; padding:4px 10px; white-space:nowrap; }
+    .fem-filter-clear:hover { border-color:var(--primary); color:var(--text); }
+
+    .fem-sec-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 16px; border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap; }
+    .fem-sec-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+
+    .fem-body-scroll { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+    .fem-table-wrap  { padding:0 16px 16px; overflow-x:auto; }
+
+    .fem-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .fem-table th { background:var(--bg-input); padding:8px 10px; text-align:left; font-family:var(--font-title); font-size:9px; letter-spacing:1.5px; color:var(--text-faint); border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; z-index:2; }
+    .fem-table td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; color:var(--text); }
+    .fem-table tr:last-child td { border-bottom:none; }
+    .fem-table tr:hover td { background:var(--primary-faint); }
+
+    .st-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; color:var(--text); }
+    .fem-act { display:flex; gap:4px; justify-content:flex-end; flex-wrap:wrap; }
+    .fem-btn { padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:var(--bg-input); font-size:10px; color:var(--text); cursor:pointer; font-family:var(--font-title); letter-spacing:.5px; transition:all .15s; white-space:nowrap; }
+    .fem-btn:hover { border-color:var(--primary); }
+    .fem-btn.primary { background:var(--primary); border-color:var(--primary); }
+    .fem-btn.primary:hover { background:var(--primary-dark); }
+    .fem-btn.outline-p { border-color:var(--primary); }
+
+    /* Form internals */
+    .fem-search-row { display:flex; gap:6px; align-items:center; }
+    .fem-search-row input,.fem-search-row select { flex:1; }
+
+    /* Receber items picker */
+    .fem-rec-list { max-height:260px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); }
+    .fem-rec-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; cursor:pointer; }
+    .fem-rec-item:last-child { border-bottom:none; }
+    .fem-rec-item:hover { background:var(--primary-faint); }
+    .fem-rec-item input[type=checkbox] { width:15px; height:15px; accent-color:var(--primary-dark); cursor:pointer; flex-shrink:0; }
+    .fem-rec-item-info { flex:1; }
+    .fem-rec-item-val  { font-family:var(--font-title); font-size:12px; font-weight:700; white-space:nowrap; }
+
+    /* Invoice lines table */
+    .fem-lines-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; background:var(--bg-input); }
+    .fem-lines-table { width:100%; border-collapse:collapse; font-size:11px; min-width:600px; }
+    .fem-lines-table th { background:var(--bg-card); padding:7px 8px; text-align:left; font-family:var(--font-title); font-size:9px; letter-spacing:1px; color:var(--text-faint); border-bottom:1px solid var(--border); }
+    .fem-lines-table th span.sub { display:block; font-size:8px; font-weight:400; opacity:.6; margin-top:2px; letter-spacing:0; text-transform:none; font-family:inherit; }
+    .fem-lines-table td { padding:5px 5px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .fem-lines-table tbody tr:last-child td { border-bottom:none; }
+    .fem-lines-table input,.fem-lines-table select { width:100%; font-size:11px; padding:5px 6px; border:1px solid var(--border); border-radius:5px; background:var(--bg-card); color:var(--text); box-sizing:border-box; }
+    .fem-lines-table input:focus,.fem-lines-table select:focus { border-color:var(--primary); outline:none; }
+    .fem-lines-table input[readonly] { background:var(--bg-input); color:var(--text); font-weight:700; cursor:default; border-color:transparent; }
+    .fem-lines-table tfoot td { padding:7px 8px; background:var(--bg-card); font-size:12px; color:var(--text); }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+    input[type=number] { -moz-appearance:textfield; }
+
+    .fem-iva-flag { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; font-size:12px; cursor:pointer; user-select:none; color:var(--text); }
+    .fem-iva-flag input[type=checkbox] { width:16px; height:16px; accent-color:var(--primary-dark); cursor:pointer; }
+
+    .fem-btn-addline { padding:6px 14px; border-radius:6px; background:var(--primary); color:var(--text); border:none; font-size:11px; cursor:pointer; font-family:var(--font-title); letter-spacing:.5px; }
+    .fem-btn-addline:hover { background:var(--primary-dark); }
+
+    .fem-form-actions { display:flex; gap:8px; flex-wrap:wrap; padding-top:12px; border-top:1px solid var(--border); margin-top:4px; }
+
+    /* Emitter config box */
+    .fem-emitter-box { background:var(--bg-input); border:1px solid var(--border); border-radius:10px; padding:12px; font-size:12px; }
+    .fem-emitter-box .lbl { font-family:var(--font-title); font-size:9px; letter-spacing:1px; color:var(--text-faint); text-transform:uppercase; margin-bottom:6px; }
+    .fem-emitter-box input { width:100%; font-size:12px; padding:5px 8px; border:1px solid var(--border); border-radius:5px; background:var(--bg-card); color:var(--text); box-sizing:border-box; margin-bottom:5px; }
+    .fem-emitter-box input:focus { border-color:var(--primary); outline:none; }
+
+    /* Member search result tag */
+    .fem-member-tag { display:inline-flex; align-items:center; gap:8px; background:var(--primary-faint); border:1px solid var(--primary); border-radius:6px; padding:5px 10px; font-size:12px; margin-top:6px; }
+    .fem-member-tag-x { cursor:pointer; color:var(--text-faint); font-size:14px; margin-left:4px; }
+    .fem-member-tag-x:hover { color:var(--text); }
+
+    @media(max-width:640px){
+        .fem-kpis { grid-template-columns:repeat(2,1fr); }
+        .fem-table th:nth-child(3),.fem-table td:nth-child(3) { display:none; }
+    }
+</style>
+
+<div class="fem-wrap">
+    <div class="fem-body-scroll" id="fem-body">
+        <div class="loading"><div class="spin"></div>A carregar faturas emitidas...</div>
+    </div>
+</div>
+
+<script>
+    // ════════════════════════════════════════════════════════════
+    // FATURAS EMITIDAS — prefixo fem_
+    // SQL necessario (executar uma vez no Supabase):
+    // create table public.faturas_emitidas (
+    //   id uuid primary key default gen_random_uuid(),
+    //   numero_fatura text unique,
+    //   data_emissao date not null default current_date,
+    //   emitente_nome text, emitente_nif text, emitente_morada text,
+    //   emitente_cidade text, emitente_email text, emitente_telefone text,
+    //   cliente_id uuid, cliente_nome text, cliente_nif text, cliente_morada text,
+    //   itens jsonb, contas_receber_ids jsonb,
+    //   subtotal numeric(10,2) default 0, iva numeric(10,2) default 0,
+    //   total numeric(10,2) default 0, iva_incluido boolean default false,
+    //   isento_iva boolean default true,
+    //   motivo_isencao text default 'Isento nos termos do artigo 9.o do CIVA',
+    //   forma_pagamento text, observacoes text,
+    //   status text default 'emitida',
+    //   created_at timestamptz default now(), updated_at timestamptz default now()
+    // );
+    // alter table public.contas_receber add column if not exists fatura_emitida_id uuid;
+    // ════════════════════════════════════════════════════════════
+
+    var fem_faturas   = [];
+    var fem_membros   = [];
+    var fem_receber   = [];      // contas_receber sem fatura
+    var fem_linhasTemp= [];      // invoice lines in form
+    var fem_selectedMembro = null; // {id, nome, nif}
+    var fem_recSelecionados= {};   // {id: true} checkboxes
+
+    // ── Emitter config (localStorage) ────────────────────────────
+    var FEM_EMIT_KEY = 'zion_fem_emitente';
+    var fem_emit = {};
+    (function(){
+        try { fem_emit = JSON.parse(localStorage.getItem(FEM_EMIT_KEY)) || {}; } catch(e){ fem_emit = {}; }
+        if(!fem_emit.nome)      fem_emit.nome      = 'Zion Lisboa';
+        if(!fem_emit.nif)       fem_emit.nif       = '000000000';
+        if(!fem_emit.morada)    fem_emit.morada    = 'Rua da Igreja, n.o 1';
+        if(!fem_emit.cidade)    fem_emit.cidade    = '1000-001 Lisboa, Portugal';
+        if(!fem_emit.email)     fem_emit.email     = 'geral@zionlisboa.pt';
+        if(!fem_emit.telefone)  fem_emit.telefone  = '';
+    })();
+    function fem_emitPersist(){
+        var f = {
+            nome:     (document.getElementById('fem_e_nome')||{}).value     || fem_emit.nome,
+            nif:      (document.getElementById('fem_e_nif')||{}).value      || fem_emit.nif,
+            morada:   (document.getElementById('fem_e_morada')||{}).value   || fem_emit.morada,
+            cidade:   (document.getElementById('fem_e_cidade')||{}).value   || fem_emit.cidade,
+            email:    (document.getElementById('fem_e_email')||{}).value    || fem_emit.email,
+            telefone: (document.getElementById('fem_e_telefone')||{}).value || fem_emit.telefone
+        };
+        fem_emit = f;
+        localStorage.setItem(FEM_EMIT_KEY, JSON.stringify(f));
+    }
+
+    // ── Filter state ─────────────────────────────────────────────
+    var fem_F = {membro:'', status:'', data_de:'', data_ate:''};
+
+    // ── Status ───────────────────────────────────────────────────
+    var FEM_SBG  = {emitida:'rgba(0,144,152,.18)',anulada:'rgba(80,80,80,.15)',paga:'rgba(0,100,60,.18)'};
+    var FEM_SLBL = {emitida:'Emitida',anulada:'Anulada',paga:'Paga'};
+
+    // ── Utils ─────────────────────────────────────────────────────
+    function fem_hoje(){ return new Date().toISOString().split('T')[0]; }
+    function fem_eur(v){ return '\u20AC'+Number(v||0).toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function fem_dt(s){
+        if(!s) return '\u2014';
+        return new Date(s+(s.length===10?'T00:00:00':'')).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric'});
+    }
+    function fem_nifNorm(s){ return (s||'').replace(/[^0-9]/g,''); }
+    function fem_sanitize(s){ // for PDF - replace diacritics
+        return (s||'').replace(/[àáâãä]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+            .replace(/[òóôõö]/g,'o').replace(/[ùúûü]/g,'u').replace(/[ç]/g,'c').replace(/[ñ]/g,'n')
+            .replace(/[ÀÁÂÃÄ]/g,'A').replace(/[ÈÉÊË]/g,'E').replace(/[ÌÍÎÏ]/g,'I')
+            .replace(/[ÒÓÔÕÖ]/g,'O').replace(/[ÙÚÛÜ]/g,'U').replace(/[Ç]/g,'C').replace(/[Ñ]/g,'N')
+            .replace(/[°º]/g,'o').replace(/[.]/g,'.'); // keep dots
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    async function fem_init(){
+        document.getElementById('fem-body').innerHTML='<div class="loading"><div class="spin"></div>A carregar...</div>';
+        await fem_loadAll();
+        fem_render();
+    }
+    async function fem_loadAll(){
+        var res=await Promise.all([
+            sb('faturas_emitidas?select=*&order=created_at.desc').catch(function(){return[];}),
+            (typeof membros!=='undefined'?Promise.resolve(membros):sb('membros?select=id,nome,nif&ativo=eq.true&order=nome').catch(function(){return[];}))
+        ]);
+        fem_faturas = res[0]||[];
+        fem_membros = res[1]||[];
+    }
+
+    // ── Filtered ─────────────────────────────────────────────────
+    function fem_filtered(){
+        return fem_faturas.filter(function(f){
+            if(fem_F.membro && f.cliente_nome&&!f.cliente_nome.toLowerCase().includes(fem_F.membro.toLowerCase())) return false;
+            if(fem_F.status && f.status!==fem_F.status) return false;
+            if(fem_F.data_de  && f.data_emissao<fem_F.data_de)  return false;
+            if(fem_F.data_ate && f.data_emissao>fem_F.data_ate) return false;
+            return true;
+        });
+    }
+
+    // ── Render main ───────────────────────────────────────────────
+    function fem_render(){
+        var body=document.getElementById('fem-body');
+        if(!body) return;
+        var all=fem_faturas;
+        var totalEmit=all.filter(function(f){return f.status==='emitida';}).reduce(function(a,f){return a+Number(f.total||0);},0);
+        var totalPago=all.filter(function(f){return f.status==='paga';}).reduce(function(a,f){return a+Number(f.total||0);},0);
+        var sOpts='<option value="">Todos os estados</option>'
+            +Object.keys(FEM_SLBL).map(function(k){return '<option value="'+k+'"'+(fem_F.status===k?' selected':'')+'>'+FEM_SLBL[k]+'</option>';}).join('');
+        var lista=fem_filtered();
+        var rows=!lista.length
+            ?'<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-faint)">Nenhuma fatura emitida. Clica em + Nova Fatura.</td></tr>'
+            :lista.map(function(f){
+                var ds=f.status||'emitida';
+                return '<tr>'
+                    +'<td><span style="font-family:var(--font-title);font-size:11px;font-weight:700">'+(f.numero_fatura||'\u2014')+'</span>'
+                    +'<div style="font-size:10px;color:var(--text-faint)">'+fem_dt(f.data_emissao)+'</div></td>'
+                    +'<td style="font-weight:600">'+(f.cliente_nome||'\u2014')+'<div style="font-size:10px;color:var(--text-faint)">NIF: '+(f.cliente_nif||'\u2014')+'</div></td>'
+                    +'<td style="font-size:10px;color:var(--text-faint)">'+(f.itens?JSON.parse(typeof f.itens==='string'?f.itens:'[]').length+' item(s)':'0 items')+'</td>'
+                    +'<td><span class="st-badge" style="background:'+(FEM_SBG[ds]||'rgba(100,100,100,.15)')+'">'+(FEM_SLBL[ds]||ds)+'</span></td>'
+                    +'<td style="text-align:right"><div style="font-family:var(--font-title);font-weight:700">'+fem_eur(f.total)+'</div>'
+                    +'<div style="font-size:10px;color:var(--text-faint)">IVA '+fem_eur(f.iva)+'</div></td>'
+                    +'<td><div class="fem-act">'
+                    +'<button class="fem-btn primary" onclick="fem_gerarPDF(\''+f.id+'\')">Imprimir PDF</button>'
+                    +(f.status!=='anulada'?'<button class="fem-btn outline-p" onclick="fem_editarForm(\''+f.id+'\')">Editar</button>':'')
+                    +(f.status==='emitida'?'<button class="fem-btn" onclick="fem_marcarPaga(\''+f.id+'\')">Marcar Paga</button>':'')
+                    +(f.status!=='anulada'?'<button class="fem-btn" onclick="fem_anular(\''+f.id+'\')" style="border-color:rgba(150,50,50,.4)">Anular</button>':'')
+                    +'</div></td></tr>';
+            }).join('');
+
+        body.innerHTML=''
+            +'<div class="fem-kpis">'
+            +'<div class="fem-kpi"><div class="fem-kpi-val">'+all.length+'</div><div class="fem-kpi-label">Total Emitidas</div><div class="fem-kpi-sub">'+fem_eur(all.reduce(function(a,f){return a+Number(f.total||0);},0))+' emitido</div></div>'
+            +'<div class="fem-kpi"><div class="fem-kpi-val">'+all.filter(function(f){return f.status==='emitida';}).length+'</div><div class="fem-kpi-label">Pendentes</div><div class="fem-kpi-sub">'+fem_eur(totalEmit)+'</div></div>'
+            +'<div class="fem-kpi"><div class="fem-kpi-val">'+all.filter(function(f){return f.status==='paga';}).length+'</div><div class="fem-kpi-label">Pagas</div><div class="fem-kpi-sub">'+fem_eur(totalPago)+'</div></div>'
+            +'<div class="fem-kpi"><div class="fem-kpi-val">'+all.filter(function(f){return f.status==='anulada';}).length+'</div><div class="fem-kpi-label">Anuladas</div><div class="fem-kpi-sub"></div></div>'
+            +'</div>'
+            +'<div class="fem-filter-bar">'
+            +'<span class="fem-filter-label">Filtros:</span>'
+            +'<input type="text" placeholder="Nome do cliente..." value="'+fem_F.membro+'" oninput="fem_F.membro=this.value;fem_render()">'
+            +'<select onchange="fem_F.status=this.value;fem_render()">'+sOpts+'</select>'
+            +'<span class="fem-filter-label" style="margin-left:4px">Data:</span>'
+            +'<input type="date" value="'+fem_F.data_de+'"  onchange="fem_F.data_de=this.value;fem_render()">'
+            +'<input type="date" value="'+fem_F.data_ate+'" onchange="fem_F.data_ate=this.value;fem_render()">'
+            +'<button class="fem-filter-clear" onclick="fem_F={membro:\'\',status:\'\',data_de:\'\',data_ate:\'\'};fem_render()">Limpar</button>'
+            +'</div>'
+            +'<div class="fem-sec-bar">'
+            +'<span class="fem-sec-title">Faturas Emitidas</span>'
+            +'<button class="btn-new" onclick="fem_abrirForm(null)">+ Nova Fatura</button>'
+            +'</div>'
+            +'<div class="fem-table-wrap"><table class="fem-table">'
+            +'<thead><tr><th>Nr / Data</th><th>Cliente</th><th>Itens</th><th>Estado</th><th style="text-align:right">Total / IVA</th><th>Acoes</th></tr></thead>'
+            +'<tbody>'+rows+'</tbody></table></div>';
+    }
+
+    // ── Next invoice number ───────────────────────────────────────
+    async function fem_nextNum(){
+        var ano=new Date().getFullYear();
+        var existentes=fem_faturas.filter(function(f){return (f.numero_fatura||'').startsWith('FT '+ano+'/');});
+        var max=0;
+        existentes.forEach(function(f){
+            var parts=(f.numero_fatura||'').split('/');
+            var n=parseInt(parts[parts.length-1])||0;
+            if(n>max) max=n;
+        });
+        return 'FT '+ano+'/'+(String(max+1).padStart(4,'0'));
+    }
+
+    // ── Open form ─────────────────────────────────────────────────
+    async function fem_abrirForm(id){
+        fem_linhasTemp   = [];
+        fem_selectedMembro = null;
+        fem_recSelecionados= {};
+        fem_receber      = [];
+
+        var fat = id ? fem_faturas.find(function(x){return x.id===id;}) : null;
+        var fv  = function(k,d){return fat&&fat[k]!=null?fat[k]:(d!=null?d:'');};
+
+        // If editing, restore lines and membro
+        if(fat){
+            try{ fem_linhasTemp=(typeof fat.itens==='string'?JSON.parse(fat.itens):fat.itens)||[]; }catch(e){ fem_linhasTemp=[]; }
+            if(fat.cliente_id) fem_selectedMembro={id:fat.cliente_id, nome:fat.cliente_nome||'', nif:fat.cliente_nif||''};
+        }
+
+        var numFat = fat ? fv('numero_fatura') : await fem_nextNum();
+
+        document.getElementById('drawer-title').textContent=fat?'Editar Fatura '+numFat:'Nova Fatura';
+        document.getElementById('drawer-body').innerHTML='<div class="form-grid">'
+            +'<div class="msg-form" id="form-msg"></div>'
+
+            // Emitter
+            +'<div class="form-section-title form-full">Dados do Emitente</div>'
+            +'<div class="form-full"><div class="fem-emitter-box">'
+            +'<div class="lbl">Entidade emissora (editavel — guardado localmente)</div>'
+            +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+            +'<input id="fem_e_nome"     placeholder="Nome da entidade" value="'+fem_emit.nome+'">'
+            +'<input id="fem_e_nif"      placeholder="NIF"              value="'+fem_emit.nif+'">'
+            +'<input id="fem_e_morada"   placeholder="Morada"           value="'+fem_emit.morada+'" style="grid-column:1/-1">'
+            +'<input id="fem_e_cidade"   placeholder="Codigo postal / Cidade" value="'+fem_emit.cidade+'" style="grid-column:1/-1">'
+            +'<input id="fem_e_email"    placeholder="Email"            value="'+fem_emit.email+'">'
+            +'<input id="fem_e_telefone" placeholder="Telefone"         value="'+fem_emit.telefone+'">'
+            +'</div>'
+            +'</div></div>'
+
+            // Invoice header
+            +'<div class="form-section-title">Identificacao da Fatura</div>'
+            +'<div class="form-group"><label class="form-label">Nr Fatura</label>'
+            +'<input class="form-input" id="fem_numero" value="'+numFat+'" readonly style="font-family:var(--font-title);font-weight:700"></div>'
+            +'<div class="form-group"><label class="form-label">Data de Emissao</label>'
+            +'<input class="form-input" type="date" id="fem_data" value="'+fv('data_emissao',fem_hoje())+'"></div>'
+            +'<div class="form-group"><label class="form-label">Forma de Pagamento</label>'
+            +'<select class="form-select" id="fem_forma">'
+            +'<option value="transferencia"'+(fv('forma_pagamento','transferencia')==='transferencia'?' selected':'')+'>Transferencia</option>'
+            +'<option value="mbway"'+(fv('forma_pagamento')==='mbway'?' selected':'')+'>MBWay</option>'
+            +'<option value="multibanco"'+(fv('forma_pagamento')==='multibanco'?' selected':'')+'>Multibanco</option>'
+            +'<option value="dinheiro"'+(fv('forma_pagamento')==='dinheiro'?' selected':'')+'>Dinheiro</option>'
+            +'</select></div>'
+
+            // Client
+            +'<div class="form-section-title form-full">Dados do Cliente</div>'
+            +'<div class="form-group form-full">'
+            +'<label class="form-label">Pesquisar membro por nome ou NIF</label>'
+            +'<div class="fem-search-row">'
+            +'<input class="form-input" id="fem_search" placeholder="Escreve o nome ou NIF..." oninput="fem_filtrarMembros(this.value)">'
+            +'</div>'
+            +'<div id="fem-membro-results" style="margin-top:6px"></div>'
+            +'<div id="fem-membro-tag" style="margin-top:6px">'+(fem_selectedMembro?'<div class="fem-member-tag"><strong>'+fem_selectedMembro.nome+'</strong><span style="color:var(--text-faint);font-size:10px">&nbsp;NIF: '+(fem_selectedMembro.nif||'\u2014')+'</span><span class="fem-member-tag-x" onclick="fem_clearMembro()">x</span></div>':'')+'</div>'
+            +'</div>'
+            +'<div class="form-group form-full" id="fem-cliente-manual-wrap" style="'+(fem_selectedMembro?'display:none':'display:block')+'">'
+            +'<label class="form-label" style="color:var(--text-faint);font-size:10px">Ou preenche manualmente (cliente externo)</label>'
+            +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+            +'<input class="form-input" id="fem_cli_nome"   placeholder="Nome do cliente"     value="'+(fat&&!fat.cliente_id?fv('cliente_nome'):'') +'">'
+            +'<input class="form-input" id="fem_cli_nif"    placeholder="NIF do cliente"      value="'+(fat&&!fat.cliente_id?fv('cliente_nif'):'')  +'">'
+            +'<input class="form-input" id="fem_cli_morada" placeholder="Morada / Endereco"   value="'+(fv('cliente_morada'))+'" style="grid-column:1/-1">'
+            +'</div></div>'
+
+            // Contas a receber picker
+            +'<div class="form-section-title form-full">Recebimentos para Faturar</div>'
+            +'<div class="form-full">'
+            +'<div id="fem-rec-picker"><div style="font-size:12px;color:var(--text-faint);padding:12px;text-align:center;border:1px dashed var(--border);border-radius:8px">Seleciona um membro acima para ver os recebimentos disponiveis.</div></div>'
+            +'<div style="margin-top:6px;display:flex;gap:6px;align-items:center">'
+            +'<button class="fem-btn outline-p" style="font-size:11px;padding:5px 12px" onclick="fem_addSelecionados()">Adicionar selecionados como linhas</button>'
+            +'</div></div>'
+
+            // Invoice lines
+            +'<div class="form-section-title form-full">Linhas da Fatura</div>'
+            +'<div class="form-full">'
+            +'<div class="fem-lines-wrap"><table class="fem-lines-table">'
+            +'<thead><tr>'
+            +'<th style="min-width:160px">Descricao<span class="sub">Servico / produto</span></th>'
+            +'<th style="width:55px;text-align:center">Qtd<span class="sub">Unid.</span></th>'
+            +'<th style="width:85px;text-align:right">Preco Unit.<span class="sub">sem IVA</span></th>'
+            +'<th style="width:55px;text-align:center">IVA %<span class="sub">Taxa</span></th>'
+            +'<th style="width:85px;text-align:right">Total<span class="sub">Qtd x Preco</span></th>'
+            +'<th style="width:75px;text-align:right">IVA Euro<span class="sub">Valor IVA</span></th>'
+            +'<th style="width:28px"></th>'
+            +'</tr></thead>'
+            +'<tbody id="fem-lines-tbody"></tbody>'
+            +'<tfoot id="fem-lines-tfoot"></tfoot>'
+            +'</table></div>'
+            +'<div style="margin-top:8px;display:flex;gap:8px;align-items:center">'
+            +'<button class="fem-btn-addline" onclick="fem_addLinhaManual()">+ Linha Manual</button>'
+            +'</div></div>'
+
+            // IVA / exemption
+            +'<div class="form-full">'
+            +'<label class="fem-iva-flag"><input type="checkbox" id="fem_isento" '+(fv('isento_iva',true)?'checked':'')+' onchange="fem_calcTotais()">'
+            +'<div><strong>Isento de IVA</strong><div style="font-size:10px;color:var(--text-faint);margin-top:2px">Artigo 9.o do CIVA (entidades sem fins lucrativos)</div></div>'
+            +'</label>'
+            +'<div style="margin-top:6px">'
+            +'<label class="form-label" style="font-size:10px">Motivo de isencao (aparece na fatura)</label>'
+            +'<input class="form-input" id="fem_isencao_txt" value="'+fv('motivo_isencao','Isento nos termos do artigo 9.o do CIVA')+'" style="font-size:11px">'
+            +'</div></div>'
+
+            +'<div class="form-group form-full"><label class="form-label">Observacoes</label>'
+            +'<textarea class="form-textarea" id="fem_obs">'+fv('observacoes')+'</textarea></div>'
+
+            +'<div class="form-full"><div class="fem-form-actions">'
+            +'<button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>'
+            +'<button class="btn-save" id="btn-fem-save" onclick="fem_salvar(\''+( id||'')+'\')">Guardar Fatura</button>'
+            +(fat?'<button class="fem-btn primary" style="padding:6px 16px;font-size:11px" onclick="fem_salvarEImprimir(\''+id+'\')">Guardar e Gerar PDF</button>':'')
+            +'</div></div>'
+            +'</div>';
+
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow='hidden';
+        fem_renderLinhas();
+        fem_calcTotais();
+        if(fem_selectedMembro) fem_carregarReceber(fem_selectedMembro.id);
+    }
+
+    // ── Member search ─────────────────────────────────────────────
+    function fem_filtrarMembros(q){
+        var el=document.getElementById('fem-membro-results');
+        if(!el) return;
+        if(!q||q.length<2){ el.innerHTML=''; return; }
+        var ql=q.toLowerCase();
+        var matches=fem_membros.filter(function(m){
+            return (m.nome&&m.nome.toLowerCase().includes(ql))||(m.nif&&fem_nifNorm(m.nif).includes(fem_nifNorm(q)));
+        }).slice(0,8);
+        if(!matches.length){ el.innerHTML='<div style="font-size:11px;color:var(--text-faint);padding:4px">Nenhum membro encontrado.</div>'; return; }
+        el.innerHTML='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg-card)">'
+            +matches.map(function(m){
+                return '<div style="padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border)" '
+                    +'onclick="fem_selecionarMembro(\''+m.id+'\',\''+m.nome.replace(/'/g,"\\'")+'\',' +'\''+( m.nif||'')+'\');"'
+                    +' onmouseover="this.style.background=\'var(--primary-faint)\'" onmouseout="this.style.background=\'\'">'
+                    +'<strong>'+m.nome+'</strong><span style="font-size:10px;color:var(--text-faint);margin-left:8px">NIF: '+(m.nif||'\u2014')+'</span>'
+                    +'</div>';
+            }).join('')+'</div>';
+    }
+
+    function fem_selecionarMembro(id, nome, nif){
+        fem_selectedMembro={id:id, nome:nome, nif:nif};
+        var el=document.getElementById('fem-membro-tag');
+        if(el) el.innerHTML='<div class="fem-member-tag"><strong>'+nome+'</strong><span style="color:var(--text-faint);font-size:10px">&nbsp;NIF: '+(nif||'\u2014')+'</span><span class="fem-member-tag-x" onclick="fem_clearMembro()">x</span></div>';
+        var re=document.getElementById('fem-membro-results'); if(re) re.innerHTML='';
+        var si=document.getElementById('fem_search'); if(si) si.value='';
+        // Pre-fill client fields
+        var cn=document.getElementById('fem_cli_nome'); if(cn) cn.value=nome;
+        var cv=document.getElementById('fem_cli_nif');  if(cv) cv.value=nif;
+        var mw=document.getElementById('fem-cliente-manual-wrap'); if(mw) mw.style.display='none';
+        fem_carregarReceber(id);
+    }
+
+    function fem_clearMembro(){
+        fem_selectedMembro=null;
+        var el=document.getElementById('fem-membro-tag'); if(el) el.innerHTML='';
+        var mw=document.getElementById('fem-cliente-manual-wrap'); if(mw) mw.style.display='block';
+        var rp=document.getElementById('fem-rec-picker'); if(rp) rp.innerHTML='<div style="font-size:12px;color:var(--text-faint);padding:12px;text-align:center;border:1px dashed var(--border);border-radius:8px">Seleciona um membro para ver os recebimentos.</div>';
+        fem_receber=[]; fem_recSelecionados={};
+    }
+
+    async function fem_carregarReceber(membroId){
+        var rp=document.getElementById('fem-rec-picker');
+        if(!rp) return;
+        rp.innerHTML='<div style="font-size:12px;color:var(--text-faint);padding:8px">A carregar recebimentos...</div>';
+        var res=await sb('contas_receber?select=*&membro_id=eq.'+membroId+'&status=eq.recebido&order=data_recebimento.desc').catch(function(){return[];});
+        // Filter out already invoiced
+        fem_receber=res.filter(function(c){ return !c.fatura_emitida_id; });
+        if(!fem_receber.length){
+            rp.innerHTML='<div style="font-size:12px;color:var(--text-faint);padding:12px;text-align:center;border:1px dashed var(--border);border-radius:8px">Nenhum recebimento pendente de faturacao para este membro.</div>';
+            return;
+        }
+        rp.innerHTML='<div style="font-size:10px;color:var(--text-faint);margin-bottom:6px">Seleciona os recebimentos a incluir na fatura:</div>'
+            +'<div class="fem-rec-list">'
+            +fem_receber.map(function(c){
+                var chk=fem_recSelecionados[c.id]?'checked':'';
+                return '<div class="fem-rec-item" onclick="fem_toggleRec(\''+c.id+'\')">'
+                    +'<input type="checkbox" id="rec-chk-'+c.id+'" '+chk+' onclick="event.stopPropagation();fem_toggleRec(\''+c.id+'\')">'
+                    +'<div class="fem-rec-item-info">'
+                    +'<div style="font-weight:600">'+(c.descricao||'\u2014')+'</div>'
+                    +'<div style="font-size:10px;color:var(--text-faint)">'+(c.tipo||'')+(c.data_recebimento?' · '+fem_dt(c.data_recebimento):'')+'</div>'
+                    +'</div>'
+                    +'<div class="fem-rec-item-val">'+fem_eur(c.valor_total||c.valor_recebido||0)+'</div>'
+                    +'</div>';
+            }).join('')
+            +'</div>';
+    }
+
+    function fem_toggleRec(id){
+        fem_recSelecionados[id]=!fem_recSelecionados[id];
+        var chk=document.getElementById('rec-chk-'+id);
+        if(chk) chk.checked=!!fem_recSelecionados[id];
+    }
+
+    function fem_addSelecionados(){
+        var ids=Object.keys(fem_recSelecionados).filter(function(k){return fem_recSelecionados[k];});
+        if(!ids.length){showFormMsg('Seleciona pelo menos um recebimento.','error');return;}
+        ids.forEach(function(id){
+            var c=fem_receber.find(function(x){return x.id===id;});
+            if(!c) return;
+            // Check if already in lines
+            var exists=fem_linhasTemp.find(function(l){return l._recId===id;});
+            if(exists) return;
+            fem_linhasTemp.push({
+                _t:Date.now()+Math.random(), _recId:id,
+                descricao:(c.descricao||c.tipo||'Recebimento'),
+                quantidade:1, preco_unitario:Number(c.valor_total||c.valor_recebido||0), iva_pct:0
+            });
+        });
+        fem_renderLinhas(); fem_calcTotais();
+        showFormMsg('Linhas adicionadas.','success');
+    }
+
+    // ── Lines table ───────────────────────────────────────────────
+    function fem_addLinhaManual(){
+        fem_linhasTemp.push({_t:Date.now()+Math.random(),_recId:null,descricao:'',quantidade:1,preco_unitario:0,iva_pct:0});
+        fem_renderLinhas(); fem_calcTotais();
+    }
+    function fem_removeLinha(i){ fem_linhasTemp.splice(i,1); fem_renderLinhas(); fem_calcTotais(); }
+    function fem_syncLinha(i,field,rawVal){
+        var it=fem_linhasTemp[i]; if(!it) return;
+        var num={quantidade:1,preco_unitario:1,iva_pct:1};
+        it[field]=num[field]?(parseFloat(rawVal)||0):rawVal;
+        fem_recalcLinha(i); fem_calcTotais();
+    }
+    function fem_recalcLinha(i){
+        var it=fem_linhasTemp[i]; if(!it) return;
+        var sub=it.quantidade*it.preco_unitario, iva=sub*(it.iva_pct/100);
+        var t=document.getElementById('fl-tot-'+i); if(t) t.value=sub.toFixed(2);
+        var v=document.getElementById('fl-iva-'+i); if(v) v.value=iva.toFixed(2);
+    }
+    function fem_syncFromDOM(){
+        fem_linhasTemp.forEach(function(it,i){
+            var d=document.getElementById('fl-desc-'+i);
+            var q=document.getElementById('fl-qty-'+i);
+            var p=document.getElementById('fl-pu-'+i);
+            var v=document.getElementById('fl-ivap-'+i);
+            if(d) it.descricao=d.value;
+            if(q) it.quantidade=parseFloat(q.value)||0;
+            if(p) it.preco_unitario=parseFloat(p.value)||0;
+            if(v) it.iva_pct=parseFloat(v.value)||0;
+        });
+    }
+    function fem_renderLinhas(){
+        var tbody=document.getElementById('fem-lines-tbody'); if(!tbody) return;
+        if(!fem_linhasTemp.length){
+            tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">Nenhuma linha. Adiciona recebimentos ou clica em + Linha Manual.</td></tr>';
+            return;
+        }
+        tbody.innerHTML=fem_linhasTemp.map(function(it,i){
+            var sub=it.quantidade*it.preco_unitario, iva=sub*(it.iva_pct/100);
+            return '<tr>'
+                +'<td><input id="fl-desc-'+i+'" type="text" value="'+((it.descricao||'').replace(/"/g,'&quot;'))+'" placeholder="Descricao..." oninput="fem_syncLinha('+i+',\'descricao\',this.value)"></td>'
+                +'<td><input id="fl-qty-'+i+'"  type="number" value="'+it.quantidade+'"      step="0.001" style="text-align:center" oninput="fem_syncLinha('+i+',\'quantidade\',this.value)"></td>'
+                +'<td><input id="fl-pu-'+i+'"   type="number" value="'+it.preco_unitario+'"  step="0.01"  style="text-align:right"  oninput="fem_syncLinha('+i+',\'preco_unitario\',this.value)"></td>'
+                +'<td><input id="fl-ivap-'+i+'" type="number" value="'+it.iva_pct+'"          step="1"     style="text-align:center" oninput="fem_syncLinha('+i+',\'iva_pct\',this.value)"></td>'
+                +'<td><input id="fl-tot-'+i+'"  type="number" value="'+sub.toFixed(2)+'" readonly style="text-align:right"></td>'
+                +'<td><input id="fl-iva-'+i+'"  type="number" value="'+iva.toFixed(2)+'" readonly style="text-align:right"></td>'
+                +'<td style="text-align:center"><button onclick="fem_removeLinha('+i+')" style="color:var(--text-faint);background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:2px 8px;font-size:13px">x</button></td>'
+                +'</tr>';
+        }).join('');
+    }
+    function fem_calcTotais(){
+        var tfoot=document.getElementById('fem-lines-tfoot'); if(!tfoot) return;
+        var sumSub=0,sumIVA=0;
+        fem_linhasTemp.forEach(function(it){
+            var b=it.quantidade*it.preco_unitario; sumSub+=b; sumIVA+=b*(it.iva_pct/100);
+        });
+        var chk=document.getElementById('fem_isento');
+        var isento=chk?chk.checked:true;
+        var ivaReal=isento?0:sumIVA;
+        var total=sumSub+ivaReal;
+        tfoot.innerHTML=''
+            +'<tr style="border-top:2px solid var(--border)">'
+            +'<td colspan="3" style="font-family:var(--font-title);font-size:9px;letter-spacing:1px;color:var(--text-faint);padding:8px">TOTAIS</td>'
+            +'<td></td>'
+            +'<td style="text-align:right;font-weight:700;padding:8px">'+fem_eur(sumSub)+'</td>'
+            +'<td style="text-align:right;font-weight:700;padding:8px">'+fem_eur(ivaReal)+'</td>'
+            +'<td></td>'
+            +'</tr>'
+            +'<tr style="background:var(--primary-faint)">'
+            +'<td colspan="4" style="text-align:right;font-size:11px;color:var(--text-faint);padding:8px">'
+            +'Subtotal: <strong style="color:var(--text)">'+fem_eur(sumSub)+'</strong>'
+            +(isento?'&nbsp;&nbsp;<em style="font-size:10px">Isento de IVA</em>':'&nbsp;&nbsp;IVA: <strong style="color:var(--text)">'+fem_eur(sumIVA)+'</strong>')
+            +'</td>'
+            +'<td colspan="2" style="text-align:right;font-family:var(--font-title);font-size:17px;font-weight:700;padding:8px 10px;color:var(--text)">'+fem_eur(total)+'</td>'
+            +'<td></td>'
+            +'</tr>';
+    }
+
+    // ── Salvar ────────────────────────────────────────────────────
+    async function fem_salvar(id){
+        fem_syncFromDOM(); fem_emitPersist();
+        if(!fem_linhasTemp.length){showFormMsg('Adiciona pelo menos uma linha.','error');return;}
+        var cliNome=fem_selectedMembro?fem_selectedMembro.nome:(document.getElementById('fem_cli_nome')||{}).value||null;
+        if(!cliNome){showFormMsg('Preenche o nome do cliente.','error');return;}
+        var sumSub=0,sumIVA=0;
+        fem_linhasTemp.forEach(function(it){var b=it.quantidade*it.preco_unitario;sumSub+=b;sumIVA+=b*(it.iva_pct/100);});
+        var chk=document.getElementById('fem_isento'); var isento=chk?chk.checked:true;
+        var ivaReal=isento?0:sumIVA; var total=sumSub+ivaReal;
+        var recIds=fem_linhasTemp.filter(function(l){return l._recId;}).map(function(l){return l._recId;});
+        var isenTxt=(document.getElementById('fem_isencao_txt')||{}).value||'Isento nos termos do artigo 9.o do CIVA';
+        var body={
+            numero_fatura:(document.getElementById('fem_numero')||{}).value||null,
+            data_emissao:(document.getElementById('fem_data')||{}).value||fem_hoje(),
+            emitente_nome:fem_emit.nome, emitente_nif:fem_emit.nif, emitente_morada:fem_emit.morada,
+            emitente_cidade:fem_emit.cidade, emitente_email:fem_emit.email, emitente_telefone:fem_emit.telefone,
+            cliente_id:fem_selectedMembro?fem_selectedMembro.id:null,
+            cliente_nome:cliNome,
+            cliente_nif:fem_selectedMembro?fem_selectedMembro.nif:((document.getElementById('fem_cli_nif')||{}).value||null),
+            cliente_morada:(document.getElementById('fem_cli_morada')||{}).value||null,
+            itens:JSON.stringify(fem_linhasTemp),
+            contas_receber_ids:JSON.stringify(recIds),
+            subtotal:parseFloat(sumSub.toFixed(2)), iva:parseFloat(ivaReal.toFixed(2)), total:parseFloat(total.toFixed(2)),
+            iva_incluido:!isento, isento_iva:isento, motivo_isencao:isenTxt,
+            forma_pagamento:(document.getElementById('fem_forma')||{}).value||null,
+            observacoes:(document.getElementById('fem_obs')||{}).value||null,
+            status:'emitida', updated_at:new Date().toISOString()
+        };
+        var btn=document.getElementById('btn-fem-save');
+        if(btn){btn.disabled=true;btn.textContent='A guardar...';}
+        try {
+            var savedId=id;
+            if(!id){
+                var r=await sb('faturas_emitidas',{method:'POST',body:JSON.stringify(body)});
+                savedId=r&&r[0]&&r[0].id;
+            } else {
+                await sb('faturas_emitidas?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});
+            }
+            // Mark contas_receber as invoiced
+            for(var i=0;i<recIds.length;i++){
+                await sb('contas_receber?id=eq.'+recIds[i],{method:'PATCH',body:JSON.stringify({fatura_emitida_id:savedId})}).catch(function(){});
+            }
+            await fem_loadAll();
+            showFormMsg('Fatura guardada.','success');
+            fem_render();
+            if(btn){btn.disabled=false;btn.textContent='Guardar Fatura';}
+            return savedId;
+        } catch(e){
+            showFormMsg('Erro: '+(e&&e.message||JSON.stringify(e)),'error');
+            if(btn){btn.disabled=false;btn.textContent='Guardar Fatura';}
+            return null;
+        }
+    }
+
+    async function fem_salvarEImprimir(id){
+        var sid=await fem_salvar(id);
+        if(sid) setTimeout(function(){ fem_gerarPDF(sid); },600);
+    }
+
+    async function fem_marcarPaga(id){
+        await sb('faturas_emitidas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'paga',updated_at:new Date().toISOString()})});
+        await fem_loadAll(); fem_render();
+    }
+    async function fem_anular(id){
+        if(!confirm('Anular esta fatura? A acao nao pode ser desfeita.')) return;
+        await sb('faturas_emitidas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'anulada',updated_at:new Date().toISOString()})});
+        await fem_loadAll(); fem_render();
+    }
+    async function fem_editarForm(id){
+        await fem_abrirForm(id);
+    }
+
+    // ── PDF Generation ────────────────────────────────────────────
+    function fem_loadJsPDF(cb){
+        if(window.jspdf){cb();return;}
+        var s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload=function(){ setTimeout(cb,100); };
+        s.onerror=function(){ alert('Erro ao carregar biblioteca de PDF. Verifica ligacao a internet.'); };
+        document.head.appendChild(s);
+    }
+
+    async function fem_gerarPDF(id){
+        var f=fem_faturas.find(function(x){return x.id===id;});
+        if(!f){await fem_loadAll();f=fem_faturas.find(function(x){return x.id===id;});}
+        if(!f){alert('Fatura nao encontrada.');return;}
+        fem_loadJsPDF(function(){
+            try {
+                var jsPDF=window.jspdf.jsPDF;
+                var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+                var W=210, ml=15, mr=15, cw=W-ml-mr;
+                var y=15, lh=5.5;
+                var S=fem_sanitize;
+                var em=f.emitente_nome?S(f.emitente_nome):'Zion Lisboa';
+
+                // ── Header band ───────────────────────────────────
+                doc.setFillColor(2,22,30); doc.rect(0,0,W,28,'F');
+                doc.setTextColor(255,255,255);
+                doc.setFont('helvetica','bold'); doc.setFontSize(18);
+                doc.text(S(f.emitente_nome||'Zion Lisboa'), ml, 12);
+                doc.setFontSize(9); doc.setFont('helvetica','normal');
+                doc.text(S(f.emitente_morada||''), ml, 18);
+                doc.text(S(f.emitente_cidade||''), ml, 23);
+
+                // FATURA label (right)
+                doc.setFont('helvetica','bold'); doc.setFontSize(22);
+                doc.setTextColor(0,144,152);
+                doc.text('FATURA', W-mr, 14, {align:'right'});
+                doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(200,200,200);
+                doc.text(S(f.numero_fatura||''), W-mr, 21, {align:'right'});
+                doc.text(S(fem_dt(f.data_emissao)), W-mr, 26, {align:'right'});
+
+                y=36; doc.setTextColor(30,30,30);
+
+                // ── Emitter / Client blocks ────────────────────────
+                doc.setFillColor(245,247,248); doc.roundedRect(ml, y, cw/2-4, 30, 2, 2, 'F');
+                doc.setFillColor(245,247,248); doc.roundedRect(ml+cw/2+4, y, cw/2-4, 30, 2, 2, 'F');
+
+                // Emitter
+                doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,144,152);
+                doc.text('EMITENTE', ml+4, y+5);
+                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(30,30,30);
+                doc.text(S(f.emitente_nome||''), ml+4, y+11);
+                doc.setFont('helvetica','normal'); doc.setFontSize(8);
+                doc.text('NIF: '+S(f.emitente_nif||'---'), ml+4, y+16);
+                doc.text(S(f.emitente_morada||''), ml+4, y+21);
+                doc.text(S(f.emitente_cidade||''), ml+4, y+26);
+                if(f.emitente_email) doc.text(S(f.emitente_email), ml+4, y+31);
+
+                // Client
+                var cx=ml+cw/2+8;
+                doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,144,152);
+                doc.text('CLIENTE', cx, y+5);
+                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(30,30,30);
+                doc.text(S(f.cliente_nome||'---'), cx, y+11);
+                doc.setFont('helvetica','normal'); doc.setFontSize(8);
+                doc.text('NIF: '+S(f.cliente_nif||'---'), cx, y+16);
+                if(f.cliente_morada) doc.text(S(f.cliente_morada), cx, y+21);
+
+                y+=36;
+
+                // ── Invoice details row ────────────────────────────
+                doc.setFontSize(8); doc.setTextColor(100,100,100);
+                doc.text('Data de emissao: '+S(fem_dt(f.data_emissao)), ml, y);
+                if(f.forma_pagamento) doc.text('Forma de pagamento: '+S(f.forma_pagamento), ml+70, y);
+                y+=6;
+
+                // ── Separator ─────────────────────────────────────
+                doc.setDrawColor(0,144,152); doc.setLineWidth(0.5);
+                doc.line(ml, y, W-mr, y); y+=5;
+
+                // ── Table header ───────────────────────────────────
+                doc.setFillColor(2,22,30);
+                doc.rect(ml, y, cw, 7, 'F');
+                doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                var cols=[
+                    {label:'DESCRICAO',  x:ml+2,          w:78, align:'left'},
+                    {label:'QTD',        x:ml+82,         w:14, align:'right'},
+                    {label:'PRECO UNIT.',x:ml+98,         w:22, align:'right'},
+                    {label:'IVA %',      x:ml+122,        w:14, align:'right'},
+                    {label:'IVA EUR',    x:ml+138,        w:20, align:'right'},
+                    {label:'TOTAL',      x:ml+cw,         w:0,  align:'right'}
+                ];
+                cols.forEach(function(c){
+                    doc.text(c.label, c.align==='right'?c.x:c.x, y+5, {align:c.align});
+                });
+                y+=9;
+
+                // ── Table rows ────────────────────────────────────
+                var itens=[];
+                try{ itens=(typeof f.itens==='string'?JSON.parse(f.itens):f.itens)||[]; }catch(e){}
+                var isento=f.isento_iva!==false;
+                var sumSub=0, sumIVA=0;
+                doc.setTextColor(30,30,30); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+                itens.forEach(function(it,idx){
+                    if(idx%2===0){ doc.setFillColor(248,250,251); doc.rect(ml,y-1,cw,7,'F'); }
+                    var sub=it.quantidade*it.preco_unitario;
+                    var iva=isento?0:sub*(it.iva_pct/100);
+                    sumSub+=sub; sumIVA+=iva;
+                    // Wrap description
+                    var desc=S(it.descricao||'');
+                    if(desc.length>42) desc=desc.slice(0,40)+'..';
+                    doc.text(desc, ml+2, y+4);
+                    doc.text(String(Number(it.quantidade).toFixed(2)), ml+96, y+4, {align:'right'});
+                    doc.text(String(Number(it.preco_unitario).toFixed(2)), ml+120, y+4, {align:'right'});
+                    doc.text((isento?'Isento':String(Number(it.iva_pct||0).toFixed(0))+'%'), ml+136, y+4, {align:'right'});
+                    doc.text(String(iva.toFixed(2)), ml+158, y+4, {align:'right'});
+                    doc.text(String(sub.toFixed(2)), W-mr, y+4, {align:'right'});
+                    y+=7;
+                    if(y>260){doc.addPage();y=20;}
+                });
+
+                // ── Totals box ─────────────────────────────────────
+                y+=4;
+                doc.setDrawColor(220,220,220); doc.setLineWidth(0.3);
+                doc.line(ml, y, W-mr, y); y+=2;
+
+                var tx=W-mr-55;
+                doc.setFont('helvetica','normal'); doc.setFontSize(9);
+                doc.setTextColor(80,80,80);
+                doc.text('Subtotal:', tx, y+5); doc.text(String(sumSub.toFixed(2))+' EUR', W-mr, y+5, {align:'right'});
+                doc.text('IVA:',      tx, y+11);
+                if(isento){
+                    doc.setTextColor(100,100,100); doc.setFontSize(7);
+                    doc.text('Isento', W-mr, y+11, {align:'right'});
+                    doc.setFontSize(9); doc.setTextColor(80,80,80);
+                } else {
+                    doc.text(String(sumIVA.toFixed(2))+' EUR', W-mr, y+11, {align:'right'});
+                }
+                // Total box
+                doc.setFillColor(2,22,30); doc.roundedRect(tx-2, y+13, W-mr-tx+2, 9, 2, 2, 'F');
+                doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+                doc.text('TOTAL:', tx+1, y+19);
+                doc.text(String((sumSub+sumIVA).toFixed(2))+' EUR', W-mr-2, y+19, {align:'right'});
+                y+=26;
+
+                // ── Exemption note ────────────────────────────────
+                if(isento && f.motivo_isencao){
+                    doc.setTextColor(100,100,100); doc.setFont('helvetica','italic'); doc.setFontSize(7);
+                    doc.text(S(f.motivo_isencao), ml, y);
+                    y+=6;
+                }
+
+                // ── Observacoes ───────────────────────────────────
+                if(f.observacoes){
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80,80,80);
+                    doc.text('Observacoes: '+S(f.observacoes), ml, y);
+                    y+=6;
+                }
+
+                // ── Footer ────────────────────────────────────────
+                doc.setFillColor(2,22,30); doc.rect(0,275,W,22,'F');
+                doc.setTextColor(150,150,150); doc.setFont('helvetica','normal'); doc.setFontSize(7);
+                doc.text(S(f.emitente_nome||'Zion Lisboa')+' · NIF: '+S(f.emitente_nif||'')+'  ·  '+S(f.emitente_email||''), W/2, 282, {align:'center'});
+                doc.text('Documento emitido por sistema informatico', W/2, 287, {align:'center'});
+                doc.setTextColor(0,144,152); doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text(S(f.numero_fatura||''), W/2, 292, {align:'center'});
+
+                // Save
+                doc.save((f.numero_fatura||'fatura').replace(/\s/g,'-').replace(/\//g,'-')+'.pdf');
+
+            } catch(err){
+                console.error(err);
+                alert('Erro ao gerar PDF: '+err.message);
+            }
+        });
+    }
+
+    fem_init();
+</script>

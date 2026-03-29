@@ -1,0 +1,477 @@
+<style>
+    #lj-root{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+    .lj-toolbar{
+        display:flex;align-items:center;gap:6px;padding:8px 14px;
+        background:var(--bg-card);border-bottom:1px solid var(--border);
+        flex-shrink:0;flex-wrap:wrap;
+    }
+    .lj-search{
+        flex:1;min-width:140px;background:var(--bg-input);border:1px solid var(--border);
+        border-radius:20px;padding:6px 14px;font-size:12px;font-family:var(--font-body);
+        color:var(--text-main);outline:none;
+    }
+    .lj-search:focus{border-color:var(--primary);}
+    .lj-fsel{
+        background:var(--bg-input);border:1px solid var(--border);border-radius:20px;
+        padding:6px 10px;font-size:11px;font-family:var(--font-title);color:var(--text-muted);cursor:pointer;outline:none;
+    }
+    .lj-fbtn{
+        padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg-input);
+        font-size:11px;font-family:var(--font-title);color:var(--text-muted);cursor:pointer;
+    }
+    .lj-fbtn:hover,.lj-fbtn.active{border-color:var(--primary);color:var(--primary-dark);background:var(--primary-faint);}
+    .lj-btn-new{
+        padding:7px 16px;border-radius:20px;border:none;background:var(--primary);
+        color:#fff;font-size:11px;font-family:var(--font-title);letter-spacing:1px;cursor:pointer;flex-shrink:0;
+    }
+    .lj-btn-new:hover{background:var(--primary-dark);}
+
+    .lj-stats{display:flex;gap:6px;padding:6px 14px;flex-shrink:0;overflow-x:auto;border-bottom:1px solid var(--border);}
+    .lj-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:4px 12px;flex-shrink:0;display:flex;align-items:center;gap:7px;}
+    .lj-stat-n{font-family:var(--font-title);font-size:16px;font-weight:700;}
+    .lj-stat-l{font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;}
+
+    .lj-scroll{flex:1;overflow-y:auto;padding-bottom:32px;}
+
+    /* Colunas: img(36) | nome(1fr) | cat(90) | preco(80) | stock(90) | pdv(38) | ativo(40) | menu(32) */
+    .lj-grid{
+        display:grid;
+        grid-template-columns: 36px 1fr 90px 80px 90px 38px 40px 32px;
+        align-items:center;gap:0;
+    }
+    .lj-thead{
+        padding:4px 14px;background:var(--bg-input);
+        border-bottom:2px solid var(--border);position:sticky;top:0;z-index:10;
+    }
+    .lj-th{
+        font-family:var(--font-title);font-size:8px;letter-spacing:1.2px;text-transform:uppercase;
+        color:var(--text-faint);padding:0 5px;display:flex;align-items:center;white-space:nowrap;
+    }
+    .lj-th.c{justify-content:center;}
+    .lj-th.r{justify-content:flex-end;}
+
+    .lj-row{
+        padding:0 14px;border-bottom:1px solid var(--border);
+        min-height:46px;cursor:default;transition:background .1s;
+        animation:ljIn .15s ease both;
+    }
+    .lj-row:hover{background:var(--primary-faint);}
+    .lj-row.inativo{opacity:.4;}
+    @keyframes ljIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
+
+    .lj-td{padding:0 5px;display:flex;flex-direction:column;justify-content:center;min-width:0;overflow:hidden;}
+    .lj-td.c{align-items:center;}
+    .lj-td.r{align-items:flex-end;}
+
+    .lj-img{width:30px;height:30px;border-radius:6px;object-fit:cover;display:block;}
+    .lj-img-ph{width:30px;height:30px;border-radius:6px;background:var(--primary-faint);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--primary-dark);}
+
+    .lj-nome{font-size:12px;font-weight:600;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;}
+    .lj-sub{font-size:10px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+
+    .lj-pill{
+        font-family:var(--font-title);font-size:9px;letter-spacing:.5px;
+        padding:2px 7px;border-radius:10px;white-space:nowrap;
+        border:1px solid var(--border);background:var(--bg-input);color:var(--text-muted);
+    }
+    .lj-preco{font-family:var(--font-title);font-size:12px;font-weight:700;color:var(--primary-dark);}
+    .lj-custo{font-size:9px;color:var(--text-faint);margin-top:1px;}
+
+    .lj-stk{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-main);}
+    .lj-sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+    .lj-sbar{width:34px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0;margin-top:2px;}
+    .lj-sbf{height:100%;border-radius:2px;}
+
+    .lj-yes{font-size:12px;color:var(--green);}
+    .lj-noo{font-size:12px;color:var(--border);}
+
+    .lj-act{position:relative;display:flex;align-items:center;justify-content:center;}
+    .lj-act-btn{
+        width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+        border-radius:6px;border:1px solid var(--border);background:var(--bg-card);
+        color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;transition:all .12s;
+    }
+    .lj-act-btn:hover{border-color:var(--primary);color:var(--primary-dark);background:var(--primary-faint);}
+
+    .lj-drop{
+        position:fixed;min-width:130px;background:var(--bg-card);border:1px solid var(--border);
+        border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;overflow:hidden;
+    }
+    .lj-drop-item{
+        padding:8px 12px;font-size:11px;font-family:var(--font-title);letter-spacing:.4px;
+        color:var(--text-main);cursor:pointer;transition:background .1s;
+        display:flex;align-items:center;gap:8px;white-space:nowrap;
+    }
+    .lj-drop-item:hover{background:var(--primary-faint);}
+    .lj-drop-item.red{color:var(--red);}
+    .lj-drop-item.red:hover{background:rgba(192,57,43,.07);}
+
+    .lj-empty{padding:40px;text-align:center;font-size:12px;color:var(--text-faint);}
+</style>
+
+<div id="lj-root">
+    <div class="lj-toolbar">
+        <input class="lj-search" id="lj-search" placeholder="Pesquisar produto..." oninput="lj_onSearch()">
+        <select class="lj-fsel" id="lj-f-cat" onchange="lj_applyFilters()">
+            <option value="">Todas as categorias</option>
+            <option value="Livros">Livros</option>
+            <option value="Biblia">Bíblias</option>
+            <option value="Vestuario">Vestuário</option>
+            <option value="Acessorios">Acessórios</option>
+            <option value="Musica">Música</option>
+            <option value="Decoracao">Decoração</option>
+            <option value="Infantil">Infantil</option>
+            <option value="Papelaria">Papelaria</option>
+            <option value="Outros">Outros</option>
+        </select>
+        <button class="lj-fbtn" id="lj-f-inativo-btn" onclick="lj_toggleInativo()">Inativos</button>
+        <button class="lj-btn-new" onclick="lj_abrirForm(null)">+ Novo Produto</button>
+    </div>
+    <div class="lj-stats" id="lj-stats"></div>
+    <div class="lj-scroll" id="lj-scroll">
+        <div class="loading"><div class="spin"></div>A carregar Loja...</div>
+    </div>
+</div>
+
+<div id="lj-drop-global" class="lj-drop" style="display:none"></div>
+
+<script>
+    (function(){
+        'use strict';
+        var lj_data=[], lj_inativo=false, lj_stimer=null;
+
+        var LJ_CAT={
+            Livros:'Livros',Biblia:'Bíblias',Vestuario:'Vestuário',Acessorios:'Acessórios',
+            Musica:'Música',Decoracao:'Decoração',Infantil:'Infantil',Papelaria:'Papelaria',Outros:'Outros'
+        };
+
+        /* ── INIT ─────────────────────────────────────────────────────────── */
+        async function lj_init(){
+            lj_data = await sb('loja_produtos?select=*&order=categoria,nome') || [];
+            lj_renderStats();
+            lj_renderList();
+        }
+        window.lj_init = lj_init;
+
+        /* ── FILTERS ──────────────────────────────────────────────────────── */
+        function lj_onSearch(){clearTimeout(lj_stimer);lj_stimer=setTimeout(lj_applyFilters,200);}
+        window.lj_onSearch = lj_onSearch;
+
+        function lj_toggleInativo(){
+            lj_inativo=!lj_inativo;
+            var b=document.getElementById('lj-f-inativo-btn');
+            if(b) b.classList.toggle('active',lj_inativo);
+            lj_applyFilters();
+        }
+        window.lj_toggleInativo = lj_toggleInativo;
+
+        function lj_applyFilters(){lj_renderStats();lj_renderList();}
+        window.lj_applyFilters = lj_applyFilters;
+
+        function lj_getFiltered(){
+            var q=(document.getElementById('lj-search')||{value:''}).value.toLowerCase();
+            var fc=(document.getElementById('lj-f-cat')||{value:''}).value;
+            return lj_data.filter(function(r){
+                if(!lj_inativo && r.ativo===false) return false;
+                if(lj_inativo  && r.ativo!==false) return false;
+                if(fc && r.categoria!==fc) return false;
+                if(q && !(r.nome||'').toLowerCase().includes(q) && !(r.categoria||'').toLowerCase().includes(q)) return false;
+                return true;
+            });
+        }
+
+        /* ── STATS ────────────────────────────────────────────────────────── */
+        function lj_renderStats(){
+            var el=document.getElementById('lj-stats'); if(!el) return;
+            var a   =lj_data.filter(function(r){return r.ativo!==false;});
+            var inat=lj_data.filter(function(r){return r.ativo===false;}).length;
+            var dest=a.filter(function(r){return r.destaque;}).length;
+            var low =a.filter(function(r){return r.controlar_estoque&&r.stock!=null&&r.stock_minimo>0&&r.stock<=r.stock_minimo;}).length;
+            function s(n,l,cor){return'<div class="lj-stat"><span class="lj-stat-n" style="color:'+cor+'">'+n+'</span><span class="lj-stat-l">'+l+'</span></div>';}
+            el.innerHTML=s(a.length,'Ativos','var(--primary-dark)')+
+                s(inat,'Inativos','var(--text-faint)')+
+                s(dest,'Destaque','var(--green)')+
+                (low?'<div class="lj-stat" style="border-color:var(--red)"><span class="lj-stat-n" style="color:var(--red)">'+low+'</span><span class="lj-stat-l">Stock Baixo</span></div>':'');
+        }
+
+        /* ── RENDER LIST ──────────────────────────────────────────────────── */
+        function lj_renderList(){
+            lj_closeDrop();
+            var lista=lj_getFiltered();
+            var s=document.getElementById('lj-scroll'); if(!s) return;
+            if(!lista.length){s.innerHTML='<div class="lj-empty">Nenhum produto encontrado.</div>';return;}
+
+            var header='<div class="lj-grid lj-thead">'+
+                '<div class="lj-th"></div>'+
+                '<div class="lj-th">Nome</div>'+
+                '<div class="lj-th c">Categoria</div>'+
+                '<div class="lj-th r">Preço</div>'+
+                '<div class="lj-th">Stock</div>'+
+                '<div class="lj-th c">PDV</div>'+
+                '<div class="lj-th c">Ativo</div>'+
+                '<div class="lj-th"></div>'+
+                '</div>';
+
+            var rows=lista.map(function(r,i){return lj_buildRow(r,i);}).join('');
+            s.innerHTML=header+rows;
+        }
+
+        function lj_buildRow(r,idx){
+            var ativo=r.ativo!==false;
+
+            /* imagem */
+            var img=r.imagem_url
+                ?'<img class="lj-img" src="'+r.imagem_url+'" alt="" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'"><div class="lj-img-ph" style="display:none">'+(r.nome||'?')[0]+'</div>'
+                :'<div class="lj-img-ph">'+(r.nome||'?')[0]+'</div>';
+
+            /* categoria */
+            var cat='<span class="lj-pill">'+(LJ_CAT[r.categoria]||r.categoria||'—')+'</span>';
+
+            /* preço */
+            var preco='<span style="color:var(--text-faint);font-size:11px">—</span>';
+            if(r.preco) preco='<div class="lj-preco">€'+Number(r.preco).toFixed(2)+'</div>'+(r.preco_custo?'<div class="lj-custo">c:€'+Number(r.preco_custo).toFixed(2)+'</div>':'');
+
+            /* stock */
+            var stk='<span style="color:var(--text-faint);font-size:10px">—</span>';
+            if(r.stock!=null){
+                var mn=r.stock_minimo||0,cor=r.stock<=mn&&mn>0?'#c62828':r.stock<=mn*2&&mn>0?'#e65100':'#2e7d32';
+                var mx=Math.max(mn*3||30,r.stock,1),pct=Math.min(100,Math.round(r.stock/mx*100));
+                stk='<div class="lj-stk"><div class="lj-sdot" style="background:'+cor+'"></div><span>'+r.stock+'</span></div>'+
+                    '<div class="lj-sbar"><div class="lj-sbf" style="width:'+pct+'%;background:'+cor+'"></div></div>';
+            }
+
+            function bool(v){return v?'<span class="lj-yes">&#10003;</span>':'<span class="lj-noo">&#8212;</span>';}
+
+            var sub=[r.sku?'SKU: '+r.sku:null, r.destaque?'★ Destaque':null].filter(Boolean).join(' · ');
+
+            return '<div class="lj-grid lj-row'+(ativo?'':' inativo')+'" style="animation-delay:'+(Math.min(idx,20)*.012)+'s">'+
+                '<div class="lj-td c">'+img+'</div>'+
+                '<div class="lj-td"><div class="lj-nome">'+(r.nome||'—')+'</div>'+(sub?'<div class="lj-sub">'+sub+'</div>':'')+'</div>'+
+                '<div class="lj-td c">'+cat+'</div>'+
+                '<div class="lj-td r">'+preco+'</div>'+
+                '<div class="lj-td">'+stk+'</div>'+
+                '<div class="lj-td c">'+bool(r.mostrar_pdv!==false)+'</div>'+
+                '<div class="lj-td c">'+bool(ativo)+'</div>'+
+                '<div class="lj-td c lj-act">'+
+                '<button class="lj-act-btn" data-id="'+r.id+'" data-ativo="'+ativo+'" onclick="lj_openDrop(this,event)">&#8942;</button>'+
+                '</div>'+
+                '</div>';
+        }
+
+        /* ── DROPDOWN ─────────────────────────────────────────────────────── */
+        function lj_openDrop(btn,e){
+            e.stopPropagation();
+            var drop=document.getElementById('lj-drop-global'); if(!drop) return;
+            var id=btn.dataset.id, ativo=btn.dataset.ativo==='true';
+            drop.innerHTML=
+                '<div class="lj-drop-item" onclick="lj_closeDrop();lj_abrirForm(\''+id+'\')">Editar</div>'+
+                '<div class="lj-drop-item" onclick="lj_closeDrop();lj_duplicar(\''+id+'\')">Duplicar</div>'+
+                '<div class="lj-drop-item red" onclick="lj_closeDrop();lj_toggleAtivo(\''+id+'\','+ativo+')">'+(ativo?'Inativar':'Ativar')+'</div>';
+            drop.style.display='block';
+            var rect=btn.getBoundingClientRect(),tw=drop.offsetWidth||130,th=drop.offsetHeight||90;
+            var left=rect.right-tw, top=rect.bottom+4;
+            if(top+th>window.innerHeight) top=rect.top-th-4;
+            if(left<4) left=4;
+            drop.style.left=left+'px'; drop.style.top=top+'px';
+        }
+        window.lj_openDrop = lj_openDrop;
+
+        function lj_closeDrop(){
+            var drop=document.getElementById('lj-drop-global');
+            if(drop) drop.style.display='none';
+        }
+        window.lj_closeDrop = lj_closeDrop;
+
+        document.addEventListener('click',function(e){
+            var drop=document.getElementById('lj-drop-global');
+            if(drop&&drop.style.display!=='none'&&!drop.contains(e.target)) lj_closeDrop();
+        });
+
+        /* ── TOGGLE ATIVO ─────────────────────────────────────────────────── */
+        async function lj_toggleAtivo(id,ativo){
+            await sb('loja_produtos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo:!ativo})});
+            lj_data=await sb('loja_produtos?select=*&order=categoria,nome')||[];
+            lj_renderStats(); lj_renderList();
+        }
+        window.lj_toggleAtivo = lj_toggleAtivo;
+
+        /* ── DUPLICAR ─────────────────────────────────────────────────────── */
+        async function lj_duplicar(id){
+            var orig=lj_data.find(function(r){return r.id===id;}); if(!orig) return;
+            var body=Object.assign({},orig);
+            delete body.id; delete body.created_at; delete body.updated_at;
+            body.nome=(orig.nome||'')+' (copia)'; body.ativo=false;
+            try{
+                var res=await sb('loja_produtos',{method:'POST',body:JSON.stringify(body)});
+                var nid=res&&res[0]&&res[0].id;
+                lj_data=await sb('loja_produtos?select=*&order=categoria,nome')||[];
+                lj_renderStats(); lj_renderList();
+                if(nid) setTimeout(function(){lj_abrirForm(nid);},200);
+            }catch(e){alert('Erro ao duplicar: '+(e&&e.message?e.message:JSON.stringify(e)));}
+        }
+        window.lj_duplicar = lj_duplicar;
+
+        /* ── FORM ─────────────────────────────────────────────────────────── */
+        async function lj_abrirForm(id){
+            var r=id?lj_data.find(function(x){return x.id===id;}):null;
+            document.getElementById('drawer-title').textContent=r?('Editar — '+r.nome):'Novo Produto';
+            document.getElementById('drawer-body').innerHTML=lj_buildForm(r);
+            document.getElementById('overlay').classList.remove('hidden');
+            document.body.style.overflow='hidden';
+        }
+        window.lj_abrirForm = lj_abrirForm;
+
+        function lj_buildForm(r){
+            function fv(k,d){var v=r&&r[k]!==undefined?r[k]:(d!==undefined?d:'');return(v===null||v===undefined)?'':(v===true?true:v===false?false:v);}
+            function opt(arr,val){return arr.map(function(o){return'<option value="'+o[0]+'"'+(String(val)===String(o[0])?' selected':'')+'>'+o[1]+'</option>';}).join('');}
+            function chkd(k,def){return fv(k,def)!==false?'checked':'';}
+
+            var catO=opt([['Livros','Livros'],['Biblia','Bíblias'],['Vestuario','Vestuário'],['Acessorios','Acessórios'],['Musica','Música'],['Decoracao','Decoração'],['Infantil','Infantil'],['Papelaria','Papelaria'],['Outros','Outros']],fv('categoria'));
+            var genO=opt([['','--'],['masculino','Masculino'],['feminino','Feminino'],['unissex','Unissex'],['infantil','Infantil']],fv('genero'));
+            var idmO=opt([['','--'],['portugues','Português'],['ingles','Inglês'],['espanhol','Espanhol'],['outro','Outro']],fv('idioma'));
+            var capO=opt([['','--'],['dura','Capa Dura'],['brochura','Brochura'],['flexivel','Flexível']],fv('tipo_capa'));
+            var imgH=typeof buildImageUpload==='function'
+                ?buildImageUpload('imagem_url','Foto do Produto',fv('imagem_url',''),'imagens')
+                :'<div class="form-group form-full"><label class="form-label">URL da Imagem</label><input class="form-input" id="f_imagem_url" type="text" value="'+fv('imagem_url','')+'" placeholder="https://..."></div>';
+            var isNew=!r;
+
+            return '<div class="form-grid"><div class="msg-form" id="form-msg"></div>'+
+
+                '<div class="form-section-title">Identificação</div>'+
+                '<div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="lf_nome" type="text" value="'+fv('nome')+'" placeholder="Ex: Bíblia NVI Capa Dura"></div>'+
+                '<div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="lf_categoria">'+catO+'</select></div>'+
+                '<div class="form-group"><label class="form-label">Subcategoria</label><input class="form-input" id="lf_subcategoria" type="text" value="'+fv('subcategoria')+'" placeholder="Ex: Devocionais"></div>'+
+                '<div class="form-group form-full"><label class="form-label">Descrição</label><textarea class="form-textarea" id="lf_descricao" placeholder="Descrição do produto...">'+fv('descricao')+'</textarea></div>'+
+                '<div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="lf_sku" type="text" value="'+fv('sku')+'" placeholder="Ex: BIB-NVI-001"></div>'+
+                '<div class="form-group"><label class="form-label">Cód. Barras</label><input class="form-input" id="lf_codigo_barras" type="text" value="'+fv('codigo_barras')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="lf_marca" type="text" value="'+fv('marca')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Fornecedor</label><input class="form-input" id="lf_fornecedor" type="text" value="'+fv('fornecedor')+'"></div>'+
+                '<div class="form-group form-full"><label class="form-label">Tags</label><input class="form-input" id="lf_tags" type="text" value="'+fv('tags')+'" placeholder="livro, bíblia, nvi (separado por vírgula)"></div>'+
+
+                '<div class="form-section-title">Preços</div>'+
+                '<div class="form-group"><label class="form-label">Preço de Venda (€)</label><input class="form-input" id="lf_preco" type="number" step="0.01" value="'+fv('preco')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Preço de Custo (€)</label><input class="form-input" id="lf_preco_custo" type="number" step="0.01" value="'+fv('preco_custo')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Preço Promo (€)</label><input class="form-input" id="lf_preco_promocional" type="number" step="0.01" value="'+fv('preco_promocional')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Desconto (%)</label><input class="form-input" id="lf_desconto_pct" type="number" value="'+fv('desconto_pct')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Início Promoção</label><input class="form-input" id="lf_data_inicio_promo" type="date" value="'+fv('data_inicio_promo')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Fim Promoção</label><input class="form-input" id="lf_data_fim_promo" type="date" value="'+fv('data_fim_promo')+'"></div>'+
+
+                '<div class="form-section-title">Estoque</div>'+
+                '<div class="form-group"><label class="form-label">Estoque Actual</label><input class="form-input" id="lf_stock" type="number" step="0.001" value="'+fv('stock',0)+'"></div>'+
+                '<div class="form-group"><label class="form-label">Estoque Mínimo</label><input class="form-input" id="lf_stock_minimo" type="number" value="'+fv('stock_minimo',0)+'"></div>'+
+                '<div class="form-group"><label class="form-label">Estoque Máximo</label><input class="form-input" id="lf_stock_maximo" type="number" value="'+fv('stock_maximo',0)+'"></div>'+
+                '<div class="form-group"><label class="form-label">Localização</label><input class="form-input" id="lf_localizacao" type="text" value="'+fv('localizacao')+'" placeholder="Ex: Prateleira A2"></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_controlar_estoque" '+chkd('controlar_estoque',true)+'><span>Controlar Estoque</span></label></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_venda_sem_estoque" '+chkd('venda_sem_estoque',false)+'><span>Vender sem Estoque</span></label></div>'+
+
+                '<div class="form-section-title">Variações</div>'+
+                '<div class="form-group"><label class="form-label">Cor</label><input class="form-input" id="lf_cor" type="text" value="'+fv('cor')+'" placeholder="Ex: Azul, Preto"></div>'+
+                '<div class="form-group"><label class="form-label">Tamanho</label><input class="form-input" id="lf_tamanho" type="text" value="'+fv('tamanho')+'" placeholder="Ex: M, G, 42"></div>'+
+                '<div class="form-group"><label class="form-label">Género</label><select class="form-select" id="lf_genero">'+genO+'</select></div>'+
+                '<div class="form-group"><label class="form-label">Material</label><input class="form-input" id="lf_material" type="text" value="'+fv('material')+'"></div>'+
+
+                '<div class="form-section-title">Livros & Bíblias</div>'+
+                '<div class="form-group"><label class="form-label">Autor</label><input class="form-input" id="lf_autor" type="text" value="'+fv('autor')+'" placeholder="Ex: Charles Spurgeon"></div>'+
+                '<div class="form-group"><label class="form-label">Editora</label><input class="form-input" id="lf_editora" type="text" value="'+fv('editora')+'"></div>'+
+                '<div class="form-group"><label class="form-label">ISBN</label><input class="form-input" id="lf_isbn" type="text" value="'+fv('isbn')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Nº de Páginas</label><input class="form-input" id="lf_num_paginas" type="number" value="'+fv('num_paginas')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Ano Publicação</label><input class="form-input" id="lf_ano_publicacao" type="number" value="'+fv('ano_publicacao')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Idioma</label><select class="form-select" id="lf_idioma">'+idmO+'</select></div>'+
+                '<div class="form-group"><label class="form-label">Tipo de Capa</label><select class="form-select" id="lf_tipo_capa">'+capO+'</select></div>'+
+
+                '<div class="form-section-title">Dimensões & Envio</div>'+
+                '<div class="form-group"><label class="form-label">Peso (kg)</label><input class="form-input" id="lf_peso" type="number" step="0.001" value="'+fv('peso')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Altura (cm)</label><input class="form-input" id="lf_altura" type="number" value="'+fv('altura')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Largura (cm)</label><input class="form-input" id="lf_largura" type="number" value="'+fv('largura')+'"></div>'+
+                '<div class="form-group"><label class="form-label">Comprimento (cm)</label><input class="form-input" id="lf_comprimento" type="number" value="'+fv('comprimento')+'"></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_frete_gratis" '+chkd('frete_gratis',false)+'><span>Frete Grátis</span></label></div>'+
+
+                '<div class="form-section-title">Imagem & Visibilidade</div>'+
+                imgH+
+                '<div class="form-group"><label class="form-label">Ordem Exibição</label><input class="form-input" id="lf_ordem" type="number" value="'+fv('ordem',1)+'"></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_mostrar_pdv" '+chkd('mostrar_pdv',true)+'><span>Mostrar no PDV</span></label></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_disponivel" '+chkd('disponivel',true)+'><span>Disponível</span></label></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_ativo" '+chkd('ativo',true)+'><span>Ativo</span></label></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_destaque" '+chkd('destaque',false)+'><span>Destaque</span></label></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_novo_lancamento" '+chkd('novo_lancamento',false)+'><span>Novo Lançamento</span></label></div>'+
+                '<div class="form-group"><label class="form-toggle"><input type="checkbox" id="lf_mais_vendido" '+chkd('mais_vendido',false)+'><span>Mais Vendido</span></label></div>'+
+
+                '<div class="form-actions">'+
+                '<button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>'+
+                '<button class="btn-save" id="lj-btn-save" onclick="lj_salvar(\''+(r?r.id:'')+'\','+isNew+')">Guardar</button>'+
+                '</div></div>';
+        }
+
+        /* ── SALVAR ───────────────────────────────────────────────────────── */
+        async function lj_salvar(id,isNew){
+            var get=function(k){var el=document.getElementById('lf_'+k);return el?(el.value||null):null;};
+            var chk=function(k){var el=document.getElementById('lf_'+k);return el?el.checked:false;};
+            var imgEl=document.getElementById('f_imagem_url');
+            var nome=get('nome');
+            if(!nome){
+                var msg=document.getElementById('form-msg');
+                if(msg){msg.textContent='Nome obrigatório.';msg.className='msg-form error';}
+                return;
+            }
+            var body={
+                nome:nome, categoria:get('categoria'), subcategoria:get('subcategoria'),
+                descricao:get('descricao'), sku:get('sku'), codigo_barras:get('codigo_barras'),
+                marca:get('marca'), fornecedor:get('fornecedor'), tags:get('tags'),
+                preco:get('preco')?parseFloat(get('preco')):null,
+                preco_custo:get('preco_custo')?parseFloat(get('preco_custo')):null,
+                preco_promocional:get('preco_promocional')?parseFloat(get('preco_promocional')):null,
+                desconto_pct:get('desconto_pct')?parseFloat(get('desconto_pct')):null,
+                data_inicio_promo:get('data_inicio_promo'), data_fim_promo:get('data_fim_promo'),
+                stock:get('stock')!==null?parseFloat(get('stock')):0,
+                stock_minimo:get('stock_minimo')?parseFloat(get('stock_minimo')):0,
+                stock_maximo:get('stock_maximo')?parseFloat(get('stock_maximo')):0,
+                localizacao:get('localizacao'),
+                controlar_estoque:chk('controlar_estoque'), venda_sem_estoque:chk('venda_sem_estoque'),
+                cor:get('cor'), tamanho:get('tamanho'), genero:get('genero'), material:get('material'),
+                autor:get('autor'), editora:get('editora'), isbn:get('isbn'),
+                num_paginas:get('num_paginas')?parseInt(get('num_paginas')):null,
+                ano_publicacao:get('ano_publicacao')?parseInt(get('ano_publicacao')):null,
+                idioma:get('idioma'), tipo_capa:get('tipo_capa'),
+                peso:get('peso')?parseFloat(get('peso')):null,
+                altura:get('altura')?parseFloat(get('altura')):null,
+                largura:get('largura')?parseFloat(get('largura')):null,
+                comprimento:get('comprimento')?parseFloat(get('comprimento')):null,
+                frete_gratis:chk('frete_gratis'),
+                imagem_url:imgEl?(imgEl.value||null):get('imagem_url'),
+                ordem:get('ordem')?parseInt(get('ordem')):1,
+                mostrar_pdv:chk('mostrar_pdv'), disponivel:chk('disponivel'),
+                ativo:chk('ativo'), destaque:chk('destaque'),
+                novo_lancamento:chk('novo_lancamento'), mais_vendido:chk('mais_vendido'),
+                updated_at:new Date().toISOString(),
+            };
+            var btn=document.getElementById('lj-btn-save');
+            if(btn){btn.disabled=true;btn.textContent='A guardar...';}
+            try{
+                var sid=id;
+                if(!id){
+                    var res=await sb('loja_produtos',{method:'POST',body:JSON.stringify(body)});
+                    sid=res&&res[0]&&res[0].id;
+                }else{
+                    await sb('loja_produtos?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});
+                }
+                lj_data=await sb('loja_produtos?select=*&order=categoria,nome')||[];
+                lj_renderStats(); lj_renderList();
+                if(isNew===true||isNew==='true'){
+                    var msg=document.getElementById('form-msg');
+                    if(msg){msg.textContent='Produto criado! Podes continuar a editar ou fechar.';msg.className='msg-form success';}
+                    setTimeout(function(){lj_abrirForm(sid);},600);
+                }else{
+                    if(typeof closeDrawer==='function') closeDrawer();
+                }
+            }catch(e){
+                var msg=document.getElementById('form-msg');
+                if(msg){msg.textContent='Erro: '+(e&&e.message?e.message:(e&&e.details?e.details:JSON.stringify(e)));msg.className='msg-form error';}
+                if(btn){btn.disabled=false;btn.textContent='Guardar';}
+            }
+        }
+        window.lj_salvar = lj_salvar;
+
+        lj_init();
+    })();
+</script>

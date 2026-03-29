@@ -420,549 +420,555 @@
 </div>
 
 <script>
-(function () {
-    'use strict';
-
-    // ── Estado ─────────────────────────────────────────────────────────────────
-    var ut_dados = [];
-    var ut_id    = null;
-
-    // Paleta de cores por tipo
-    var UT_COR = {
-        admin:     { bg: 'rgba(198,40,40,0.13)',   fg: '#c62828' },
-        membro:    { bg: 'rgba(0,144,152,0.13)',   fg: 'var(--primary-dark)' },
-        visitante: { bg: 'rgba(112,86,200,0.13)',  fg: '#7056c8' },
-        outro:     { bg: 'rgba(100,100,100,0.12)', fg: '#666' },
-    };
-    function ut_cor(tipo) { return UT_COR[tipo] || UT_COR.outro; }
-
-    // ── Helper: token da sessão atual (admin logado) ────────────────────────────
-    // Lê do localStorage onde o ZionAuth guarda a sessão
-    function ut_getToken() {
-        try {
-            var raw = localStorage.getItem('zion_session');
-            if (!raw) return null;
-            var s = JSON.parse(raw);
-            return s.token || null;
-        } catch(e) { return null; }
+    // Adiciona este helper no topo do IIFE
+    function ut_secKey(secao) {
+        return secao.replace(/-/g, '_');
     }
 
-    // ── Helper: fetch para os endpoints do Vercel ───────────────────────────────
-    async function ut_api(path, body) {
-        var token = ut_getToken();
-        var res = await fetch(path, {
-            method:  'POST',
-            headers: {
-                'Content-Type':  'application/json',
-                'Authorization': 'Bearer ' + (token || ''),
-            },
-            body: JSON.stringify(body),
-        });
-        var data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erro na API');
-        return data;
-    }
+    (function () {
+        'use strict';
 
-    // ── Arrancar ────────────────────────────────────────────────────────────────
-    async function ut_init() {
-        ut_injectModalPassword();
-        try {
-            ut_dados = await sb('usuarios?select=*&order=nome') || [];
-        } catch(e) {
-            ut_dados = [];
-            console.error('Erro ao carregar utilizadores:', e);
-        }
-        ut_renderList();
-    }
+        // ── Estado ─────────────────────────────────────────────────────────────────
+        var ut_dados = [];
+        var ut_id    = null;
 
-    // ── Sidebar ─────────────────────────────────────────────────────────────────
-    function ut_renderList() {
-        var el = document.getElementById('ut-list');
-        if (!el) return;
-        var q = (document.getElementById('ut-search')?.value || '').toLowerCase();
-        var lista = ut_dados.filter(function(u) {
-            if (u.ativo === false) return false;
-            if (!q) return true;
-            return (u.nome || '').toLowerCase().includes(q) ||
-                   (u.email || '').toLowerCase().includes(q);
-        });
+        // Paleta de cores por tipo
+        var UT_COR = {
+            admin:     { bg: 'rgba(198,40,40,0.13)',   fg: '#c62828' },
+            membro:    { bg: 'rgba(0,144,152,0.13)',   fg: 'var(--primary-dark)' },
+            visitante: { bg: 'rgba(112,86,200,0.13)',  fg: '#7056c8' },
+            outro:     { bg: 'rgba(100,100,100,0.12)', fg: '#666' },
+        };
+        function ut_cor(tipo) { return UT_COR[tipo] || UT_COR.outro; }
 
-        if (!lista.length) {
-            el.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-faint)">Nenhum utilizador encontrado</div>';
-            return;
+        // ── Helper: token da sessão atual (admin logado) ────────────────────────────
+        // Lê do localStorage onde o ZionAuth guarda a sessão
+        function ut_getToken() {
+            try {
+                var raw = localStorage.getItem('zion_session');
+                if (!raw) return null;
+                var s = JSON.parse(raw);
+                return s.token || null;
+            } catch(e) { return null; }
         }
 
-        var TIPO_LABEL  = { admin:'Admin', membro:'Membro', visitante:'Visitante', outro:'Outro' };
-        var TIPO_CLASSE = { admin:'ut-item-admin', membro:'ut-item-membro', visitante:'ut-item-visitante', outro:'ut-item-outro' };
+        // ── Helper: fetch para os endpoints do Vercel ───────────────────────────────
+        async function ut_api(path, body) {
+            var token = ut_getToken();
+            var res = await fetch(path, {
+                method:  'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': 'Bearer ' + (token || ''),
+                },
+                body: JSON.stringify(body),
+            });
+            var data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro na API');
+            return data;
+        }
 
-        el.innerHTML = lista.map(function(u) {
-            var tipo   = u.tipo || 'outro';
-            var cor    = ut_cor(tipo);
-            var ini    = (u.nome || u.email || 'U')[0].toUpperCase();
-            var label  = u.e_admin ? 'ADMIN' : (TIPO_LABEL[tipo] || tipo).toUpperCase();
-            var classe = TIPO_CLASSE[tipo] || 'ut-item-outro';
-            var ativo  = ut_id === u.id ? ' active' : '';
-            var numSec = 0;
-            if (typeof REGISTRO_MODULOS !== 'undefined') {
-                numSec = REGISTRO_MODULOS.filter(function(m) {
-                    return u.e_admin || u['ver_' + m.secao];
-                }).length;
+        // ── Arrancar ────────────────────────────────────────────────────────────────
+        async function ut_init() {
+            ut_injectModalPassword();
+            try {
+                ut_dados = await sb('usuarios?select=*&order=nome') || [];
+            } catch(e) {
+                ut_dados = [];
+                console.error('Erro ao carregar utilizadores:', e);
             }
-            return '<div class="ut-item ' + classe + ativo + '" onclick="ut_selecionar(\'' + u.id + '\')">' +
-                '<div class="ut-avatar" style="background:' + cor.bg + ';color:' + cor.fg + '">' + ini + '</div>' +
-                '<div class="ut-item-info">' +
-                '<div class="ut-item-nome">' + (u.nome || u.email || '—') + '</div>' +
-                '<div class="ut-item-sub">' + (u.e_admin ? 'Acesso total' : numSec + ' secções') + '</div>' +
-                '</div>' +
-                '<span class="ut-pill" style="background:' + cor.bg + ';color:' + cor.fg + ';border:1px solid ' + cor.fg + '33">' + label + '</span>' +
-                '</div>';
-        }).join('');
-    }
-
-    window.ut_filtrar = function() { ut_renderList(); };
-
-    // ── Seleccionar ─────────────────────────────────────────────────────────────
-    window.ut_selecionar = function(id) {
-        ut_id = id;
-        ut_renderList();
-        var u = ut_dados.find(function(x) { return x.id === id; });
-        if (u) ut_renderForm(u);
-    };
-
-    // ── Novo ────────────────────────────────────────────────────────────────────
-    window.ut_novo = function() {
-        ut_id = null;
-        ut_renderList();
-        ut_renderFormNovo();
-    };
-
-    // ── Form — utilizador existente ─────────────────────────────────────────────
-    function ut_renderForm(u) {
-        var panel = document.getElementById('ut-panel');
-        if (!panel) return;
-
-        var tipo = u.tipo || 'outro';
-        var cor  = ut_cor(tipo);
-        var ini  = (u.nome || u.email || 'U')[0].toUpperCase();
-        var TIPO_LABEL = { admin:'Admin', membro:'Membro', visitante:'Visitante', outro:'Outro' };
-        var numSec = 0;
-        if (typeof REGISTRO_MODULOS !== 'undefined') {
-            numSec = REGISTRO_MODULOS.filter(function(m) {
-                return u.e_admin || u['ver_' + m.secao];
-            }).length;
+            ut_renderList();
         }
 
-        panel.innerHTML =
-            '<div class="ut-profile">' +
-            '<div class="ut-profile-av" style="background:' + cor.bg + ';color:' + cor.fg + '">' + ini + '</div>' +
-            '<div>' +
-            '<div class="ut-profile-nome">' + (u.nome || '—') + '</div>' +
-            '<div class="ut-profile-email">' + (u.email || '') + '</div>' +
-            '<div class="ut-profile-badges">' +
-            '<span class="ut-pill" style="background:' + cor.bg + ';color:' + cor.fg + ';border:1px solid ' + cor.fg + '33">' +
-            (u.e_admin ? 'Admin Total' : (TIPO_LABEL[tipo] || tipo)) + '</span>' +
-            (!u.e_admin ? '<span class="ut-pill" style="background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)">' + numSec + ' secções</span>' : '') +
-            (u.ativo === false ? '<span class="ut-pill" style="background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)">Inativo</span>' : '') +
-            '</div></div></div>' +
+        // ── Sidebar ─────────────────────────────────────────────────────────────────
+        function ut_renderList() {
+            var el = document.getElementById('ut-list');
+            if (!el) return;
+            var q = (document.getElementById('ut-search')?.value || '').toLowerCase();
+            var lista = ut_dados.filter(function(u) {
+                if (u.ativo === false) return false;
+                if (!q) return true;
+                return (u.nome || '').toLowerCase().includes(q) ||
+                    (u.email || '').toLowerCase().includes(q);
+            });
 
-            '<div class="ut-form">' +
-            '<div class="ut-msg" id="ut-msg"></div>' +
+            if (!lista.length) {
+                el.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-faint)">Nenhum utilizador encontrado</div>';
+                return;
+            }
 
-            // Secção dados com botão alterar password no título
-            '<div class="ut-section-title">Dados do Utilizador' +
-            '<button class="ut-btn-tudo clr" onclick="ut_pwAbrir(\'' + u.id + '\')" ' +
-            'style="font-size:9px;padding:3px 12px;display:flex;align-items:center;gap:5px">' +
-            '🔑 Alterar Password</button>' +
-            '</div>' +
+            var TIPO_LABEL  = { admin:'Admin', membro:'Membro', visitante:'Visitante', outro:'Outro' };
+            var TIPO_CLASSE = { admin:'ut-item-admin', membro:'ut-item-membro', visitante:'ut-item-visitante', outro:'ut-item-outro' };
 
-            '<div class="ut-field-grid">' +
-            '<div class="ut-field">' +
-            '<label class="ut-label">Nome</label>' +
-            '<input class="ut-input" id="uf-nome" type="text" value="' + (u.nome || '') + '" placeholder="Nome completo">' +
-            '</div>' +
-            '<div class="ut-field">' +
-            '<label class="ut-label">Email</label>' +
-            '<input class="ut-input" id="uf-email" type="email" value="' + (u.email || '') + '" readonly>' +
-            '</div>' +
-            '<div class="ut-field">' +
-            '<label class="ut-label">Tipo</label>' +
-            '<select class="ut-select" id="uf-tipo">' +
-            '<option value="membro"    ' + (u.tipo === 'membro'    ? 'selected' : '') + '>Membro</option>' +
-            '<option value="visitante" ' + (u.tipo === 'visitante' ? 'selected' : '') + '>Visitante</option>' +
-            '<option value="admin"     ' + (u.tipo === 'admin'     ? 'selected' : '') + '>Admin</option>' +
-            '<option value="outro"     ' + (u.tipo === 'outro'     ? 'selected' : '') + '>Outro</option>' +
-            '</select>' +
-            '</div>' +
-            '<div class="ut-field" style="justify-content:flex-end;padding-top:20px">' +
-            '<label class="ut-toggle-row">' +
-            '<input type="checkbox" id="uf-admin" ' + (u.e_admin ? 'checked' : '') +
-            ' onchange="ut_onAdminChange(this.checked)">' +
-            'Admin Total (acesso a tudo)' +
-            '</label></div></div>' +
-
-            '<div class="ut-admin-aviso" id="ut-aviso-admin" style="' + (u.e_admin ? '' : 'display:none') + '">' +
-            'Utilizador com acesso total. As permissões por secção são ignoradas enquanto "Admin Total" estiver ativo.' +
-            '</div>' +
-
-            ut_buildPerms(u) +
-
-            '<div class="ut-actions">' +
-            '<button class="ut-btn-perigo" onclick="ut_toggleAtivo(\'' + u.id + '\',' + (u.ativo !== false) + ')">' +
-            (u.ativo !== false ? 'Inativar' : 'Ativar') + '</button>' +
-            '<button class="ut-btn-cancel" onclick="ut_fechar()">Cancelar</button>' +
-            '<button class="ut-btn-save" id="ut-btn-save" onclick="ut_guardar(\'' + u.id + '\')">Guardar Alterações</button>' +
-            '</div></div>';
-    }
-
-    // ── Form — utilizador novo ──────────────────────────────────────────────────
-    function ut_renderFormNovo() {
-        var panel = document.getElementById('ut-panel');
-        if (!panel) return;
-
-        panel.innerHTML =
-            '<div class="ut-profile" style="border-bottom:2px solid var(--primary)">' +
-            '<div class="ut-profile-av" style="background:var(--primary-faint);color:var(--primary-dark)">+</div>' +
-            '<div>' +
-            '<div class="ut-profile-nome">Novo Utilizador</div>' +
-            '<div class="ut-profile-email">Preenche os campos e guarda</div>' +
-            '</div></div>' +
-
-            '<div class="ut-form">' +
-            '<div class="ut-msg" id="ut-msg"></div>' +
-
-            '<div class="ut-section-title">Dados do Utilizador</div>' +
-            '<div class="ut-field-grid">' +
-            '<div class="ut-field">' +
-            '<label class="ut-label">Nome</label>' +
-            '<input class="ut-input" id="uf-nome" type="text" placeholder="Nome completo">' +
-            '</div>' +
-            '<div class="ut-field">' +
-            '<label class="ut-label">Email *</label>' +
-            '<input class="ut-input" id="uf-email" type="email" placeholder="email@exemplo.com">' +
-            '</div>' +
-            '<div class="ut-field">' +
-            '<label class="ut-label">Password inicial *</label>' +
-            '<input class="ut-input" id="uf-password" type="password" placeholder="Mínimo 6 caracteres">' +
-            '</div>' +
-            '<div class="ut-field">' +
-            '<label class="ut-label">Tipo</label>' +
-            '<select class="ut-select" id="uf-tipo">' +
-            '<option value="membro">Membro</option>' +
-            '<option value="visitante">Visitante</option>' +
-            '<option value="admin">Admin</option>' +
-            '<option value="outro">Outro</option>' +
-            '</select>' +
-            '</div>' +
-            '<div class="ut-field full">' +
-            '<label class="ut-toggle-row">' +
-            '<input type="checkbox" id="uf-admin" onchange="ut_onAdminChange(this.checked)">' +
-            'Admin Total (acesso a tudo)' +
-            '</label></div></div>' +
-
-            '<div class="ut-admin-aviso" id="ut-aviso-admin" style="display:none">' +
-            'Este utilizador terá acesso total ao sistema.' +
-            '</div>' +
-
-            ut_buildPerms(null) +
-
-            '<div class="ut-actions">' +
-            '<button class="ut-btn-cancel" onclick="ut_fechar()">Cancelar</button>' +
-            '<button class="ut-btn-save" id="ut-btn-save" onclick="ut_guardar(\'\')">Criar Utilizador</button>' +
-            '</div></div>';
-    }
-
-    // ── Tabela de permissões ────────────────────────────────────────────────────
-    function ut_buildPerms(u) {
-        if (typeof REGISTRO_MODULOS === 'undefined') {
-            return '<div style="color:var(--text-faint);font-size:12px;padding:12px 0">REGISTRO_MODULOS não encontrado.</div>';
-        }
-        var chk = function(key) { return (u && u[key]) ? 'checked' : ''; };
-        var ACOES = ['ver', 'criar', 'editar', 'eliminar'];
-        var isAdmin = u ? u.e_admin : false;
-
-        var linhas = REGISTRO_MODULOS.map(function(mod) {
-            var cols = ACOES.map(function(acao) {
-                if (!mod.acoes.includes(acao)) return '<div class="ut-perm-na">&#8212;</div>';
-                var id = 'pv-' + acao + '-' + mod.secao;
-                return '<div class="ut-perm-cell">' +
-                    '<input type="checkbox" id="' + id + '" ' + chk(acao + '_' + mod.secao) +
-                    ' onchange="ut_syncPerm(\'' + mod.secao + '\',\'' + acao + '\',this.checked)">' +
+            el.innerHTML = lista.map(function(u) {
+                var tipo   = u.tipo || 'outro';
+                var cor    = ut_cor(tipo);
+                var ini    = (u.nome || u.email || 'U')[0].toUpperCase();
+                var label  = u.e_admin ? 'ADMIN' : (TIPO_LABEL[tipo] || tipo).toUpperCase();
+                var classe = TIPO_CLASSE[tipo] || 'ut-item-outro';
+                var ativo  = ut_id === u.id ? ' active' : '';
+                var numSec = 0;
+                if (typeof REGISTRO_MODULOS !== 'undefined') {
+                    numSec = REGISTRO_MODULOS.filter(function(m) {
+                        return u.e_admin || u['ver_' + ut_secKey(m.secao)];
+                    }).length;
+                }
+                return '<div class="ut-item ' + classe + ativo + '" onclick="ut_selecionar(\'' + u.id + '\')">' +
+                    '<div class="ut-avatar" style="background:' + cor.bg + ';color:' + cor.fg + '">' + ini + '</div>' +
+                    '<div class="ut-item-info">' +
+                    '<div class="ut-item-nome">' + (u.nome || u.email || '—') + '</div>' +
+                    '<div class="ut-item-sub">' + (u.e_admin ? 'Acesso total' : numSec + ' secções') + '</div>' +
+                    '</div>' +
+                    '<span class="ut-pill" style="background:' + cor.bg + ';color:' + cor.fg + ';border:1px solid ' + cor.fg + '33">' + label + '</span>' +
                     '</div>';
             }).join('');
-            return '<div class="ut-perm-row"><div class="ut-perm-nome">' + mod.label + '</div>' + cols + '</div>';
-        }).join('');
-
-        return '<div class="ut-section-title">Permissões por Secção' +
-            '<div class="ut-perms-btns">' +
-            '<button class="ut-btn-tudo sel" onclick="ut_setTodas(true)">Selecionar Tudo</button>' +
-            '<button class="ut-btn-tudo clr" onclick="ut_setTodas(false)">Limpar Tudo</button>' +
-            '</div></div>' +
-            '<div style="font-size:11px;color:var(--text-faint);margin-bottom:10px;line-height:1.8">' +
-            '<strong>Ver</strong> = acesso à aba &nbsp;·&nbsp; ' +
-            '<strong>Criar</strong> = pode adicionar &nbsp;·&nbsp; ' +
-            '<strong>Editar</strong> = pode modificar &nbsp;·&nbsp; ' +
-            '<strong>Eliminar</strong> = pode desativar</div>' +
-            '<div class="ut-perms-box ' + (isAdmin ? 'ut-perms-disabled' : '') + '" id="ut-bloco-perms">' +
-            '<div class="ut-perms-head"><span>Secção</span>' +
-            '<span>Ver</span><span>Criar</span><span>Editar</span><span>Eliminar</span></div>' +
-            linhas + '</div>';
-    }
-
-    // ── Interactividade permissões ──────────────────────────────────────────────
-    window.ut_onAdminChange = function(checked) {
-        var aviso = document.getElementById('ut-aviso-admin');
-        var bloco = document.getElementById('ut-bloco-perms');
-        if (aviso) aviso.style.display = checked ? 'block' : 'none';
-        if (bloco) bloco.classList.toggle('ut-perms-disabled', checked);
-    };
-
-    window.ut_syncPerm = function(secao, acao, checked) {
-        if (checked && acao !== 'ver') {
-            var el = document.getElementById('pv-ver-' + secao);
-            if (el) el.checked = true;
-        }
-        if (!checked && acao === 'ver') {
-            ['criar', 'editar', 'eliminar'].forEach(function(a) {
-                var el = document.getElementById('pv-' + a + '-' + secao);
-                if (el) el.checked = false;
-            });
-        }
-    };
-
-    window.ut_setTodas = function(val) {
-        if (typeof REGISTRO_MODULOS === 'undefined') return;
-        REGISTRO_MODULOS.forEach(function(mod) {
-            mod.acoes.forEach(function(acao) {
-                var el = document.getElementById('pv-' + acao + '-' + mod.secao);
-                if (el) el.checked = val;
-            });
-        });
-    };
-
-    // ── Guardar ─────────────────────────────────────────────────────────────────
-    window.ut_guardar = async function(id) {
-        var get = function(k) {
-            var el = document.getElementById('uf-' + k);
-            return el ? (el.value || '').trim() || null : null;
-        };
-        var chkEl = function(k) {
-            var el = document.getElementById('uf-' + k);
-            return el ? el.checked : false;
-        };
-
-        var email = get('email');
-        if (!email) { ut_showMsg('Email obrigatório.', 'error'); return; }
-
-        var isAdmin = chkEl('admin');
-
-        // Recolher permissões
-        var perms = {};
-        if (typeof REGISTRO_MODULOS !== 'undefined') {
-            REGISTRO_MODULOS.forEach(function(mod) {
-                mod.acoes.forEach(function(acao) {
-                    var el = document.getElementById('pv-' + acao + '-' + mod.secao);
-                    perms[acao + '_' + mod.secao] = el ? el.checked : false;
-                });
-            });
-            if (isAdmin) {
-                REGISTRO_MODULOS.forEach(function(mod) {
-                    mod.acoes.forEach(function(acao) {
-                        perms[acao + '_' + mod.secao] = true;
-                    });
-                });
-            }
         }
 
-        var btn = document.getElementById('ut-btn-save');
-        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+        window.ut_filtrar = function() { ut_renderList(); };
 
-        try {
-            if (!id) {
-                // ── CRIAR novo utilizador ──────────────────────────────────────
-                var pw = get('password');
-                if (!pw || pw.length < 6) {
-                    ut_showMsg('Password mínima de 6 caracteres.', 'error');
-                    if (btn) { btn.disabled = false; btn.textContent = 'Criar Utilizador'; }
-                    return;
-                }
-
-                // Chama o endpoint Vercel que cria no Auth + tabela
-                var result = await ut_api('/api/auth/create-user', Object.assign({
-                    email:   email,
-                    password: pw,
-                    nome:    get('nome'),
-                    tipo:    get('tipo'),
-                    e_admin: isAdmin,
-                    ativo:   true,
-                }, perms));
-
-                ut_showMsg('Utilizador criado com sucesso!', 'success');
-                ut_dados = await sb('usuarios?select=*&order=nome') || [];
-                var criado = result.user || ut_dados.find(function(x) { return x.email === email; });
-                if (criado) {
-                    ut_id = criado.id;
-                    ut_renderList();
-                    setTimeout(function() {
-                        var u = ut_dados.find(function(x) { return x.id === criado.id; });
-                        if (u) ut_renderForm(u);
-                    }, 700);
-                } else {
-                    ut_renderList();
-                }
-
-            } else {
-                // ── EDITAR utilizador existente ────────────────────────────────
-                var body = Object.assign({
-                    nome:       get('nome'),
-                    tipo:       get('tipo'),
-                    e_admin:    isAdmin,
-                    ativo:      true,
-                    updated_at: new Date().toISOString(),
-                }, perms);
-
-                await sb('usuarios?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) });
-
-                ut_showMsg('Guardado com sucesso!', 'success');
-                ut_dados = await sb('usuarios?select=*&order=nome') || [];
-                ut_renderList();
-                var updated = ut_dados.find(function(x) { return x.id === id; });
-                if (updated) setTimeout(function() { ut_renderForm(updated); }, 700);
-            }
-
-        } catch(e) {
-            ut_showMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
-            if (btn) { btn.disabled = false; btn.textContent = id ? 'Guardar Alterações' : 'Criar Utilizador'; }
-        }
-    };
-
-    // ── Modal alterar password ──────────────────────────────────────────────────
-    function ut_injectModalPassword() {
-        if (document.getElementById('ut-pw-modal')) return;
-        var modal = document.createElement('div');
-        modal.id = 'ut-pw-modal';
-        modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
-        modal.innerHTML = [
-            '<div style="width:100%;max-width:380px;background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2)">',
-            '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">',
-            '<span style="font-family:var(--font-title);font-size:11px;letter-spacing:1px;color:var(--primary-dark)">ALTERAR PASSWORD</span>',
-            '<button onclick="ut_pwFechar()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text-faint);display:flex;align-items:center;justify-content:center">✕</button>',
-            '</div>',
-            '<div style="padding:18px 18px 20px">',
-            '<div class="ut-msg" id="ut-pw-msg"></div>',
-            '<div class="ut-field" style="margin-bottom:10px">',
-            '<label class="ut-label">Nova Password</label>',
-            '<input class="ut-input" id="ut-pw-nova" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">',
-            '</div>',
-            '<div class="ut-field" style="margin-bottom:16px">',
-            '<label class="ut-label">Confirmar Password</label>',
-            '<input class="ut-input" id="ut-pw-confirmar" type="password" placeholder="Repete a nova password"',
-            ' onkeydown="if(event.key===\'Enter\') ut_pwGuardar()">',
-            '</div>',
-            '<div style="display:flex;gap:8px;justify-content:flex-end">',
-            '<button class="ut-btn-cancel" onclick="ut_pwFechar()">Cancelar</button>',
-            '<button class="ut-btn-save" id="ut-pw-btn-save" onclick="ut_pwGuardar()">Alterar Password</button>',
-            '</div></div></div>'
-        ].join('');
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) ut_pwFechar();
-        });
-        document.body.appendChild(modal);
-    }
-
-    var ut_pw_target_id = null;
-
-    window.ut_pwAbrir = function(id) {
-        ut_pw_target_id = id;
-        var modal = document.getElementById('ut-pw-modal');
-        if (!modal) return;
-        document.getElementById('ut-pw-nova').value = '';
-        document.getElementById('ut-pw-confirmar').value = '';
-        var msg = document.getElementById('ut-pw-msg');
-        if (msg) msg.className = 'ut-msg';
-        var btn = document.getElementById('ut-pw-btn-save');
-        if (btn) { btn.disabled = false; btn.textContent = 'Alterar Password'; }
-        modal.style.display = 'flex';
-        setTimeout(function() { document.getElementById('ut-pw-nova').focus(); }, 100);
-    };
-
-    window.ut_pwFechar = function() {
-        var modal = document.getElementById('ut-pw-modal');
-        if (modal) modal.style.display = 'none';
-        ut_pw_target_id = null;
-    };
-
-    window.ut_pwGuardar = async function() {
-        var nova      = document.getElementById('ut-pw-nova').value;
-        var confirmar = document.getElementById('ut-pw-confirmar').value;
-        var msg       = document.getElementById('ut-pw-msg');
-        var btn       = document.getElementById('ut-pw-btn-save');
-
-        var showErr = function(txt) {
-            if (msg) { msg.textContent = txt; msg.className = 'ut-msg error'; }
-        };
-
-        if (!nova || nova.length < 6) return showErr('Password deve ter pelo menos 6 caracteres.');
-        if (nova !== confirmar)       return showErr('As passwords não coincidem.');
-        if (!ut_pw_target_id)         return showErr('Utilizador não identificado.');
-
-        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
-
-        try {
-            // Chama o endpoint Vercel — atualiza Auth + tabela
-            await ut_api('/api/auth/update-password', {
-                userId:   ut_pw_target_id,
-                password: nova,
-            });
-
-            if (msg) { msg.textContent = 'Password alterada com sucesso!'; msg.className = 'ut-msg success'; }
-            setTimeout(function() { ut_pwFechar(); }, 1500);
-
-        } catch(e) {
-            showErr('Erro: ' + (e?.message || JSON.stringify(e)));
-            if (btn) { btn.disabled = false; btn.textContent = 'Alterar Password'; }
-        }
-    };
-
-    // ── Toggle ativo ────────────────────────────────────────────────────────────
-    window.ut_toggleAtivo = async function(id, ativoAtual) {
-        if (!confirm(ativoAtual ? 'Inativar este utilizador?' : 'Ativar este utilizador?')) return;
-        try {
-            await sb('usuarios?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativoAtual }) });
-            ut_dados = await sb('usuarios?select=*&order=nome') || [];
+        // ── Seleccionar ─────────────────────────────────────────────────────────────
+        window.ut_selecionar = function(id) {
+            ut_id = id;
             ut_renderList();
             var u = ut_dados.find(function(x) { return x.id === id; });
             if (u) ut_renderForm(u);
-        } catch(e) {
-            alert('Erro: ' + (e?.message || JSON.stringify(e)));
+        };
+
+        // ── Novo ────────────────────────────────────────────────────────────────────
+        window.ut_novo = function() {
+            ut_id = null;
+            ut_renderList();
+            ut_renderFormNovo();
+        };
+
+        // ── Form — utilizador existente ─────────────────────────────────────────────
+        function ut_renderForm(u) {
+            var panel = document.getElementById('ut-panel');
+            if (!panel) return;
+
+            var tipo = u.tipo || 'outro';
+            var cor  = ut_cor(tipo);
+            var ini  = (u.nome || u.email || 'U')[0].toUpperCase();
+            var TIPO_LABEL = { admin:'Admin', membro:'Membro', visitante:'Visitante', outro:'Outro' };
+            var numSec = 0;
+            if (typeof REGISTRO_MODULOS !== 'undefined') {
+                numSec = REGISTRO_MODULOS.filter(function(m) {
+                    return u.e_admin || u['ver_' + ut_secKey(m.secao)];
+                }).length;
+            }
+
+            panel.innerHTML =
+                '<div class="ut-profile">' +
+                '<div class="ut-profile-av" style="background:' + cor.bg + ';color:' + cor.fg + '">' + ini + '</div>' +
+                '<div>' +
+                '<div class="ut-profile-nome">' + (u.nome || '—') + '</div>' +
+                '<div class="ut-profile-email">' + (u.email || '') + '</div>' +
+                '<div class="ut-profile-badges">' +
+                '<span class="ut-pill" style="background:' + cor.bg + ';color:' + cor.fg + ';border:1px solid ' + cor.fg + '33">' +
+                (u.e_admin ? 'Admin Total' : (TIPO_LABEL[tipo] || tipo)) + '</span>' +
+                (!u.e_admin ? '<span class="ut-pill" style="background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)">' + numSec + ' secções</span>' : '') +
+                (u.ativo === false ? '<span class="ut-pill" style="background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)">Inativo</span>' : '') +
+                '</div></div></div>' +
+
+                '<div class="ut-form">' +
+                '<div class="ut-msg" id="ut-msg"></div>' +
+
+                // Secção dados com botão alterar password no título
+                '<div class="ut-section-title">Dados do Utilizador' +
+                '<button class="ut-btn-tudo clr" onclick="ut_pwAbrir(\'' + u.id + '\')" ' +
+                'style="font-size:9px;padding:3px 12px;display:flex;align-items:center;gap:5px">' +
+                '🔑 Alterar Password</button>' +
+                '</div>' +
+
+                '<div class="ut-field-grid">' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Nome</label>' +
+                '<input class="ut-input" id="uf-nome" type="text" value="' + (u.nome || '') + '" placeholder="Nome completo">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Email</label>' +
+                '<input class="ut-input" id="uf-email" type="email" value="' + (u.email || '') + '" readonly>' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Tipo</label>' +
+                '<select class="ut-select" id="uf-tipo">' +
+                '<option value="membro"    ' + (u.tipo === 'membro'    ? 'selected' : '') + '>Membro</option>' +
+                '<option value="visitante" ' + (u.tipo === 'visitante' ? 'selected' : '') + '>Visitante</option>' +
+                '<option value="admin"     ' + (u.tipo === 'admin'     ? 'selected' : '') + '>Admin</option>' +
+                '<option value="outro"     ' + (u.tipo === 'outro'     ? 'selected' : '') + '>Outro</option>' +
+                '</select>' +
+                '</div>' +
+                '<div class="ut-field" style="justify-content:flex-end;padding-top:20px">' +
+                '<label class="ut-toggle-row">' +
+                '<input type="checkbox" id="uf-admin" ' + (u.e_admin ? 'checked' : '') +
+                ' onchange="ut_onAdminChange(this.checked)">' +
+                'Admin Total (acesso a tudo)' +
+                '</label></div></div>' +
+
+                '<div class="ut-admin-aviso" id="ut-aviso-admin" style="' + (u.e_admin ? '' : 'display:none') + '">' +
+                'Utilizador com acesso total. As permissões por secção são ignoradas enquanto "Admin Total" estiver ativo.' +
+                '</div>' +
+
+                ut_buildPerms(u) +
+
+                '<div class="ut-actions">' +
+                '<button class="ut-btn-perigo" onclick="ut_toggleAtivo(\'' + u.id + '\',' + (u.ativo !== false) + ')">' +
+                (u.ativo !== false ? 'Inativar' : 'Ativar') + '</button>' +
+                '<button class="ut-btn-cancel" onclick="ut_fechar()">Cancelar</button>' +
+                '<button class="ut-btn-save" id="ut-btn-save" onclick="ut_guardar(\'' + u.id + '\')">Guardar Alterações</button>' +
+                '</div></div>';
         }
-    };
 
-    // ── Fechar painel ────────────────────────────────────────────────────────────
-    window.ut_fechar = function() {
-        ut_id = null;
-        ut_renderList();
-        var panel = document.getElementById('ut-panel');
-        if (panel) panel.innerHTML =
-            '<div class="ut-panel-empty">' +
-            '<div class="ut-panel-empty-icon">' +
-            '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
-            '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>' +
-            '<circle cx="12" cy="7" r="4"/></svg></div>' +
-            '<div class="ut-panel-empty-txt">Seleciona um utilizador</div></div>';
-    };
+        // ── Form — utilizador novo ──────────────────────────────────────────────────
+        function ut_renderFormNovo() {
+            var panel = document.getElementById('ut-panel');
+            if (!panel) return;
 
-    // ── Mensagem feedback ────────────────────────────────────────────────────────
-    function ut_showMsg(txt, tipo) {
-        var el = document.getElementById('ut-msg');
-        if (!el) return;
-        el.textContent = txt;
-        el.className = 'ut-msg ' + tipo;
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        if (tipo === 'success') setTimeout(function() { el.className = 'ut-msg'; }, 3000);
-    }
+            panel.innerHTML =
+                '<div class="ut-profile" style="border-bottom:2px solid var(--primary)">' +
+                '<div class="ut-profile-av" style="background:var(--primary-faint);color:var(--primary-dark)">+</div>' +
+                '<div>' +
+                '<div class="ut-profile-nome">Novo Utilizador</div>' +
+                '<div class="ut-profile-email">Preenche os campos e guarda</div>' +
+                '</div></div>' +
 
-    window.ut_init = ut_init;
-    ut_init();
+                '<div class="ut-form">' +
+                '<div class="ut-msg" id="ut-msg"></div>' +
 
-})();
+                '<div class="ut-section-title">Dados do Utilizador</div>' +
+                '<div class="ut-field-grid">' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Nome</label>' +
+                '<input class="ut-input" id="uf-nome" type="text" placeholder="Nome completo">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Email *</label>' +
+                '<input class="ut-input" id="uf-email" type="email" placeholder="email@exemplo.com">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Password inicial *</label>' +
+                '<input class="ut-input" id="uf-password" type="password" placeholder="Mínimo 6 caracteres">' +
+                '</div>' +
+                '<div class="ut-field">' +
+                '<label class="ut-label">Tipo</label>' +
+                '<select class="ut-select" id="uf-tipo">' +
+                '<option value="membro">Membro</option>' +
+                '<option value="visitante">Visitante</option>' +
+                '<option value="admin">Admin</option>' +
+                '<option value="outro">Outro</option>' +
+                '</select>' +
+                '</div>' +
+                '<div class="ut-field full">' +
+                '<label class="ut-toggle-row">' +
+                '<input type="checkbox" id="uf-admin" onchange="ut_onAdminChange(this.checked)">' +
+                'Admin Total (acesso a tudo)' +
+                '</label></div></div>' +
+
+                '<div class="ut-admin-aviso" id="ut-aviso-admin" style="display:none">' +
+                'Este utilizador terá acesso total ao sistema.' +
+                '</div>' +
+
+                ut_buildPerms(null) +
+
+                '<div class="ut-actions">' +
+                '<button class="ut-btn-cancel" onclick="ut_fechar()">Cancelar</button>' +
+                '<button class="ut-btn-save" id="ut-btn-save" onclick="ut_guardar(\'\')">Criar Utilizador</button>' +
+                '</div></div>';
+        }
+
+        // ── Tabela de permissões ────────────────────────────────────────────────────
+        function ut_buildPerms(u) {
+            if (typeof REGISTRO_MODULOS === 'undefined') {
+                return '<div style="color:var(--text-faint);font-size:12px;padding:12px 0">REGISTRO_MODULOS não encontrado.</div>';
+            }
+            var chk = function(key) { return (u && u[key]) ? 'checked' : ''; };
+            var ACOES = ['ver', 'criar', 'editar', 'eliminar'];
+            var isAdmin = u ? u.e_admin : false;
+
+            var linhas = REGISTRO_MODULOS.map(function(mod) {
+                var cols = ACOES.map(function(acao) {
+                    if (!mod.acoes.includes(acao)) return '<div class="ut-perm-na">&#8212;</div>';
+                    var id = 'pv-' + acao + '-' + ut_secKey(mod.secao);
+                    return '<div class="ut-perm-cell">' +
+                        '<input type="checkbox" id="' + id + '" ' + chk(acao + '_' + ut_secKey(mod.secao)) +
+                        ' onchange="ut_syncPerm(\'' + ut_secKey(mod.secao) + '\',\'' + acao + '\',this.checked)">' +
+                        '</div>';
+                }).join('');
+                return '<div class="ut-perm-row"><div class="ut-perm-nome">' + mod.label + '</div>' + cols + '</div>';
+            }).join('');
+
+            return '<div class="ut-section-title">Permissões por Secção' +
+                '<div class="ut-perms-btns">' +
+                '<button class="ut-btn-tudo sel" onclick="ut_setTodas(true)">Selecionar Tudo</button>' +
+                '<button class="ut-btn-tudo clr" onclick="ut_setTodas(false)">Limpar Tudo</button>' +
+                '</div></div>' +
+                '<div style="font-size:11px;color:var(--text-faint);margin-bottom:10px;line-height:1.8">' +
+                '<strong>Ver</strong> = acesso à aba &nbsp;·&nbsp; ' +
+                '<strong>Criar</strong> = pode adicionar &nbsp;·&nbsp; ' +
+                '<strong>Editar</strong> = pode modificar &nbsp;·&nbsp; ' +
+                '<strong>Eliminar</strong> = pode desativar</div>' +
+                '<div class="ut-perms-box ' + (isAdmin ? 'ut-perms-disabled' : '') + '" id="ut-bloco-perms">' +
+                '<div class="ut-perms-head"><span>Secção</span>' +
+                '<span>Ver</span><span>Criar</span><span>Editar</span><span>Eliminar</span></div>' +
+                linhas + '</div>';
+        }
+
+        // ── Interactividade permissões ──────────────────────────────────────────────
+        window.ut_onAdminChange = function(checked) {
+            var aviso = document.getElementById('ut-aviso-admin');
+            var bloco = document.getElementById('ut-bloco-perms');
+            if (aviso) aviso.style.display = checked ? 'block' : 'none';
+            if (bloco) bloco.classList.toggle('ut-perms-disabled', checked);
+        };
+
+        window.ut_syncPerm = function(secao, acao, checked) {
+            if (checked && acao !== 'ver') {
+                var el = document.getElementById('pv-ver-' + secao);
+                if (el) el.checked = true;
+            }
+            if (!checked && acao === 'ver') {
+                ['criar', 'editar', 'eliminar'].forEach(function(a) {
+                    var el = document.getElementById('pv-' + a + '-' + secao);
+                    if (el) el.checked = false;
+                });
+            }
+        };
+
+        window.ut_setTodas = function(val) {
+            if (typeof REGISTRO_MODULOS === 'undefined') return;
+            REGISTRO_MODULOS.forEach(function(mod) {
+                mod.acoes.forEach(function(acao) {
+                    var el = document.getElementById('pv-' + acao + '-' + ut_secKey(mod.secao));
+                    if (el) el.checked = val;
+                });
+            });
+        };
+
+        // ── Guardar ─────────────────────────────────────────────────────────────────
+        window.ut_guardar = async function(id) {
+            var get = function(k) {
+                var el = document.getElementById('uf-' + k);
+                return el ? (el.value || '').trim() || null : null;
+            };
+            var chkEl = function(k) {
+                var el = document.getElementById('uf-' + k);
+                return el ? el.checked : false;
+            };
+
+            var email = get('email');
+            if (!email) { ut_showMsg('Email obrigatório.', 'error'); return; }
+
+            var isAdmin = chkEl('admin');
+
+            // Recolher permissões
+            var perms = {};
+            if (typeof REGISTRO_MODULOS !== 'undefined') {
+                REGISTRO_MODULOS.forEach(function(mod) {
+                    mod.acoes.forEach(function(acao) {
+                        var key = acao + '_' + ut_secKey(mod.secao);
+                        var el = document.getElementById('pv-' + acao + '-' + ut_secKey(mod.secao));
+                        perms[key] = el ? el.checked : false;
+                    });
+
+                    if (isAdmin) {
+                        mod.acoes.forEach(function(acao) {
+                            perms[acao + '_' + ut_secKey(mod.secao)] = true;
+                        });
+                    }
+                });
+
+            }
+
+            var btn = document.getElementById('ut-btn-save');
+            if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+            try {
+                if (!id) {
+                    // ── CRIAR novo utilizador ──────────────────────────────────────
+                    var pw = get('password');
+                    if (!pw || pw.length < 6) {
+                        ut_showMsg('Password mínima de 6 caracteres.', 'error');
+                        if (btn) { btn.disabled = false; btn.textContent = 'Criar Utilizador'; }
+                        return;
+                    }
+
+                    // Chama o endpoint Vercel que cria no Auth + tabela
+                    var result = await ut_api('/api/auth/create-user', Object.assign({
+                        email:   email,
+                        password: pw,
+                        nome:    get('nome'),
+                        tipo:    get('tipo'),
+                        e_admin: isAdmin,
+                        ativo:   true,
+                    }, perms));
+
+                    ut_showMsg('Utilizador criado com sucesso!', 'success');
+                    ut_dados = await sb('usuarios?select=*&order=nome') || [];
+                    var criado = result.user || ut_dados.find(function(x) { return x.email === email; });
+                    if (criado) {
+                        ut_id = criado.id;
+                        ut_renderList();
+                        setTimeout(function() {
+                            var u = ut_dados.find(function(x) { return x.id === criado.id; });
+                            if (u) ut_renderForm(u);
+                        }, 700);
+                    } else {
+                        ut_renderList();
+                    }
+
+                } else {
+                    // ── EDITAR utilizador existente ────────────────────────────────
+                    var body = Object.assign({
+                        nome:       get('nome'),
+                        tipo:       get('tipo'),
+                        e_admin:    isAdmin,
+                        ativo:      true,
+                        updated_at: new Date().toISOString(),
+                    }, perms);
+
+                    await sb('usuarios?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) });
+
+                    ut_showMsg('Guardado com sucesso!', 'success');
+                    ut_dados = await sb('usuarios?select=*&order=nome') || [];
+                    ut_renderList();
+                    var updated = ut_dados.find(function(x) { return x.id === id; });
+                    if (updated) setTimeout(function() { ut_renderForm(updated); }, 700);
+                }
+
+            } catch(e) {
+                ut_showMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
+                if (btn) { btn.disabled = false; btn.textContent = id ? 'Guardar Alterações' : 'Criar Utilizador'; }
+            }
+        };
+
+        // ── Modal alterar password ──────────────────────────────────────────────────
+        function ut_injectModalPassword() {
+            if (document.getElementById('ut-pw-modal')) return;
+            var modal = document.createElement('div');
+            modal.id = 'ut-pw-modal';
+            modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
+            modal.innerHTML = [
+                '<div style="width:100%;max-width:380px;background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2)">',
+                '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">',
+                '<span style="font-family:var(--font-title);font-size:11px;letter-spacing:1px;color:var(--primary-dark)">ALTERAR PASSWORD</span>',
+                '<button onclick="ut_pwFechar()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text-faint);display:flex;align-items:center;justify-content:center">✕</button>',
+                '</div>',
+                '<div style="padding:18px 18px 20px">',
+                '<div class="ut-msg" id="ut-pw-msg"></div>',
+                '<div class="ut-field" style="margin-bottom:10px">',
+                '<label class="ut-label">Nova Password</label>',
+                '<input class="ut-input" id="ut-pw-nova" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">',
+                '</div>',
+                '<div class="ut-field" style="margin-bottom:16px">',
+                '<label class="ut-label">Confirmar Password</label>',
+                '<input class="ut-input" id="ut-pw-confirmar" type="password" placeholder="Repete a nova password"',
+                ' onkeydown="if(event.key===\'Enter\') ut_pwGuardar()">',
+                '</div>',
+                '<div style="display:flex;gap:8px;justify-content:flex-end">',
+                '<button class="ut-btn-cancel" onclick="ut_pwFechar()">Cancelar</button>',
+                '<button class="ut-btn-save" id="ut-pw-btn-save" onclick="ut_pwGuardar()">Alterar Password</button>',
+                '</div></div></div>'
+            ].join('');
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) ut_pwFechar();
+            });
+            document.body.appendChild(modal);
+        }
+
+        var ut_pw_target_id = null;
+
+        window.ut_pwAbrir = function(id) {
+            ut_pw_target_id = id;
+            var modal = document.getElementById('ut-pw-modal');
+            if (!modal) return;
+            document.getElementById('ut-pw-nova').value = '';
+            document.getElementById('ut-pw-confirmar').value = '';
+            var msg = document.getElementById('ut-pw-msg');
+            if (msg) msg.className = 'ut-msg';
+            var btn = document.getElementById('ut-pw-btn-save');
+            if (btn) { btn.disabled = false; btn.textContent = 'Alterar Password'; }
+            modal.style.display = 'flex';
+            setTimeout(function() { document.getElementById('ut-pw-nova').focus(); }, 100);
+        };
+
+        window.ut_pwFechar = function() {
+            var modal = document.getElementById('ut-pw-modal');
+            if (modal) modal.style.display = 'none';
+            ut_pw_target_id = null;
+        };
+
+        window.ut_pwGuardar = async function() {
+            var nova      = document.getElementById('ut-pw-nova').value;
+            var confirmar = document.getElementById('ut-pw-confirmar').value;
+            var msg       = document.getElementById('ut-pw-msg');
+            var btn       = document.getElementById('ut-pw-btn-save');
+
+            var showErr = function(txt) {
+                if (msg) { msg.textContent = txt; msg.className = 'ut-msg error'; }
+            };
+
+            if (!nova || nova.length < 6) return showErr('Password deve ter pelo menos 6 caracteres.');
+            if (nova !== confirmar)       return showErr('As passwords não coincidem.');
+            if (!ut_pw_target_id)         return showErr('Utilizador não identificado.');
+
+            if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+            try {
+                // Chama o endpoint Vercel — atualiza Auth + tabela
+                await ut_api('/api/auth/update-password', {
+                    userId:   ut_pw_target_id,
+                    password: nova,
+                });
+
+                if (msg) { msg.textContent = 'Password alterada com sucesso!'; msg.className = 'ut-msg success'; }
+                setTimeout(function() { ut_pwFechar(); }, 1500);
+
+            } catch(e) {
+                showErr('Erro: ' + (e?.message || JSON.stringify(e)));
+                if (btn) { btn.disabled = false; btn.textContent = 'Alterar Password'; }
+            }
+        };
+
+        // ── Toggle ativo ────────────────────────────────────────────────────────────
+        window.ut_toggleAtivo = async function(id, ativoAtual) {
+            if (!confirm(ativoAtual ? 'Inativar este utilizador?' : 'Ativar este utilizador?')) return;
+            try {
+                await sb('usuarios?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativoAtual }) });
+                ut_dados = await sb('usuarios?select=*&order=nome') || [];
+                ut_renderList();
+                var u = ut_dados.find(function(x) { return x.id === id; });
+                if (u) ut_renderForm(u);
+            } catch(e) {
+                alert('Erro: ' + (e?.message || JSON.stringify(e)));
+            }
+        };
+
+        // ── Fechar painel ────────────────────────────────────────────────────────────
+        window.ut_fechar = function() {
+            ut_id = null;
+            ut_renderList();
+            var panel = document.getElementById('ut-panel');
+            if (panel) panel.innerHTML =
+                '<div class="ut-panel-empty">' +
+                '<div class="ut-panel-empty-icon">' +
+                '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
+                '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>' +
+                '<circle cx="12" cy="7" r="4"/></svg></div>' +
+                '<div class="ut-panel-empty-txt">Seleciona um utilizador</div></div>';
+        };
+
+        // ── Mensagem feedback ────────────────────────────────────────────────────────
+        function ut_showMsg(txt, tipo) {
+            var el = document.getElementById('ut-msg');
+            if (!el) return;
+            el.textContent = txt;
+            el.className = 'ut-msg ' + tipo;
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (tipo === 'success') setTimeout(function() { el.className = 'ut-msg'; }, 3000);
+        }
+
+        window.ut_init = ut_init;
+        ut_init();
+
+    })();
 </script>

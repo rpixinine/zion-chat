@@ -1,0 +1,384 @@
+<style>
+    /* ── ENTRADA DE FATURAS ──────────────────────────────────────── */
+    .fat-wrap { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+
+    .fat-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; padding:12px 16px 6px; }
+    .fat-kpi  { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+    .fat-kpi-val   { font-family:var(--font-title); font-size:19px; font-weight:700; line-height:1; }
+    .fat-kpi-label { font-size:9px; color:var(--text-faint); margin-top:4px; text-transform:uppercase; letter-spacing:1px; }
+    .fat-kpi-sub   { font-size:10px; color:var(--text-faint); margin-top:3px; }
+
+    .fat-sec-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 16px; border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap; }
+    .fat-sec-title { font-family:var(--font-title); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-faint); }
+
+    .fat-table-wrap { padding:0 16px 16px; overflow-x:auto; }
+    .fat-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .fat-table th { background:var(--bg-input); padding:8px 10px; text-align:left; font-family:var(--font-title); font-size:9px; letter-spacing:1.5px; color:var(--text-faint); border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; z-index:2; }
+    .fat-table td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .fat-table tr:last-child td { border-bottom:none; }
+    .fat-table tr:hover td { background:var(--primary-faint); }
+
+    .st-badge    { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; }
+    .st-pendente { background:rgba(230,81,0,.1);  color:#e65100; border:1px solid rgba(230,81,0,.3); }
+    .st-pago     { background:rgba(46,125,50,.1); color:#2e7d32; border:1px solid rgba(46,125,50,.3); }
+    .st-atrasado { background:rgba(198,40,40,.1); color:#c62828; border:1px solid rgba(198,40,40,.3); }
+    .st-parcial  { background:rgba(0,144,152,.1); color:var(--primary-dark); border:1px solid rgba(0,144,152,.3); }
+    .st-cancelado{ background:var(--bg-input);    color:var(--text-faint);   border:1px solid var(--border); }
+
+    .fat-act { display:flex; gap:4px; justify-content:flex-end; flex-wrap:wrap; }
+    .fat-btn { padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:var(--bg-input); font-size:10px; color:var(--text-muted); cursor:pointer; font-family:var(--font-title); letter-spacing:.5px; transition:all .15s; white-space:nowrap; }
+    .fat-btn:hover { border-color:var(--primary); color:var(--primary-dark); }
+    .fat-btn.g { background:rgba(46,125,50,.08); color:#2e7d32; border-color:rgba(46,125,50,.3); }
+    .fat-btn.p { background:var(--primary-faint); color:var(--primary-dark); border-color:var(--primary); }
+
+    .fat-body-scroll { flex:1; overflow-y:auto; }
+
+    /* Itens form */
+    .btn-sub-add { padding:6px 12px; border-radius:6px; background:var(--primary); color:#fff; border:none; font-size:11px; cursor:pointer; font-family:var(--font-title); letter-spacing:.5px; white-space:nowrap; }
+    .btn-sub-add:hover { background:var(--primary-dark); }
+
+    @media(max-width:600px){
+        .fat-kpis { grid-template-columns:repeat(2,1fr); }
+        .fat-table th:nth-child(3), .fat-table td:nth-child(3) { display:none; }
+    }
+</style>
+
+<!-- ╔══════════════════════════════════════════════════════╗ -->
+<!-- ║           ENTRADA DE FATURAS                         ║ -->
+<!-- ╚══════════════════════════════════════════════════════╝ -->
+<div class="fat-wrap">
+    <div class="fat-body-scroll" id="fat-body">
+        <div class="loading"><div class="spin"></div>A carregar faturas...</div>
+    </div>
+</div>
+
+<script>
+    // ════════════════════════════════════════════════════════════
+    // ENTRADA DE FATURAS  —  prefixo fat_
+    // ════════════════════════════════════════════════════════════
+    var fat_compras       = [];
+    var fat_contasPagar   = [];
+    var fat_fornecedores  = [];
+    var fat_itensTemp     = [];
+    var fat_produtosCache = [];
+
+    // ── UTILS ────────────────────────────────────────────────────
+    var fat_hoje = function(){ return new Date().toISOString().split('T')[0]; };
+    function fat_eur(v){ return '€'+Number(v||0).toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function fat_dt(s,opts){
+        if(!s) return '—';
+        var d = new Date(s+(s.length===10?'T00:00:00':''));
+        return d.toLocaleDateString('pt-PT', Object.assign({day:'2-digit',month:'short',year:'numeric'}, opts||{}));
+    }
+    function fat_kpiCard(label,val,cor,sub){
+        return '<div class="fat-kpi"><div class="fat-kpi-val" style="color:'+cor+'">'+val+'</div><div class="fat-kpi-label">'+label+'</div>'+(sub?'<div class="fat-kpi-sub">'+sub+'</div>':'')+'</div>';
+    }
+
+    var FAT_CATS = {stock:'Stock/Mercadoria',servicos:'Serviços',manutencao:'Manutenção',utilities:'Utilities',renda:'Renda',outros:'Outros'};
+    var FAT_SCOR = {pendente:'#e65100',pago:'#2e7d32',parcial:'var(--primary-dark)',cancelado:'#888',atrasado:'#c62828'};
+    var FAT_SLBL = {pendente:'Pendente',pago:'Pago',parcial:'Parcial',cancelado:'Cancelado',atrasado:'Atrasado'};
+
+    // ── INIT ─────────────────────────────────────────────────────
+    async function fat_init(){
+        document.getElementById('fat-body').innerHTML = '<div class="loading"><div class="spin"></div>A carregar...</div>';
+        await fat_loadAll();
+        fat_render();
+    }
+
+    async function fat_loadAll(){
+        var res = await Promise.all([
+            sb('compras?select=*,fornecedores(id,nome)&order=data_fatura.desc').catch(function(){ return []; }),
+            sb('contas_pagar?select=id,compra_id,valor_total&order=created_at').catch(function(){ return []; }),
+            sb('fornecedores?select=id,nome,email,telefone&ativo=eq.true&order=nome').catch(function(){ return []; }),
+        ]);
+        fat_compras      = res[0] || [];
+        fat_contasPagar  = res[1] || [];
+        fat_fornecedores = res[2] || [];
+    }
+
+    function fat_render(){
+        var body = document.getElementById('fat-body');
+        if(!body) return;
+        body.innerHTML = fat_renderMain();
+    }
+
+    // ── RENDER PRINCIPAL ─────────────────────────────────────────
+    function fat_renderMain(){
+        var totalFat = fat_compras.reduce(function(a,c){ return a+Number(c.total||0); }, 0);
+        var pendVal  = fat_compras.filter(function(c){ return c.status==='pendente'; }).reduce(function(a,c){ return a+Number(c.total||0); }, 0);
+        var pagoVal  = fat_compras.filter(function(c){ return c.status==='pago'; }).reduce(function(a,c){ return a+Number(c.total||0); }, 0);
+
+        var rows = '';
+        if(!fat_compras.length){
+            rows = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-faint)">Nenhuma fatura. Clica em + Nova Fatura.</td></tr>';
+        } else {
+            fat_compras.forEach(function(c){
+                var forn = (c.fornecedores && c.fornecedores.nome) || c.fornecedor_nome || '—';
+                var cor  = FAT_SCOR[c.status] || '#888';
+                var lbl  = FAT_SLBL[c.status] || c.status;
+                rows += '<tr>'
+                    +'<td>'+fat_dt(c.data_fatura)+'<div style="font-size:10px;color:var(--text-faint)">Vence '+fat_dt(c.data_vencimento)+'</div></td>'
+                    +'<td style="font-weight:600">'+forn+'<div style="font-size:10px;color:var(--text-faint)">'+(c.numero_fatura||'')+'</div></td>'
+                    +'<td><span class="badge badge-gray" style="font-size:9px">'+(FAT_CATS[c.categoria]||c.categoria||'—')+'</span></td>'
+                    +'<td><span class="st-badge" style="background:'+cor+'20;color:'+cor+';border:1px solid '+cor+'40">'+lbl+'</span></td>'
+                    +'<td style="text-align:right">'
+                    +'<div style="font-family:var(--font-title);font-weight:700;color:var(--primary-dark)">'+fat_eur(c.total)+'</div>'
+                    +'<div style="font-size:10px;color:var(--text-faint)">IVA '+fat_eur(c.iva)+'</div>'
+                    +'</td>'
+                    +'<td><div class="fat-act">'
+                    +'<button class="fat-btn" onclick="fat_abrirForm(\''+c.id+'\')">Editar</button>'
+                    +'<button class="fat-btn p" onclick="fat_duplicar(\''+c.id+'\')">Duplic.</button>'
+                    +(c.status!=='pago'?'<button class="fat-btn g" onclick="fat_marcarPago(\''+c.id+'\')">✓ Pago</button>':'')
+                    +'</div></td></tr>';
+            });
+        }
+
+        return ''
+            +'<div class="fat-kpis">'
+            +fat_kpiCard('Total Faturas', fat_eur(totalFat), 'var(--primary-dark)', fat_compras.length+' registos')
+            +fat_kpiCard('Pendentes', fat_eur(pendVal), '#e65100', fat_compras.filter(function(c){return c.status==='pendente';}).length+' faturas')
+            +fat_kpiCard('Pagas', fat_eur(pagoVal), '#2e7d32', fat_compras.filter(function(c){return c.status==='pago';}).length+' faturas')
+            +'</div>'
+            +'<div class="fat-sec-bar">'
+            +'<span class="fat-sec-title">Entrada de Faturas de Compra</span>'
+            +'<button class="btn-new" onclick="fat_abrirForm(null)">+ Nova Fatura</button>'
+            +'</div>'
+            +'<div class="fat-table-wrap"><table class="fat-table">'
+            +'<thead><tr><th>Data / Venc.</th><th>Fornecedor / Nº</th><th>Categoria</th><th>Estado</th><th style="text-align:right">Valor / IVA</th><th>Ações</th></tr></thead>'
+            +'<tbody>'+rows+'</tbody></table></div>';
+    }
+
+    // ── FORM FATURA ───────────────────────────────────────────────
+    async function fat_abrirForm(id){
+        var compra = id ? fat_compras.find(function(x){ return x.id === id; }) : null;
+        fat_itensTemp = [];
+        if(id) fat_itensTemp = await sb('compra_itens?select=*&compra_id=eq.'+id+'&order=created_at').catch(function(){ return []; });
+
+        if(!fat_produtosCache.length){
+            var res = await Promise.all([
+                sb('loja_produtos?select=id,nome,categoria,preco_custo,stock&ativo=eq.true&order=categoria,nome').catch(function(){ return []; }),
+                sb('keola_menu?select=id,nome,categoria&disponivel=eq.true&order=categoria,nome').catch(function(){ return []; }),
+            ]);
+            fat_produtosCache = (res[0]||[]).map(function(p){
+                return Object.assign({}, p, {origem:'loja', label:'[Loja] '+(p.categoria?p.categoria+' — ':'')+p.nome});
+            }).concat((res[1]||[]).map(function(p){
+                return Object.assign({}, p, {origem:'keola', label:'[Keola] '+(p.categoria?p.categoria+' — ':'')+p.nome});
+            }));
+        }
+
+        var fv = function(k,d){ return compra && compra[k] != null ? compra[k] : (d != null ? d : ''); };
+        var fornOpts = fat_fornecedores.map(function(fn){
+            return '<option value="'+fn.id+'" '+(fv('fornecedor_id')===fn.id?'selected':'')+'>'+fn.nome+'</option>';
+        }).join('');
+        var prodOpts = fat_produtosCache.map(function(p){
+            return '<option value="'+p.id+'" data-origem="'+p.origem+'" data-nome="'+(p.nome||'').replace(/"/g,'&quot;')+'" data-custo="'+(p.preco_custo||0)+'">'+p.label+'</option>';
+        }).join('');
+
+        document.getElementById('drawer-title').textContent = compra
+            ? 'Fatura — '+(compra.numero_fatura || compra.id.slice(0,8))
+            : 'Nova Entrada de Fatura';
+
+        document.getElementById('drawer-body').innerHTML = '<div class="form-grid">'
+            +'<div class="msg-form" id="form-msg"></div>'
+            +'<div class="form-section-title">Fornecedor & Fatura</div>'
+            +'<div class="form-group form-full"><label class="form-label">Fornecedor *</label>'
+            +'<select class="form-select" id="fc_fornecedor_id"><option value="">— Seleciona o fornecedor —</option>'+fornOpts+'</select>'
+            +'<div style="font-size:10px;color:var(--text-faint);margin-top:4px">Fornecedor novo? <a href="#" onclick="event.preventDefault();closeDrawer();loadModule(\'fornecedores\')" style="color:var(--primary-dark)">Cadastrar em Fornecedores →</a></div></div>'
+            +'<div class="form-group"><label class="form-label">Nº Fatura</label>'
+            +'<input class="form-input" id="fc_numero_fatura" value="'+fv('numero_fatura')+'" placeholder="FT 2026/001"></div>'
+            +'<div class="form-group"><label class="form-label">Data Fatura *</label>'
+            +'<input class="form-input" id="fc_data_fatura" type="date" value="'+fv('data_fatura', fat_hoje())+'"></div>'
+            +'<div class="form-group"><label class="form-label">Data Vencimento</label>'
+            +'<input class="form-input" id="fc_data_vencimento" type="date" value="'+fv('data_vencimento')+'"></div>'
+            +'<div class="form-group"><label class="form-label">Categoria</label>'
+            +'<select class="form-select" id="fc_categoria">'+Object.entries(FAT_CATS).map(function(e){ return '<option value="'+e[0]+'" '+(fv('categoria','stock')===e[0]?'selected':'')+'>'+(e[1])+'</option>'; }).join('')+'</select></div>'
+            +'<div class="form-group"><label class="form-label">Forma Pagamento</label>'
+            +'<select class="form-select" id="fc_forma_pagamento"><option value="transferencia" '+(fv('forma_pagamento','transferencia')==='transferencia'?'selected':'')+'>Transferência</option><option value="mbway">MBWay</option><option value="multibanco">Multibanco</option><option value="dinheiro">Dinheiro</option><option value="cheque">Cheque</option></select></div>'
+            +'<div class="form-section-title">Itens da Fatura</div>'
+            +'<div class="form-full" style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:12px">'
+            +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+            +'<select class="form-select" id="item-produto-sel" style="flex:2;min-width:160px"><option value="">Produto (Loja/Keola)...</option>'+prodOpts+'</select>'
+            +'<input class="form-input" id="item-desc-manual" placeholder="Ou desc. manual" style="flex:1;min-width:100px">'
+            +'<input class="form-input" id="item-qty" type="number" value="1" step="0.001" placeholder="Qtd" style="width:65px">'
+            +'<input class="form-input" id="item-preco" type="number" value="0" step="0.01" placeholder="€ unit." style="width:75px">'
+            +'<input class="form-input" id="item-iva" type="number" value="23" step="1" placeholder="IVA%" style="width:60px">'
+            +'<button class="btn-sub-add" onclick="fat_addItem()">+ Add</button>'
+            +'</div>'
+            +'<div id="fat-itens-lista"></div>'
+            +'<div id="fat-itens-totais" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)"></div>'
+            +'</div>'
+            +'<div class="form-group form-full"><label class="form-label">Observações</label>'
+            +'<textarea class="form-textarea" id="fc_observacoes">'+fv('observacoes')+'</textarea></div>'
+            +'<div class="form-actions"><button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>'
+            +'<button class="btn-save" id="btn-save" onclick="fat_salvar(\''+( id||'')+'\')">Guardar e Criar Conta a Pagar</button></div>'
+            +'</div>';
+
+        document.getElementById('overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        fat_renderItens();
+        fat_calcTotais();
+    }
+
+    function fat_addItem(){
+        var sel  = document.getElementById('item-produto-sel');
+        var opt  = sel && sel.options[sel.selectedIndex];
+        var desc = (document.getElementById('item-desc-manual') && document.getElementById('item-desc-manual').value.trim()) || (opt && opt.dataset && opt.dataset.nome) || '';
+        var qty  = parseFloat(document.getElementById('item-qty') && document.getElementById('item-qty').value || 1);
+        var preco = parseFloat(document.getElementById('item-preco') && document.getElementById('item-preco').value || 0);
+        var iva  = parseFloat(document.getElementById('item-iva') && document.getElementById('item-iva').value || 23);
+        if(!desc && !(sel && sel.value)){ alert('Seleciona produto ou escreve descrição.'); return; }
+        if(qty <= 0){ alert('Qtd deve ser > 0.'); return; }
+        fat_itensTemp.push({
+            _tmp: Date.now(),
+            produto_id: sel && sel.value || null,
+            origem: (opt && opt.dataset && opt.dataset.origem) || 'outro',
+            descricao: desc || (opt && opt.text) || '—',
+            quantidade: qty, preco_unitario: preco, iva_pct: iva,
+            atualizar_stock: !!(sel && sel.value)
+        });
+        if(sel) sel.value = '';
+        if(document.getElementById('item-desc-manual')) document.getElementById('item-desc-manual').value = '';
+        if(document.getElementById('item-qty'))   document.getElementById('item-qty').value = '1';
+        if(document.getElementById('item-preco')) document.getElementById('item-preco').value = '0';
+        fat_renderItens();
+        fat_calcTotais();
+    }
+
+    function fat_renderItens(){
+        var el = document.getElementById('fat-itens-lista');
+        if(!el) return;
+        if(!fat_itensTemp.length){
+            el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:4px">Nenhum item.</div>';
+            return;
+        }
+        el.innerHTML = fat_itensTemp.map(function(it,i){
+            var sub = (it.quantidade * it.preco_unitario * (1 + it.iva_pct/100)).toFixed(2);
+            return '<div style="display:grid;grid-template-columns:1fr auto auto auto auto auto;gap:4px;align-items:center;padding:6px 4px;border-radius:6px;background:var(--bg-card);margin-bottom:3px;font-size:12px">'
+                +'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+                +(it.atualizar_stock?'<span title="Actualiza stock" style="color:var(--green);font-size:10px">📦 </span>':'')+it.descricao+'</div>'
+                +'<div style="color:var(--text-faint)">'+it.quantidade+'</div>'
+                +'<div>€'+Number(it.preco_unitario).toFixed(2)+'</div>'
+                +'<div style="color:var(--text-faint)">'+it.iva_pct+'%</div>'
+                +'<div style="font-weight:700;color:var(--primary-dark)">€'+sub+'</div>'
+                +'<button onclick="fat_itensTemp.splice('+i+',1);fat_renderItens();fat_calcTotais()" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;padding:2px 6px">✕</button>'
+                +'</div>';
+        }).join('');
+    }
+
+    function fat_calcTotais(){
+        var el = document.getElementById('fat-itens-totais');
+        if(!el) return;
+        var sub = 0, iva = 0;
+        fat_itensTemp.forEach(function(it){ var b = it.quantidade * it.preco_unitario; sub += b; iva += b * (it.iva_pct/100); });
+        el.innerHTML = '<div style="display:flex;justify-content:flex-end;gap:16px;font-size:13px">'
+            +'<span style="color:var(--text-faint)">Sub: <strong>'+fat_eur(sub)+'</strong></span>'
+            +'<span style="color:var(--text-faint)">IVA: <strong>'+fat_eur(iva)+'</strong></span>'
+            +'<span style="color:var(--primary-dark);font-weight:700;font-size:15px">Total: '+fat_eur(sub+iva)+'</span>'
+            +'</div>';
+    }
+
+    async function fat_salvar(id){
+        var get = function(k){ var el = document.getElementById('fc_'+k); return el ? el.value || null : null; };
+        var fornId = get('fornecedor_id');
+        if(!fornId){ showFormMsg('Seleciona um fornecedor.','error'); return; }
+        if(!fat_itensTemp.length){ showFormMsg('Adiciona pelo menos 1 item.','error'); return; }
+        var dataFatura = get('data_fatura');
+        if(!dataFatura){ showFormMsg('Data obrigatória.','error'); return; }
+
+        var sub = 0, ivaTot = 0;
+        fat_itensTemp.forEach(function(it){ var b = it.quantidade * it.preco_unitario; sub += b; ivaTot += b * (it.iva_pct/100); });
+        var total = sub + ivaTot;
+
+        var dataVenc = get('data_vencimento');
+        if(!dataVenc){ var dv = new Date(dataFatura); dv.setDate(dv.getDate()+30); dataVenc = dv.toISOString().split('T')[0]; }
+
+        var forn = fat_fornecedores.find(function(f){ return f.id === fornId; }) || {};
+        var body = {
+            fornecedor_id: fornId, fornecedor_nome: forn.nome||null,
+            numero_fatura: get('numero_fatura'), data_fatura: dataFatura, data_vencimento: dataVenc,
+            categoria: get('categoria'), forma_pagamento: get('forma_pagamento'),
+            observacoes: get('observacoes'),
+            subtotal: parseFloat(sub.toFixed(2)), iva: parseFloat(ivaTot.toFixed(2)), total: parseFloat(total.toFixed(2)),
+            status: 'pendente',
+            operador: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.nome||null : null,
+            updated_at: new Date().toISOString()
+        };
+
+        var btn = document.getElementById('btn-save');
+        btn.disabled = true; btn.textContent = 'A guardar...';
+        try {
+            var compraId = id;
+            if(!id){
+                var r = await sb('compras', {method:'POST', body:JSON.stringify(body)});
+                compraId = r && r[0] && r[0].id;
+            } else {
+                await sb('compras?id=eq.'+id, {method:'PATCH', body:JSON.stringify(body)});
+                await sb('compra_itens?compra_id=eq.'+id, {method:'DELETE'});
+            }
+            if(!compraId) throw new Error('Sem ID da compra.');
+
+            for(var i = 0; i < fat_itensTemp.length; i++){
+                var it = fat_itensTemp[i];
+                var ib = {compra_id:compraId, produto_id:it.produto_id||null, origem:it.origem,
+                    descricao:it.descricao, quantidade:it.quantidade, preco_unitario:it.preco_unitario,
+                    iva_pct:it.iva_pct, atualizar_stock:it.atualizar_stock};
+                if(it.produto_id && it.atualizar_stock && it.origem === 'loja'){
+                    var p = await sb('loja_produtos?id=eq.'+it.produto_id+'&select=stock').catch(function(){ return []; });
+                    var novoSt = (p && p[0] && p[0].stock || 0) + Math.round(it.quantidade);
+                    ib.stock_depois = novoSt;
+                    await sb('loja_produtos?id=eq.'+it.produto_id, {method:'PATCH', body:JSON.stringify({stock:novoSt})});
+                }
+                await sb('compra_itens', {method:'POST', body:JSON.stringify(ib)});
+            }
+
+            // Conta a pagar automática
+            var cpExist = fat_contasPagar.find(function(cp){ return cp.compra_id === compraId; });
+            var cpBody = {
+                compra_id: compraId, fornecedor_id: fornId, fornecedor_nome: forn.nome||null,
+                descricao: 'Fatura '+(body.numero_fatura||compraId.slice(0,8))+' — '+(forn.nome||'Fornecedor'),
+                numero_documento: body.numero_fatura, categoria: body.categoria||'fornecedor',
+                valor_total: body.total, valor_pago: 0,
+                data_emissao: body.data_fatura, data_vencimento: dataVenc,
+                forma_pagamento: body.forma_pagamento, status: 'pendente',
+                updated_at: new Date().toISOString()
+            };
+            if(!cpExist) await sb('contas_pagar', {method:'POST', body:JSON.stringify(cpBody)});
+            else         await sb('contas_pagar?id=eq.'+cpExist.id, {method:'PATCH', body:JSON.stringify(cpBody)});
+
+            showFormMsg('Fatura guardada! Stock e conta a pagar actualizados.','success');
+            await fat_loadAll();
+            setTimeout(function(){ closeDrawer(); fat_render(); }, 900);
+        } catch(e){
+            showFormMsg('Erro: '+(e&&e.message||JSON.stringify(e)),'error');
+            btn.disabled = false; btn.textContent = 'Guardar e Criar Conta a Pagar';
+        }
+    }
+
+    async function fat_marcarPago(id){
+        await sb('compras?id=eq.'+id, {method:'PATCH', body:JSON.stringify({status:'pago', updated_at:new Date().toISOString()})});
+        var cp = fat_contasPagar.find(function(c){ return c.compra_id === id; });
+        if(cp) await sb('contas_pagar?id=eq.'+cp.id, {method:'PATCH', body:JSON.stringify({
+                status:'pago', valor_pago:cp.valor_total,
+                data_pagamento: fat_hoje(), updated_at: new Date().toISOString()
+            })});
+        await fat_loadAll();
+        fat_render();
+    }
+
+    async function fat_duplicar(id){
+        await fat_abrirForm(null);
+        var c = fat_compras.find(function(x){ return x.id === id; });
+        if(!c) return;
+        var fs = document.getElementById('fc_fornecedor_id');
+        if(fs && c.fornecedor_id) fs.value = c.fornecedor_id;
+        var cat = document.getElementById('fc_categoria');
+        if(cat && c.categoria) cat.value = c.categoria;
+        fat_itensTemp = await sb('compra_itens?select=*&compra_id=eq.'+id+'&order=created_at').catch(function(){ return []; });
+        fat_renderItens();
+        fat_calcTotais();
+        showFormMsg('Duplicado! Ajusta e guarda.','success');
+    }
+
+    // ── ENTRY POINT ───────────────────────────────────────────────
+    fat_init();
+</script>

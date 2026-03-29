@@ -747,9 +747,7 @@
     let cursosCache = [];
     let userPerms = {};
     let _autoRefreshTimer = null;
-    let visitantes = [];
-    let evAtivo = null;
-
+    
     const AUTO_REFRESH_MS = 30_000;
     const SECOES = {
         loja: {tabela: 'loja_produtos', orderBy: 'categoria,nome', campos: camposLoja},
@@ -837,8 +835,7 @@
                         }
                     },
                     'eventos': () => {
-                        evAtivo = null;
-                        evSetTab(0);
+                        if (typeof evSetTab === 'function') evSetTab(0);
                     },
                     'keola': () => {
                         if (window.kl_init) kl_init();
@@ -1197,56 +1194,23 @@
         const cfg = SECOES[secaoAtiva];
         const registo = id ? registos.find(r => r.id === id) : null;
         const isNovo = !registo;
-        if (secaoAtiva === 'ministerios' || secaoAtiva === 'cursos') {
-            try {
-                const res = await sb('membros?select=id,nome&ativo=eq.true&order=nome');
-                if (Array.isArray(res) && res.length) membros = res;
-            } catch (e) {
-            }
-        }
-        if (secaoAtiva === 'membros') {
-            try {
-                const rm = await sb('membros?select=id,nome&ativo=eq.true&order=nome');
-                if (Array.isArray(rm) && rm.length) membros = rm;
-                ministeriosCache = await sb('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome') || [];
-                cursosCache = await sb('zao_cursos?select=id,nome&ativo=eq.true&order=nome').catch(() => []);
-            } catch (e) {
-            }
-        }
+        
         document.getElementById('drawer-title').textContent =
             isNovo ? `Novo — ${cfg.label || secaoAtiva}` : 'Editar';
         document.getElementById('drawer-body').innerHTML = buildForm(cfg, registo);
-        // Para Membros: carregar cursos e filhos
-        if (secaoAtiva === 'membros' && registo) {
-            carregarCursosMembro(registo.id);
-        }
-        // Para Keola: injectar painel de componentes de kit
-        if (secaoAtiva === 'keola') {
-            injectKitPanel(id || null);
-        }
+        
         // Aplicar guard de permissões nos campos do form
         setTimeout(() => aplicarPermissoesSecao(secaoAtiva), 50);
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        if (!isNovo && secaoAtiva === 'membros') {
-            await carregarFilhos(registo.id);
-            await carregarMembroMinisterios(registo.id);
-        } else if (!isNovo && (secaoAtiva === 'ministerios' || secaoAtiva === 'cursos')) {
-            await carregarSubList(registo.id);
-        }
+        
     }
 
     function buildForm(cfg, r) {
         const campos = typeof cfg.campos === 'function' ? cfg.campos(r) : cfg.campos;
         let html = `<div class="form-grid"><div class="msg-form" id="form-msg"></div>`;
         campos.forEach(c => {
-            if (c.key === 'link_id' && secaoAtiva === 'membros') {
-                const val2 = r?.[c.key] ?? '';
-                const opts2 = links_cache.map(l => `<option value="${l.id}" ${val2 === l.id ? 'selected' : ''}>${l.nome}</option>`).join('');
-                html += `<div class="form-group form-full"><label class="form-label">${c.label}</label>
-                <select class="form-select" id="f_link_id"><option value="">-- Sem Link --</option>${opts2}</select></div>`;
-                return;
-            }
+            
             if (c.type === 'section') {
                 html += `<div class="form-section-title">${c.label}</div>`;
                 return;
@@ -1265,54 +1229,12 @@
                 <textarea class="form-textarea" id="f_${c.key}" placeholder="${c.ph || ''}">${val}</textarea></div>`;
             } else if (c.type === 'image') {
                 html += buildImageUpload(c.key, c.label, val, c.bucket || 'imagens');
-            } else if (c.type === 'select-membro') {
-                // Cônjuge — select com pesquisa de membros
-                const conjNome = membros.find(m => m.id === val)?.nome || '';
-                const opts = membros.filter(m => m.id !== r?.id).map(m => `<option value="${m.id}" ${val === m.id ? 'selected' : ''}>${m.nome}</option>`).join('');
-                html += `<div class="form-group form-full"><label class="form-label">${c.label}</label>
-                <select class="form-select" id="f_${c.key}"><option value="">— Sem cônjuge —</option>${opts}</select></div>`;
-            } else if (c.type === 'custom-cursos') {
-                // Cursos concluídos — painel custom (preenchido via JS após render)
-                html += `<div class="form-group form-full">
-                <div id="cursos-membro-panel"><div class="sub-list-empty">A carregar...</div></div>
-                <div class="sub-add-row" style="margin-top:8px">
-                    <select class="form-select" id="sub-curso-id"><option value="">Seleciona curso</option>${cursosCache.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')}</select>
-                    <input class="form-input" id="sub-curso-data" type="date" style="max-width:140px" title="Data de conclusão">
-                    <button class="btn-sub-add" onclick="addCursoMembro('${r?.id || ''}')">Adicionar</button>
-                </div></div>`;
             } else {
                 html += `<div class="form-group ${fc}"><label class="form-label">${c.label}</label>
                 <input class="form-input" id="f_${c.key}" type="${c.type || 'text'}" placeholder="${c.ph || ''}" value="${val}"></div>`;
             }
         });
-        if (r && secaoAtiva === 'membros') {
-            html += `
-        <div class="form-section-title">Filhos</div>
-        <div class="form-full"><div class="sub-list" id="sub-list"><div class="sub-list-empty">A carregar...</div></div></div>
-        <div class="sub-add-row">
-            <select class="form-select" id="sub-filho-id"><option value="">Seleciona filho</option>${membros.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}</select>
-            <button class="btn-sub-add" onclick="addFilho('${r.id}')">Adicionar</button>
-        </div>
-        <div class="form-section-title">Ministérios e Áreas</div>
-        <div class="form-full"><div class="sub-list" id="sub-list-mins"><div class="sub-list-empty">A carregar...</div></div></div>
-        <div class="sub-add-row">
-            <select class="form-select" id="sub-min-id"><option value="">Seleciona ministério/área</option>${ministeriosCache.map(m => `<option value="${m.id}">[${m.tipo || '?'}] ${m.nome}</option>`).join('')}</select>
-            <input class="form-input" id="sub-min-papel" placeholder="Papel" style="max-width:120px">
-            <button class="btn-sub-add" onclick="addMembroMinisterio('${r.id}')">Adicionar</button>
-        </div>`;
-        }
-        if (r && (secaoAtiva === 'ministerios' || secaoAtiva === 'cursos')) {
-            const sublabel = secaoAtiva === 'ministerios' ? 'Líderes' : 'Instrutores';
-            html += `
-        <div class="form-section-title">${sublabel}</div>
-        <div class="form-full"><div class="sub-list" id="sub-list"><div class="sub-list-empty">A carregar...</div></div></div>
-        <div class="sub-add-row">
-            <select class="form-select" id="sub-membro-id"><option value="">Seleciona membro</option>${membros.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}</select>
-            <input class="form-input" id="sub-cargo" placeholder="Cargo" style="max-width:110px">
-            ${secaoAtiva === 'cursos' ? `<input class="form-input" id="sub-nome-instrutor" placeholder="Nome externo" style="max-width:110px">` : ''}
-            <button class="btn-sub-add" onclick="addSubItem('${r.id}')">Adicionar</button>
-        </div>`;
-        }
+        
         html += `<div class="form-actions">
         <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
         <button class="btn-save" id="btn-save" onclick="salvar('${r?.id || ''}')">Guardar</button>

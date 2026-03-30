@@ -1,0 +1,2140 @@
+<!--
+═══════════════════════════════════════════════════════════════
+  NOVOS MODULE — novos.html
+  Tabela DB: visitantes (nome não muda na base)
+  Display: "Novos"
+
+  MIGRAÇÃO SUPABASE (executar uma vez):
+  ───────────────────────────────────────
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS genero text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS data_nascimento date;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS estado_civil text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS escolaridade text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS profissao text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS nif text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS idiomas text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS nacionalidade text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS rua text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS numero text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS complemento text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS codigo_postal text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS cidade text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS pais text DEFAULT 'Portugal';
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS historia text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS foto_url text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS tipo_entrada text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS primeira_conversao boolean DEFAULT false;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS data_conversao date;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS local_conversao text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS sentimento text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS data_retorno date;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS local_retorno text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS igreja_anterior text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS tempo_desviado text;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS fez_processo_raizes boolean DEFAULT false;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS fez_workshop_raizes boolean DEFAULT false;
+  ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS fez_retiro_raizes boolean DEFAULT false;
+
+  MEMBROS — campos novos (para receber ao converter):
+  ALTER TABLE membros ADD COLUMN IF NOT EXISTS fez_processo_raizes boolean DEFAULT false;
+  ALTER TABLE membros ADD COLUMN IF NOT EXISTS fez_workshop_raizes boolean DEFAULT false;
+  ALTER TABLE membros ADD COLUMN IF NOT EXISTS fez_retiro_raizes boolean DEFAULT false;
+  ALTER TABLE membros ADD COLUMN IF NOT EXISTS convertido_de_visitante_id uuid REFERENCES visitantes(id);
+═══════════════════════════════════════════════════════════════
+-->
+<style>
+    /* ══════════════════════════════════════════════════════
+       NOVOS MODULE CSS
+       Prefixo: nv-
+       ══════════════════════════════════════════════════════ */
+
+    .nv-wrap * {
+        font-family: var(--font-body, 'Lato', sans-serif);
+        color: var(--text-main, #fff);
+        box-sizing: border-box;
+    }
+
+    .nv-wrap {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    .nv-side {
+        width: 380px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        overflow: hidden;
+    }
+
+    .nv-side-head {
+        padding: 10px 12px 8px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+
+    .nv-module-title {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 11px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: #a78bfa;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nv-search {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        color: #fff;
+        outline: none;
+        margin-bottom: 6px;
+    }
+    .nv-search::placeholder { color: var(--text-faint); }
+    .nv-search:focus { border-color: #a78bfa; }
+
+    /* filtros */
+    .nv-filtros { display: flex; flex-direction: column; gap: 4px; }
+
+    .nv-filtros-titulo {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 8px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        padding: 2px 0;
+    }
+
+    .nv-filtro-grupo { display: flex; flex-wrap: wrap; gap: 3px; }
+
+    .nv-filtro-chip {
+        padding: 3px 8px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        font-size: 10px;
+        color: var(--text-faint);
+        cursor: pointer;
+        transition: all 0.12s;
+        white-space: nowrap;
+    }
+    .nv-filtro-chip:hover { border-color: #a78bfa; color: #a78bfa; }
+    .nv-filtro-chip.active {
+        background: rgba(167,139,250,0.2);
+        border-color: #a78bfa;
+        color: #fff;
+        font-weight: 700;
+    }
+    .nv-filtro-chip.chip-green.active {
+        background: rgba(46,125,50,0.3);
+        border-color: rgba(46,125,50,0.7);
+        color: #69f0ae;
+    }
+    .nv-filtro-chip.chip-orange.active {
+        background: rgba(230,81,0,0.3);
+        border-color: rgba(230,81,0,0.7);
+        color: #ffab40;
+    }
+
+    .nv-filtro-clear {
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px dashed var(--border);
+        background: none;
+        font-size: 10px;
+        color: var(--text-faint);
+        cursor: pointer;
+        transition: all 0.12s;
+        width: 100%;
+        margin-top: 2px;
+    }
+    .nv-filtro-clear:hover { color: #ff8a80; border-color: rgba(198,40,40,0.6); }
+
+    .nv-count {
+        font-size: 10px;
+        color: var(--text-faint);
+        padding: 4px 0 0;
+        text-align: right;
+    }
+
+    /* lista */
+    .nv-list { flex: 1; overflow-y: auto; padding: 6px; }
+
+    .nv-list-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.12s;
+        border: 1px solid transparent;
+    }
+    .nv-list-item:hover { background: rgba(167,139,250,0.1); }
+    .nv-list-item.active {
+        background: rgba(167,139,250,0.15);
+        border-color: #a78bfa;
+    }
+    .nv-list-item.convertido-membro { opacity: 0.5; }
+
+    .nv-list-avatar {
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px !important;
+        font-weight: 700;
+        flex-shrink: 0;
+        overflow: hidden;
+        background: rgba(167,139,250,0.15);
+        color: #a78bfa;
+        border: 1px solid rgba(167,139,250,0.3);
+    }
+    .nv-list-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .nv-list-info { flex: 1; min-width: 0; }
+    .nv-list-nome {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .nv-list-sub {
+        font-size: 11px;
+        color: var(--text-faint);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 1px;
+    }
+    .nv-list-badges { display: flex; gap: 3px; margin-top: 3px; flex-wrap: wrap; }
+
+    .nv-list-sep {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 8px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        padding: 8px 8px 3px;
+        border-top: 1px solid var(--border);
+        margin-top: 4px;
+    }
+    .nv-list-sep:first-child { border-top: none; margin-top: 0; }
+
+    /* botão novo */
+    .nv-btn-novo {
+        width: calc(100% - 12px);
+        margin: 6px;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px dashed #a78bfa;
+        background: rgba(167,139,250,0.08);
+        color: #a78bfa;
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.15s;
+        flex-shrink: 0;
+    }
+    .nv-btn-novo:hover { background: #a78bfa; color: #fff; border-style: solid; }
+
+    /* loading */
+    .nv-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-faint);
+        font-size: 12px;
+        gap: 10px;
+    }
+
+    /* ── BADGES ────────────────────────────────────────────── */
+    .nv-badge {
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 9px;
+        font-family: var(--font-title, 'Cinzel', serif);
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        font-weight: 600;
+    }
+    .nv-badge-purple  { background: rgba(167,139,250,0.25); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.5); }
+    .nv-badge-green   { background: rgba(46,125,50,0.35);   color: #69f0ae; border: 1px solid rgba(46,125,50,0.6); }
+    .nv-badge-orange  { background: rgba(230,81,0,0.3);     color: #ffab40; border: 1px solid rgba(230,81,0,0.6); }
+    .nv-badge-teal    { background: rgba(0,144,152,0.25);   color: var(--primary, #009098); border: 1px solid rgba(0,144,152,0.5); }
+    .nv-badge-gray    { background: rgba(255,255,255,0.08); color: var(--text-faint); border: 1px solid var(--border); }
+    .nv-badge-red     { background: rgba(198,40,40,0.35);   color: #ff8a80; border: 1px solid rgba(198,40,40,0.6); }
+    .nv-badge-blue    { background: rgba(0,100,180,0.35);   color: #82b1ff; border: 1px solid rgba(0,100,180,0.6); }
+    .nv-badge-gold    { background: rgba(232,201,110,0.2);  color: #e8c96e; border: 1px solid rgba(232,201,110,0.5); }
+
+    /* ── PAINEL ─────────────────────────────────────────────── */
+    .nv-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .nv-panel-inner {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    /* empty state */
+    .nv-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        gap: 10px;
+        color: var(--text-faint);
+        text-align: center;
+        padding: 40px;
+    }
+    .nv-empty-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(167,139,250,0.1);
+        border: 1px solid rgba(167,139,250,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #a78bfa;
+        font-size: 22px;
+    }
+    .nv-empty-title {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+    }
+
+    /* ── PERFIL HEADER ──────────────────────────────────────── */
+    .nv-profile-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        background: var(--bg-card);
+    }
+
+    .nv-profile-foto {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: rgba(167,139,250,0.12);
+        border: 2px solid rgba(167,139,250,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: #a78bfa;
+    }
+    .nv-profile-foto img { width: 100%; height: 100%; object-fit: cover; }
+
+    .nv-profile-info { flex: 1; min-width: 0; }
+    .nv-profile-nome {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 17px;
+        color: #fff;
+        letter-spacing: 1px;
+        margin-bottom: 3px;
+    }
+    .nv-profile-sub { font-size: 12px; color: var(--text-faint); margin-bottom: 6px; }
+    .nv-profile-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+    .nv-profile-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
+
+    /* processo progress bar */
+    .nv-processo-bar {
+        margin-top: 8px;
+        display: flex;
+        gap: 4px;
+        align-items: center;
+    }
+    .nv-processo-step {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: var(--text-faint);
+        font-family: var(--font-title, 'Cinzel', serif);
+        letter-spacing: 0.3px;
+    }
+    .nv-processo-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.1);
+        flex-shrink: 0;
+    }
+    .nv-processo-dot.done { background: #69f0ae; border-color: rgba(46,125,50,0.6); }
+    .nv-processo-dot.current { background: #a78bfa; border-color: rgba(167,139,250,0.6); animation: nvPulse 1.5s ease-in-out infinite; }
+    @keyframes nvPulse {
+        0%,100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.5); }
+        50%      { box-shadow: 0 0 0 4px rgba(167,139,250,0); }
+    }
+    .nv-processo-line { flex: 1; height: 1px; background: var(--border); }
+    .nv-processo-line.done { background: rgba(46,125,50,0.5); }
+
+    /* sub-tabs */
+    .nv-panel-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+        flex-shrink: 0;
+        overflow-x: auto;
+    }
+    .nv-panel-tab {
+        padding: 9px 14px;
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+        transition: all 0.12s;
+        background: none;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+    }
+    .nv-panel-tab:hover { color: #fff; }
+    .nv-panel-tab.active { color: #fff; border-bottom-color: #a78bfa; }
+
+    /* ── DATA CARDS ─────────────────────────────────────────── */
+    .nv-data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .nv-data-full { grid-column: 1 / -1; }
+
+    .nv-data-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .nv-data-card-title {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #a78bfa;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(167,139,250,0.2);
+    }
+
+    .nv-field-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 5px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        gap: 8px;
+    }
+    .nv-field-row:last-child { border-bottom: none; }
+    .nv-field-label {
+        font-size: 10px;
+        color: var(--text-faint);
+        flex-shrink: 0;
+        min-width: 110px;
+        font-family: var(--font-title, 'Cinzel', serif);
+        letter-spacing: 0.5px;
+    }
+    .nv-field-val { font-size: 12px; color: #fff; text-align: right; word-break: break-word; }
+    .nv-field-val.empty { color: var(--text-faint); font-style: italic; }
+
+    /* ── PROCESSO CHECKLIST ─────────────────────────────────── */
+    .nv-processo-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .nv-processo-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.03);
+        transition: all 0.15s;
+    }
+    .nv-processo-item.done {
+        border-color: rgba(46,125,50,0.4);
+        background: rgba(46,125,50,0.08);
+    }
+    .nv-processo-item.locked {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .nv-processo-check {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    .nv-processo-check.done {
+        border-color: rgba(46,125,50,0.6);
+        background: rgba(46,125,50,0.3);
+        color: #69f0ae;
+    }
+
+    .nv-processo-info { flex: 1; }
+    .nv-processo-nome { font-size: 13px; font-weight: 600; color: #fff; }
+    .nv-processo-desc { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+    .nv-processo-btn-mark {
+        padding: 6px 12px;
+        border-radius: 7px;
+        border: 1px solid rgba(167,139,250,0.4);
+        background: rgba(167,139,250,0.1);
+        color: #a78bfa;
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 8px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.12s;
+        white-space: nowrap;
+    }
+    .nv-processo-btn-mark:hover { background: #a78bfa; color: #fff; border-color: #a78bfa; }
+
+    /* ── FORMULÁRIO ─────────────────────────────────────────── */
+    .nv-form { display: flex; flex-direction: column; gap: 0; }
+
+    .nv-form-section {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #a78bfa;
+        padding: 10px 0 6px;
+        border-bottom: 1px solid rgba(167,139,250,0.25);
+        margin-bottom: 8px;
+        margin-top: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .nv-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .nv-form-full { grid-column: 1 / -1; }
+    .nv-form-group { display: flex; flex-direction: column; gap: 3px; }
+    .nv-form-label { font-size: 10px; color: var(--text-faint); font-family: var(--font-title, 'Cinzel', serif); letter-spacing: 0.5px; }
+
+    .nv-form-input {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        color: #fff;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    .nv-form-input::placeholder { color: var(--text-faint); }
+    .nv-form-input:focus { border-color: #a78bfa; background: rgba(167,139,250,0.06); }
+    .nv-form-input[readonly] { opacity: 0.5; cursor: not-allowed; }
+
+    .nv-form-select {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        color: #fff;
+        outline: none;
+    }
+    .nv-form-select:focus { border-color: #a78bfa; }
+    .nv-form-select option { background: var(--bg-card, #0d2733); color: #fff; }
+
+    .nv-form-textarea {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        color: #fff;
+        outline: none;
+        resize: vertical;
+        min-height: 80px;
+    }
+    .nv-form-textarea::placeholder { color: var(--text-faint); }
+    .nv-form-textarea:focus { border-color: #a78bfa; }
+
+    .nv-form-toggle {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        color: #fff;
+        cursor: pointer;
+        padding: 7px 0;
+    }
+    .nv-form-toggle input[type="checkbox"] { accent-color: #a78bfa; width: 14px; height: 14px; }
+
+    /* tipo entrada selector */
+    .nv-tipo-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .nv-tipo-btn {
+        padding: 14px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.04);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .nv-tipo-btn:hover { border-color: #a78bfa; background: rgba(167,139,250,0.1); }
+    .nv-tipo-btn.active { border-color: #a78bfa; background: rgba(167,139,250,0.2); }
+    .nv-tipo-btn-icon { font-size: 22px; }
+    .nv-tipo-btn-label {
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #fff;
+    }
+    .nv-tipo-btn-desc { font-size: 10px; color: var(--text-faint); }
+
+    /* caixa condicional */
+    .nv-conditional-box {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(167,139,250,0.2);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 10px;
+    }
+    .nv-conditional-box.retorno {
+        border-color: rgba(230,81,0,0.3);
+        background: rgba(230,81,0,0.04);
+    }
+
+    /* mensagens */
+    .nv-msg {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        margin-bottom: 10px;
+        display: none;
+        font-weight: 600;
+    }
+    .nv-msg.error   { display: block; background: rgba(198,40,40,0.75);  color: #fff; border: 1px solid rgba(198,40,40,0.9); }
+    .nv-msg.success { display: block; background: rgba(46,125,50,0.75);  color: #fff; border: 1px solid rgba(46,125,50,0.9); }
+    .nv-msg.warning { display: block; background: rgba(230,81,0,0.75);   color: #fff; border: 1px solid rgba(230,81,0,0.9); }
+    .nv-msg.info    { display: block; background: rgba(167,139,250,0.4); color: #fff; border: 1px solid rgba(167,139,250,0.6); }
+
+    /* botões */
+    .nv-form-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        padding-top: 14px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+
+    .nv-btn-cancel {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05);
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 1px;
+        color: var(--text-faint);
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+    .nv-btn-cancel:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+    .nv-btn-save {
+        padding: 8px 18px;
+        border-radius: 8px;
+        border: none;
+        background: #7c3aed;
+        color: #fff;
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: background 0.15s;
+        font-weight: 700;
+    }
+    .nv-btn-save:hover { background: #6d28d9; }
+    .nv-btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .nv-btn-danger {
+        padding: 7px 14px;
+        border-radius: 8px;
+        border: 1px solid rgba(198,40,40,0.5);
+        background: rgba(198,40,40,0.2);
+        color: #ff8a80;
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+    .nv-btn-danger:hover { background: rgba(198,40,40,0.4); color: #fff; }
+
+    .nv-btn-edit {
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05);
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 1px;
+        color: var(--text-faint);
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+    .nv-btn-edit:hover { border-color: #a78bfa; color: #a78bfa; }
+
+    .nv-btn-converter {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(232,201,110,0.5);
+        background: rgba(232,201,110,0.15);
+        color: #e8c96e;
+        font-family: var(--font-title, 'Cinzel', serif);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-weight: 700;
+    }
+    .nv-btn-converter:hover { background: rgba(232,201,110,0.3); color: #fff; border-color: #e8c96e; }
+    .nv-btn-converter:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* image box */
+    .nv-img-box {
+        width: 100%;
+        height: 160px;
+        border: 2px dashed rgba(255,255,255,0.15);
+        border-radius: 10px;
+        background: rgba(255,255,255,0.03);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: border-color 0.2s;
+        position: relative;
+    }
+    .nv-img-box:hover { border-color: #a78bfa; }
+    .nv-img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* caixa bloqueada */
+    .nv-locked-banner {
+        background: rgba(232,201,110,0.1);
+        border: 1px solid rgba(232,201,110,0.35);
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: #e8c96e;
+        line-height: 1.6;
+    }
+
+    /* conversion form special */
+    .nv-conv-form {
+        background: rgba(232,201,110,0.06);
+        border: 1px solid rgba(232,201,110,0.25);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NOVOS MODULE HTML
+     ═══════════════════════════════════════════════════════════ -->
+<div class="nv-wrap" id="nv-wrap">
+
+    <!-- SIDEBAR -->
+    <div class="nv-side">
+        <div class="nv-side-head">
+            <div class="nv-module-title">
+                <span style="font-size:14px">✦</span> Novos
+                <span id="nv-header-count" style="font-size:10px;color:var(--text-faint);font-family:var(--font-body);letter-spacing:0;text-transform:none;margin-left:auto"></span>
+            </div>
+
+            <input class="nv-search" id="nv-search" type="text"
+                   placeholder="Pesquisar nome, email, tel..."
+                   oninput="nv_filtrar()">
+
+            <div class="nv-filtros">
+                <div class="nv-filtros-titulo">Tipo de chegada</div>
+                <div class="nv-filtro-grupo">
+                    <button class="nv-filtro-chip chip-green" onclick="nv_toggleChip(this,'conversao')">Conversão</button>
+                    <button class="nv-filtro-chip chip-orange" onclick="nv_toggleChip(this,'retorno')">Retorno</button>
+                </div>
+                <div class="nv-filtros-titulo" style="margin-top:6px">Estado</div>
+                <div class="nv-filtro-grupo">
+                    <button class="nv-filtro-chip" onclick="nv_toggleChip(this,'em_processo')">Em processo</button>
+                    <button class="nv-filtro-chip" onclick="nv_toggleChip(this,'completo')">Processo completo</button>
+                    <button class="nv-filtro-chip" onclick="nv_toggleChip(this,'ja_membro')">Já membro</button>
+                </div>
+                <button class="nv-filtro-clear" onclick="nv_clearFiltros()">✕ Limpar filtros</button>
+                <div class="nv-count" id="nv-count"></div>
+            </div>
+        </div>
+
+        <div class="nv-list" id="nv-list">
+            <div class="nv-loading"><div class="spin"></div> A carregar...</div>
+        </div>
+
+        <button class="nv-btn-novo" onclick="nv_novoRegisto()">+ Registar Novo</button>
+    </div>
+
+    <!-- PAINEL -->
+    <div class="nv-panel" id="nv-panel">
+        <div class="nv-empty" id="nv-empty-state">
+            <div class="nv-empty-icon">✦</div>
+            <div class="nv-empty-title">Selecciona um registo</div>
+            <div style="font-size:12px;color:var(--text-faint);max-width:220px;line-height:1.6;margin-top:4px">
+                Regista conversões e retornos, acompanha o processo de integração até à membresia.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ════════════════════════════════════════════════════════
+       NOVOS MODULE
+       Prefixo: nv_
+       Tabela DB: visitantes
+       ════════════════════════════════════════════════════════ */
+
+    /* Reutiliza as listas de membros se já carregadas, senão define localmente */
+    const NV_ESCOLARIDADE_LIST = typeof ESCOLARIDADE_LIST !== 'undefined' ? ESCOLARIDADE_LIST : [
+        {v:'',l:'— Seleciona —'},
+        {v:'sem_escolaridade',l:'Sem escolaridade'},
+        {v:'ensino_basico_i',l:'1.º Ciclo do Ensino Básico'},
+        {v:'ensino_basico_ii',l:'2.º e 3.º Ciclo do Ensino Básico'},
+        {v:'ensino_secundario',l:'Ensino Secundário / Ensino Médio'},
+        {v:'curso_profissional',l:'Curso Profissional / Técnico'},
+        {v:'licenciatura',l:'Licenciatura / Graduação'},
+        {v:'pos_graduacao',l:'Pós-Graduação / Especialização'},
+        {v:'mestrado',l:'Mestrado'},
+        {v:'doutoramento',l:'Doutoramento'},
+    ];
+    const NV_ESC_LABEL_MAP = Object.fromEntries(NV_ESCOLARIDADE_LIST.slice(1).map(e=>[e.v,e.l]));
+
+    const NV_ESTADO_CIVIL_MAP = {
+        solteiro:'Solteiro/a', casado:'Casado/a', divorciado:'Divorciado/a',
+        viuvo:'Viúvo/a', uniao_facto:'União de Facto',
+    };
+
+    const NV_IDIOMAS_LIST = typeof IDIOMAS_LIST !== 'undefined' ? IDIOMAS_LIST : [
+        'Afrikaans','Alemão','Árabe','Bengali','Chinês','Coreano','Espanhol','Francês',
+        'Inglês','Italiano','Japonês','Português','Russo','Turco','Ucraniano',
+    ].sort();
+
+    const NV_NACS_LIST = typeof NACIONALIDADES_LIST !== 'undefined' ? NACIONALIDADES_LIST : [
+        'Angolana','Brasileira','Cabo-verdiana','Congolesa','Española','Francesa',
+        'Guineense','Inglesa','Italiana','Moçambicana','Nigeriana','Portuguesa',
+        'São-tomense','Ucraniana',
+    ].sort();
+
+    (function () {
+        let nv_novos = [];       // registos da tabela visitantes
+        let nv_links_cache = []; // links para select de conversão
+        let nv_membros_cache = []; // para lookup ao converter
+
+        let nv_activoId  = null;
+        let nv_panelTab  = 'dados';
+        let nv_editMode  = false;
+        let nv_isNovo    = false;
+        let nv_filtros   = new Set();
+
+        // arrays temporários para chips
+        let _nv_editIdiomas = [];
+        let _nv_editNacs    = [];
+
+        /* ── sb helper ──────────────────────────────────────── */
+        function sb(path, opts={}) {
+            return fetch(`${SUPA_URL}/rest/v1/${path}`, {
+                ...opts,
+                headers: {
+                    'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+                    'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                    ...opts.headers,
+                },
+            }).then(async r => {
+                if (!r.ok) { const e = await r.json().catch(()=>{}); throw e; }
+                const txt = await r.text();
+                return txt ? JSON.parse(txt) : [];
+            });
+        }
+
+        function nv_parseArr(val) {
+            if (Array.isArray(val)) return val;
+            try { const p=JSON.parse(val||'[]'); return Array.isArray(p)?p:[]; } catch { return []; }
+        }
+
+        /* ── chips ──────────────────────────────────────────── */
+        function nv_renderChips(key) {
+            const arr = key==='idiomas' ? _nv_editIdiomas : _nv_editNacs;
+            const el = document.getElementById('nv-chips-'+key);
+            if (!el) return;
+            if (!arr.length) {
+                el.innerHTML='<span style="font-size:11px;color:var(--text-faint);font-style:italic">Nenhum adicionado</span>';
+                return;
+            }
+            el.innerHTML = arr.map((v,i)=>
+                `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px 3px 11px;border-radius:20px;
+            background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.4);color:#fff;
+            font-size:11px;font-family:var(--font-title,'Cinzel',serif)">
+            ${v}
+            <button onclick="nv_delChip('${key}',${i})"
+                style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:13px;line-height:1;padding:0 2px"
+                onmouseover="this.style.color='#ff8a80'" onmouseout="this.style.color='var(--text-faint)'">×</button>
+            </span>`
+            ).join('');
+        }
+
+        function nv_addChip(key) {
+            const sel=document.getElementById('nv-sel-'+key);
+            if(!sel||!sel.value) return;
+            const arr=key==='idiomas'?_nv_editIdiomas:_nv_editNacs;
+            if(!arr.includes(sel.value)){arr.push(sel.value);nv_renderChips(key);}
+            sel.value='';
+        }
+
+        function nv_delChip(key, idx) {
+            (key==='idiomas'?_nv_editIdiomas:_nv_editNacs).splice(idx,1);
+            nv_renderChips(key);
+        }
+
+        function nv_chipBlock(key, label, list) {
+            const opts=list.map(l=>`<option value="${l}">${l}</option>`).join('');
+            return `<div style="margin-bottom:10px">
+            <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title,'Cinzel',serif);letter-spacing:.5px;margin-bottom:5px">${label}</div>
+            <div id="nv-chips-${key}" style="display:flex;flex-wrap:wrap;gap:5px;min-height:10px;margin-bottom:6px"></div>
+            <div style="display:flex;gap:6px">
+                <select id="nv-sel-${key}" class="nv-form-select" style="flex:1">
+                    <option value="">-- Adicionar --</option>${opts}
+                </select>
+                <button onclick="nv_addChip('${key}')"
+                    style="padding:0 14px;border-radius:8px;border:1px solid rgba(167,139,250,0.4);
+                    background:rgba(167,139,250,0.12);color:#a78bfa;font-size:18px;cursor:pointer;transition:all .15s"
+                    onmouseover="this.style.background='#7c3aed';this.style.color='#fff'"
+                    onmouseout="this.style.background='rgba(167,139,250,0.12)';this.style.color='#a78bfa'">+</button>
+            </div>
+        </div>`;
+        }
+
+        /* ── helpers de estado ──────────────────────────────── */
+        function nv_isProcessoCompleto(v) {
+            return !!(v.fez_processo_raizes && v.fez_workshop_raizes && v.fez_retiro_raizes);
+        }
+
+        function nv_isJaMembro(v) {
+            return !!(v.convertido && v.membro_id);
+        }
+
+        function nv_processoCount(v) {
+            return [v.fez_processo_raizes, v.fez_workshop_raizes, v.fez_retiro_raizes].filter(Boolean).length;
+        }
+
+        /* ── INIT ───────────────────────────────────────────── */
+        async function nv_init() {
+            try {
+                const [novos, links, membros] = await Promise.all([
+                    sb('visitantes?select=*&order=nome'),
+                    sb('links?select=id,nome&ativo=eq.true&order=nome'),
+                    sb('membros?select=id,nome&ativo=ne.false&order=nome'),
+                ]);
+                nv_novos        = novos||[];
+                nv_links_cache  = links||[];
+                nv_membros_cache = membros||[];
+                nv_renderSide();
+            } catch(e) {
+                console.error('nv_init error:',e);
+                document.getElementById('nv-list').innerHTML =
+                    `<div style="padding:20px;font-size:12px;color:#ff8a80">Erro: ${e?.message||JSON.stringify(e)}</div>`;
+            }
+        }
+
+        /* ── SIDEBAR ────────────────────────────────────────── */
+        function nv_renderSide() {
+            const list = document.getElementById('nv-list');
+            if (!list) return;
+
+            const q = (document.getElementById('nv-search')?.value||'').toLowerCase();
+            let lista = [...nv_novos];
+
+            // filtros
+            if (nv_filtros.has('conversao'))  lista = lista.filter(v=>v.tipo_entrada==='conversao');
+            if (nv_filtros.has('retorno'))    lista = lista.filter(v=>v.tipo_entrada==='retorno');
+            if (nv_filtros.has('ja_membro'))  lista = lista.filter(v=>nv_isJaMembro(v));
+            if (nv_filtros.has('completo'))   lista = lista.filter(v=>nv_isProcessoCompleto(v)&&!nv_isJaMembro(v));
+            if (nv_filtros.has('em_processo'))lista = lista.filter(v=>!nv_isProcessoCompleto(v)&&!nv_isJaMembro(v));
+
+            // sem filtro de estado → excluir já membros por defeito
+            if (!nv_filtros.has('ja_membro')&&!nv_filtros.has('completo')&&!nv_filtros.has('em_processo')) {
+                lista = lista.filter(v=>!nv_isJaMembro(v));
+            }
+
+            if (q) lista = lista.filter(v=>
+                (v.nome||'').toLowerCase().includes(q)||
+                (v.email||'').toLowerCase().includes(q)||
+                (v.telefone||'').toLowerCase().includes(q)
+            );
+
+            const countEl = document.getElementById('nv-count');
+            if (countEl) countEl.textContent = `${lista.length} registos`;
+
+            const hdrCount = document.getElementById('nv-header-count');
+            if (hdrCount) {
+                const emProcesso = nv_novos.filter(v=>!nv_isJaMembro(v)).length;
+                hdrCount.textContent = `${emProcesso} activos`;
+            }
+
+            if (!lista.length) {
+                list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum registo encontrado.</div>';
+                return;
+            }
+
+            // separar por tipo
+            const grupos = {conversao:[], retorno:[], outro:[]};
+            lista.forEach(v=>{
+                if (v.tipo_entrada==='conversao') grupos.conversao.push(v);
+                else if (v.tipo_entrada==='retorno') grupos.retorno.push(v);
+                else grupos.outro.push(v);
+            });
+
+            const GRUPO_LABEL = { conversao:'✦ Conversões', retorno:'↩ Retornos', outro:'Sem tipo' };
+            let html='';
+
+            ['conversao','retorno','outro'].forEach(tipo=>{
+                if (!grupos[tipo].length) return;
+                html+=`<div class="nv-list-sep">${GRUPO_LABEL[tipo]} <span style="font-weight:400;opacity:.6">(${grupos[tipo].length})</span></div>`;
+                grupos[tipo].forEach(v=>{
+                    const jaM  = nv_isJaMembro(v);
+                    const comp = nv_isProcessoCompleto(v);
+                    const cnt  = nv_processoCount(v);
+
+                    const foto = v.foto_url
+                        ? `<div class="nv-list-avatar"><img src="${v.foto_url}" onerror="this.parentElement.innerHTML='${(v.nome||'N')[0]}'"></div>`
+                        : `<div class="nv-list-avatar">${(v.nome||'N')[0]}</div>`;
+
+                    let badges='';
+                    if (jaM) badges='<span class="nv-badge nv-badge-teal">Membro</span>';
+                    else if (comp) badges='<span class="nv-badge nv-badge-gold">Pronto para converter</span>';
+                    else badges=`<span class="nv-badge nv-badge-gray">${cnt}/3 etapas</span>`;
+
+                    const sub=[v.telefone, v.cidade].filter(Boolean).join(' · ');
+
+                    html+=`<div class="nv-list-item ${jaM?'convertido-membro':''} ${nv_activoId===v.id?'active':''}"
+                    onclick="nv_selectRegisto('${v.id}')">
+                    ${foto}
+                    <div class="nv-list-info">
+                        <div class="nv-list-nome">${v.nome||'—'}</div>
+                        <div class="nv-list-sub">${sub||v.email||'—'}</div>
+                        <div class="nv-list-badges">${badges}</div>
+                    </div>
+                </div>`;
+                });
+            });
+
+            list.innerHTML = html;
+        }
+
+        /* ── FILTROS ─────────────────────────────────────────── */
+        function nv_toggleChip(el, filtro) {
+            if (el.classList.toggle('active')) nv_filtros.add(filtro);
+            else nv_filtros.delete(filtro);
+            nv_filtrar();
+        }
+        function nv_clearFiltros() {
+            nv_filtros.clear();
+            document.querySelectorAll('.nv-filtro-chip.active').forEach(c=>c.classList.remove('active'));
+            const s=document.getElementById('nv-search'); if(s) s.value='';
+            nv_filtrar();
+        }
+        function nv_filtrar() { nv_renderSide(); }
+
+        /* ── SELECIONAR ──────────────────────────────────────── */
+        function nv_selectRegisto(id) {
+            nv_activoId = id;
+            nv_editMode = false;
+            nv_isNovo   = false;
+            nv_panelTab = 'dados';
+            nv_renderSide();
+            nv_renderPerfil();
+        }
+
+        /* ── EMPTY ───────────────────────────────────────────── */
+        function nv_showEmpty() {
+            document.getElementById('nv-panel').innerHTML=`<div class="nv-empty">
+            <div class="nv-empty-icon">✦</div>
+            <div class="nv-empty-title">Selecciona um registo</div>
+        </div>`;
+        }
+
+        /* ── PERFIL ──────────────────────────────────────────── */
+        function nv_renderPerfil() {
+            const v = nv_novos.find(x=>x.id===nv_activoId);
+            if (!v) return;
+
+            const panel = document.getElementById('nv-panel');
+            const jaM   = nv_isJaMembro(v);
+            const comp  = nv_isProcessoCompleto(v);
+            const isAdmin = !!(window.ZION_ADMIN);
+
+            const foto = v.foto_url
+                ? `<div class="nv-profile-foto"><img src="${v.foto_url}" onerror="this.parentElement.innerHTML='${(v.nome||'N')[0]}'"></div>`
+                : `<div class="nv-profile-foto">${(v.nome||'N')[0]}</div>`;
+
+            // badge tipo
+            let tipoBadge='';
+            if (v.tipo_entrada==='conversao') tipoBadge='<span class="nv-badge nv-badge-green">Conversão</span>';
+            else if (v.tipo_entrada==='retorno') tipoBadge='<span class="nv-badge nv-badge-orange">Retorno</span>';
+            else tipoBadge='<span class="nv-badge nv-badge-gray">Sem tipo</span>';
+
+            let estadoBadge='';
+            if (jaM) estadoBadge='<span class="nv-badge nv-badge-teal">Já membro</span>';
+            else if (comp) estadoBadge='<span class="nv-badge nv-badge-gold">✦ Pronto para converter</span>';
+            else estadoBadge=`<span class="nv-badge nv-badge-purple">${nv_processoCount(v)}/3 etapas</span>`;
+
+            // barra de progresso do processo
+            const steps = [
+                {k:'fez_processo_raizes', l:'Processo Raízes'},
+                {k:'fez_workshop_raizes', l:'Workshop'},
+                {k:'fez_retiro_raizes',   l:'Retiro'},
+            ];
+            const barraHtml = `<div class="nv-processo-bar">
+            ${steps.map((s,i)=>{
+                const done = !!v[s.k];
+                const current = !done && steps.slice(0,i).every(prev=>!!v[prev.k]);
+                return `<div class="nv-processo-step">
+                    <div class="nv-processo-dot ${done?'done':current?'current':''}"></div>
+                    <span style="font-size:9px">${s.l}</span>
+                </div>${i<steps.length-1?`<div class="nv-processo-line ${done?'done':''}"></div>`:''}`;
+            }).join('')}
+        </div>`;
+
+            const sub = [v.genero, v.cidade, v.data_visita ? new Date(v.data_visita+'T12:00:00').toLocaleDateString('pt-PT') : null].filter(Boolean).join(' · ');
+
+            // tabs — bloqueia edição se já membro (exceto admin)
+            const canEdit = !jaM || isAdmin;
+
+            const tabLabels = {dados:'Dados', morada:'Morada', chegada:'Chegada', processo:'Processo', historia:'História'};
+            const tabsHtml = Object.keys(tabLabels).map(t=>
+                `<button class="nv-panel-tab ${nv_panelTab===t?'active':''}" onclick="nv_setPanelTab('${t}')">${tabLabels[t]}</button>`
+            ).join('');
+
+            // acções
+            let actionsHtml = '';
+            if (canEdit && !nv_editMode) actionsHtml += `<button class="nv-btn-edit" onclick="nv_startEdit()">Editar</button>`;
+            if (!jaM) {
+                const canConvert = comp;
+                actionsHtml += `<button class="nv-btn-converter" ${canConvert?'':'disabled'}
+                onclick="nv_abrirConversao('${v.id}')" title="${canConvert?'Converter em membro':'Complete o processo antes de converter'}">
+                ✦ Converter em Membro
+            </button>`;
+            }
+            if (canEdit) {
+                actionsHtml += `<button class="nv-btn-danger" onclick="nv_toggleAtivo('${v.id}',${v.ativo!==false})">
+                ${v.ativo!==false?'Inativar':'Ativar'}
+            </button>`;
+            }
+
+            const tabContent = nv_editMode && canEdit ? nv_buildForm(v) : nv_buildView(v);
+
+            panel.innerHTML = `
+        <div class="nv-profile-header">
+            ${foto}
+            <div class="nv-profile-info">
+                <div class="nv-profile-nome">${v.nome||'—'}</div>
+                <div class="nv-profile-sub">${sub||v.email||'—'}</div>
+                <div class="nv-profile-badges">${tipoBadge} ${estadoBadge}</div>
+                ${barraHtml}
+            </div>
+            <div class="nv-profile-actions">${actionsHtml}</div>
+        </div>
+        <div class="nv-panel-tabs">${tabsHtml}</div>
+        <div class="nv-panel-inner" id="nv-panel-content">${tabContent}</div>`;
+        }
+
+        function nv_setPanelTab(tab) {
+            nv_panelTab = tab;
+            const v = nv_novos.find(x=>x.id===nv_activoId);
+            if (!v) return;
+            const jaM = nv_isJaMembro(v);
+            const canEdit = !jaM || !!(window.ZION_ADMIN);
+            const content = document.getElementById('nv-panel-content');
+            if (content) content.innerHTML = (nv_editMode && canEdit) ? nv_buildForm(v) : nv_buildView(v);
+            document.querySelectorAll('.nv-panel-tab').forEach(btn=>{
+                const t = btn.onclick?.toString().match(/'(\w+)'/)?.[1];
+                if (t) btn.classList.toggle('active', t===tab);
+            });
+        }
+
+        /* ── VIEW ────────────────────────────────────────────── */
+        function nv_buildView(v) {
+            const jaM = nv_isJaMembro(v);
+            const fld = (label, val)=>`<div class="nv-field-row">
+            <div class="nv-field-label">${label}</div>
+            <div class="nv-field-val ${val?'':'empty'}">${val||'Não preenchido'}</div>
+        </div>`;
+            const chkFld = (label, val)=>`<div class="nv-field-row">
+            <div class="nv-field-label">${label}</div>
+            <div class="nv-field-val">${val
+                ?'<span class="nv-badge nv-badge-green">Sim</span>'
+                :'<span class="nv-badge nv-badge-gray">Não</span>'}
+            </div>
+        </div>`;
+
+            const lockedBanner = jaM ? `<div class="nv-locked-banner">
+            <span style="font-size:18px">🔒</span>
+            <div>
+                <strong>Esta pessoa é membro.</strong><br>
+                Para editar os dados pessoais utiliza o módulo <strong>Membros</strong>.
+                ${window.ZION_ADMIN ? ' <em style="opacity:.7">(Admin pode editar)</em>' : ''}
+            </div>
+        </div>` : '';
+
+            /* ── TAB: DADOS ── */
+            if (nv_panelTab==='dados') {
+                const dataNasc = v.data_nascimento ? new Date(v.data_nascimento+'T12:00:00').toLocaleDateString('pt-PT') : null;
+                const escLabel = NV_ESC_LABEL_MAP[v.escolaridade]||v.escolaridade||null;
+                const ecLabel  = NV_ESTADO_CIVIL_MAP[v.estado_civil]||v.estado_civil||null;
+
+                const idiomasArr = nv_parseArr(v.idiomas);
+                const nacsArr    = nv_parseArr(v.nacionalidade);
+                const chipStyle  = 'display:inline-flex;padding:2px 8px;border-radius:20px;background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.4);color:#fff;font-size:10px;font-family:var(--font-title)';
+
+                const wap = v.telefone ? (()=>{
+                    const tel=v.telefone.replace(/\D/g,'');
+                    return `<a href="https://api.whatsapp.com/send?phone=${tel}" target="_blank"
+                    style="color:#25D366;font-size:11px;text-decoration:none;display:inline-flex;align-items:center;
+                    gap:4px;padding:2px 8px;border:1px solid rgba(37,211,102,0.4);border-radius:6px;background:rgba(37,211,102,0.1)">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    WhatsApp
+                </a>`;
+                })() : '';
+
+                return `<div>${lockedBanner}
+            <div class="nv-data-card">
+                <div class="nv-data-card-title">Identificação</div>
+                ${fld('Email', v.email?`<a href="mailto:${v.email}" style="color:#a78bfa">${v.email}</a>`:null)}
+                <div class="nv-field-row">
+                    <div class="nv-field-label">Telefone</div>
+                    <div class="nv-field-val" style="display:flex;gap:8px;align-items:center">
+                        ${v.telefone||'<span style="color:var(--text-faint);font-style:italic">Não preenchido</span>'}
+                        ${wap}
+                    </div>
+                </div>
+                ${fld('Género', v.genero==='masculino'?'Masculino':v.genero==='feminino'?'Feminino':v.genero)}
+                ${fld('Nascimento', dataNasc)}
+                ${fld('Estado Civil', ecLabel)}
+                ${fld('Escolaridade', escLabel)}
+                ${fld('Profissão', v.profissao)}
+                <div class="nv-field-row">
+                    <div class="nv-field-label">Idiomas</div>
+                    <div class="nv-field-val">${idiomasArr.length?idiomasArr.map(x=>`<span style="${chipStyle}">${x}</span>`).join(' '):'<span style="color:var(--text-faint);font-style:italic">Não preenchido</span>'}</div>
+                </div>
+                <div class="nv-field-row">
+                    <div class="nv-field-label">Nacionalidade</div>
+                    <div class="nv-field-val">${nacsArr.length?nacsArr.map(x=>`<span style="${chipStyle}">${x}</span>`).join(' '):'<span style="color:var(--text-faint);font-style:italic">Não preenchido</span>'}</div>
+                </div>
+                ${fld('Data de visita', v.data_visita?new Date(v.data_visita+'T12:00:00').toLocaleDateString('pt-PT'):null)}
+                ${fld('Onde conheceu', v.onde_conheceu)}
+                ${fld('Zona', v.zona)}
+                ${fld('Observações', v.observacoes)}
+            </div>
+            </div>`;
+            }
+
+            /* ── TAB: MORADA ── */
+            if (nv_panelTab==='morada') {
+                return `<div>${lockedBanner}<div class="nv-data-card">
+                <div class="nv-data-card-title">Morada</div>
+                ${fld('Rua', [v.rua,v.numero,v.complemento].filter(Boolean).join(', '))}
+                ${fld('Código Postal', v.codigo_postal)}
+                ${fld('Cidade', v.cidade)}
+                ${fld('País', v.pais)}
+            </div></div>`;
+            }
+
+            /* ── TAB: CHEGADA ── */
+            if (nv_panelTab==='chegada') {
+                const tipo = v.tipo_entrada;
+                let chegadaHtml = '';
+
+                if (!tipo) {
+                    chegadaHtml = '<div style="font-size:12px;color:var(--text-faint);padding:8px 0">Tipo de chegada não definido. Edita o registo para preencher.</div>';
+                } else if (tipo==='conversao') {
+                    chegadaHtml = `
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;
+                    background:rgba(46,125,50,0.2);border:1px solid rgba(46,125,50,0.4);margin-bottom:12px">
+                    <span style="font-size:16px">✝</span>
+                    <span style="font-family:var(--font-title,'Cinzel',serif);font-size:10px;letter-spacing:1px;color:#69f0ae">CONVERSÃO</span>
+                </div>
+                ${chkFld('Primeira conversão', v.primeira_conversao)}
+                ${fld('Dia da conversão', v.data_conversao?new Date(v.data_conversao+'T12:00:00').toLocaleDateString('pt-PT'):null)}
+                ${fld('Local', v.local_conversao)}
+                <div class="nv-field-row">
+                    <div class="nv-field-label">O que está sentindo</div>
+                    <div class="nv-field-val" style="text-align:left;font-style:italic;line-height:1.6">${v.sentimento||'<span style="color:var(--text-faint)">Não preenchido</span>'}</div>
+                </div>`;
+                } else if (tipo==='retorno') {
+                    chegadaHtml = `
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;
+                    background:rgba(230,81,0,0.2);border:1px solid rgba(230,81,0,0.4);margin-bottom:12px">
+                    <span style="font-size:16px">↩</span>
+                    <span style="font-family:var(--font-title,'Cinzel',serif);font-size:10px;letter-spacing:1px;color:#ffab40">RETORNO</span>
+                </div>
+                ${fld('Data do retorno', v.data_retorno?new Date(v.data_retorno+'T12:00:00').toLocaleDateString('pt-PT'):null)}
+                ${fld('Local', v.local_retorno)}
+                ${fld('Igreja anterior', v.igreja_anterior)}
+                ${fld('Tempo desviado', v.tempo_desviado)}
+                <div class="nv-field-row">
+                    <div class="nv-field-label">O que está sentindo</div>
+                    <div class="nv-field-val" style="text-align:left;font-style:italic;line-height:1.6">${v.sentimento||'<span style="color:var(--text-faint)">Não preenchido</span>'}</div>
+                </div>`;
+                }
+
+                return `<div><div class="nv-data-card">
+                <div class="nv-data-card-title">Informação de Chegada</div>
+                ${chegadaHtml}
+            </div></div>`;
+            }
+
+            /* ── TAB: PROCESSO ── */
+            if (nv_panelTab==='processo') {
+                const steps = [
+                    {
+                        k: 'fez_processo_raizes',
+                        label: 'Processo Raízes',
+                        desc: 'Participou no processo de integração Raízes',
+                        ordem: 1,
+                    },
+                    {
+                        k: 'fez_workshop_raizes',
+                        label: 'Workshop Raízes',
+                        desc: 'Frequentou o Workshop Raízes',
+                        ordem: 2,
+                    },
+                    {
+                        k: 'fez_retiro_raizes',
+                        label: 'Retiro Raízes',
+                        desc: 'Participou no Retiro Raízes',
+                        ordem: 3,
+                    },
+                ];
+
+                const comp = nv_isProcessoCompleto(v);
+                const completoBanner = comp && !jaM ? `<div style="
+                background:rgba(232,201,110,0.12);border:1px solid rgba(232,201,110,0.4);
+                border-radius:10px;padding:12px 16px;margin-bottom:14px;
+                display:flex;align-items:center;gap:10px;font-size:12px;color:#e8c96e;line-height:1.6">
+                <span style="font-size:20px">✦</span>
+                <div><strong>Processo completo!</strong> Esta pessoa está pronta para ser convertida em membro.<br>
+                Clica em <strong>"✦ Converter em Membro"</strong> no cabeçalho.</div>
+            </div>` : '';
+
+                const listaHtml = steps.map(s=>{
+                    const done = !!v[s.k];
+                    const locked = jaM;
+                    return `<div class="nv-processo-item ${done?'done':''} ${locked&&!done?'locked':''}">
+                    <div class="nv-processo-check ${done?'done':''}">${done?'✓':s.ordem}</div>
+                    <div class="nv-processo-info">
+                        <div class="nv-processo-nome">${s.label}</div>
+                        <div class="nv-processo-desc">${s.desc}</div>
+                    </div>
+                    ${!done&&!locked
+                        ? `<button class="nv-processo-btn-mark" onclick="nv_marcarEtapa('${v.id}','${s.k}')">Marcar ✓</button>`
+                        : done ? `<span class="nv-badge nv-badge-green">Concluído</span>` : ''
+                    }
+                </div>`;
+                }).join('');
+
+                const autoLabel = v.tipo_entrada==='retorno' ? 'Retornou' : 'Convertido';
+                const autoDesc  = v.tipo_entrada==='retorno'
+                    ? 'Marcado automaticamente no registo de retorno'
+                    : 'Marcado automaticamente no registo de conversão';
+
+                return `<div>
+            ${completoBanner}
+            <div class="nv-data-card">
+                <div class="nv-data-card-title">Processo de Integração</div>
+                <!-- auto marcado na criação -->
+                <div class="nv-processo-item done" style="margin-bottom:8px">
+                    <div class="nv-processo-check done">✓</div>
+                    <div class="nv-processo-info">
+                        <div class="nv-processo-nome">${autoLabel}</div>
+                        <div class="nv-processo-desc">${autoDesc}</div>
+                    </div>
+                    <span class="nv-badge nv-badge-green">Auto</span>
+                </div>
+                <div class="nv-processo-list">${listaHtml}</div>
+            </div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.7">
+                Cada etapa é marcada manualmente por um líder ou admin.<br>
+                O botão "Converter em Membro" fica disponível quando as 3 etapas estão concluídas.
+            </div>
+            </div>`;
+            }
+
+            /* ── TAB: HISTÓRIA ── */
+            if (nv_panelTab==='historia') {
+                return `<div>${lockedBanner}<div class="nv-data-card">
+                <div class="nv-data-card-title">História</div>
+                <div style="font-size:13px;color:#fff;line-height:1.8;white-space:pre-wrap">
+                    ${v.historia||'<span style="color:var(--text-faint);font-style:italic">Sem história registada.</span>'}
+                </div>
+            </div></div>`;
+            }
+
+            return '';
+        }
+
+        /* ── MARCAR ETAPA DO PROCESSO ────────────────────────── */
+        async function nv_marcarEtapa(id, campo) {
+            if (!confirm(`Confirmar: marcar "${campo.replace(/_/g,' ')}" como concluído?`)) return;
+            try {
+                await sb(`visitantes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({[campo]:true})});
+                const idx = nv_novos.findIndex(x=>x.id===id);
+                if (idx>=0) nv_novos[idx][campo]=true;
+                nv_renderSide();
+                nv_renderPerfil();
+            } catch(e) { alert('Erro: '+(e?.message||JSON.stringify(e))); }
+        }
+
+        /* ── FORM (edição) ───────────────────────────────────── */
+        function nv_startEdit() { nv_editMode=true; nv_renderPerfil(); }
+
+        function nv_cancelEdit() {
+            if (nv_isNovo) { nv_isNovo=false; nv_editMode=false; nv_activoId=null; nv_showEmpty(); return; }
+            nv_editMode=false; nv_renderPerfil();
+        }
+
+        function nv_buildForm(v) {
+            const fv  = (k,d='') => v?.[k]??d;
+            const chk = k => v?.[k] ? 'checked' : '';
+            const tipo = fv('tipo_entrada','');
+
+            /* ── TAB: DADOS ── */
+            if (nv_panelTab==='dados') {
+                _nv_editIdiomas = nv_parseArr(v?.idiomas);
+                _nv_editNacs    = nv_parseArr(v?.nacionalidade);
+
+                const html = `<div class="nv-form">
+            <div class="nv-msg" id="nv-form-msg"></div>
+            <div class="nv-form-section">Identificação</div>
+            <div class="nv-form-grid">
+                <div class="nv-form-group nv-form-full">
+                    <label class="nv-form-label">Nome *</label>
+                    <input class="nv-form-input" id="nf_nome" type="text" value="${fv('nome')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Email</label>
+                    <input class="nv-form-input" id="nf_email" type="email" value="${fv('email')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Telefone</label>
+                    <input class="nv-form-input" id="nf_telefone" type="tel" value="${fv('telefone')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Género</label>
+                    <select class="nv-form-select" id="nf_genero">
+                        <option value="">—</option>
+                        <option value="masculino" ${fv('genero')==='masculino'?'selected':''}>Masculino</option>
+                        <option value="feminino"  ${fv('genero')==='feminino' ?'selected':''}>Feminino</option>
+                    </select>
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Data Nascimento</label>
+                    <input class="nv-form-input" id="nf_data_nascimento" type="date" value="${fv('data_nascimento')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Estado Civil</label>
+                    <select class="nv-form-select" id="nf_estado_civil">
+                        <option value="">—</option>
+                        <option value="solteiro"    ${fv('estado_civil')==='solteiro'   ?'selected':''}>Solteiro/a</option>
+                        <option value="casado"      ${fv('estado_civil')==='casado'     ?'selected':''}>Casado/a</option>
+                        <option value="divorciado"  ${fv('estado_civil')==='divorciado' ?'selected':''}>Divorciado/a</option>
+                        <option value="viuvo"       ${fv('estado_civil')==='viuvo'      ?'selected':''}>Viúvo/a</option>
+                        <option value="uniao_facto" ${fv('estado_civil')==='uniao_facto'?'selected':''}>União de Facto</option>
+                    </select>
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Escolaridade</label>
+                    <select class="nv-form-select" id="nf_escolaridade">
+                        ${NV_ESCOLARIDADE_LIST.map(e=>`<option value="${e.v}" ${fv('escolaridade')===e.v?'selected':''}>${e.l}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Profissão</label>
+                    <input class="nv-form-input" id="nf_profissao" type="text" value="${fv('profissao')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Data da Visita</label>
+                    <input class="nv-form-input" id="nf_data_visita" type="date" value="${fv('data_visita')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Zona</label>
+                    <input class="nv-form-input" id="nf_zona" type="text" value="${fv('zona')}">
+                </div>
+                <div class="nv-form-group nv-form-full">
+                    <label class="nv-form-label">Onde conheceu a Zion</label>
+                    <input class="nv-form-input" id="nf_onde_conheceu" type="text" value="${fv('onde_conheceu')}">
+                </div>
+                <div class="nv-form-group nv-form-full">
+                    <label class="nv-form-label">Observações</label>
+                    <textarea class="nv-form-textarea" id="nf_observacoes" rows="2">${fv('observacoes')}</textarea>
+                </div>
+            </div>
+
+            <div class="nv-form-section">Idiomas e Nacionalidade</div>
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(167,139,250,0.15);border-radius:10px;padding:12px;margin-bottom:10px">
+                ${nv_chipBlock('idiomas','Idiomas',NV_IDIOMAS_LIST)}
+                ${nv_chipBlock('nacs','Nacionalidade',NV_NACS_LIST)}
+            </div>
+
+            <div class="nv-form-section">Foto</div>
+            <div class="nv-form-group nv-form-full">
+                <div class="nv-img-box" id="nv-img-box" onclick="nv_triggerFoto()">
+                    ${fv('foto_url')
+                    ?`<img src="${fv('foto_url')}" onerror="this.parentElement.innerHTML='Sem foto'">`
+                    :`<div style="text-align:center;color:var(--text-faint)">
+                            <div style="font-size:28px;margin-bottom:6px">📷</div>
+                            <div style="font-size:12px">Clica para escolher foto</div>
+                          </div>`}
+                </div>
+                <div style="display:flex;gap:6px;margin-top:6px">
+                    <input class="nv-form-input" id="nf_foto_url_txt" type="text"
+                        placeholder="Ou cola URL da foto" value="${fv('foto_url')}" oninput="nv_applyFotoUrl()">
+                    <button class="nv-btn-edit" onclick="nv_applyFotoUrl()">Usar</button>
+                </div>
+                <input type="hidden" id="nf_foto_url" value="${fv('foto_url')}">
+                <input type="file" id="nv-foto-file" accept="image/*" style="display:none" onchange="nv_handleFoto(this)">
+            </div>
+
+            <div class="nv-form-actions">
+                <button class="nv-btn-cancel" onclick="nv_cancelEdit()">Cancelar</button>
+                <button class="nv-btn-save" id="nv-btn-save" onclick="nv_salvar('${v?.id||''}')">Guardar</button>
+            </div>
+            </div>`;
+
+                setTimeout(()=>{nv_renderChips('idiomas');nv_renderChips('nacs');},0);
+                return html;
+            }
+
+            /* ── TAB: MORADA ── */
+            if (nv_panelTab==='morada') {
+                return `<div class="nv-form">
+            <div class="nv-msg" id="nv-form-msg"></div>
+            <div class="nv-form-section">Morada</div>
+            <div class="nv-form-grid">
+                <div class="nv-form-group nv-form-full">
+                    <label class="nv-form-label">Rua</label>
+                    <input class="nv-form-input" id="nf_rua" type="text" value="${fv('rua')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Número</label>
+                    <input class="nv-form-input" id="nf_numero" type="text" value="${fv('numero')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Complemento</label>
+                    <input class="nv-form-input" id="nf_complemento" type="text" value="${fv('complemento')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Código Postal</label>
+                    <input class="nv-form-input" id="nf_codigo_postal" type="text" value="${fv('codigo_postal')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Cidade</label>
+                    <input class="nv-form-input" id="nf_cidade" type="text" value="${fv('cidade')}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">País</label>
+                    <input class="nv-form-input" id="nf_pais" type="text" value="${fv('pais','Portugal')}">
+                </div>
+            </div>
+            <div class="nv-form-actions">
+                <button class="nv-btn-cancel" onclick="nv_cancelEdit()">Cancelar</button>
+                <button class="nv-btn-save" id="nv-btn-save" onclick="nv_salvar('${v?.id||''}')">Guardar</button>
+            </div>
+            </div>`;
+            }
+
+            /* ── TAB: CHEGADA ── */
+            if (nv_panelTab==='chegada') {
+                const isConv   = tipo==='conversao';
+                const isRetorno = tipo==='retorno';
+
+                const convBox = `<div class="nv-conditional-box">
+                <div style="font-family:var(--font-title,'Cinzel',serif);font-size:9px;letter-spacing:2px;
+                    color:#69f0ae;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(46,125,50,0.3)">
+                    ✝ Dados da Conversão
+                </div>
+                <div class="nv-form-grid">
+                    <div class="nv-form-group nv-form-full">
+                        <label class="nv-form-toggle">
+                            <input type="checkbox" id="nf_primeira_conversao" ${chk('primeira_conversao')}> Primeira conversão
+                        </label>
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Dia da conversão</label>
+                        <input class="nv-form-input" id="nf_data_conversao" type="date" value="${fv('data_conversao')}">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Local</label>
+                        <input class="nv-form-input" id="nf_local_conversao" type="text" value="${fv('local_conversao')}" placeholder="Ex: Culto do domingo">
+                    </div>
+                    <div class="nv-form-group nv-form-full">
+                        <label class="nv-form-label">O que a pessoa está sentindo</label>
+                        <textarea class="nv-form-textarea" id="nf_sentimento" rows="3" placeholder="Descreve o que a pessoa expressou…">${fv('sentimento')}</textarea>
+                    </div>
+                </div>
+            </div>`;
+
+                const retBox = `<div class="nv-conditional-box retorno">
+                <div style="font-family:var(--font-title,'Cinzel',serif);font-size:9px;letter-spacing:2px;
+                    color:#ffab40;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(230,81,0,0.3)">
+                    ↩ Dados do Retorno
+                </div>
+                <div class="nv-form-grid">
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Data do retorno</label>
+                        <input class="nv-form-input" id="nf_data_retorno" type="date" value="${fv('data_retorno')}">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Local</label>
+                        <input class="nv-form-input" id="nf_local_retorno" type="text" value="${fv('local_retorno')}" placeholder="Ex: Culto de jovens">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">De qual igreja era</label>
+                        <input class="nv-form-input" id="nf_igreja_anterior" type="text" value="${fv('igreja_anterior')}" placeholder="Nome da igreja">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Quanto tempo ficou desviado</label>
+                        <input class="nv-form-input" id="nf_tempo_desviado" type="text" value="${fv('tempo_desviado')}" placeholder="Ex: 2 anos">
+                    </div>
+                    <div class="nv-form-group nv-form-full">
+                        <label class="nv-form-label">O que a pessoa está sentindo</label>
+                        <textarea class="nv-form-textarea" id="nf_sentimento" rows="3" placeholder="Descreve o que a pessoa expressou…">${fv('sentimento')}</textarea>
+                    </div>
+                </div>
+            </div>`;
+
+                return `<div class="nv-form">
+            <div class="nv-msg" id="nv-form-msg"></div>
+            <div class="nv-form-section">Tipo de Chegada</div>
+
+            <div class="nv-tipo-selector">
+                <div class="nv-tipo-btn ${isConv?'active':''}" id="nv-tipo-conv" onclick="nv_setTipo('conversao')">
+                    <div class="nv-tipo-btn-icon">✝</div>
+                    <div class="nv-tipo-btn-label">Conversão</div>
+                    <div class="nv-tipo-btn-desc">Primeira vez ou recomeço</div>
+                </div>
+                <div class="nv-tipo-btn ${isRetorno?'active':''}" id="nv-tipo-ret" onclick="nv_setTipo('retorno')">
+                    <div class="nv-tipo-btn-icon">↩</div>
+                    <div class="nv-tipo-btn-label">Retorno</div>
+                    <div class="nv-tipo-btn-desc">Voltou à casa do Pai</div>
+                </div>
+            </div>
+
+            <div id="nv-cond-box">
+                ${isConv ? convBox : isRetorno ? retBox : '<div style="font-size:12px;color:var(--text-faint);padding:8px 0">Seleciona o tipo de chegada acima.</div>'}
+            </div>
+
+            <input type="hidden" id="nf_tipo_entrada" value="${tipo}">
+
+            <div class="nv-form-actions">
+                <button class="nv-btn-cancel" onclick="nv_cancelEdit()">Cancelar</button>
+                <button class="nv-btn-save" id="nv-btn-save" onclick="nv_salvar('${v?.id||''}')">Guardar</button>
+            </div>
+            </div>`;
+            }
+
+            /* ── TAB: HISTÓRIA ── */
+            if (nv_panelTab==='historia') {
+                return `<div class="nv-form">
+            <div class="nv-msg" id="nv-form-msg"></div>
+            <div class="nv-form-section">História Pessoal</div>
+            <div class="nv-form-group">
+                <textarea class="nv-form-textarea" id="nf_historia" style="min-height:220px"
+                    placeholder="Regista a história de vida desta pessoa…">${fv('historia')}</textarea>
+            </div>
+            <div class="nv-form-actions">
+                <button class="nv-btn-cancel" onclick="nv_cancelEdit()">Cancelar</button>
+                <button class="nv-btn-save" id="nv-btn-save" onclick="nv_salvar('${v?.id||''}')">Guardar</button>
+            </div>
+            </div>`;
+            }
+
+            // processo e conquistas — só view
+            return nv_buildView(v);
+        }
+
+        /* ── troca tipo de chegada dinamicamente ─────────────── */
+        function nv_setTipo(tipo) {
+            document.getElementById('nf_tipo_entrada').value = tipo;
+            // update visual
+            document.getElementById('nv-tipo-conv')?.classList.toggle('active', tipo==='conversao');
+            document.getElementById('nv-tipo-ret')?.classList.toggle('active', tipo==='retorno');
+
+            const box = document.getElementById('nv-cond-box');
+            if (!box) return;
+
+            // obter valor do fv atual (usa o registo activo ou null se novo)
+            const v = nv_novos.find(x=>x.id===nv_activoId)||{};
+            const fv = (k,d='') => v?.[k]??d;
+            const chk = k => v?.[k] ? 'checked' : '';
+
+            if (tipo==='conversao') {
+                box.innerHTML = `<div class="nv-conditional-box">
+                <div style="font-family:var(--font-title,'Cinzel',serif);font-size:9px;letter-spacing:2px;
+                    color:#69f0ae;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(46,125,50,0.3)">✝ Dados da Conversão</div>
+                <div class="nv-form-grid">
+                    <div class="nv-form-group nv-form-full">
+                        <label class="nv-form-toggle"><input type="checkbox" id="nf_primeira_conversao" ${chk('primeira_conversao')}> Primeira conversão</label>
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Dia da conversão</label>
+                        <input class="nv-form-input" id="nf_data_conversao" type="date" value="${fv('data_conversao')}">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Local</label>
+                        <input class="nv-form-input" id="nf_local_conversao" type="text" value="${fv('local_conversao')}" placeholder="Ex: Culto do domingo">
+                    </div>
+                    <div class="nv-form-group nv-form-full">
+                        <label class="nv-form-label">O que a pessoa está sentindo</label>
+                        <textarea class="nv-form-textarea" id="nf_sentimento" rows="3">${fv('sentimento')}</textarea>
+                    </div>
+                </div>
+            </div>`;
+            } else if (tipo==='retorno') {
+                box.innerHTML = `<div class="nv-conditional-box retorno">
+                <div style="font-family:var(--font-title,'Cinzel',serif);font-size:9px;letter-spacing:2px;
+                    color:#ffab40;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(230,81,0,0.3)">↩ Dados do Retorno</div>
+                <div class="nv-form-grid">
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Data do retorno</label>
+                        <input class="nv-form-input" id="nf_data_retorno" type="date" value="${fv('data_retorno')}">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Local</label>
+                        <input class="nv-form-input" id="nf_local_retorno" type="text" value="${fv('local_retorno')}" placeholder="Ex: Culto de jovens">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">De qual igreja era</label>
+                        <input class="nv-form-input" id="nf_igreja_anterior" type="text" value="${fv('igreja_anterior')}">
+                    </div>
+                    <div class="nv-form-group">
+                        <label class="nv-form-label">Quanto tempo ficou desviado</label>
+                        <input class="nv-form-input" id="nf_tempo_desviado" type="text" value="${fv('tempo_desviado')}" placeholder="Ex: 2 anos">
+                    </div>
+                    <div class="nv-form-group nv-form-full">
+                        <label class="nv-form-label">O que a pessoa está sentindo</label>
+                        <textarea class="nv-form-textarea" id="nf_sentimento" rows="3">${fv('sentimento')}</textarea>
+                    </div>
+                </div>
+            </div>`;
+            } else {
+                box.innerHTML='<div style="font-size:12px;color:var(--text-faint);padding:8px 0">Seleciona o tipo de chegada acima.</div>';
+            }
+        }
+
+        /* ── SALVAR ──────────────────────────────────────────── */
+        async function nv_salvar(id) {
+            const g  = k => { const el=document.getElementById('nf_'+k); return el?el.value?.trim()||null:null; };
+            const ck = k => { const el=document.getElementById('nf_'+k); return el?el.checked:null; };
+
+            const body = {};
+
+            // campos simples
+            const simples = [
+                'nome','email','telefone','genero','data_nascimento','estado_civil','escolaridade',
+                'profissao','nif','zona','data_visita','onde_conheceu','observacoes',
+                'rua','numero','complemento','codigo_postal','cidade','pais','historia',
+                'tipo_entrada','data_conversao','local_conversao','sentimento',
+                'data_retorno','local_retorno','igreja_anterior','tempo_desviado',
+            ];
+            simples.forEach(k=>{ const v=g(k); if(v!==null) body[k]=v; });
+
+            // foto
+            const fotoH = document.getElementById('nf_foto_url');
+            if (fotoH) body.foto_url = fotoH.value||null;
+
+            // chips
+            if (document.getElementById('nv-chips-idiomas')) {
+                body.idiomas      = _nv_editIdiomas.length ? JSON.stringify(_nv_editIdiomas) : null;
+                body.nacionalidade = _nv_editNacs.length   ? JSON.stringify(_nv_editNacs)    : null;
+            }
+
+            // checkboxes
+            ['primeira_conversao'].forEach(k=>{ const v=ck(k); if(v!==null) body[k]=v; });
+
+            if (!body.nome) { nv_showMsg('Nome obrigatório.','error'); return; }
+
+            const btn = document.getElementById('nv-btn-save');
+            if (btn) { btn.disabled=true; btn.textContent='A guardar...'; }
+
+            try {
+                if (!id) {
+                    // novo: marcar convertido=true imediatamente
+                    body.convertido = true;
+                    body.ativo = true;
+                    await sb('visitantes',{method:'POST',body:JSON.stringify(body)});
+                } else {
+                    await sb(`visitantes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(body)});
+                }
+
+                nv_showMsg('Guardado com sucesso!','success');
+                nv_novos = await sb('visitantes?select=*&order=nome')||[];
+
+                if (!id) {
+                    nv_isNovo=false; nv_editMode=false; nv_activoId=null;
+                    nv_renderSide(); nv_showEmpty();
+                } else {
+                    nv_editMode=false; nv_renderSide(); nv_renderPerfil();
+                }
+            } catch(e) {
+                nv_showMsg(`Erro: ${e?.message||e?.details||JSON.stringify(e)}`,'error');
+                if (btn) { btn.disabled=false; btn.textContent='Guardar'; }
+            }
+        }
+
+        function nv_showMsg(txt, tipo) {
+            const el=document.getElementById('nv-form-msg');
+            if (!el) return;
+            el.textContent=txt; el.className=`nv-msg ${tipo}`;
+            el.scrollIntoView({behavior:'smooth',block:'nearest'});
+        }
+
+        /* ── TOGGLE ATIVO ────────────────────────────────────── */
+        async function nv_toggleAtivo(id, ativoAtual) {
+            if (!confirm(`${ativoAtual?'Inativar':'Ativar'} este registo?`)) return;
+            await sb(`visitantes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({ativo:!ativoAtual})});
+            nv_novos = await sb('visitantes?select=*&order=nome')||[];
+            nv_renderSide(); nv_renderPerfil();
+        }
+
+        /* ── NOVO REGISTO ────────────────────────────────────── */
+        function nv_novoRegisto() {
+            nv_activoId=null; nv_editMode=true; nv_isNovo=true; nv_panelTab='dados';
+            _nv_editIdiomas=[]; _nv_editNacs=[];
+            const panel=document.getElementById('nv-panel');
+            if (!panel) return;
+            panel.innerHTML = `
+        <div class="nv-profile-header">
+            <div class="nv-profile-foto">+</div>
+            <div class="nv-profile-info">
+                <div class="nv-profile-nome">Novo Registo</div>
+                <div class="nv-profile-sub">Preenche os dados abaixo</div>
+                <div class="nv-profile-badges">
+                    <span class="nv-badge nv-badge-gray">Passo 1: Dados pessoais</span>
+                </div>
+            </div>
+        </div>
+        <div class="nv-panel-tabs">
+            <button class="nv-panel-tab active" onclick="nv_setPanelTabNovo('dados')">Dados</button>
+            <button class="nv-panel-tab" onclick="nv_setPanelTabNovo('morada')">Morada</button>
+            <button class="nv-panel-tab" onclick="nv_setPanelTabNovo('chegada')">Chegada</button>
+            <button class="nv-panel-tab" onclick="nv_setPanelTabNovo('historia')">História</button>
+        </div>
+        <div class="nv-panel-inner" id="nv-panel-content">${nv_buildForm(null)}</div>`;
+        }
+
+        // helper para tabs no modo novo (sem registo ainda carregado)
+        function nv_setPanelTabNovo(tab) {
+            nv_panelTab=tab;
+            const content=document.getElementById('nv-panel-content');
+            if (content) content.innerHTML=nv_buildForm(null);
+            document.querySelectorAll('.nv-panel-tab').forEach(btn=>{
+                const t=btn.onclick?.toString().match(/'(\w+)'/)?.[1];
+                if (t) btn.classList.toggle('active',t===tab);
+            });
+        }
+
+        /* ── FOTO ────────────────────────────────────────────── */
+        function nv_triggerFoto() { document.getElementById('nv-foto-file')?.click(); }
+
+        function nv_applyFotoUrl() {
+            const url=document.getElementById('nf_foto_url_txt')?.value?.trim();
+            if (!url) return;
+            document.getElementById('nf_foto_url').value=url;
+            const box=document.getElementById('nv-img-box');
+            if (box) box.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='URL inválido'">`;
+        }
+
+        async function nv_handleFoto(input) {
+            const file=input.files?.[0];
+            if (!file) return;
+            const box=document.getElementById('nv-img-box');
+            if (box) box.innerHTML=`<span style="font-size:11px;color:var(--text-faint)">A fazer upload...</span>`;
+            try {
+                const filename=`novos/${Date.now()}.jpg`;
+                const res=await fetch(`${SUPA_URL}/storage/v1/object/imagens/${filename}`,{
+                    method:'POST',
+                    headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Content-Type':'image/jpeg','x-upsert':'true'},
+                    body:file,
+                });
+                if (!res.ok) throw new Error('Upload falhou');
+                const url=`${SUPA_URL}/storage/v1/object/public/imagens/${filename}`;
+                document.getElementById('nf_foto_url').value=url;
+                const txt=document.getElementById('nf_foto_url_txt'); if(txt) txt.value=url;
+                if (box) box.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover">`;
+            } catch(e) {
+                if (box) box.innerHTML=`<span style="color:#ff8a80;font-size:11px">Erro: ${e.message}</span>`;
+            }
+            input.value='';
+        }
+
+        /* ── CONVERSÃO PARA MEMBRO ───────────────────────────── */
+        function nv_abrirConversao(visitanteId) {
+            const v = nv_novos.find(x=>x.id===visitanteId);
+            if (!v) return;
+
+            // verificação de segurança
+            if (!nv_isProcessoCompleto(v)) {
+                const falta=[];
+                if (!v.fez_processo_raizes) falta.push('Processo Raízes');
+                if (!v.fez_workshop_raizes) falta.push('Workshop Raízes');
+                if (!v.fez_retiro_raizes)   falta.push('Retiro Raízes');
+                alert(`Processo incompleto. Falta:\n${falta.map(f=>'• '+f).join('\n')}`);
+                return;
+            }
+
+            const panel=document.getElementById('nv-panel');
+            if (!panel) return;
+
+            const linksOpts=nv_links_cache.map(l=>`<option value="${l.id}">${l.nome}</option>`).join('');
+
+            panel.querySelector('#nv-panel-content').innerHTML = `<div>
+        <div class="nv-conv-form">
+            <div style="font-family:var(--font-title,'Cinzel',serif);font-size:11px;letter-spacing:2px;color:#e8c96e;margin-bottom:10px">
+                ✦ CONVERSÃO PARA MEMBRO
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:12px">
+                <strong style="color:#fff">${v.nome}</strong> completou o processo Raízes.<br>
+                Confirma os dados para criar o registo de membro.
+            </div>
+            <div class="nv-msg" id="nv-form-msg"></div>
+            <div class="nv-form-grid">
+                <div class="nv-form-group nv-form-full">
+                    <label class="nv-form-label">Nome</label>
+                    <input class="nv-form-input" id="cv_nome" type="text" value="${v.nome||''}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Email</label>
+                    <input class="nv-form-input" id="cv_email" type="email" value="${v.email||''}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Telefone</label>
+                    <input class="nv-form-input" id="cv_telefone" type="tel" value="${v.telefone||''}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Género</label>
+                    <select class="nv-form-select" id="cv_genero">
+                        <option value="">—</option>
+                        <option value="masculino" ${v.genero==='masculino'?'selected':''}>Masculino</option>
+                        <option value="feminino"  ${v.genero==='feminino' ?'selected':''}>Feminino</option>
+                    </select>
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Data Nascimento</label>
+                    <input class="nv-form-input" id="cv_data_nascimento" type="date" value="${v.data_nascimento||''}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Membro desde</label>
+                    <input class="nv-form-input" id="cv_data_entrada" type="date" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Link</label>
+                    <select class="nv-form-select" id="cv_link_id">
+                        <option value="">— Sem Link —</option>${linksOpts}
+                    </select>
+                </div>
+                <div class="nv-form-group">
+                    <label class="nv-form-label">Zona</label>
+                    <input class="nv-form-input" id="cv_zona" type="text" value="${v.zona||''}">
+                </div>
+                <div class="nv-form-group nv-form-full">
+                    <label class="nv-form-label">Onde conheceu a Zion</label>
+                    <input class="nv-form-input" id="cv_onde_conheceu" type="text" value="${v.onde_conheceu||''}">
+                </div>
+            </div>
+
+            <!-- processo — transferido automaticamente -->
+            <div style="background:rgba(46,125,50,0.1);border:1px solid rgba(46,125,50,0.3);border-radius:8px;
+                padding:10px 14px;margin-top:10px;font-size:11px;color:#69f0ae;line-height:1.8">
+                ✓ Processo Raízes · ✓ Workshop Raízes · ✓ Retiro Raízes — serão transferidos automaticamente.
+            </div>
+
+            <div class="nv-form-actions">
+                <button class="nv-btn-cancel" onclick="nv_renderPerfil()">Cancelar</button>
+                <button class="nv-btn-save" id="nv-btn-save"
+                    style="background:linear-gradient(135deg,#7c3aed,#e8c96e);font-size:10px"
+                    onclick="nv_confirmarConversao('${v.id}')">✦ Confirmar e Criar Membro</button>
+            </div>
+        </div>
+        </div>`;
+        }
+
+        async function nv_confirmarConversao(visitanteId) {
+            const v = nv_novos.find(x=>x.id===visitanteId);
+            if (!v) return;
+
+            const g  = k=>{ const el=document.getElementById('cv_'+k); return el?el.value?.trim()||null:null; };
+            const nome = g('nome');
+            if (!nome) { nv_showMsg('Nome obrigatório.','error'); return; }
+
+            const btn=document.getElementById('nv-btn-save');
+            if (btn) { btn.disabled=true; btn.textContent='A converter...'; }
+
+            try {
+                const membroBody = {
+                    nome,
+                    email:           g('email'),
+                    telefone:        g('telefone'),
+                    genero:          g('genero'),
+                    data_nascimento: g('data_nascimento'),
+                    data_entrada:    g('data_entrada'),
+                    link_id:         g('link_id'),
+                    onde_conheceu:   g('onde_conheceu'),
+                    zona:            g('zona'),
+                    // dados pessoais do visitante
+                    escolaridade:    v.escolaridade||null,
+                    profissao:       v.profissao||null,
+                    estado_civil:    v.estado_civil||null,
+                    rua:             v.rua||null,
+                    numero:          v.numero||null,
+                    complemento:     v.complemento||null,
+                    codigo_postal:   v.codigo_postal||null,
+                    cidade:          v.cidade||null,
+                    pais:            v.pais||null,
+                    historia:        v.historia||null,
+                    foto_url:        v.foto_url||null,
+                    idiomas:         v.idiomas||null,
+                    nacionalidade:   v.nacionalidade||null,
+                    // processo raízes — transferido
+                    fez_processo_raizes: true,
+                    fez_workshop_raizes: true,
+                    fez_retiro_raizes:   true,
+                    // metadados
+                    tipo:            'membro',
+                    ativo:           true,
+                    convertido_de_visitante_id: visitanteId,
+                };
+
+                // limpar nulls
+                Object.keys(membroBody).forEach(k=>{ if(membroBody[k]===null) delete membroBody[k]; });
+
+                const novoMembro = await sb('membros',{method:'POST',body:JSON.stringify(membroBody)});
+                const membroId = novoMembro?.[0]?.id;
+                if (!membroId) throw new Error('Sem ID retornado pelo servidor.');
+
+                // marcar visitante como convertido/membro
+                await sb(`visitantes?id=eq.${visitanteId}`,{
+                    method:'PATCH',
+                    body:JSON.stringify({convertido:true, membro_id:membroId}),
+                });
+
+                nv_showMsg('✦ Convertido com sucesso! A redirecionar para o módulo de Membros…','success');
+                nv_novos = await sb('visitantes?select=*&order=nome')||[];
+                nv_renderSide();
+
+                // se o módulo de membros estiver presente na mesma página, abrir o membro
+                setTimeout(()=>{
+                    if (typeof mb_selectMembro === 'function' && typeof loadModule === 'function') {
+                        loadModule('membros');
+                        setTimeout(()=>mb_selectMembro(membroId),400);
+                    } else if (typeof mb_selectMembro === 'function') {
+                        mb_selectMembro(membroId);
+                    } else {
+                        nv_activoId=visitanteId;
+                        nv_editMode=false;
+                        nv_renderPerfil();
+                    }
+                }, 1200);
+            } catch(e) {
+                nv_showMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
+                if (btn) { btn.disabled=false; btn.textContent='✦ Confirmar e Criar Membro'; }
+            }
+        }
+
+        /* ── EXPOR PUBLICAMENTE ──────────────────────────────── */
+        window.nv_init             = nv_init;
+        window.nv_filtrar          = nv_filtrar;
+        window.nv_toggleChip       = nv_toggleChip;
+        window.nv_clearFiltros     = nv_clearFiltros;
+        window.nv_selectRegisto    = nv_selectRegisto;
+        window.nv_novoRegisto      = nv_novoRegisto;
+        window.nv_setPanelTab      = nv_setPanelTab;
+        window.nv_setPanelTabNovo  = nv_setPanelTabNovo;
+        window.nv_startEdit        = nv_startEdit;
+        window.nv_cancelEdit       = nv_cancelEdit;
+        window.nv_salvar           = nv_salvar;
+        window.nv_toggleAtivo      = nv_toggleAtivo;
+        window.nv_marcarEtapa      = nv_marcarEtapa;
+        window.nv_abrirConversao   = nv_abrirConversao;
+        window.nv_confirmarConversao = nv_confirmarConversao;
+        window.nv_triggerFoto      = nv_triggerFoto;
+        window.nv_handleFoto       = nv_handleFoto;
+        window.nv_applyFotoUrl     = nv_applyFotoUrl;
+        window.nv_setTipo          = nv_setTipo;
+        window.nv_addChip          = nv_addChip;
+        window.nv_delChip          = nv_delChip;
+        window.nv_renderPerfil     = nv_renderPerfil;
+
+        nv_init();
+    })();
+</script>

@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Novo Registo — Zion Lisboa</title>
+
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+
+    <meta name="theme-color" content="#009098">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zion Lisboa">
+    <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --navy:   #02161e;
+            --navy2:  #031f2a;
+            --navy3:  #04263a;
+            --teal:   #009098;
+            --teal-d: #007078;
+            --teal-f: rgba(0,144,152,0.10);
+            --teal-b: rgba(0,144,152,0.20);
+            --beige:  #d8c3a5;
+            --text:   #ffffff;
+            --muted:  #7a9aa8;
+            --border: rgba(255,255,255,0.08);
+            --card:   rgba(255,255,255,0.04);
+            --red:    #e53935;
+            --red-f:  rgba(229,57,53,0.10);
+            --green:  #43a047;
+            --orange: #fb8c00;
+            --radius: 14px;
+            --font-title: 'Cinzel', serif;
+            --font-body:  'Lato', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--navy);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,144,152,0.16) 0%, transparent 70%);
+        }
+
+        .page {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 560px;
+            padding: 0 0 60px;
+            display: flex; flex-direction: column;
+        }
+
+        /* ── HEADER ── */
+        .card-hd {
+            padding: 28px 24px 22px;
+            background: linear-gradient(135deg, var(--teal-d) 0%, var(--teal) 100%);
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+            text-align: center;
+        }
+        .hd-logo { height: 40px; width: auto; object-fit: contain; margin-bottom: 4px; }
+        .hd-logo-text {
+            font-family: var(--font-title);
+            font-size: 20px; font-weight: 700;
+            letter-spacing: 3px; color: white;
+            display: none;
+        }
+        .hd-title {
+            font-family: var(--font-title);
+            font-size: 13px; font-weight: 600;
+            letter-spacing: 2px; color: white;
+            margin-top: 4px;
+        }
+        .hd-sub {
+            font-size: 11px; letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.70);
+            margin-top: 2px;
+        }
+
+        /* ── PROGRESS BAR ── */
+        .progress-wrap {
+            background: var(--navy2);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            padding: 16px 20px 0;
+        }
+        .progress-steps {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 16px;
+        }
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+        .progress-step-dot {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-title);
+            font-size: 10px; color: var(--muted);
+            flex-shrink: 0;
+            transition: all .3s;
+        }
+        .progress-step-dot.active {
+            border-color: var(--teal);
+            background: var(--teal-f);
+            color: var(--teal);
+        }
+        .progress-step-dot.done {
+            border-color: var(--teal);
+            background: var(--teal);
+            color: white;
+        }
+        .progress-step-label {
+            font-size: 9px;
+            font-family: var(--font-title);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--muted);
+            transition: color .3s;
+        }
+        .progress-step.active .progress-step-label { color: var(--teal); }
+        .progress-step.done .progress-step-label { color: rgba(255,255,255,0.5); }
+        .progress-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+            margin: 0 6px;
+            transition: background .3s;
+        }
+        .progress-line.done { background: var(--teal); }
+
+        /* ── BODY ── */
+        .card-body {
+            background: var(--navy2);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            padding: 24px 20px;
+            min-height: 320px;
+        }
+
+        .card-footer {
+            background: var(--navy2);
+            border: 1px solid var(--border);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding: 14px 20px;
+            text-align: center;
+            font-size: 11px; color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+
+        /* ── STEPS ── */
+        .step { display: none; }
+        .step.active { display: block; }
+
+        /* ── SECTION LABEL ── */
+        .section-lbl {
+            font-family: var(--font-title);
+            font-size: 9px; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--teal);
+            padding: 18px 0 10px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+        .section-lbl:first-child { padding-top: 0; }
+
+        /* ── TIPO SELECTOR ── */
+        .tipo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .tipo-card {
+            padding: 24px 16px;
+            border-radius: var(--radius);
+            border: 2px solid var(--border);
+            background: var(--card);
+            text-align: center;
+            cursor: pointer;
+            transition: all .2s;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 10px;
+        }
+        .tipo-card:hover { border-color: var(--teal); background: var(--teal-f); }
+        .tipo-card.selected {
+            border-color: var(--teal);
+            background: var(--teal-f);
+            box-shadow: 0 0 0 1px var(--teal-b) inset;
+        }
+        .tipo-card-icon {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+        }
+        .tipo-card.selected .tipo-card-icon { border-color: var(--teal); background: var(--teal-f); }
+        .tipo-card-icon svg { color: var(--muted); transition: color .2s; }
+        .tipo-card.selected .tipo-card-icon svg { color: var(--teal); }
+        .tipo-card-title {
+            font-family: var(--font-title);
+            font-size: 11px; letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted); transition: color .2s;
+        }
+        .tipo-card.selected .tipo-card-title { color: white; }
+        .tipo-card-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+        /* ── CAIXA CONDICIONAL ── */
+        .cond-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--teal-b);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 4px;
+            margin-bottom: 16px;
+        }
+        .cond-box-title {
+            font-family: var(--font-title);
+            font-size: 9px; letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--teal);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--teal-b);
+        }
+
+        /* ── FORM FIELDS ── */
+        .field { margin-bottom: 14px; }
+        .field label {
+            display: block;
+            font-size: 9px; font-family: var(--font-title);
+            letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 6px;
+        }
+        .field label.req::after { content: ' *'; color: var(--red); font-size: 10px; }
+
+        .field input, .field select, .field textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+            font-size: 15px;
+            font-family: var(--font-body);
+            outline: none;
+            transition: border-color .15s, background .15s;
+            -webkit-appearance: none; appearance: none;
+        }
+        .field select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23009098' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+            background-color: rgba(255,255,255,0.05);
+        }
+        .field select option { background: #031f2a; color: #ffffff; }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            border-color: var(--teal); background: rgba(255,255,255,0.07);
+        }
+        .field input.invalid, .field select.invalid, .field textarea.invalid {
+            border-color: var(--red) !important; background: rgba(229,57,53,0.05);
+        }
+        .field textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+        ::placeholder { color: rgba(255,255,255,0.20); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* ── TOGGLE ── */
+        .toggle-row {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 13px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: border-color .15s;
+            user-select: none;
+        }
+        .toggle-row:hover { border-color: var(--teal); }
+        .toggle-label { font-size: 14px; color: white; }
+        .toggle-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .toggle-switch {
+            position: relative; width: 44px; height: 24px;
+            background: var(--border); border-radius: 12px;
+            transition: background .2s; flex-shrink: 0;
+        }
+        .toggle-switch.on { background: var(--teal); }
+        .toggle-switch::after {
+            content: ''; position: absolute;
+            width: 18px; height: 18px;
+            background: white; border-radius: 50%;
+            top: 3px; left: 3px;
+            transition: left .2s;
+        }
+        .toggle-switch.on::after { left: 23px; }
+
+        /* ── NOTICE ── */
+        .notice {
+            background: var(--teal-f); border: 1px solid var(--teal-b);
+            border-radius: 10px; padding: 12px 16px;
+            font-size: 12px; color: rgba(255,255,255,0.65);
+            line-height: 1.6; margin-bottom: 14px;
+        }
+        .notice strong { color: var(--teal); }
+
+        /* ── MENSAGENS ── */
+        .msg {
+            padding: 12px 14px; border-radius: 10px;
+            font-size: 13px; margin-bottom: 16px;
+            display: none; text-align: center; line-height: 1.5;
+        }
+        .msg.show { display: block; }
+        .msg.err  { background: var(--red-f); border: 1px solid rgba(229,57,53,0.3); color: #ef9a9a; }
+        .msg.ok   { background: rgba(67,160,71,0.10); border: 1px solid rgba(67,160,71,0.3); color: #a5d6a7; }
+
+        /* ── BUTTONS ── */
+        .btn-primary {
+            width: 100%; padding: 16px;
+            border: none; border-radius: 12px;
+            background: var(--teal); color: white;
+            font-family: var(--font-title); font-size: 11px;
+            letter-spacing: 2px; text-transform: uppercase;
+            cursor: pointer; transition: background .15s;
+            margin-top: 8px;
+        }
+        .btn-primary:hover { background: var(--teal-d); }
+        .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+        .btn-outline {
+            width: 100%; padding: 13px;
+            border: 1px solid var(--border);
+            border-radius: 12px; background: transparent;
+            color: var(--muted); font-family: var(--font-title);
+            font-size: 10px; letter-spacing: 1px;
+            cursor: pointer; margin-top: 8px;
+            transition: all .15s;
+        }
+        .btn-outline:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-f); }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-row .btn-primary { flex: 2; margin-top: 0; }
+        .btn-row .btn-outline  { flex: 1; margin-top: 0; }
+
+        /* ── STEP 1 intro ── */
+        .step-intro {
+            text-align: center;
+            padding: 8px 0 20px;
+        }
+        .step-intro-title {
+            font-family: var(--font-title);
+            font-size: 15px; letter-spacing: 1.5px;
+            color: white; margin-bottom: 6px;
+        }
+        .step-intro-sub {
+            font-size: 13px; color: var(--muted);
+            line-height: 1.6; max-width: 360px; margin: 0 auto;
+        }
+
+        /* ── SUCCESS ── */
+        .success-wrap {
+            text-align: center; padding: 32px 16px;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 14px;
+        }
+        .success-icon {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: rgba(67,160,71,0.12);
+            border: 2px solid rgba(67,160,71,0.35);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .success-title {
+            font-family: var(--font-title); font-size: 20px;
+            color: #a5d6a7; letter-spacing: 1.5px;
+        }
+        .success-sub {
+            font-size: 14px; color: var(--muted);
+            line-height: 1.7; max-width: 340px;
+        }
+        .success-name { color: var(--teal); font-weight: 700; }
+
+        .btn-novo {
+            padding: 14px 28px;
+            border: none; border-radius: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-family: var(--font-title); font-size: 10px;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            cursor: pointer; transition: all .15s; margin-top: 6px;
+        }
+        .btn-novo:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-f); }
+
+        /* ── CHIPS ── */
+        .chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 10px; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 4px 10px 4px 12px;
+            border-radius: 20px;
+            background: var(--teal-f); border: 1px solid var(--teal-b);
+            color: var(--teal); font-size: 12px;
+        }
+        .chip-btn {
+            background: none; border: none;
+            color: var(--muted); cursor: pointer;
+            font-size: 14px; line-height: 1; padding: 0 2px;
+            transition: color .12s;
+        }
+        .chip-btn:hover { color: var(--red); }
+        .chip-empty { font-size: 12px; color: var(--muted); font-style: italic; padding: 4px 0; }
+        .add-row { display: flex; gap: 8px; }
+        .add-row .field { flex: 1; margin-bottom: 0; }
+        .btn-add {
+            padding: 0 16px; border-radius: 10px;
+            border: 1px solid var(--teal-b); background: var(--teal-f);
+            color: var(--teal); font-size: 20px; cursor: pointer;
+            flex-shrink: 0; transition: all .15s;
+            align-self: stretch; display: flex; align-items: center;
+        }
+        .btn-add:hover { background: var(--teal); color: white; border-color: var(--teal); }
+
+        /* ── SPINNER ── */
+        .spinner-inline {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%;
+            animation: spin .6s linear infinite;
+            vertical-align: middle; margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 420px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .tipo-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <!-- HEADER -->
+    <div class="card-hd">
+        <img class="hd-logo"
+             src="assets/logo-zion-branca.svg"
+             alt="Zion Lisboa"
+             onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
+        <span id="logo-fb" class="hd-logo-text">ZION LISBOA</span>
+        <div class="hd-title">Novo Nascimento</div>
+        <div class="hd-sub">Jornadas</div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-steps" id="progress-steps">
+            <div class="progress-step" id="ps-1">
+                <div class="progress-step-dot active" id="pd-1">1</div>
+                <div class="progress-step-label">Tipo</div>
+            </div>
+            <div class="progress-line" id="pl-1"></div>
+            <div class="progress-step" id="ps-2">
+                <div class="progress-step-dot" id="pd-2">2</div>
+                <div class="progress-step-label">Dados</div>
+            </div>
+            <div class="progress-line" id="pl-2"></div>
+            <div class="progress-step" id="ps-3">
+                <div class="progress-step-dot" id="pd-3">3</div>
+                <div class="progress-step-label">Detalhes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="card-body" id="main-body">
+
+        <!-- ══════════════════════════════════
+             STEP 1 — TIPO DE CHEGADA
+        ══════════════════════════════════ -->
+        <div class="step active" id="step-1">
+            <div class="step-intro">
+                <div class="step-intro-title">Bem-vindo a Zion Lisboa</div>
+                <div class="step-intro-sub">
+                    Qual foi o tipo de chegada desta pessoa?
+                </div>
+            </div>
+
+            <div class="tipo-grid">
+                <div class="tipo-card" id="tipo-conversao" onclick="selecionarTipo('conversao')">
+                    <div class="tipo-card-icon">
+
+                    </div>
+                    <div>
+                        <div class="tipo-card-title">Conversão</div>
+                        <div class="tipo-card-desc">Aceitando a Cristo pela primeira vez</div>
+                    </div>
+                </div>
+                <div class="tipo-card" id="tipo-retorno" onclick="selecionarTipo('retorno')">
+                    <div class="tipo-card-icon">
+
+                    </div>
+                    <div>
+                        <div class="tipo-card-title">Retorno</div>
+                        <div class="tipo-card-desc">Retornando a casa do Pai depois de um tempo afastado</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="msg" id="msg-1"></div>
+            <button class="btn-primary" onclick="irParaStep(2)">Continuar</button>
+        </div>
+
+        <!-- ══════════════════════════════════
+             STEP 2 — DADOS PESSOAIS
+        ══════════════════════════════════ -->
+        <div class="step" id="step-2">
+            <div class="section-lbl">Dados Pessoais</div>
+
+            <div class="field">
+                <label class="req">Nome Completo</label>
+                <input type="text" id="p_nome" placeholder="Nome da pessoa"
+                       autocomplete="given-name" autocapitalize="words">
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" id="p_email" placeholder="email@exemplo.com"
+                           autocapitalize="none" autocomplete="email">
+                </div>
+                <div class="field">
+                    <label>Telefone</label>
+                    <input type="tel" id="p_telefone" placeholder="+351 900 000 000"
+                           autocomplete="tel">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label class="req">Genero</label>
+                    <select id="p_genero">
+                        <option value="">-- Seleciona --</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino">Feminino</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Data de Nascimento</label>
+                    <input type="date" id="p_data_nascimento">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label>Estado Civil</label>
+                    <select id="p_estado_civil">
+                        <option value="">-- Seleciona --</option>
+                        <option value="solteiro">Solteiro/a</option>
+                        <option value="casado">Casado/a</option>
+                        <option value="divorciado">Divorciado/a</option>
+                        <option value="viuvo">Viuvo/a</option>
+                        <option value="uniao_facto">Uniao de Facto</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Zona / Cidade</label>
+                    <input type="text" id="p_zona" placeholder="Ex: Lisboa, Montijo...">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Onde conheceu a Zion</label>
+                <input type="text" id="p_onde_conheceu"
+                       placeholder="Ex: Amigo, Instagram, Culto de rua...">
+            </div>
+
+            <!-- Idiomas -->
+            <div class="section-lbl">Idiomas</div>
+            <div class="chip-list" id="idiomas-chips"></div>
+            <div class="add-row" style="margin-bottom:14px">
+                <div class="field">
+                    <select id="idioma-sel">
+                        <option value="">-- Adicionar idioma --</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="addIdioma()">+</button>
+            </div>
+
+            <!-- Nacionalidade -->
+            <div class="section-lbl">Nacionalidade</div>
+            <div class="chip-list" id="nac-chips"></div>
+            <div class="add-row" style="margin-bottom:14px">
+                <div class="field">
+                    <select id="nac-sel">
+                        <option value="">-- Adicionar nacionalidade --</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="addNac()">+</button>
+            </div>
+
+            <div class="msg" id="msg-2"></div>
+            <div class="btn-row">
+                <button class="btn-outline" onclick="irParaStep(1)">Voltar</button>
+                <button class="btn-primary" onclick="irParaStep(3)">Continuar</button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════
+             STEP 3 — DETALHES DA CHEGADA
+        ══════════════════════════════════ -->
+        <div class="step" id="step-3">
+
+            <!-- Conversao -->
+            <div id="bloco-conversao" style="display:none">
+                <div class="section-lbl">Detalhes da Conversao</div>
+
+                <div class="toggle-row" onclick="togglePrimeira()">
+                    <div>
+                        <div class="toggle-label">Primeira conversao</div>
+                        <div class="toggle-sub">Esta e a primeira vez que entrega a vida a Jesus</div>
+                    </div>
+                    <div class="toggle-switch" id="toggle-primeira"></div>
+                </div>
+
+                <div class="cond-box">
+                    <div class="cond-box-title">Informacao da Conversao</div>
+                    <div class="grid-2">
+                        <div class="field">
+                            <label>Data da Conversao</label>
+                            <input type="date" id="p_data_conversao">
+                        </div>
+                        <div class="field">
+                            <label>Local</label>
+                            <input type="text" id="p_local_conversao"
+                                   placeholder="Ex: Culto de domingo">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Retorno -->
+            <div id="bloco-retorno" style="display:none">
+                <div class="section-lbl">Detalhes do Retorno</div>
+                <div class="cond-box">
+                    <div class="cond-box-title">Informacao do Retorno</div>
+                    <div class="grid-2">
+                        <div class="field">
+                            <label>Data do Retorno</label>
+                            <input type="date" id="p_data_retorno">
+                        </div>
+                        <div class="field">
+                            <label>Local</label>
+                            <input type="text" id="p_local_retorno"
+                                   placeholder="Ex: Culto de jovens">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="field">
+                            <label>Igreja Anterior</label>
+                            <input type="text" id="p_igreja_anterior"
+                                   placeholder="Nome da igreja">
+                        </div>
+                        <div class="field">
+                            <label>Tempo Afastado</label>
+                            <input type="text" id="p_tempo_desviado"
+                                   placeholder="Ex: 2 anos">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sentimento — comum a ambos -->
+            <div class="section-lbl">O que esta sentindo</div>
+            <div class="field">
+                <label>Palavras e sentimentos partilhados</label>
+                <textarea id="p_sentimento"
+                          placeholder="Descreve brevemente o que a pessoa expressou ao tomar essa decisao..."></textarea>
+            </div>
+
+            <!-- Historia -->
+            <div class="section-lbl">Historia (opcional)</div>
+            <div class="field">
+                <label>Contexto de vida / historia pessoal</label>
+                <textarea id="p_historia"
+                          placeholder="Partilha um pouco do contexto de vida desta pessoa se for relevante..."></textarea>
+            </div>
+
+            <div class="msg" id="msg-3"></div>
+            <div class="btn-row">
+                <button class="btn-outline" onclick="irParaStep(2)">Voltar</button>
+                <button class="btn-primary" id="btn-guardar" onclick="guardar()">
+                    Guardar Registo
+                </button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════
+             STEP 4 — SUCESSO
+        ══════════════════════════════════ -->
+        <div class="step" id="step-4">
+            <div class="success-wrap">
+                <div class="success-icon">
+                    <svg width="32" height="32" fill="none" stroke="#43a047" stroke-width="2.5" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <div class="success-title">Registo Guardado</div>
+                <div class="success-sub" id="success-msg">
+                    Que alegria! O registo foi guardado com sucesso.
+                </div>
+                <button class="btn-novo" onclick="novoRegisto()">
+                    Registar outra pessoa
+                </button>
+            </div>
+        </div>
+
+    </div><!-- /card-body -->
+
+    <div class="card-footer">2026 · Jornadas · Sistema de Gestao</div>
+</div><!-- /page -->
+
+<script>
+    (function () {
+        /* ═══════════════════════════════════════════════════
+           CONFIG
+        ═══════════════════════════════════════════════════ */
+        const SB_URL = window.SUPABASE_URL      || '';
+        const SB_KEY = window.SUPABASE_ANON_KEY || '';
+
+        /* ═══════════════════════════════════════════════════
+           ESTADO
+        ═══════════════════════════════════════════════════ */
+        let _tipo          = null;   // 'conversao' | 'retorno'
+        let _primConversao = false;
+        let _idiomas       = [];
+        let _nacs          = [];
+        let _currentStep   = 1;
+
+        /* ═══════════════════════════════════════════════════
+           LISTAS
+        ═══════════════════════════════════════════════════ */
+        const IDIOMAS = [
+            'Afrikaans','Alemao','Arabe','Bengali','Birmes','Bulgaro','Catala',
+            'Checo','Coreano','Croata','Dinamarques','Eslovaco','Esloveno',
+            'Espanhol','Estoniano','Finlandes','Frances','Grego','Gujarati',
+            'Hausa','Hebraico','Hindi','Holandes','Hungaro','Igbo','Indonesio',
+            'Ingles','Italiano','Japones','Khmer','Latao','Lituano','Malaio',
+            'Mandarim','Noruegues','Persa','Polaco','Portugues','Punjabi',
+            'Romeno','Russo','Servio','Sinhala','Somali','Sueco','Tagalog',
+            'Tailandes','Turco','Ucraniano','Urdu','Vietnamita','Yoruba','Zulu'
+        ].sort();
+
+        const NACIONALIDADES = [
+            'Afega','Albanesa','Alema','Angolana','Brasileira','Bulgaresa',
+            'Cabo-verdiana','Cameronesa','Chinesa','Colombiana','Congolesa (RC)',
+            'Congolesa (RDC)','Costa-marfinense','Croata','Cubana','Equatoriana',
+            'Egipcia','Espanhola','Estadunidense','Estoniana','Filipina','Francesa',
+            'Ganesa','Georgiana','Guineense','Guineense-Bissau','Guineense-Equatorial',
+            'Haitiana','Indiana','Inglesa','Iraniana','Iraquiana','Italiana',
+            'Jamaicana','Japonesa','Libanesa','Liberiana','Libia','Moçambicana',
+            'Moldava','Marroquina','Mexicana','Nigeriana','Norueguesa','Paquistanesa',
+            'Peruana','Polaca','Portuguesa','Romena','Ruandesa','Russa',
+            'Sao-tomense','Senegalesa','Servia','Sierra-leonesa','Somali','Suica',
+            'Tailandesa','Timorense','Togolesa','Tunisina','Turca','Ucraniana',
+            'Ugandesa','Uruguaia','Venezuelana','Vietnamita','Zambiana','Zimbabueana'
+        ].sort();
+
+        /* ═══════════════════════════════════════════════════
+           SUPABASE HELPER
+        ═══════════════════════════════════════════════════ */
+        async function sb(path, opts = {}) {
+            const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+                ...opts,
+                headers: {
+                    apikey: SB_KEY,
+                    Authorization: `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation',
+                    ...(opts.headers || {}),
+                },
+            });
+            if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
+            const t = await r.text(); return t ? JSON.parse(t) : [];
+        }
+
+        /* ═══════════════════════════════════════════════════
+           INICIALIZAÇÃO
+        ═══════════════════════════════════════════════════ */
+        function init() {
+            // Preencher selects de idiomas
+            const idSel = document.getElementById('idioma-sel');
+            IDIOMAS.forEach(i => {
+                const o = document.createElement('option');
+                o.value = i; o.textContent = i;
+                idSel.appendChild(o);
+            });
+
+            // Preencher selects de nacionalidade
+            const nacSel = document.getElementById('nac-sel');
+            NACIONALIDADES.forEach(n => {
+                const o = document.createElement('option');
+                o.value = n; o.textContent = n;
+                nacSel.appendChild(o);
+            });
+
+            // Data de hoje como padrão para campos de data
+            const hoje = new Date().toISOString().split('T')[0];
+            const dc = document.getElementById('p_data_conversao');
+            const dr = document.getElementById('p_data_retorno');
+            if (dc) dc.value = hoje;
+            if (dr) dr.value = hoje;
+
+            renderIdiomasChips();
+            renderNacChips();
+        }
+
+        /* ═══════════════════════════════════════════════════
+           TIPO
+        ═══════════════════════════════════════════════════ */
+        window.selecionarTipo = function(tipo) {
+            _tipo = tipo;
+            document.getElementById('tipo-conversao').classList.toggle('selected', tipo === 'conversao');
+            document.getElementById('tipo-retorno').classList.toggle('selected',   tipo === 'retorno');
+            clearMsg('msg-1');
+        };
+
+        /* ═══════════════════════════════════════════════════
+           TOGGLE PRIMEIRA CONVERSAO
+        ═══════════════════════════════════════════════════ */
+        window.togglePrimeira = function() {
+            _primConversao = !_primConversao;
+            const sw = document.getElementById('toggle-primeira');
+            if (sw) sw.className = 'toggle-switch' + (_primConversao ? ' on' : '');
+        };
+
+        /* ═══════════════════════════════════════════════════
+           CHIPS — IDIOMAS
+        ═══════════════════════════════════════════════════ */
+        function renderIdiomasChips() {
+            const list = document.getElementById('idiomas-chips'); if (!list) return;
+            if (!_idiomas.length) {
+                list.innerHTML = '<span class="chip-empty">Nenhum idioma adicionado.</span>'; return;
+            }
+            list.innerHTML = _idiomas.map((i, idx) =>
+                `<span class="chip">${i}<button class="chip-btn" onclick="remIdioma(${idx})">x</button></span>`
+            ).join('');
+        }
+        window.addIdioma = function() {
+            const s = document.getElementById('idioma-sel'); if (!s || !s.value) return;
+            if (_idiomas.includes(s.value)) { s.value = ''; return; }
+            _idiomas.push(s.value); s.value = '';
+            renderIdiomasChips();
+        };
+        window.remIdioma = function(idx) { _idiomas.splice(idx, 1); renderIdiomasChips(); };
+
+        /* ═══════════════════════════════════════════════════
+           CHIPS — NACIONALIDADE
+        ═══════════════════════════════════════════════════ */
+        function renderNacChips() {
+            const list = document.getElementById('nac-chips'); if (!list) return;
+            if (!_nacs.length) {
+                list.innerHTML = '<span class="chip-empty">Nenhuma nacionalidade adicionada.</span>'; return;
+            }
+            list.innerHTML = _nacs.map((n, idx) =>
+                `<span class="chip">${n}<button class="chip-btn" onclick="remNac(${idx})">x</button></span>`
+            ).join('');
+        }
+        window.addNac = function() {
+            const s = document.getElementById('nac-sel'); if (!s || !s.value) return;
+            if (_nacs.includes(s.value)) { s.value = ''; return; }
+            _nacs.push(s.value); s.value = '';
+            renderNacChips();
+        };
+        window.remNac = function(idx) { _nacs.splice(idx, 1); renderNacChips(); };
+
+        /* ═══════════════════════════════════════════════════
+           NAVEGAÇÃO ENTRE STEPS
+        ═══════════════════════════════════════════════════ */
+        window.irParaStep = function(step) {
+            if (step === 2 && !validarStep1()) return;
+            if (step === 3 && !validarStep2()) return;
+
+            // Se ir para step 3, mostrar blocos corretos
+            if (step === 3) {
+                document.getElementById('bloco-conversao').style.display = _tipo === 'conversao' ? 'block' : 'none';
+                document.getElementById('bloco-retorno').style.display   = _tipo === 'retorno'   ? 'block' : 'none';
+            }
+
+            // Esconder step atual, mostrar novo
+            document.getElementById('step-' + _currentStep).classList.remove('active');
+            document.getElementById('step-' + step).classList.add('active');
+            _currentStep = step;
+
+            atualizarProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        /* ═══════════════════════════════════════════════════
+           PROGRESS BAR
+        ═══════════════════════════════════════════════════ */
+        function atualizarProgress() {
+            if (_currentStep === 4) {
+                document.getElementById('progress-wrap').style.display = 'none';
+                return;
+            }
+
+            [1, 2, 3].forEach(i => {
+                const dot = document.getElementById('pd-' + i);
+                const step = document.getElementById('ps-' + i);
+                if (!dot || !step) return;
+
+                if (i < _currentStep) {
+                    dot.className = 'progress-step-dot done';
+                    dot.textContent = '✓';
+                    step.className = 'progress-step done';
+                } else if (i === _currentStep) {
+                    dot.className = 'progress-step-dot active';
+                    dot.textContent = i;
+                    step.className = 'progress-step active';
+                } else {
+                    dot.className = 'progress-step-dot';
+                    dot.textContent = i;
+                    step.className = 'progress-step';
+                }
+            });
+
+            [1, 2].forEach(i => {
+                const line = document.getElementById('pl-' + i);
+                if (line) line.className = 'progress-line' + (_currentStep > i ? ' done' : '');
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════
+           VALIDAÇÕES
+        ═══════════════════════════════════════════════════ */
+        function gv(id) {
+            const e = document.getElementById(id);
+            return e ? (e.value || '').trim() : '';
+        }
+
+        function validarStep1() {
+            if (!_tipo) {
+                setMsg('msg-1', 'err', 'Seleciona o tipo de chegada antes de continuar.');
+                return false;
+            }
+            clearMsg('msg-1');
+            return true;
+        }
+
+        function validarStep2() {
+            const nome   = document.getElementById('p_nome');
+            const genero = document.getElementById('p_genero');
+            let ok = true;
+
+            [nome, genero].forEach(e => e && e.classList.remove('invalid'));
+
+            if (!gv('p_nome')) {
+                nome && nome.classList.add('invalid');
+                ok = false;
+            }
+            if (!gv('p_genero')) {
+                genero && genero.classList.add('invalid');
+                ok = false;
+            }
+
+            if (!ok) {
+                setMsg('msg-2', 'err', 'Preenche o nome e o genero antes de continuar.');
+                const primeiro = !gv('p_nome') ? nome : genero;
+                if (primeiro) primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                clearMsg('msg-2');
+            }
+            return ok;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           GUARDAR
+        ═══════════════════════════════════════════════════ */
+        window.guardar = async function() {
+            clearMsg('msg-3');
+            const btn = document.getElementById('btn-guardar');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-inline"></span>A guardar...';
+
+            try {
+                const hoje = new Date().toISOString().split('T')[0];
+
+                const patch = {
+                    ativo:            true,
+                    convertido:       true,
+                    tipo_entrada:     _tipo,
+
+                    // Dados pessoais
+                    nome:             gv('p_nome')          || null,
+                    email:            gv('p_email')         || null,
+                    telefone:         gv('p_telefone')      || null,
+                    genero:           gv('p_genero')        || null,
+                    data_nascimento:  gv('p_data_nascimento') || null,
+                    estado_civil:     gv('p_estado_civil')  || null,
+                    zona:             gv('p_zona')          || null,
+                    onde_conheceu:    gv('p_onde_conheceu') || null,
+
+                    // Arrays
+                    idiomas:          _idiomas.length ? JSON.stringify(_idiomas) : null,
+                    nacionalidade:    _nacs.length    ? JSON.stringify(_nacs)    : null,
+
+                    // Sentimento / historia
+                    sentimento:       gv('p_sentimento') || null,
+                    historia:         gv('p_historia')   || null,
+
+                    // Data de visita = hoje
+                    data_visita:      hoje,
+                };
+
+                // Campos específicos do tipo
+                if (_tipo === 'conversao') {
+                    patch.primeira_conversao = _primConversao;
+                    patch.data_conversao     = gv('p_data_conversao') || hoje;
+                    patch.local_conversao    = gv('p_local_conversao') || null;
+                } else if (_tipo === 'retorno') {
+                    patch.data_retorno       = gv('p_data_retorno') || hoje;
+                    patch.local_retorno      = gv('p_local_retorno')   || null;
+                    patch.igreja_anterior    = gv('p_igreja_anterior') || null;
+                    patch.tempo_desviado     = gv('p_tempo_desviado')  || null;
+                }
+
+                // Remover nulos para não sobrescrever defaults da BD
+                Object.keys(patch).forEach(k => { if (patch[k] === null) delete patch[k]; });
+
+                await sb('visitantes', {
+                    method: 'POST',
+                    body: JSON.stringify(patch),
+                });
+
+                // Sucesso
+                const nome = gv('p_nome');
+                document.getElementById('success-msg').innerHTML =
+                    `Que alegria! <span class="success-name">${nome}</span> foi registado/a com sucesso.
+                 Que Deus continue a obra que comecou nesta vida.`;
+
+                document.getElementById('step-3').classList.remove('active');
+                document.getElementById('step-4').classList.add('active');
+                _currentStep = 4;
+                atualizarProgress();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            } catch (e) {
+                console.error(e);
+                setMsg('msg-3', 'err', 'Erro ao guardar. Verifica a ligacao e tenta novamente.');
+                btn.disabled = false;
+                btn.textContent = 'Guardar Registo';
+            }
+        };
+
+        /* ═══════════════════════════════════════════════════
+           NOVO REGISTO — reset completo
+        ═══════════════════════════════════════════════════ */
+        window.novoRegisto = function() {
+            _tipo          = null;
+            _primConversao = false;
+            _idiomas       = [];
+            _nacs          = [];
+
+            // Limpar todos os campos
+            document.querySelectorAll('input:not([type=hidden]), select, textarea').forEach(el => {
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            });
+
+            // Reset toggle
+            const sw = document.getElementById('toggle-primeira');
+            if (sw) sw.className = 'toggle-switch';
+
+            // Reset tipo cards
+            document.getElementById('tipo-conversao').classList.remove('selected');
+            document.getElementById('tipo-retorno').classList.remove('selected');
+
+            // Datas padrão
+            const hoje = new Date().toISOString().split('T')[0];
+            const dc = document.getElementById('p_data_conversao');
+            const dr = document.getElementById('p_data_retorno');
+            if (dc) dc.value = hoje;
+            if (dr) dr.value = hoje;
+
+            // Resetar chips
+            renderIdiomasChips();
+            renderNacChips();
+
+            // Limpar msgs
+            ['msg-1','msg-2','msg-3'].forEach(id => clearMsg(id));
+
+            // Voltar ao step 1
+            document.getElementById('step-4').classList.remove('active');
+            document.getElementById('step-1').classList.add('active');
+            _currentStep = 1;
+
+            document.getElementById('progress-wrap').style.display = '';
+            atualizarProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        /* ═══════════════════════════════════════════════════
+           HELPERS MSG
+        ═══════════════════════════════════════════════════ */
+        function setMsg(id, tipo, txt) {
+            const e = document.getElementById(id); if (!e) return;
+            e.textContent = txt; e.className = 'msg show ' + tipo;
+        }
+        function clearMsg(id) {
+            const e = document.getElementById(id); if (!e) return;
+            e.textContent = ''; e.className = 'msg';
+        }
+
+        /* ═══════════════════════════════════════════════════
+           START
+        ═══════════════════════════════════════════════════ */
+        init();
+    })();
+</script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW registado:', reg.scope))
+                .catch(err => console.error('SW erro:', err));
+        });
+    }
+</script>
+</body>
+</html>

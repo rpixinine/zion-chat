@@ -395,155 +395,155 @@
 
 <!-- ══════ JAVASCRIPT ══════ -->
 <script>
-    /* ── ESTADO GLOBAL ── */
-    var min_mins = [], min_memAll = [], min_cultsAll = [], min_minAtivo = null;
-    var min_minMems = [], min_minCults = [], min_memNoMin = new Set();
-    var min_dispMap = {}, min_indisps = [], min_escala = [];
-    var min_indMes = '', min_escMes = '', min_indMemSel = null;
-    var min_eaCtx = null, min_formEditId = null;
-    var min_papeis = [];
+/* ── ESTADO GLOBAL ── */
+var min_mins = [], min_memAll = [], min_cultsAll = [], min_minAtivo = null;
+var min_minMems = [], min_minCults = [], min_memNoMin = new Set();
+var min_dispMap = {}, min_indisps = [], min_escala = [];
+var min_indMes = '', min_escMes = '', min_indMemSel = null;
+var min_eaCtx = null, min_formEditId = null;
+var min_papeis = [];
 
-    const MESES_PT  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const MESES_ABV = ['','JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-    const DIAS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-    const TIPO_LBL  = {pilar:'Pilar',ae:'AE',ministerio:'Ministério',link:'Link',office:'Office'};
-    const PAPEIS_FIXOS = [
-        {slug:'lider',    nome:'Líder',       fixo:true},
-        {slug:'membro',   nome:'Voluntário',  fixo:true},
-        {slug:'aprendiz', nome:'Aprendiz',    fixo:false}
-    ];
+const MESES_PT  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MESES_ABV = ['','JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const DIAS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const TIPO_LBL  = {pilar:'Pilar',ae:'AE',ministerio:'Ministério',link:'Link',office:'Office'};
+const PAPEIS_FIXOS = [
+    {slug:'lider',    nome:'Líder',       fixo:true},
+    {slug:'membro',   nome:'Voluntário',  fixo:true},
+    {slug:'aprendiz', nome:'Aprendiz',    fixo:false}
+];
 
-    /* ── PAPÉIS ── */
-    function min_loadPapeis() {
-        try {
-            const stored = JSON.parse(localStorage.getItem('zion_min_papeis') || '[]');
-            const fixosSlugs = PAPEIS_FIXOS.map(p => p.slug);
-            const custom = stored.filter(p => !fixosSlugs.includes(p.slug));
-            min_papeis = [...PAPEIS_FIXOS, ...custom];
-        } catch(e) {
-            min_papeis = [...PAPEIS_FIXOS];
-        }
+/* ── PAPÉIS ── */
+function min_loadPapeis() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('zion_min_papeis') || '[]');
+        const fixosSlugs = PAPEIS_FIXOS.map(p => p.slug);
+        const custom = stored.filter(p => !fixosSlugs.includes(p.slug));
+        min_papeis = [...PAPEIS_FIXOS, ...custom];
+    } catch(e) {
+        min_papeis = [...PAPEIS_FIXOS];
     }
-    function min_savePapeis() {
-        const custom = min_papeis.filter(p => !p.fixo);
-        localStorage.setItem('zion_min_papeis', JSON.stringify(custom));
-    }
-    function min_papel_nome(slug) {
-        return min_papeis.find(p => p.slug === slug)?.nome || slug;
-    }
-    function min_papeis_options(selected) {
-        return min_papeis.map(p => `<option value="${p.slug}" ${p.slug===selected?'selected':''}>${p.nome}</option>`).join('');
-    }
+}
+function min_savePapeis() {
+    const custom = min_papeis.filter(p => !p.fixo);
+    localStorage.setItem('zion_min_papeis', JSON.stringify(custom));
+}
+function min_papel_nome(slug) {
+    return min_papeis.find(p => p.slug === slug)?.nome || slug;
+}
+function min_papeis_options(selected) {
+    return min_papeis.map(p => `<option value="${p.slug}" ${p.slug===selected?'selected':''}>${p.nome}</option>`).join('');
+}
 
-    function min_renderPapeisLista() {
-        const el = document.getElementById('min-papeis-lista');
-        if (!el) return;
-        el.innerHTML = min_papeis.map((p,i) => `
+function min_renderPapeisLista() {
+    const el = document.getElementById('min-papeis-lista');
+    if (!el) return;
+    el.innerHTML = min_papeis.map((p,i) => `
         <div class="papel-row">
             <span class="papel-row-nome" id="papel-nm-${i}">${p.nome}</span>
             <span class="papel-row-fixo">${p.fixo ? 'fixo' : ''}</span>
             <button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="min_editPapelInline(${i})">Editar</button>
             ${!p.fixo ? `<button class="btn-sm danger" style="font-size:10px;padding:2px 8px" onclick="min_delPapel(${i})">Remover</button>` : ''}
         </div>`).join('');
-    }
-    function min_editPapelInline(idx) {
-        const span = document.getElementById('papel-nm-' + idx);
-        if (!span) return;
-        const current = min_papeis[idx].nome;
-        span.innerHTML = `<input value="${current}" id="papel-edit-${idx}" style="padding:3px 6px;border-radius:5px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;font-family:var(--font-body);color:var(--text-main);width:120px">
+}
+function min_editPapelInline(idx) {
+    const span = document.getElementById('papel-nm-' + idx);
+    if (!span) return;
+    const current = min_papeis[idx].nome;
+    span.innerHTML = `<input value="${current}" id="papel-edit-${idx}" style="padding:3px 6px;border-radius:5px;border:1px solid var(--border);background:var(--bg-input);font-size:12px;font-family:var(--font-body);color:var(--text-main);width:120px">
         <button class="btn-sm primary" style="font-size:10px;padding:2px 8px;margin-left:4px" onclick="min_confirmarEditPapel(${idx})">Ok</button>`;
-        document.getElementById('papel-edit-' + idx)?.focus();
-    }
-    function min_confirmarEditPapel(idx) {
-        const v = document.getElementById('papel-edit-' + idx)?.value.trim();
-        if (!v) return;
-        min_papeis[idx].nome = v;
-        min_savePapeis();
-        min_renderPapeisLista();
-    }
-    function min_delPapel(idx) {
-        if (!confirm(`Remover o papel "${min_papeis[idx].nome}"?`)) return;
-        min_papeis.splice(idx, 1);
-        min_savePapeis();
-        min_renderPapeisLista();
-    }
-    function min_abrirAddPapel() {
-        document.getElementById('min-papel-form').style.display = 'block';
-        document.getElementById('min-papel-nome-inp').value = '';
-        document.getElementById('min-papel-nome-inp').focus();
-    }
-    function min_salvarPapel() {
-        const nome = document.getElementById('min-papel-nome-inp')?.value.trim();
-        if (!nome) return;
-        const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-        if (min_papeis.find(p => p.slug === slug)) { min_t('Já existe','err'); return; }
-        min_papeis.push({slug, nome, fixo:false});
-        min_savePapeis();
-        document.getElementById('min-papel-form').style.display = 'none';
-        min_renderPapeisLista();
-    }
+    document.getElementById('papel-edit-' + idx)?.focus();
+}
+function min_confirmarEditPapel(idx) {
+    const v = document.getElementById('papel-edit-' + idx)?.value.trim();
+    if (!v) return;
+    min_papeis[idx].nome = v;
+    min_savePapeis();
+    min_renderPapeisLista();
+}
+function min_delPapel(idx) {
+    if (!confirm(`Remover o papel "${min_papeis[idx].nome}"?`)) return;
+    min_papeis.splice(idx, 1);
+    min_savePapeis();
+    min_renderPapeisLista();
+}
+function min_abrirAddPapel() {
+    document.getElementById('min-papel-form').style.display = 'block';
+    document.getElementById('min-papel-nome-inp').value = '';
+    document.getElementById('min-papel-nome-inp').focus();
+}
+function min_salvarPapel() {
+    const nome = document.getElementById('min-papel-nome-inp')?.value.trim();
+    if (!nome) return;
+    const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    if (min_papeis.find(p => p.slug === slug)) { min_t('Já existe','err'); return; }
+    min_papeis.push({slug, nome, fixo:false});
+    min_savePapeis();
+    document.getElementById('min-papel-form').style.display = 'none';
+    min_renderPapeisLista();
+}
 
-    /* ── HELPERS ── */
-    function min_sb(p, o) { return window.sb ? window.sb(p, o) : Promise.reject('no sb'); }
-    function min_t(m, t) { if (window.toast) window.toast(m, t || 'ok'); }
-    function smsg(id, msg, t) { const e = document.getElementById(id); if (!e) return; e.textContent = msg; e.className = 'form-msg ' + t; }
-    function fmtD(d) { if (!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'2-digit',month:'short'}); }
-    function ym() { const n = new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
-    function addM(s, n) { const [a,m] = s.split('-'); const d = new Date(parseInt(a),parseInt(m)-1+n,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
-    function mesLbl(s) { const [a,m] = s.split('-'); return MESES_PT[parseInt(m)]+' '+a; }
-    function todosDiasMes(a,m) { const r=[]; for(let d=1;d<=new Date(a,m,0).getDate();d++){const dt=new Date(a,m-1,d),dw=dt.getDay();r.push({d,dw,iso:`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`})} return r; }
+/* ── HELPERS ── */
+function min_sb(p, o) { return window.sb ? window.sb(p, o) : Promise.reject('no sb'); }
+function min_t(m, t) { if (window.toast) window.toast(m, t || 'ok'); }
+function smsg(id, msg, t) { const e = document.getElementById(id); if (!e) return; e.textContent = msg; e.className = 'form-msg ' + t; }
+function fmtD(d) { if (!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'2-digit',month:'short'}); }
+function ym() { const n = new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
+function addM(s, n) { const [a,m] = s.split('-'); const d = new Date(parseInt(a),parseInt(m)-1+n,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function mesLbl(s) { const [a,m] = s.split('-'); return MESES_PT[parseInt(m)]+' '+a; }
+function todosDiasMes(a,m) { const r=[]; for(let d=1;d<=new Date(a,m,0).getDate();d++){const dt=new Date(a,m-1,d),dw=dt.getDay();r.push({d,dw,iso:`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`})} return r; }
 
-    const DIA_DW = {'Domingo':0,'Segunda-feira':1,'Terca-feira':2,'Quarta-feira':3,'Quinta-feira':4,'Sexta-feira':5,'Sabado':6};
+const DIA_DW = {'Domingo':0,'Segunda-feira':1,'Terca-feira':2,'Quarta-feira':3,'Quinta-feira':4,'Sexta-feira':5,'Sabado':6};
 
-    /* ── ÁRVORE ── */
-    function min_buildTree(items) {
-        const map = {}; items.forEach(m => { map[m.id] = {...m, _ch:[]}; });
-        const roots = [];
-        items.forEach(m => { if (m.parent_id && map[m.parent_id]) map[m.parent_id]._ch.push(map[m.id]); else roots.push(map[m.id]); });
-        function sortAlpha(ns) { ns.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')); ns.forEach(n=>sortAlpha(n._ch)); }
-        sortAlpha(roots); return roots;
+/* ── ÁRVORE ── */
+function min_buildTree(items) {
+    const map = {}; items.forEach(m => { map[m.id] = {...m, _ch:[]}; });
+    const roots = [];
+    items.forEach(m => { if (m.parent_id && map[m.parent_id]) map[m.parent_id]._ch.push(map[m.id]); else roots.push(map[m.id]); });
+    function sortAlpha(ns) { ns.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')); ns.forEach(n=>sortAlpha(n._ch)); }
+    sortAlpha(roots); return roots;
+}
+function min_countDesc(node) { return node._ch.reduce((acc,c)=>acc+1+min_countDesc(c),0); }
+function min_breadcrumb(id) {
+    const trail = []; let cur = min_mins.find(m=>m.id===id);
+    while (cur?.parent_id) { const p = min_mins.find(m=>m.id===cur.parent_id); if(p){trail.unshift(p.nome);cur=p;}else break; }
+    return trail.join(' › ');
+}
+var min_filtroTipo = '';
+function min_setFiltro(el, tipo) {
+    min_filtroTipo = tipo;
+    document.querySelectorAll('#min-filter-bar .mod-filter-chip').forEach(c=>c.classList.remove('on'));
+    if (el) el.classList.add('on');
+    min_renderSide();
+}
+function min_renderSide() {
+    const el = document.getElementById('min-sidebar'); if (!el) return;
+    let lista = min_mins;
+    if (min_filtroTipo) {
+        const ids = new Set();
+        min_mins.forEach(m => { if(m.tipo===min_filtroTipo){ids.add(m.id);let cur=m;while(cur?.parent_id){ids.add(cur.parent_id);cur=min_mins.find(x=>x.id===cur.parent_id);}} });
+        lista = min_mins.filter(m=>ids.has(m.id));
     }
-    function min_countDesc(node) { return node._ch.reduce((acc,c)=>acc+1+min_countDesc(c),0); }
-    function min_breadcrumb(id) {
-        const trail = []; let cur = min_mins.find(m=>m.id===id);
-        while (cur?.parent_id) { const p = min_mins.find(m=>m.id===cur.parent_id); if(p){trail.unshift(p.nome);cur=p;}else break; }
-        return trail.join(' › ');
+    const tree = min_buildTree(lista);
+    if (!tree.length) { el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum resultado</div>`; return; }
+    const pilares = tree.filter(n=>n.tipo==='pilar'), semPilar = tree.filter(n=>n.tipo!=='pilar');
+    let html = '';
+    pilares.forEach(p => {
+        const desc = min_countDesc(p);
+        html += `<div class="tree-pilar-hd ${min_minAtivo?.id===p.id?'active-pilar':''}" onclick="min_sel('${p.id}')"><span class="tree-ph-nome">${p.nome}</span>${desc?`<span class="tree-ph-count">${desc}</span>`:''}</div>`;
+        p._ch.forEach(c => { html += min_renderTreeItem(c, 1); });
+    });
+    if (semPilar.length) {
+        html += `<div class="tree-sep"></div><div class="tree-pilar-hd"><span class="tree-ph-nome" style="color:var(--text-faint)">Sem Pilar</span><span class="tree-ph-count">${semPilar.length}</span></div>`;
+        semPilar.forEach(n => { html += min_renderTreeItem(n, 1); });
     }
-    var min_filtroTipo = '';
-    function min_setFiltro(el, tipo) {
-        min_filtroTipo = tipo;
-        document.querySelectorAll('#min-filter-bar .mod-filter-chip').forEach(c=>c.classList.remove('on'));
-        if (el) el.classList.add('on');
-        min_renderSide();
-    }
-    function min_renderSide() {
-        const el = document.getElementById('min-sidebar'); if (!el) return;
-        let lista = min_mins;
-        if (min_filtroTipo) {
-            const ids = new Set();
-            min_mins.forEach(m => { if(m.tipo===min_filtroTipo){ids.add(m.id);let cur=m;while(cur?.parent_id){ids.add(cur.parent_id);cur=min_mins.find(x=>x.id===cur.parent_id);}} });
-            lista = min_mins.filter(m=>ids.has(m.id));
-        }
-        const tree = min_buildTree(lista);
-        if (!tree.length) { el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum resultado</div>`; return; }
-        const pilares = tree.filter(n=>n.tipo==='pilar'), semPilar = tree.filter(n=>n.tipo!=='pilar');
-        let html = '';
-        pilares.forEach(p => {
-            const desc = min_countDesc(p);
-            html += `<div class="tree-pilar-hd ${min_minAtivo?.id===p.id?'active-pilar':''}" onclick="min_sel('${p.id}')"><span class="tree-ph-nome">${p.nome}</span>${desc?`<span class="tree-ph-count">${desc}</span>`:''}</div>`;
-            p._ch.forEach(c => { html += min_renderTreeItem(c, 1); });
-        });
-        if (semPilar.length) {
-            html += `<div class="tree-sep"></div><div class="tree-pilar-hd"><span class="tree-ph-nome" style="color:var(--text-faint)">Sem Pilar</span><span class="tree-ph-count">${semPilar.length}</span></div>`;
-            semPilar.forEach(n => { html += min_renderTreeItem(n, 1); });
-        }
-        el.innerHTML = html;
-    }
-    function min_renderTreeItem(node, depth) {
-        const isActive = min_minAtivo?.id === node.id;
-        const indent = 8 + depth * 14;
-        const prefix = depth===1?'├─ ':depth===2?'└─ ':'· ';
-        let html = `<div class="tree-item ${isActive?'active':''}" onclick="min_sel('${node.id}')" style="padding-left:${indent}px">
+    el.innerHTML = html;
+}
+function min_renderTreeItem(node, depth) {
+    const isActive = min_minAtivo?.id === node.id;
+    const indent = 8 + depth * 14;
+    const prefix = depth===1?'├─ ':depth===2?'└─ ':'· ';
+    let html = `<div class="tree-item ${isActive?'active':''}" onclick="min_sel('${node.id}')" style="padding-left:${indent}px">
         ${depth>0?`<span class="depth-prefix">${prefix}</span>`:''}
         <div class="tree-item-inner">
             <div class="tree-item-nome" style="font-size:${Math.max(11,13-depth)}px">${node.nome}</div>
@@ -551,40 +551,40 @@
         </div>
         ${node._ch.length?`<span class="tree-item-count">${node._ch.length}</span>`:''}
     </div>`;
-        node._ch.forEach(c => { html += min_renderTreeItem(c, depth+1); });
-        return html;
-    }
+    node._ch.forEach(c => { html += min_renderTreeItem(c, depth+1); });
+    return html;
+}
 
-    /* ── INIT ── */
-    async function min_init() {
-        min_loadPapeis();
-        min_minAtivo = null; min_indMes = ym(); min_escMes = ym();
-        const [ms, mbs, cs] = await Promise.all([
-            min_sb('ministerios?select=*&ativo=eq.true&order=nome').catch(()=>[]),
-            min_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
-            min_sb('cultos?select=*&ativo=eq.true&order=dia_semana,hora_inicio').catch(()=>[]),
-        ]);
-        min_mins = ms || []; min_memAll = mbs || []; min_cultsAll = cs || [];
-        min_renderSide();
-        const el = document.getElementById('min-content');
-        if (el) el.innerHTML = `<div class="mod-empty"><div class="mod-empty-title">Selecione um Ministério</div></div>`;
-    }
+/* ── INIT ── */
+async function min_init() {
+    min_loadPapeis();
+    min_minAtivo = null; min_indMes = ym(); min_escMes = ym();
+    const [ms, mbs, cs] = await Promise.all([
+        min_sb('ministerios?select=*&ativo=eq.true&order=nome').catch(()=>[]),
+        min_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
+        min_sb('cultos?select=*&ativo=eq.true&order=dia_semana,hora_inicio').catch(()=>[]),
+    ]);
+    min_mins = ms || []; min_memAll = mbs || []; min_cultsAll = cs || [];
+    min_renderSide();
+    const el = document.getElementById('min-content');
+    if (el) el.innerHTML = `<div class="mod-empty"><div class="mod-empty-title">Selecione um Ministério</div></div>`;
+}
 
-    /* ── SELECIONAR MINISTÉRIO ── */
-    async function min_sel(id) {
-        min_minAtivo = min_mins.find(m=>m.id===id);
-        min_renderSide();
-        const [mems, cults] = await Promise.all([
-            min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]),
-            min_sb(`ministerio_cultos?ministerio_id=eq.${id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo)`).catch(()=>[]),
-        ]);
-        min_minMems = mems || [];
-        // Só cultos activos no join
-        min_minCults = (cults || []).filter(mc => mc.cultos?.ativo !== false);
-        min_memNoMin = new Set(min_minMems.map(m=>m.membro_id));
-        const bc = min_breadcrumb(id);
+/* ── SELECIONAR MINISTÉRIO ── */
+async function min_sel(id) {
+    min_minAtivo = min_mins.find(m=>m.id===id);
+    min_renderSide();
+    const [mems, cults] = await Promise.all([
+        min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]),
+        min_sb(`ministerio_cultos?ministerio_id=eq.${id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo)`).catch(()=>[]),
+    ]);
+    min_minMems = mems || [];
+    // Só cultos activos no join
+    min_minCults = (cults || []).filter(mc => mc.cultos?.ativo !== false);
+    min_memNoMin = new Set(min_minMems.map(m=>m.membro_id));
+    const bc = min_breadcrumb(id);
 
-        document.getElementById('min-content').innerHTML = `
+    document.getElementById('min-content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px 0;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;flex-wrap:wrap">
         <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:8px">
             ${bc?`<div style="font-size:10px;color:var(--text-faint)">${bc}</div>`:''}
@@ -614,216 +614,210 @@
     <div class="mod-tab-body"        id="mintb-escala"></div>
     <div class="mod-tab-body"        id="mintb-partilha"></div>
     <div class="mod-tab-body"        id="mintb-checkin"></div>`;
-        min_renderMems();
-    }
+    min_renderMems();
+}
 
-    /* ── TROCA DE TABS (com guard de stale) ── */
-    function min_tab(t) {
-        ['membros','cultos','disp','indisp','escala','partilha','checkin'].forEach(x => {
-            document.getElementById(`mint-${x}`)?.classList.toggle('active', x===t);
-            document.getElementById(`mintb-${x}`)?.classList.toggle('active', x===t);
-        });
-        const snapId = min_minAtivo?.id;
-        requestAnimationFrame(() => {
-            if (min_minAtivo?.id !== snapId) return;
-            if (t==='cultos')   min_renderCults();
-            if (t==='disp')     min_renderDisp();
-            if (t==='indisp')   min_renderIndisp();
-            if (t==='escala')   min_renderEscala();
-            if (t==='partilha') min_renderPartilha();
-            if (t==='checkin')  min_renderCheckin();
-        });
-    }
+/* ── TROCA DE TABS ── */
+function min_tab(t) {
+    if (!min_minAtivo) return;
+    ['membros','cultos','disp','indisp','escala','partilha','checkin'].forEach(x => {
+        document.getElementById(`mint-${x}`)?.classList.toggle('active', x===t);
+        document.getElementById(`mintb-${x}`)?.classList.toggle('active', x===t);
+    });
+    if (t==='cultos')   min_renderCults();
+    if (t==='disp')     min_renderDisp();
+    if (t==='indisp')   min_renderIndisp();
+    if (t==='escala')   min_renderEscala();
+    if (t==='partilha') min_renderPartilha();
+    if (t==='checkin')  min_renderCheckin();
+}
 
-    /* ── ORGANOGRAMA ── */
-    function min_abrirOrg() { document.getElementById('min-modal-org').style.display='flex'; min_renderOrg(); }
-    function min_fecharOrg() { document.getElementById('min-modal-org').style.display='none'; }
-    var min_orgFiltro = 'all';
-    function min_orgTab(el, tipo) {
-        min_orgFiltro = tipo;
-        document.querySelectorAll('#min-modal-org .mod-filter-chip').forEach(c=>c.classList.remove('on'));
-        if (el) el.classList.add('on');
-        min_renderOrg();
+/* ── ORGANOGRAMA ── */
+function min_abrirOrg() { document.getElementById('min-modal-org').style.display='flex'; min_renderOrg(); }
+function min_fecharOrg() { document.getElementById('min-modal-org').style.display='none'; }
+var min_orgFiltro = 'all';
+function min_orgTab(el, tipo) {
+    min_orgFiltro = tipo;
+    document.querySelectorAll('#min-modal-org .mod-filter-chip').forEach(c=>c.classList.remove('on'));
+    if (el) el.classList.add('on');
+    min_renderOrg();
+}
+function min_renderOrg() {
+    const el = document.getElementById('min-org-body'); if (!el) return;
+    if (!min_mins.length) { el.innerHTML=`<div style="text-align:center;color:var(--text-faint);padding:40px">Nenhum ministério activo</div>`; return; }
+    const TIPOS_ORD = ['pilar','ae','ministerio','link','office'];
+    const TIPO_NOME = {pilar:'Pilar',ae:'Área Executiva (AE)',ministerio:'Ministérios',link:'Links',office:'Office'};
+    let lista = min_mins;
+    if (min_orgFiltro!=='all') {
+        const idsOk = new Set();
+        min_mins.forEach(m => { if(m.tipo===min_orgFiltro){idsOk.add(m.id);let cur=m;while(cur?.parent_id){idsOk.add(cur.parent_id);cur=min_mins.find(x=>x.id===cur.parent_id);}} });
+        lista = min_mins.filter(m=>idsOk.has(m.id));
     }
-    function min_renderOrg() {
-        const el = document.getElementById('min-org-body'); if (!el) return;
-        if (!min_mins.length) { el.innerHTML=`<div style="text-align:center;color:var(--text-faint);padding:40px">Nenhum ministério activo</div>`; return; }
-        const TIPOS_ORD = ['pilar','ae','ministerio','link','office'];
-        const TIPO_NOME = {pilar:'Pilar',ae:'Área Executiva (AE)',ministerio:'Ministérios',link:'Links',office:'Office'};
-        let lista = min_mins;
-        if (min_orgFiltro!=='all') {
-            const idsOk = new Set();
-            min_mins.forEach(m => { if(m.tipo===min_orgFiltro){idsOk.add(m.id);let cur=m;while(cur?.parent_id){idsOk.add(cur.parent_id);cur=min_mins.find(x=>x.id===cur.parent_id);}} });
-            lista = min_mins.filter(m=>idsOk.has(m.id));
-        }
-        const childMap = {};
-        lista.forEach(m => { const p=m.parent_id||'__root__'; if(!childMap[p])childMap[p]=[]; childMap[p].push(m); });
-        Object.values(childMap).forEach(arr=>arr.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')));
-        function renderRows(parentId, depth) {
-            return (childMap[parentId]||[]).map(m => {
-                const dotCls='org-dot-'+(m.tipo||'outro'), lblCls='org-lbl-'+(m.tipo||'outro');
-                const tipoLbl=TIPO_LBL[m.tipo]||(m.tipo?m.tipo.toUpperCase():'');
-                const nFilhos=(childMap[m.id]||[]).length;
-                const indent = depth>0?`<div class="org-indent">${'<div class="org-indent-line"></div>'.repeat(depth)}</div>`:'';
-                return `<div class="org-row">${indent}<div class="org-card" onclick="min_sel('${m.id}');min_fecharOrg()">
+    const childMap = {};
+    lista.forEach(m => { const p=m.parent_id||'__root__'; if(!childMap[p])childMap[p]=[]; childMap[p].push(m); });
+    Object.values(childMap).forEach(arr=>arr.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')));
+    function renderRows(parentId, depth) {
+        return (childMap[parentId]||[]).map(m => {
+            const dotCls='org-dot-'+(m.tipo||'outro'), lblCls='org-lbl-'+(m.tipo||'outro');
+            const tipoLbl=TIPO_LBL[m.tipo]||(m.tipo?m.tipo.toUpperCase():'');
+            const nFilhos=(childMap[m.id]||[]).length;
+            const indent = depth>0?`<div class="org-indent">${'<div class="org-indent-line"></div>'.repeat(depth)}</div>`:'';
+            return `<div class="org-row">${indent}<div class="org-card" onclick="min_sel('${m.id}');min_fecharOrg()">
                 <div class="org-card-dot ${dotCls}"></div><div class="org-card-nome">${m.nome}</div>
                 ${tipoLbl?`<span class="org-card-tipo ${lblCls}">${tipoLbl}</span>`:''}
                 ${nFilhos?`<span class="org-card-count">${nFilhos} sub</span>`:''}
             </div></div>`+renderRows(m.id, depth+1);
-            }).join('');
-        }
-        if (min_orgFiltro==='all') {
-            const raizes = childMap['__root__']||[];
-            if (!raizes.length){el.innerHTML=`<div style="text-align:center;color:var(--text-faint);padding:40px">Nenhum item raiz encontrado.</div>`;return;}
-            const porTipo={};
-            raizes.forEach(m=>{const t=m.tipo||'outro';if(!porTipo[t])porTipo[t]=[];porTipo[t].push(m);});
-            const tiposPresentes=[...TIPOS_ORD,'outro'].filter(t=>porTipo[t]);
-            el.innerHTML = tiposPresentes.map(tipo => {
-                const hdCls='org-hd-'+tipo, dotCls='org-dot-'+tipo, nome=TIPO_NOME[tipo]||tipo.toUpperCase();
-                const items=porTipo[tipo];
-                const rows=items.map(m=>{
-                    const nFilhos=(childMap[m.id]||[]).length;
-                    return `<div class="org-row"><div class="org-card" onclick="min_sel('${m.id}');min_fecharOrg()" style="font-weight:700">
+        }).join('');
+    }
+    if (min_orgFiltro==='all') {
+        const raizes = childMap['__root__']||[];
+        if (!raizes.length){el.innerHTML=`<div style="text-align:center;color:var(--text-faint);padding:40px">Nenhum item raiz encontrado.</div>`;return;}
+        const porTipo={};
+        raizes.forEach(m=>{const t=m.tipo||'outro';if(!porTipo[t])porTipo[t]=[];porTipo[t].push(m);});
+        const tiposPresentes=[...TIPOS_ORD,'outro'].filter(t=>porTipo[t]);
+        el.innerHTML = tiposPresentes.map(tipo => {
+            const hdCls='org-hd-'+tipo, dotCls='org-dot-'+tipo, nome=TIPO_NOME[tipo]||tipo.toUpperCase();
+            const items=porTipo[tipo];
+            const rows=items.map(m=>{
+                const nFilhos=(childMap[m.id]||[]).length;
+                return `<div class="org-row"><div class="org-card" onclick="min_sel('${m.id}');min_fecharOrg()" style="font-weight:700">
                     <div class="org-card-dot ${dotCls}"></div><div class="org-card-nome">${m.nome}</div>
                     ${nFilhos?`<span class="org-card-count">${nFilhos} sub</span>`:''}
                 </div></div>`+renderRows(m.id,1);
-                }).join('');
-                return `<div class="org-section"><div class="org-section-hd ${hdCls}"><div class="org-section-lbl">${nome}</div><span class="org-section-count">${items.length} item${items.length>1?'s':''}</span></div><div class="org-items">${rows}</div></div>`;
             }).join('');
+            return `<div class="org-section"><div class="org-section-hd ${hdCls}"><div class="org-section-lbl">${nome}</div><span class="org-section-count">${items.length} item${items.length>1?'s':''}</span></div><div class="org-items">${rows}</div></div>`;
+        }).join('');
+    } else {
+        const rows=renderRows('__root__',0);
+        const nome=TIPO_NOME[min_orgFiltro]||min_orgFiltro.toUpperCase(), hdCls='org-hd-'+min_orgFiltro;
+        const total=lista.filter(m=>m.tipo===min_orgFiltro).length;
+        el.innerHTML=`<div class="org-section"><div class="org-section-hd ${hdCls}"><div class="org-section-lbl">${nome}</div><span class="org-section-count">${total} item${total>1?'s':''}</span></div><div class="org-items">${rows||'<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum item deste tipo</div>'}</div></div>`;
+    }
+}
+
+/* ── CRUD MINISTÉRIO ── */
+async function min_abrirFormMin(id) {
+    min_formEditId = id || null;
+    const isEdit = !!id;
+    const m = isEdit ? min_mins.find(x=>x.id===id) : null;
+    document.getElementById('min-modal-min-title').textContent = isEdit ? 'Editar Ministério' : 'Novo Ministério';
+    document.getElementById('min-f-nome').value  = m?.nome || '';
+    document.getElementById('min-f-tipo').value  = m?.tipo || '';
+    document.getElementById('min-f-desc').value  = m?.descricao || '';
+    document.getElementById('min-f-ativo').checked = m ? m.ativo!==false : true;
+    const msg = document.getElementById('min-f-msg'); msg.textContent=''; msg.className='form-msg';
+    min_popularParents(id, m?.parent_id||'');
+    min_renderPapeisLista();
+
+    // Carregar opções de líderes (membros com e_lider=true ou todos)
+    const liderSel = document.getElementById('min-f-lider');
+    liderSel.innerHTML = '<option value="">A carregar…</option>';
+    let liderOpts = await min_sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true&order=nome').catch(()=>[]);
+    if (!liderOpts?.length) liderOpts = await min_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]);
+    // Líder actual do ministério
+    let currentLiderId = '';
+    if (isEdit) {
+        const cl = await min_sb(`ministerio_membros?ministerio_id=eq.${id}&papel=eq.lider&ativo=eq.true&select=membro_id&limit=1`).catch(()=>[]);
+        currentLiderId = cl?.[0]?.membro_id || '';
+    }
+    liderSel.innerHTML = '<option value="">— Sem líder definido —</option>' +
+        (liderOpts||[]).map(l=>`<option value="${l.id}" ${l.id===currentLiderId?'selected':''}>${l.nome}</option>`).join('');
+
+    document.getElementById('min-modal-min').style.display = 'flex';
+    setTimeout(()=>document.getElementById('min-f-nome').focus(), 80);
+}
+function min_popularParents(excludeId, selectedId) {
+    const sel = document.getElementById('min-f-parent');
+    const tree = min_buildTree(min_mins);
+    const opts = ['<option value="">— Nível raiz —</option>'];
+    function addOpts(nodes, depth) {
+        nodes.forEach(n => {
+            if (n.id===excludeId) return;
+            const prefix='·'.repeat(depth*2);
+            opts.push(`<option value="${n.id}" ${n.id===selectedId?'selected':''}>${prefix} ${n.nome}${n.tipo?' ['+TIPO_LBL[n.tipo]+']':''}</option>`);
+            addOpts(n._ch, depth+1);
+        });
+    }
+    addOpts(tree, 0); sel.innerHTML = opts.join('');
+    min_atualizarPreviewPai(); sel.onchange = min_atualizarPreviewPai;
+}
+function min_atualizarPreviewPai() {
+    const sel=document.getElementById('min-f-parent'), prev=document.getElementById('min-f-parent-preview');
+    if (!sel||!prev) return;
+    const v=sel.value; if(!v){prev.textContent='';return;}
+    const bc=min_breadcrumb(v), nome=min_mins.find(m=>m.id===v)?.nome||'';
+    prev.textContent = bc?`Caminho: ${bc} › ${nome}`:`Caminho: ${nome}`;
+}
+function min_fecharFormMin() { document.getElementById('min-modal-min').style.display='none'; }
+async function min_salvarMin() {
+    const nome     = document.getElementById('min-f-nome').value.trim();
+    const slug     = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const tipo     = document.getElementById('min-f-tipo').value || null;
+    const descricao= document.getElementById('min-f-desc').value.trim() || null;
+    const ativo    = document.getElementById('min-f-ativo').checked;
+    const parent_id= document.getElementById('min-f-parent').value || null;
+    const liderId  = document.getElementById('min-f-lider').value || null;
+    const btn      = document.getElementById('min-f-save');
+    const msgEl    = document.getElementById('min-f-msg');
+    if (!nome) { msgEl.textContent='Nome é obrigatório.'; msgEl.className='form-msg err'; return; }
+    btn.disabled=true; btn.textContent='A guardar…';
+    try {
+        let minId = min_formEditId;
+        if (min_formEditId) {
+            await min_sb(`ministerios?id=eq.${min_formEditId}`,{method:'PATCH',body:JSON.stringify({slug,nome,tipo,descricao,ativo,parent_id})});
+            const idx=min_mins.findIndex(m=>m.id===min_formEditId);
+            if (idx>=0) Object.assign(min_mins[idx],{nome,tipo,descricao,ativo,parent_id});
+            if (min_minAtivo?.id===min_formEditId) Object.assign(min_minAtivo,{nome,tipo,ativo,parent_id});
+            min_t('Ministério actualizado');
         } else {
-            const rows=renderRows('__root__',0);
-            const nome=TIPO_NOME[min_orgFiltro]||min_orgFiltro.toUpperCase(), hdCls='org-hd-'+min_orgFiltro;
-            const total=lista.filter(m=>m.tipo===min_orgFiltro).length;
-            el.innerHTML=`<div class="org-section"><div class="org-section-hd ${hdCls}"><div class="org-section-lbl">${nome}</div><span class="org-section-count">${total} item${total>1?'s':''}</span></div><div class="org-items">${rows||'<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum item deste tipo</div>'}</div></div>`;
+            const res = await min_sb('ministerios',{method:'POST',body:JSON.stringify({slug,nome,tipo,descricao,ativo:true,parent_id})});
+            const novo = Array.isArray(res)?res[0]:res;
+            if (novo){ min_mins.push(novo); minId=novo.id; }
+            min_t('Ministério criado');
         }
-    }
-
-    /* ── CRUD MINISTÉRIO ── */
-    async function min_abrirFormMin(id) {
-        min_formEditId = id || null;
-        const isEdit = !!id;
-        const m = isEdit ? min_mins.find(x=>x.id===id) : null;
-        document.getElementById('min-modal-min-title').textContent = isEdit ? 'Editar Ministério' : 'Novo Ministério';
-        document.getElementById('min-f-nome').value  = m?.nome || '';
-        document.getElementById('min-f-tipo').value  = m?.tipo || '';
-        document.getElementById('min-f-desc').value  = m?.descricao || '';
-        document.getElementById('min-f-ativo').checked = m ? m.ativo!==false : true;
-        const msg = document.getElementById('min-f-msg'); msg.textContent=''; msg.className='form-msg';
-        min_popularParents(id, m?.parent_id||'');
-        min_renderPapeisLista();
-
-        // Carregar opções de líderes (membros com e_lider=true ou todos)
-        const liderSel = document.getElementById('min-f-lider');
-        liderSel.innerHTML = '<option value="">A carregar…</option>';
-        let liderOpts = await min_sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true&order=nome').catch(()=>[]);
-        if (!liderOpts?.length) liderOpts = await min_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]);
-        // Líder actual do ministério
-        let currentLiderId = '';
-        if (isEdit) {
-            const cl = await min_sb(`ministerio_membros?ministerio_id=eq.${id}&papel=eq.lider&ativo=eq.true&select=membro_id&limit=1`).catch(()=>[]);
-            currentLiderId = cl?.[0]?.membro_id || '';
-        }
-        liderSel.innerHTML = '<option value="">— Sem líder definido —</option>' +
-            (liderOpts||[]).map(l=>`<option value="${l.id}" ${l.id===currentLiderId?'selected':''}>${l.nome}</option>`).join('');
-
-        document.getElementById('min-modal-min').style.display = 'flex';
-        setTimeout(()=>document.getElementById('min-f-nome').focus(), 80);
-    }
-    function min_popularParents(excludeId, selectedId) {
-        const sel = document.getElementById('min-f-parent');
-        const tree = min_buildTree(min_mins);
-        const opts = ['<option value="">— Nível raiz —</option>'];
-        function addOpts(nodes, depth) {
-            nodes.forEach(n => {
-                if (n.id===excludeId) return;
-                const prefix='·'.repeat(depth*2);
-                opts.push(`<option value="${n.id}" ${n.id===selectedId?'selected':''}>${prefix} ${n.nome}${n.tipo?' ['+TIPO_LBL[n.tipo]+']':''}</option>`);
-                addOpts(n._ch, depth+1);
-            });
-        }
-        addOpts(tree, 0); sel.innerHTML = opts.join('');
-        min_atualizarPreviewPai(); sel.onchange = min_atualizarPreviewPai;
-    }
-    function min_atualizarPreviewPai() {
-        const sel=document.getElementById('min-f-parent'), prev=document.getElementById('min-f-parent-preview');
-        if (!sel||!prev) return;
-        const v=sel.value; if(!v){prev.textContent='';return;}
-        const bc=min_breadcrumb(v), nome=min_mins.find(m=>m.id===v)?.nome||'';
-        prev.textContent = bc?`Caminho: ${bc} › ${nome}`:`Caminho: ${nome}`;
-    }
-    function min_fecharFormMin() { document.getElementById('min-modal-min').style.display='none'; }
-    async function min_salvarMin() {
-        const nome     = document.getElementById('min-f-nome').value.trim();
-        const slug     = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-        const tipo     = document.getElementById('min-f-tipo').value || null;
-        const descricao= document.getElementById('min-f-desc').value.trim() || null;
-        const ativo    = document.getElementById('min-f-ativo').checked;
-        const parent_id= document.getElementById('min-f-parent').value || null;
-        const liderId  = document.getElementById('min-f-lider').value || null;
-        const btn      = document.getElementById('min-f-save');
-        const msgEl    = document.getElementById('min-f-msg');
-        if (!nome) { msgEl.textContent='Nome é obrigatório.'; msgEl.className='form-msg err'; return; }
-        btn.disabled=true; btn.textContent='A guardar…';
-        try {
-            let minId = min_formEditId;
-            if (min_formEditId) {
-                await min_sb(`ministerios?id=eq.${min_formEditId}`,{method:'PATCH',body:JSON.stringify({slug,nome,tipo,descricao,ativo,parent_id})});
-                const idx=min_mins.findIndex(m=>m.id===min_formEditId);
-                if (idx>=0) Object.assign(min_mins[idx],{nome,tipo,descricao,ativo,parent_id});
-                if (min_minAtivo?.id===min_formEditId) Object.assign(min_minAtivo,{nome,tipo,ativo,parent_id});
-                min_t('Ministério actualizado');
+        // Atribuir líder
+        if (liderId && minId) {
+            const ex = await min_sb(`ministerio_membros?ministerio_id=eq.${minId}&membro_id=eq.${liderId}&select=id,ativo&limit=1`).catch(()=>[]);
+            if (ex?.length) {
+                await min_sb(`ministerio_membros?id=eq.${ex[0].id}`,{method:'PATCH',body:JSON.stringify({papel:'lider',ativo:true})}).catch(console.error);
             } else {
-                const res = await min_sb('ministerios',{method:'POST',body:JSON.stringify({slug,nome,tipo,descricao,ativo:true,parent_id})});
-                const novo = Array.isArray(res)?res[0]:res;
-                if (novo){ min_mins.push(novo); minId=novo.id; }
-                min_t('Ministério criado');
+                await min_sb('ministerio_membros',{method:'POST',body:JSON.stringify({ministerio_id:minId,membro_id:liderId,papel:'lider',ativo:true})}).catch(console.error);
             }
-            // Atribuir líder
-            if (liderId && minId) {
-                const ex = await min_sb(`ministerio_membros?ministerio_id=eq.${minId}&membro_id=eq.${liderId}&select=id,ativo&limit=1`).catch(()=>[]);
-                if (ex?.length) {
-                    await min_sb(`ministerio_membros?id=eq.${ex[0].id}`,{method:'PATCH',body:JSON.stringify({papel:'lider',ativo:true})}).catch(console.error);
-                } else {
-                    await min_sb('ministerio_membros',{method:'POST',body:JSON.stringify({ministerio_id:minId,membro_id:liderId,papel:'lider',ativo:true})}).catch(console.error);
-                }
-            }
-            min_renderSide();
-            min_fecharFormMin();
-            // Recarregar membros se estiver a editar o ministério activo
-            if (min_minAtivo?.id === minId) {
-                const mems = await min_sb(`ministerio_membros?ministerio_id=eq.${minId}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]);
-                min_minMems = mems || [];
-                min_memNoMin = new Set(min_minMems.map(m=>m.membro_id));
-                const tab = document.getElementById('mint-membros');
-                if (tab) tab.textContent = `Voluntários (${min_minMems.length})`;
-                min_renderMems();
-            }
-        } catch(e) {
-            msgEl.textContent = e.message || JSON.stringify(e); msgEl.className='form-msg err';
         }
-        btn.disabled=false; btn.textContent='Guardar';
-    }
-    async function min_inativarMin(id) {
-        const m=min_mins.find(x=>x.id===id); if (!m) return;
-        const ativar=m.ativo===false;
-        if (!confirm(ativar?`Reativar "${m.nome}"?`:`Inativar "${m.nome}"?`)) return;
-        await min_sb(`ministerios?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({ativo:ativar})});
-        m.ativo=ativar;
-        min_t(ativar?'Ministério reativado':'Ministério inativado');
-        const todos = await min_sb('ministerios?select=*&order=nome').catch(()=>[]);
-        min_mins = (todos||[]).filter(x=>x.ativo!==false);
         min_renderSide();
-        if (!ativar&&min_minAtivo?.id===id) {
-            min_minAtivo=null;
-            const el=document.getElementById('min-content');
-            if (el) el.innerHTML=`<div class="mod-empty"><div class="mod-empty-title">Ministério inativado</div></div>`;
+        min_fecharFormMin();
+        // Se estamos a editar o ministério activo, recarregar tudo via min_sel
+        // (garante que membros, cultos e todas as tabs ficam actualizados)
+        if (minId && min_minAtivo?.id === minId) {
+            await min_sel(minId);
         }
+    } catch(e) {
+        msgEl.textContent = e.message || JSON.stringify(e); msgEl.className='form-msg err';
     }
+    btn.disabled=false; btn.textContent='Guardar';
+}
+async function min_inativarMin(id) {
+    const m=min_mins.find(x=>x.id===id); if (!m) return;
+    const ativar=m.ativo===false;
+    if (!confirm(ativar?`Reativar "${m.nome}"?`:`Inativar "${m.nome}"?`)) return;
+    await min_sb(`ministerios?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({ativo:ativar})});
+    m.ativo=ativar;
+    min_t(ativar?'Ministério reativado':'Ministério inativado');
+    const todos = await min_sb('ministerios?select=*&order=nome').catch(()=>[]);
+    min_mins = (todos||[]).filter(x=>x.ativo!==false);
+    min_renderSide();
+    if (!ativar&&min_minAtivo?.id===id) {
+        min_minAtivo=null;
+        const el=document.getElementById('min-content');
+        if (el) el.innerHTML=`<div class="mod-empty"><div class="mod-empty-title">Ministério inativado</div></div>`;
+    }
+}
 
-    /* ── VOLUNTÁRIOS (tab) ── */
-    function min_renderMems() {
-        const el = document.getElementById('mintb-membros'); if (!el) return;
-        el.innerHTML = `<div class="sec-hd">
+/* ── VOLUNTÁRIOS (tab) ── */
+function min_renderMems() {
+    if (!min_minAtivo) return;
+    const el = document.getElementById('mintb-membros'); if (!el) return;
+    el.innerHTML = `<div class="sec-hd">
         <div style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark)">${min_minAtivo.nome}</div>
         <button class="btn-add" onclick="min_abrirMem()">+ Adicionar Voluntário</button>
     </div>
@@ -839,82 +833,84 @@
             </td>
             <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
         </tr>`).join('')}</tbody></table></div>`
-            : `<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum voluntário neste ministério</div></div>`}`;
-    }
-    async function min_editarPin(membroId) {
-        const cell=document.getElementById('pin-cell-'+membroId); if (!cell) return;
-        cell.innerHTML='<span style="font-size:10px;color:var(--text-faint)">…</span>';
-        const res=await min_sb('membros?id=eq.'+membroId+'&select=checkin_pin').catch(()=>[]);
-        const pinActual=res?.[0]?.checkin_pin||'';
-        const div=document.createElement('div'); div.style.cssText='display:flex;align-items:center;gap:4px';
-        const inp=document.createElement('input'); inp.type='text'; inp.maxLength=6; inp.placeholder='----'; inp.value=pinActual; inp.id='pin-input-'+membroId;
-        inp.style.cssText='width:58px;padding:4px 7px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:13px;text-align:center;letter-spacing:4px;font-family:var(--font-body);color:var(--text-main)';
-        inp.addEventListener('keydown',e=>{if(e.key==='Enter')min_salvarPin(membroId);});
-        const btn=document.createElement('button'); btn.className='btn-sm primary'; btn.textContent='Ok'; btn.style.cssText='padding:3px 7px;font-size:10px'; btn.onclick=()=>min_salvarPin(membroId);
-        div.appendChild(inp); div.appendChild(btn); cell.innerHTML=''; cell.appendChild(div); inp.focus();
-    }
-    async function min_salvarPin(membroId) {
-        const input=document.getElementById('pin-input-'+membroId); if (!input) return;
-        const val=input.value.trim();
-        if (val&&(val.length<4||val.length>6||!/^\d+$/.test(val))){min_t('PIN deve ter 4 a 6 dígitos','err');return;}
-        try {
-            await min_sb('membros?id=eq.'+membroId,{method:'PATCH',body:JSON.stringify({checkin_pin:val||null})});
-            min_t(val?'PIN guardado':'PIN removido');
-            const cell=document.getElementById('pin-cell-'+membroId);
-            if (cell){const btn2=document.createElement('button');btn2.className='btn-sm';btn2.textContent=val?'Ok '+val:'PIN';btn2.style.cssText='font-size:10px;padding:3px 8px'+(val?';border-color:var(--green);color:var(--green)':'');btn2.onclick=()=>min_editarPin(membroId);cell.innerHTML='';cell.appendChild(btn2);}
-        } catch(e){min_t('Erro: '+e.message,'err');}
-    }
-    function min_abrirMem() {
-        document.getElementById('min-m-search').value='';
-        document.getElementById('min-m-papel').innerHTML = min_papeis_options('membro');
-        document.getElementById('min-m-msg').className='form-msg';
-        min_filtrarMembros();
-        document.getElementById('min-modal-mem').style.display='flex';
-    }
-    function min_fecharModalMem() { document.getElementById('min-modal-mem').style.display='none'; }
-    function min_filtrarMembros() {
-        const q=document.getElementById('min-m-search')?.value.toLowerCase()||'';
-        const el=document.getElementById('min-m-lista'); if (!el) return;
-        const f=min_memAll.filter(m=>!min_memNoMin.has(m.id)&&m.nome?.toLowerCase().includes(q)).slice(0,30);
-        el.innerHTML=f.length?f.map(m=>`<div style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);gap:10px">
+    : `<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum voluntário neste ministério</div></div>`}`;
+}
+async function min_editarPin(membroId) {
+    const cell=document.getElementById('pin-cell-'+membroId); if (!cell) return;
+    cell.innerHTML='<span style="font-size:10px;color:var(--text-faint)">…</span>';
+    const res=await min_sb('membros?id=eq.'+membroId+'&select=checkin_pin').catch(()=>[]);
+    const pinActual=res?.[0]?.checkin_pin||'';
+    const div=document.createElement('div'); div.style.cssText='display:flex;align-items:center;gap:4px';
+    const inp=document.createElement('input'); inp.type='text'; inp.maxLength=6; inp.placeholder='----'; inp.value=pinActual; inp.id='pin-input-'+membroId;
+    inp.style.cssText='width:58px;padding:4px 7px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:13px;text-align:center;letter-spacing:4px;font-family:var(--font-body);color:var(--text-main)';
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')min_salvarPin(membroId);});
+    const btn=document.createElement('button'); btn.className='btn-sm primary'; btn.textContent='Ok'; btn.style.cssText='padding:3px 7px;font-size:10px'; btn.onclick=()=>min_salvarPin(membroId);
+    div.appendChild(inp); div.appendChild(btn); cell.innerHTML=''; cell.appendChild(div); inp.focus();
+}
+async function min_salvarPin(membroId) {
+    const input=document.getElementById('pin-input-'+membroId); if (!input) return;
+    const val=input.value.trim();
+    if (val&&(val.length<4||val.length>6||!/^\d+$/.test(val))){min_t('PIN deve ter 4 a 6 dígitos','err');return;}
+    try {
+        await min_sb('membros?id=eq.'+membroId,{method:'PATCH',body:JSON.stringify({checkin_pin:val||null})});
+        min_t(val?'PIN guardado':'PIN removido');
+        const cell=document.getElementById('pin-cell-'+membroId);
+        if (cell){const btn2=document.createElement('button');btn2.className='btn-sm';btn2.textContent=val?'Ok '+val:'PIN';btn2.style.cssText='font-size:10px;padding:3px 8px'+(val?';border-color:var(--green);color:var(--green)':'');btn2.onclick=()=>min_editarPin(membroId);cell.innerHTML='';cell.appendChild(btn2);}
+    } catch(e){min_t('Erro: '+e.message,'err');}
+}
+function min_abrirMem() {
+    document.getElementById('min-m-search').value='';
+    document.getElementById('min-m-papel').innerHTML = min_papeis_options('membro');
+    document.getElementById('min-m-msg').className='form-msg';
+    min_filtrarMembros();
+    document.getElementById('min-modal-mem').style.display='flex';
+}
+function min_fecharModalMem() { document.getElementById('min-modal-mem').style.display='none'; }
+function min_filtrarMembros() {
+    const q=document.getElementById('min-m-search')?.value.toLowerCase()||'';
+    const el=document.getElementById('min-m-lista'); if (!el) return;
+    const f=min_memAll.filter(m=>!min_memNoMin.has(m.id)&&m.nome?.toLowerCase().includes(q)).slice(0,30);
+    el.innerHTML=f.length?f.map(m=>`<div style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);gap:10px">
         <span style="flex:1;font-size:13px;font-weight:600">${m.nome}</span>
         <button class="btn-sm primary" onclick="min_addMem('${m.id}','${m.nome.replace(/'/g,"\\'")}')">Adicionar</button>
     </div>`).join(''):`<div style="padding:14px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum disponível</div>`;
-    }
-    async function min_addMem(mId, nome) {
-        const papel=document.getElementById('min-m-papel')?.value||'membro';
-        try {
-            await min_sb('ministerio_membros',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,papel,ativo:true})});
-            min_memNoMin.add(mId); min_filtrarMembros();
-            smsg('min-m-msg',`${nome} adicionado`,'ok'); min_t(`${nome} adicionado`);
-            min_minMems=await min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]);
-            min_renderMems();
-            document.getElementById('mint-membros').textContent=`Voluntários (${min_minMems.length})`;
-        } catch(e){smsg('min-m-msg',e.message,'err');}
-    }
-    async function min_alterPapel(id, p) {
-        await min_sb(`ministerio_membros?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({papel:p})}).catch(console.error);
-        min_t('Papel actualizado');
-    }
-    async function min_remMem(id) {
-        if (!confirm('Remover voluntário do ministério?')) return;
-        await min_sb(`ministerio_membros?id=eq.${id}`,{method:'DELETE'});
-        min_minMems=min_minMems.filter(m=>m.id!==id);
-        min_memNoMin=new Set(min_minMems.map(m=>m.membro_id));
-        min_renderMems(); min_t('Removido');
-    }
+}
+async function min_addMem(mId, nome) {
+    if (!min_minAtivo) { min_t('Erro: nenhum ministério selecionado', 'err'); return; }
+    const papel=document.getElementById('min-m-papel')?.value||'membro';
+    try {
+        await min_sb('ministerio_membros',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,papel,ativo:true})});
+        min_memNoMin.add(mId); min_filtrarMembros();
+        smsg('min-m-msg',`${nome} adicionado`,'ok'); min_t(`${nome} adicionado`);
+        min_minMems=await min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]);
+        min_renderMems();
+        const tabEl = document.getElementById('mint-membros');
+        if (tabEl) tabEl.textContent=`Voluntários (${min_minMems.length})`;
+    } catch(e){smsg('min-m-msg',e.message,'err');}
+}
+async function min_alterPapel(id, p) {
+    await min_sb(`ministerio_membros?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({papel:p})}).catch(console.error);
+    min_t('Papel actualizado');
+}
+async function min_remMem(id) {
+    if (!confirm('Remover voluntário do ministério?')) return;
+    await min_sb(`ministerio_membros?id=eq.${id}`,{method:'DELETE'});
+    min_minMems=min_minMems.filter(m=>m.id!==id);
+    min_memNoMin=new Set(min_minMems.map(m=>m.membro_id));
+    min_renderMems(); min_t('Removido');
+}
 
-    /* ── CULTOS ── */
-    function min_renderCults() {
-        const el=document.getElementById('mintb-cultos'); if (!el) return;
-        // Só cultos activos
-        const activeCultos = min_cultsAll.filter(c=>c.ativo!==false);
-        const atMap=new Map(min_minCults.map(mc=>[mc.culto_id,mc]));
-        el.innerHTML=`<div class="sec-hd"><div class="sec-lbl">Cultos activos que este ministério serve</div></div>
+/* ── CULTOS ── */
+function min_renderCults() {
+    const el=document.getElementById('mintb-cultos'); if (!el) return;
+    // Só cultos activos
+    const activeCultos = min_cultsAll.filter(c=>c.ativo!==false);
+    const atMap=new Map(min_minCults.map(mc=>[mc.culto_id,mc]));
+    el.innerHTML=`<div class="sec-hd"><div class="sec-lbl">Cultos activos que este ministério serve</div></div>
     <div style="display:flex;flex-direction:column;gap:8px">
     ${activeCultos.map(c=>{
-            const mc=atMap.get(c.id), ok=!!mc;
-            return `<div style="display:flex;align-items:center;padding:12px 14px;background:${ok?'var(--primary-faint)':'var(--bg-card)'};border:1px solid ${ok?'var(--primary)':'var(--border)'};border-radius:var(--radius);gap:12px">
+        const mc=atMap.get(c.id), ok=!!mc;
+        return `<div style="display:flex;align-items:center;padding:12px 14px;background:${ok?'var(--primary-faint)':'var(--bg-card)'};border:1px solid ${ok?'var(--primary)':'var(--border)'};border-radius:var(--radius);gap:12px">
             <div style="flex:1"><div style="font-weight:600;font-size:13px">${c.nome}</div>
             <div style="font-size:11px;color:var(--text-faint);margin-top:2px">${c.dia_semana} · ${c.hora_inicio?.slice(0,5)}–${c.hora_fim?.slice(0,5)}</div></div>
             ${ok?`<div style="display:flex;align-items:center;gap:8px">
@@ -923,34 +919,42 @@
                 <button class="btn-sm danger" onclick="min_remCult('${mc.id}')">Remover</button>
             </div>`:`<button class="btn-sm primary" onclick="min_addCult('${c.id}')">Adicionar</button>`}
         </div>`;
-        }).join('')}</div>`;
-    }
-    async function min_addCult(cId) {
+    }).join('')}</div>`;
+}
+async function min_addCult(cId) {
+    if (!min_minAtivo) return;
+    // Previne clique duplo
+    const btn = document.querySelector(`[onclick="min_addCult('${cId}')"]`);
+    if (btn) { btn.disabled=true; btn.textContent='A adicionar…'; }
+    try {
         await min_sb('ministerio_cultos',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,culto_id:cId,vagas:1})});
         min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo)`).catch(()=>[]);
         min_minCults=(min_minCults||[]).filter(mc=>mc.cultos?.ativo!==false);
         min_renderCults(); min_t('Culto adicionado');
-    }
-    async function min_remCult(id) {
-        await min_sb(`ministerio_cultos?id=eq.${id}`,{method:'DELETE'});
-        min_minCults=min_minCults.filter(x=>x.id!==id); min_renderCults(); min_t('Culto removido');
-    }
-    async function min_salvarVagas(id, v) {
-        await min_sb(`ministerio_cultos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({vagas:parseInt(v)||1})}).catch(console.error);
-        const mc=min_minCults.find(x=>x.id===id); if(mc) mc.vagas=parseInt(v)||1;
-    }
+    } catch(e) { min_t('Erro ao adicionar culto: '+e.message,'err'); if(btn){btn.disabled=false;btn.textContent='Adicionar';} }
+}
+async function min_remCult(id) {
+    await min_sb(`ministerio_cultos?id=eq.${id}`,{method:'DELETE'});
+    min_minCults=min_minCults.filter(x=>x.id!==id); min_renderCults(); min_t('Culto removido');
+}
+async function min_salvarVagas(id, v) {
+    await min_sb(`ministerio_cultos?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({vagas:parseInt(v)||1})}).catch(console.error);
+    const mc=min_minCults.find(x=>x.id===id); if(mc) mc.vagas=parseInt(v)||1;
+}
 
-    /* ── DISPONIBILIDADE ── */
-    async function min_renderDisp() {
-        const snapId = min_minAtivo?.id;
-        const el=document.getElementById('mintb-disp'); if (!el) return;
-        if (!min_minCults.length){el.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Configura primeiro os cultos</div></div>`;return;}
-        const ds=await min_sb(`ministerio_disponibilidade?ministerio_id=eq.${snapId}&select=*`).catch(()=>[]);
-        if (min_minAtivo?.id!==snapId) return; // stale
-        min_dispMap={};
-        ds.forEach(d=>{min_dispMap[d.membro_id+'_'+d.culto_id]=d;});
-        const cults=min_minCults.map(mc=>mc.cultos).filter(Boolean);
-        el.innerHTML=`<div class="sec-hd">
+/* ── DISPONIBILIDADE ── */
+async function min_renderDisp() {
+    if (!min_minAtivo) return;
+    const minId = min_minAtivo.id;
+    const el=document.getElementById('mintb-disp'); if (!el) return;
+    if (!min_minCults.length){el.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Configura primeiro os cultos</div></div>`;return;}
+    const ds=await min_sb(`ministerio_disponibilidade?ministerio_id=eq.${minId}&select=*`).catch(()=>[]);
+    // Verifica se ainda é o mesmo ministério após o await
+    if (!min_minAtivo || min_minAtivo.id !== minId) return;
+    min_dispMap={};
+    ds.forEach(d=>{min_dispMap[d.membro_id+'_'+d.culto_id]=d;});
+    const cults=min_minCults.map(mc=>mc.cultos).filter(Boolean);
+    el.innerHTML=`<div class="sec-hd">
         <div class="sec-lbl">Disponibilidade base por culto</div>
         <div style="font-size:11px;color:var(--text-faint)">Activo (verde) = disponível · Clica "Inativar" para marcar todos os cultos como indisponível</div>
     </div>
@@ -965,65 +969,68 @@
             <td>${m.membros?.nome||'—'}</td>
             <td><span class="badge ${m.papel==='lider'?'badge-lider':m.papel==='aprendiz'?'badge-aprendiz':'badge-voluntario'}">${min_papel_nome(m.papel)}</span></td>
             ${cults.map(c=>{
-            const k=m.membro_id+'_'+c.id, d=min_dispMap[k], on=d?d.disponivel:true;
-            return `<td><button class="disp-toggle ${on?'on':''}" title="${on?'Disponível':'Indisponível'}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
-        }).join('')}
+                const k=m.membro_id+'_'+c.id, d=min_dispMap[k], on=d?d.disponivel:true;
+                return `<td><button class="disp-toggle ${on?'on':''}" title="${on?'Disponível':'Indisponível'}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
+            }).join('')}
             <td><button class="btn-sm danger" style="font-size:10px;padding:3px 8px" onclick="min_inativarVoluntarioDisp('${m.membro_id}','${m.membros?.nome||''}')">Inativar</button></td>
         </tr>`).join('')}</tbody>
     </table></div>`;
+}
+async function min_togDisp(mId, cId, dId, btn) {
+    if (!min_minAtivo) return;
+    const n=!btn.classList.contains('on');
+    btn.classList.toggle('on', n);
+    btn.title = n ? 'Disponível' : 'Indisponível';
+    const k=mId+'_'+cId;
+    if (dId) {
+        await min_sb(`ministerio_disponibilidade?id=eq.${dId}`,{method:'PATCH',body:JSON.stringify({disponivel:n})}).catch(console.error);
+        if (min_dispMap[k]) min_dispMap[k].disponivel=n;
+    } else {
+        const r=await min_sb('ministerio_disponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,culto_id:cId,disponivel:n})}).catch(()=>null);
+        if (r?.[0]){min_dispMap[k]=r[0];btn.setAttribute('onclick',`min_togDisp('${mId}','${cId}','${r[0].id}',this)`);}
     }
-    async function min_togDisp(mId, cId, dId, btn) {
-        const n=!btn.classList.contains('on');
-        btn.classList.toggle('on', n);
-        btn.title = n ? 'Disponível' : 'Indisponível';
-        const k=mId+'_'+cId;
-        if (dId) {
-            await min_sb(`ministerio_disponibilidade?id=eq.${dId}`,{method:'PATCH',body:JSON.stringify({disponivel:n})}).catch(console.error);
-            if (min_dispMap[k]) min_dispMap[k].disponivel=n;
+}
+async function min_inativarVoluntarioDisp(membroId, nome) {
+    if (!min_minAtivo) return;
+    if (!confirm(`Marcar ${nome||'este voluntário'} como indisponível em todos os cultos deste ministério?`)) return;
+    const cults=min_minCults.map(mc=>mc.cultos).filter(Boolean);
+    for (const c of cults) {
+        const k=membroId+'_'+c.id, d=min_dispMap[k];
+        if (d) {
+            await min_sb(`ministerio_disponibilidade?id=eq.${d.id}`,{method:'PATCH',body:JSON.stringify({disponivel:false})}).catch(console.error);
+            d.disponivel=false;
         } else {
-            const r=await min_sb('ministerio_disponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,culto_id:cId,disponivel:n})}).catch(()=>null);
-            if (r?.[0]){min_dispMap[k]=r[0];btn.setAttribute('onclick',`min_togDisp('${mId}','${cId}','${r[0].id}',this)`);}
+            const r=await min_sb('ministerio_disponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:membroId,culto_id:c.id,disponivel:false})}).catch(()=>null);
+            if (r?.[0]) min_dispMap[k]=r[0];
         }
     }
-    async function min_inativarVoluntarioDisp(membroId, nome) {
-        if (!confirm(`Marcar ${nome||'este voluntário'} como indisponível em todos os cultos deste ministério?`)) return;
-        const cults=min_minCults.map(mc=>mc.cultos).filter(Boolean);
-        for (const c of cults) {
-            const k=membroId+'_'+c.id, d=min_dispMap[k];
-            if (d) {
-                await min_sb(`ministerio_disponibilidade?id=eq.${d.id}`,{method:'PATCH',body:JSON.stringify({disponivel:false})}).catch(console.error);
-                d.disponivel=false;
-            } else {
-                const r=await min_sb('ministerio_disponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:membroId,culto_id:c.id,disponivel:false})}).catch(()=>null);
-                if (r?.[0]) min_dispMap[k]=r[0];
-            }
-        }
-        min_t(`${nome||'Voluntário'} marcado como indisponível em todos os cultos`);
-        min_renderDisp();
-    }
+    min_t(`${nome||'Voluntário'} marcado como indisponível`);
+    await min_renderDisp();
+}
 
-    /* ── INDISPONIBILIDADES ── */
-    async function min_renderIndisp() {
-        const snapId=min_minAtivo?.id;
-        const el=document.getElementById('mintb-indisp'); if (!el) return;
-        const [a,m]=min_indMes.split('-').map(Number);
-        const fim=new Date(a,m,0).getDate();
-        const ini=`${min_indMes}-01`, fim2=`${min_indMes}-${fim}`;
-        min_indisps=await min_sb(`ministerio_indisponibilidade?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome),cultos(nome)`).catch(()=>[]);
-        if (min_minAtivo?.id!==snapId) return;
-        if (!min_indMemSel&&min_minMems.length) min_indMemSel=min_minMems[0].membro_id;
-        const inSet=new Set(min_indisps.filter(i=>i.membro_id===min_indMemSel).map(i=>i.data));
-        const hoje=new Date().toISOString().split('T')[0];
-        const primeiroD=new Date(a,m-1,1).getDay();
-        let diasHtml='';
-        for (let i=0;i<primeiroD;i++) diasHtml+=`<div class="cal-mini-dia vazio"></div>`;
-        for (let d=1;d<=fim;d++){
-            const iso=`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            let cls='cal-mini-dia';
-            if (inSet.has(iso)) cls+=' bloqueado'; else if (iso===hoje) cls+=' hoje';
-            diasHtml+=`<div class="${cls}" onclick="min_togIndisp('${iso}')" title="${iso}">${d}</div>`;
-        }
-        el.innerHTML=`
+/* ── INDISPONIBILIDADES ── */
+async function min_renderIndisp() {
+    if (!min_minAtivo) return;
+    const minId = min_minAtivo.id;
+    const el=document.getElementById('mintb-indisp'); if (!el) return;
+    const [a,m]=min_indMes.split('-').map(Number);
+    const fim=new Date(a,m,0).getDate();
+    const ini=`${min_indMes}-01`, fim2=`${min_indMes}-${fim}`;
+    min_indisps=await min_sb(`ministerio_indisponibilidade?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome),cultos(nome)`).catch(()=>[]);
+    if (!min_minAtivo || min_minAtivo.id !== minId) return;
+    if (!min_indMemSel&&min_minMems.length) min_indMemSel=min_minMems[0].membro_id;
+    const inSet=new Set(min_indisps.filter(i=>i.membro_id===min_indMemSel).map(i=>i.data));
+    const hoje=new Date().toISOString().split('T')[0];
+    const primeiroD=new Date(a,m-1,1).getDay();
+    let diasHtml='';
+    for (let i=0;i<primeiroD;i++) diasHtml+=`<div class="cal-mini-dia vazio"></div>`;
+    for (let d=1;d<=fim;d++){
+        const iso=`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        let cls='cal-mini-dia';
+        if (inSet.has(iso)) cls+=' bloqueado'; else if (iso===hoje) cls+=' hoje';
+        diasHtml+=`<div class="${cls}" onclick="min_togIndisp('${iso}')" title="${iso}">${d}</div>`;
+    }
+    el.innerHTML=`
     <div class="sec-hd" style="margin-bottom:10px"><div class="sec-lbl">Indisponibilidades</div></div>
     <div class="sec-lbl" style="margin-bottom:6px">Seleccionar voluntário</div>
     <div class="mem-chips" style="margin-bottom:14px">${min_minMems.map(mm=>`<div class="mem-chip ${min_indMemSel===mm.membro_id?'active':''}" onclick="min_selIndMem('${mm.membro_id}')">${mm.membros?.nome||'—'}</div>`).join('')}</div>
@@ -1045,60 +1052,62 @@
             <div id="min-indisp-lista"></div>
         </div>
     </div>`;
-        min_renderIndispLista();
-    }
-    function min_renderIndispLista() {
-        const el=document.getElementById('min-indisp-lista'); if (!el) return;
-        const filtradas=min_indisps.filter(i=>i.membro_id===min_indMemSel);
-        if (!filtradas.length){el.innerHTML=`<div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;color:var(--text-faint);font-size:12px">Nenhuma indisponibilidade</div>`;return;}
-        const sorted=[...filtradas].sort((a,b)=>a.data.localeCompare(b.data));
-        el.innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">${sorted.map(i=>`
+    min_renderIndispLista();
+}
+function min_renderIndispLista() {
+    const el=document.getElementById('min-indisp-lista'); if (!el) return;
+    const filtradas=min_indisps.filter(i=>i.membro_id===min_indMemSel);
+    if (!filtradas.length){el.innerHTML=`<div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;color:var(--text-faint);font-size:12px">Nenhuma indisponibilidade</div>`;return;}
+    const sorted=[...filtradas].sort((a,b)=>a.data.localeCompare(b.data));
+    el.innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">${sorted.map(i=>`
     <div style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px;font-size:12px">
         <div style="font-family:var(--font-title);font-size:11px;color:var(--primary-dark);flex:1">${fmtD(i.data)}</div>
         <button class="btn-sm danger" style="padding:2px 7px" onclick="min_remIndisp('${i.id}')">Remover</button>
     </div>`).join('')}</div>`;
-        const outros=min_indisps.filter(i=>i.membro_id!==min_indMemSel);
-        if (outros.length){
-            const porData={};
-            outros.forEach(i=>{if(!porData[i.data])porData[i.data]=[];porData[i.data].push(i.membros?.nome||'?');});
-            el.innerHTML+=`<div style="margin-top:12px;font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:6px">OUTROS NESTE MÊS</div>
+    const outros=min_indisps.filter(i=>i.membro_id!==min_indMemSel);
+    if (outros.length){
+        const porData={};
+        outros.forEach(i=>{if(!porData[i.data])porData[i.data]=[];porData[i.data].push(i.membros?.nome||'?');});
+        el.innerHTML+=`<div style="margin-top:12px;font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:6px">OUTROS NESTE MÊS</div>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">${Object.entries(porData).sort().map(([data,nomes])=>`
         <div style="display:flex;align-items:center;padding:7px 12px;border-bottom:1px solid var(--border);gap:8px;font-size:11px">
             <div style="font-family:var(--font-title);font-size:10px;color:var(--primary-dark);min-width:90px">${fmtD(data)}</div>
             <div style="color:var(--text-muted)">${nomes.join(', ')}</div>
         </div>`).join('')}</div>`;
-        }
     }
-    function min_selIndMem(id) { min_indMemSel=id; min_renderIndisp(); }
-    function min_navInd(n) { min_indMes=addM(min_indMes,n); min_renderIndisp(); }
-    async function min_togIndisp(iso) {
-        if (!min_indMemSel) return;
-        const ex=min_indisps.find(i=>i.membro_id===min_indMemSel&&i.data===iso);
-        if (ex){
-            await min_sb(`ministerio_indisponibilidade?id=eq.${ex.id}`,{method:'DELETE'});
-            min_indisps=min_indisps.filter(i=>i.id!==ex.id);
-        } else {
-            const r=await min_sb('ministerio_indisponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:min_indMemSel,data:iso})}).catch(()=>null);
-            if (r?.[0]){const nm=min_minMems.find(m=>m.membro_id===min_indMemSel);min_indisps.push({...r[0],membros:{nome:nm?.membros?.nome||''},cultos:null});}
-        }
-        min_renderIndisp();
+}
+function min_selIndMem(id) { min_indMemSel=id; min_renderIndisp(); }
+function min_navInd(n) { min_indMes=addM(min_indMes,n); min_renderIndisp(); }
+async function min_togIndisp(iso) {
+    if (!min_indMemSel) { min_t('Seleciona um voluntário primeiro', 'err'); return; }
+    if (!min_minAtivo) return;
+    const ex=min_indisps.find(i=>i.membro_id===min_indMemSel&&i.data===iso);
+    if (ex){
+        await min_sb(`ministerio_indisponibilidade?id=eq.${ex.id}`,{method:'DELETE'}).catch(e=>{min_t('Erro ao remover: '+e.message,'err');});
+        min_indisps=min_indisps.filter(i=>i.id!==ex.id);
+    } else {
+        const r=await min_sb('ministerio_indisponibilidade',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:min_indMemSel,data:iso})}).catch(e=>{min_t('Erro ao marcar: '+e.message,'err');return null;});
+        if (r?.[0]){const nm=min_minMems.find(m=>m.membro_id===min_indMemSel);min_indisps.push({...r[0],membros:{nome:nm?.membros?.nome||''},cultos:null});}
     }
-    async function min_remIndisp(id) {
-        await min_sb(`ministerio_indisponibilidade?id=eq.${id}`,{method:'DELETE'});
-        min_indisps=min_indisps.filter(i=>i.id!==id);
-        min_renderIndisp();
-    }
+    await min_renderIndisp();
+}
+async function min_remIndisp(id) {
+    await min_sb(`ministerio_indisponibilidade?id=eq.${id}`,{method:'DELETE'}).catch(e=>min_t('Erro: '+e.message,'err'));
+    min_indisps=min_indisps.filter(i=>i.id!==id);
+    await min_renderIndisp();
+}
 
-    /* ── ESCALA ── */
-    async function min_renderEscala() {
-        const snapId=min_minAtivo?.id;
-        const el=document.getElementById('mintb-escala'); if (!el) return;
-        if (!min_minCults.length){el.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Configura primeiro os cultos</div></div>`;return;}
-        const [a,m]=min_escMes.split('-').map(Number);
-        const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
-        min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
-        if (min_minAtivo?.id!==snapId) return;
-        el.innerHTML=`<div class="escala-nav">
+/* ── ESCALA ── */
+async function min_renderEscala() {
+    if (!min_minAtivo) return;
+    const minId = min_minAtivo.id;
+    const el=document.getElementById('mintb-escala'); if (!el) return;
+    if (!min_minCults.length){el.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Configura primeiro os cultos</div></div>`;return;}
+    const [a,m]=min_escMes.split('-').map(Number);
+    const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
+    if (!min_minAtivo || min_minAtivo.id !== minId) return;
+    el.innerHTML=`<div class="escala-nav">
         <button class="btn-sm" onclick="min_navEsc(-1)">Ant.</button>
         <div class="escala-titulo">${mesLbl(min_escMes)}</div>
         <button class="btn-sm" onclick="min_navEsc(1)">Prox.</button>
@@ -1106,31 +1115,31 @@
         <button class="btn-sm primary" onclick="min_gerarEsc()">Gerar Escala</button>
     </div>
     <div id="min-esc-corpo"></div>`;
-        min_renderEscCorpo();
-    }
-    function min_navEsc(n) { min_escMes=addM(min_escMes,n); min_renderEscala(); }
-    function min_renderEscCorpo() {
-        const el=document.getElementById('min-esc-corpo'); if (!el) return;
-        const [a,m]=min_escMes.split('-').map(Number);
-        const dias=todosDiasMes(a,m);
-        const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1,mc_id:mc.id})).filter(Boolean);
-        if (!dias.length||!cults.length){el.innerHTML=`<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto configurado</div>`;return;}
-        const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
-        const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
-        const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
-        let html=`<div class="esc-table-wrap"><table class="esc-table"><thead><tr>
+    min_renderEscCorpo();
+}
+function min_navEsc(n) { min_escMes=addM(min_escMes,n); min_renderEscala(); }
+function min_renderEscCorpo() {
+    const el=document.getElementById('min-esc-corpo'); if (!el) return;
+    const [a,m]=min_escMes.split('-').map(Number);
+    const dias=todosDiasMes(a,m);
+    const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1,mc_id:mc.id})).filter(Boolean);
+    if (!dias.length||!cults.length){el.innerHTML=`<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto configurado</div>`;return;}
+    const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
+    const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
+    const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
+    let html=`<div class="esc-table-wrap"><table class="esc-table"><thead><tr>
         <th class="th-culto">Culto</th>
         ${todasDatas.map(iso=>{const{d,dw}=dataMap[iso]||{d:'?',dw:0};return`<th>${DIAS_PT[dw]}<br><span style="font-size:10px;font-weight:400">${String(d).padStart(2,'0')} ${MESES_ABV[m]}</span></th>`;}).join('')}
     </tr></thead><tbody>`;
-        cultDatas.forEach(({c,datas})=>{
-            const datasSet=new Set(datas.map(d=>d.iso));
-            html+=`<tr><td class="td-culto"><div style="font-weight:700;font-size:12px">${c.nome}</div><div style="font-size:10px;color:var(--text-faint)">${c.hora_inicio?.slice(0,5)}</div></td>
+    cultDatas.forEach(({c,datas})=>{
+        const datasSet=new Set(datas.map(d=>d.iso));
+        html+=`<tr><td class="td-culto"><div style="font-weight:700;font-size:12px">${c.nome}</div><div style="font-size:10px;color:var(--text-faint)">${c.hora_inicio?.slice(0,5)}</div></td>
         ${todasDatas.map(iso=>{
-                if (!datasSet.has(iso)) return`<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
-                const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
-                const faltam=Math.max(0,c.vagas-ps.filter(p=>p.papel_escala==='servindo').length);
-                if (!ps.length) return`<td><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="color:var(--text-faint);font-size:10px">—</span><span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span></div></td>`;
-                return`<td><div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+            if (!datasSet.has(iso)) return`<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
+            const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
+            const faltam=Math.max(0,c.vagas-ps.filter(p=>p.papel_escala==='servindo').length);
+            if (!ps.length) return`<td><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="color:var(--text-faint);font-size:10px">—</span><span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span></div></td>`;
+            return`<td><div style="display:flex;flex-direction:column;gap:3px;align-items:center">
                 ${ps.map(p=>`<div class="esc-cell">
                     <span class="esc-cell-nome">${p.membros?.nome||'—'}</span>
                     ${p.papel_escala!=='servindo'?`<span class="esc-cell-papel">${p.papel_escala.toUpperCase()}</span>`:''}
@@ -1140,105 +1149,105 @@
                 ${faltam>0?`<span style="font-size:9px;color:var(--orange);font-family:var(--font-title)">${faltam} vaga${faltam>1?'s':''}</span>`:''}
                 <span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span>
             </div></td>`;
-            }).join('')}</tr>`;
-        });
-        html+=`</tbody></table></div>`;
-        el.innerHTML=html;
-    }
-    async function min_gerarEsc() {
-        if (!confirm(`Gerar escala para ${mesLbl(min_escMes)}? As entradas automáticas existentes serão substituídas.`)) return;
-        const snapId=min_minAtivo?.id;
-        const [a,m]=min_escMes.split('-').map(Number);
-        const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
-        const [dsAll,indAll,escAnt]=await Promise.all([
-            min_sb(`ministerio_disponibilidade?ministerio_id=eq.${snapId}&select=*`).catch(()=>[]),
-            min_sb(`ministerio_indisponibilidade?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&select=*`).catch(()=>[]),
-            min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${addM(min_escMes,-2)}-01&data=lt.${ini}&select=membro_id`).catch(()=>[]),
-        ]);
-        if (min_minAtivo?.id!==snapId) return;
-        await min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&gerado_auto=eq.true`,{method:'DELETE'}).catch(()=>{});
-        const srvRec={};
-        escAnt.forEach(e=>{srvRec[e.membro_id]=(srvRec[e.membro_id]||0)+1;});
-        min_minMems.forEach(m=>{if(!srvRec[m.membro_id])srvRec[m.membro_id]=0;});
-        const dMap={};
-        dsAll.forEach(d=>{dMap[d.membro_id+'_'+d.culto_id]=d.disponivel;});
-        const dias=todosDiasMes(a,m);
-        const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1})).filter(Boolean);
-        const novas=[], jaEsc={};
-        const memsEscalaveis=min_minMems.filter(m=>m.papel!=='lider');
-        dias.forEach(({d,dw,iso})=>{
-            cults.forEach(c=>{
-                if (DIA_DW[c.dia_semana]!==dw) return;
-                const indSet=new Set(indAll.filter(i=>i.data===iso&&(!i.culto_id||i.culto_id===c.id)).map(i=>i.membro_id));
-                const dispMems=memsEscalaveis.filter(m=>{
-                    if(indSet.has(m.membro_id)||jaEsc[m.membro_id+'_'+iso])return false;
-                    const v=dMap[m.membro_id+'_'+c.id];return v===undefined?true:v;
-                });
-                const ativos=dispMems.filter(m=>m.papel!=='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
-                const aprs=dispMems.filter(m=>m.papel==='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
-                let escalados=0;
-                for (const mm of ativos){
-                    if(escalados>=c.vagas)break;
-                    novas.push({ministerio_id:snapId,membro_id:mm.membro_id,culto_id:c.id,data:iso,papel_escala:'servindo',gerado_auto:true});
-                    jaEsc[mm.membro_id+'_'+iso]=true; srvRec[mm.membro_id]=(srvRec[mm.membro_id]||0)+1; escalados++;
-                }
-                if(escalados>0&&aprs.length){const apr=aprs.find(mm=>!jaEsc[mm.membro_id+'_'+iso]);if(apr){novas.push({ministerio_id:snapId,membro_id:apr.membro_id,culto_id:c.id,data:iso,papel_escala:'aprendiz',gerado_auto:true});jaEsc[apr.membro_id+'_'+iso]=true;srvRec[apr.membro_id]=(srvRec[apr.membro_id]||0)+1;}}
+        }).join('')}</tr>`;
+    });
+    html+=`</tbody></table></div>`;
+    el.innerHTML=html;
+}
+async function min_gerarEsc() {
+    if (!confirm(`Gerar escala para ${mesLbl(min_escMes)}? As entradas automáticas existentes serão substituídas.`)) return;
+    const snapId=min_minAtivo?.id;
+    const [a,m]=min_escMes.split('-').map(Number);
+    const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    const [dsAll,indAll,escAnt]=await Promise.all([
+        min_sb(`ministerio_disponibilidade?ministerio_id=eq.${snapId}&select=*`).catch(()=>[]),
+        min_sb(`ministerio_indisponibilidade?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&select=*`).catch(()=>[]),
+        min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${addM(min_escMes,-2)}-01&data=lt.${ini}&select=membro_id`).catch(()=>[]),
+    ]);
+    if (min_minAtivo?.id!==snapId) return;
+    await min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&gerado_auto=eq.true`,{method:'DELETE'}).catch(()=>{});
+    const srvRec={};
+    escAnt.forEach(e=>{srvRec[e.membro_id]=(srvRec[e.membro_id]||0)+1;});
+    min_minMems.forEach(m=>{if(!srvRec[m.membro_id])srvRec[m.membro_id]=0;});
+    const dMap={};
+    dsAll.forEach(d=>{dMap[d.membro_id+'_'+d.culto_id]=d.disponivel;});
+    const dias=todosDiasMes(a,m);
+    const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1})).filter(Boolean);
+    const novas=[], jaEsc={};
+    const memsEscalaveis=min_minMems.filter(m=>m.papel!=='lider');
+    dias.forEach(({d,dw,iso})=>{
+        cults.forEach(c=>{
+            if (DIA_DW[c.dia_semana]!==dw) return;
+            const indSet=new Set(indAll.filter(i=>i.data===iso&&(!i.culto_id||i.culto_id===c.id)).map(i=>i.membro_id));
+            const dispMems=memsEscalaveis.filter(m=>{
+                if(indSet.has(m.membro_id)||jaEsc[m.membro_id+'_'+iso])return false;
+                const v=dMap[m.membro_id+'_'+c.id];return v===undefined?true:v;
             });
+            const ativos=dispMems.filter(m=>m.papel!=='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
+            const aprs=dispMems.filter(m=>m.papel==='aprendiz').sort((a,b)=>(srvRec[a.membro_id]||0)-(srvRec[b.membro_id]||0));
+            let escalados=0;
+            for (const mm of ativos){
+                if(escalados>=c.vagas)break;
+                novas.push({ministerio_id:snapId,membro_id:mm.membro_id,culto_id:c.id,data:iso,papel_escala:'servindo',gerado_auto:true});
+                jaEsc[mm.membro_id+'_'+iso]=true; srvRec[mm.membro_id]=(srvRec[mm.membro_id]||0)+1; escalados++;
+            }
+            if(escalados>0&&aprs.length){const apr=aprs.find(mm=>!jaEsc[mm.membro_id+'_'+iso]);if(apr){novas.push({ministerio_id:snapId,membro_id:apr.membro_id,culto_id:c.id,data:iso,papel_escala:'aprendiz',gerado_auto:true});jaEsc[apr.membro_id+'_'+iso]=true;srvRec[apr.membro_id]=(srvRec[apr.membro_id]||0)+1;}}
         });
-        for (let i=0;i<novas.length;i+=10) await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify(novas.slice(i,i+10))}).catch(console.error);
-        min_t(`Escala gerada — ${novas.length} entradas`);
-        await min_renderEscala();
-    }
-    async function min_remEsc(id) {
-        await min_sb(`ministerio_escala?id=eq.${id}`,{method:'DELETE'});
-        min_escala=min_escala.filter(e=>e.id!==id); min_renderEscCorpo();
-    }
-    async function min_limparEsc() {
-        if (!confirm(`Limpar escala de ${mesLbl(min_escMes)}?`)) return;
+    });
+    for (let i=0;i<novas.length;i+=10) await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify(novas.slice(i,i+10))}).catch(console.error);
+    min_t(`Escala gerada — ${novas.length} entradas`);
+    await min_renderEscala();
+}
+async function min_remEsc(id) {
+    await min_sb(`ministerio_escala?id=eq.${id}`,{method:'DELETE'});
+    min_escala=min_escala.filter(e=>e.id!==id); min_renderEscCorpo();
+}
+async function min_limparEsc() {
+    if (!confirm(`Limpar escala de ${mesLbl(min_escMes)}?`)) return;
+    const [a,m]=min_escMes.split('-').map(Number);
+    const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}`,{method:'DELETE'}).catch(()=>{});
+    min_t('Escala limpa'); await min_renderEscala();
+}
+function min_abrirEA(iso, cId) {
+    min_eaCtx={iso,cId};
+    const sel=document.getElementById('min-ea-membro');
+    sel.innerHTML=min_minMems.map(m=>`<option value="${m.membro_id}">${m.membros?.nome||'—'} (${min_papel_nome(m.papel)})</option>`).join('');
+    document.getElementById('min-ea-notas').value='';
+    document.getElementById('min-ea-msg').className='form-msg';
+    document.getElementById('min-modal-ea').style.display='flex';
+}
+async function min_salvarEscalaManual() {
+    if (!min_eaCtx) return;
+    const mId=document.getElementById('min-ea-membro').value;
+    const papel=document.getElementById('min-ea-papel').value;
+    const notas=document.getElementById('min-ea-notas').value||null;
+    try {
+        await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,culto_id:min_eaCtx.cId,data:min_eaCtx.iso,papel_escala:papel,gerado_auto:false,notas})});
+        document.getElementById('min-modal-ea').style.display='none';
+        min_t('Adicionado à escala');
         const [a,m]=min_escMes.split('-').map(Number);
         const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
-        await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}`,{method:'DELETE'}).catch(()=>{});
-        min_t('Escala limpa'); await min_renderEscala();
-    }
-    function min_abrirEA(iso, cId) {
-        min_eaCtx={iso,cId};
-        const sel=document.getElementById('min-ea-membro');
-        sel.innerHTML=min_minMems.map(m=>`<option value="${m.membro_id}">${m.membros?.nome||'—'} (${min_papel_nome(m.papel)})</option>`).join('');
-        document.getElementById('min-ea-notas').value='';
-        document.getElementById('min-ea-msg').className='form-msg';
-        document.getElementById('min-modal-ea').style.display='flex';
-    }
-    async function min_salvarEscalaManual() {
-        if (!min_eaCtx) return;
-        const mId=document.getElementById('min-ea-membro').value;
-        const papel=document.getElementById('min-ea-papel').value;
-        const notas=document.getElementById('min-ea-notas').value||null;
-        try {
-            await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,culto_id:min_eaCtx.cId,data:min_eaCtx.iso,papel_escala:papel,gerado_auto:false,notas})});
-            document.getElementById('min-modal-ea').style.display='none';
-            min_t('Adicionado à escala');
-            const [a,m]=min_escMes.split('-').map(Number);
-            const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
-            min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
-            min_renderEscCorpo();
-        } catch(e){smsg('min-ea-msg',e.message,'err');}
-    }
+        min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
+        min_renderEscCorpo();
+    } catch(e){smsg('min-ea-msg',e.message,'err');}
+}
 
-    /* ── PARTILHAR ── */
-    async function min_renderPartilha() {
-        const snapId=min_minAtivo?.id;
-        const el=document.getElementById('mintb-partilha'); if (!el) return;
-        const [a,m]=min_escMes.split('-').map(Number);
-        const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
-        const esc=await min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome)&order=data,culto_id`).catch(()=>[]);
-        if (min_minAtivo?.id!==snapId) return;
-        const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1})).filter(Boolean);
-        const dias=todosDiasMes(a,m);
-        const tabelaHtml=min_gerarTabelaHtml(esc,cults,dias,a,m,false);
-        const tabelaHtmlPrint=min_gerarTabelaHtml(esc,cults,dias,a,m,true);
-        window._minHtml=min_htmlPdf(tabelaHtmlPrint,a,m);
-        window._minTxt=min_textoWhatsApp(esc,cults,dias,a,m);
-        el.innerHTML=`<div class="sec-hd">
+/* ── PARTILHAR ── */
+async function min_renderPartilha() {
+    const snapId=min_minAtivo?.id;
+    const el=document.getElementById('mintb-partilha'); if (!el) return;
+    const [a,m]=min_escMes.split('-').map(Number);
+    const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
+    const esc=await min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome)&order=data,culto_id`).catch(()=>[]);
+    if (min_minAtivo?.id!==snapId) return;
+    const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1})).filter(Boolean);
+    const dias=todosDiasMes(a,m);
+    const tabelaHtml=min_gerarTabelaHtml(esc,cults,dias,a,m,false);
+    const tabelaHtmlPrint=min_gerarTabelaHtml(esc,cults,dias,a,m,true);
+    window._minHtml=min_htmlPdf(tabelaHtmlPrint,a,m);
+    window._minTxt=min_textoWhatsApp(esc,cults,dias,a,m);
+    el.innerHTML=`<div class="sec-hd">
         <div><div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${min_minAtivo.nome} — ${mesLbl(min_escMes)}</div></div>
         <div style="display:flex;gap:6px">
             <button class="btn-sm" onclick="min_copiar()">Copiar WhatsApp</button>
@@ -1248,25 +1257,25 @@
     <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto">
         ${tabelaHtml||`<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhuma escala para este mês</div>`}
     </div>`;
-    }
-    function min_gerarTabelaHtml(esc,cults,dias,a,m,forPrint=false){
-        if(!esc.length&&!cults.length)return'';
-        const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
-        const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
-        const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
-        if(!todasDatas.length)return'';
-        const thBg=forPrint?'#009098':'var(--primary)',thBd=forPrint?'rgba(255,255,255,0.2)':'rgba(255,255,255,0.15)';
-        const tdCBg=forPrint?'#e0f7fa':'var(--primary-faint)',tdCBd=forPrint?'#b2dfdb':'var(--border)',tdCCl=forPrint?'#009098':'var(--primary-dark)';
-        const tdGBg=forPrint?'#f5f5f5':'var(--bg-panel)',tdBd=forPrint?'#e0e0e0':'var(--border)',tdGCl=forPrint?'#ccc':'var(--text-faint)';
-        const tdTx=forPrint?'inherit':'var(--text-main)',tdPl=forPrint?'#e65100':'var(--orange)',tdNt=forPrint?'#999':'var(--text-faint)';
-        let html=`<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit"><thead><tr>
+}
+function min_gerarTabelaHtml(esc,cults,dias,a,m,forPrint=false){
+    if(!esc.length&&!cults.length)return'';
+    const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
+    const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
+    const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
+    if(!todasDatas.length)return'';
+    const thBg=forPrint?'#009098':'var(--primary)',thBd=forPrint?'rgba(255,255,255,0.2)':'rgba(255,255,255,0.15)';
+    const tdCBg=forPrint?'#e0f7fa':'var(--primary-faint)',tdCBd=forPrint?'#b2dfdb':'var(--border)',tdCCl=forPrint?'#009098':'var(--primary-dark)';
+    const tdGBg=forPrint?'#f5f5f5':'var(--bg-panel)',tdBd=forPrint?'#e0e0e0':'var(--border)',tdGCl=forPrint?'#ccc':'var(--text-faint)';
+    const tdTx=forPrint?'inherit':'var(--text-main)',tdPl=forPrint?'#e65100':'var(--orange)',tdNt=forPrint?'#999':'var(--text-faint)';
+    let html=`<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit"><thead><tr>
         <th style="background:${thBg};color:white;padding:10px 14px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid ${thBd};min-width:130px">Culto</th>
         ${todasDatas.map(iso=>{const{d,dw}=dataMap[iso]||{d:'?',dw:0};return`<th style="background:${thBg};color:white;padding:10px 12px;text-align:center;font-size:10px;border:1px solid ${thBd};white-space:nowrap">${String(d).padStart(2,'0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;}).join('')}
     </tr></thead><tbody>`;
-        cultDatas.forEach(({c,datas},ri)=>{
-            const datasSet=new Set(datas.map(d=>d.iso));
-            const bg=forPrint?(ri%2===0?'#ffffff':'#f8fffe'):(ri%2===0?'var(--bg-card)':'var(--bg-panel)');
-            html+=`<tr>
+    cultDatas.forEach(({c,datas},ri)=>{
+        const datasSet=new Set(datas.map(d=>d.iso));
+        const bg=forPrint?(ri%2===0?'#ffffff':'#f8fffe'):(ri%2===0?'var(--bg-card)':'var(--bg-panel)');
+        html+=`<tr>
             <td style="background:${tdCBg};padding:10px 14px;font-weight:700;font-size:12px;border:1px solid ${tdCBd};vertical-align:middle;color:${tdTx}"><div>${c.nome}</div><div style="font-size:10px;color:${tdCCl};font-weight:400">${c.hora_inicio?.slice(0,5)||''}</div></td>
             ${todasDatas.map(iso=>{
                 if(!datasSet.has(iso))return`<td style="background:${tdGBg};border:1px solid ${tdBd};text-align:center;color:${tdGCl}">—</td>`;
@@ -1275,11 +1284,11 @@
                 return`<td style="background:${bg};border:1px solid ${tdBd};text-align:center;vertical-align:middle;padding:8px 10px;color:${tdTx}">${ps.map(p=>`<div style="padding:2px 0">${p.membros?.nome||'—'}${p.papel_escala!=='servindo'?` <span style="font-size:9px;color:${tdPl};font-style:italic">(${p.papel_escala})</span>`:''}${p.notas?`<br><span style="font-size:10px;color:${tdNt}">${p.notas}</span>`:''}</div>`).join('')}</td>`;
             }).join('')}
         </tr>`;
-        });
-        return html+`</tbody></table>`;
-    }
-    function min_htmlPdf(tabelaHtml,a,m){
-        return`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala ${min_minAtivo.nome} — ${mesLbl(min_escMes)}</title>
+    });
+    return html+`</tbody></table>`;
+}
+function min_htmlPdf(tabelaHtml,a,m){
+    return`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala ${min_minAtivo.nome} — ${mesLbl(min_escMes)}</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Lato',sans-serif;padding:14mm;color:#111;font-size:13px}@media print{body{padding:8mm}@page{size:A4 landscape;margin:10mm}}</style>
     </head><body>
@@ -1298,48 +1307,48 @@
         <div>Ministério de ${min_minAtivo.nome}</div>
     </div>
     <script>window.onload=function(){window.print();}<\/script></body></html>`;
-    }
-    function min_textoWhatsApp(esc,cults,dias,a,m){
-        if(!esc.length)return'';
-        let s=`*ESCALA DA ÁREA*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
-        const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
-        const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
-        const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
-        todasDatas.forEach(iso=>{
-            const{d,dw}=dataMap[iso]||{d:'?',dw:0};
-            s+=`*${DIAS_PT[dw].toUpperCase()}, ${String(d).padStart(2,'0')} ${MESES_ABV[m]}*\n`;
-            cults.forEach(c=>{
-                const cd=cultDatas.find(x=>x.c.id===c.id), datasSet=new Set((cd?.datas||[]).map(d=>d.iso));
-                if(!datasSet.has(iso))return;
-                const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id);
-                s+=`  _${c.nome}_ (${c.hora_inicio?.slice(0,5)})\n`;
-                if(!ps.length){s+=`    — sem escala\n`;return;}
-                ps.forEach(p=>{s+=`    • ${p.membros?.nome||'—'}${p.papel_escala!=='servindo'?' ['+p.papel_escala+']':''}${p.notas?' ('+p.notas+')':''}\n`;});
-            });
-            s+='\n';
+}
+function min_textoWhatsApp(esc,cults,dias,a,m){
+    if(!esc.length)return'';
+    let s=`*ESCALA DA ÁREA*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
+    const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
+    const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
+    const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
+    todasDatas.forEach(iso=>{
+        const{d,dw}=dataMap[iso]||{d:'?',dw:0};
+        s+=`*${DIAS_PT[dw].toUpperCase()}, ${String(d).padStart(2,'0')} ${MESES_ABV[m]}*\n`;
+        cults.forEach(c=>{
+            const cd=cultDatas.find(x=>x.c.id===c.id), datasSet=new Set((cd?.datas||[]).map(d=>d.iso));
+            if(!datasSet.has(iso))return;
+            const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id);
+            s+=`  _${c.nome}_ (${c.hora_inicio?.slice(0,5)})\n`;
+            if(!ps.length){s+=`    — sem escala\n`;return;}
+            ps.forEach(p=>{s+=`    • ${p.membros?.nome||'—'}${p.papel_escala!=='servindo'?' ['+p.papel_escala+']':''}${p.notas?' ('+p.notas+')':''}\n`;});
         });
-        return s.trim();
-    }
-    function min_copiar(){if(!window._minTxt){min_t('Sem escala','err');return;}navigator.clipboard.writeText(window._minTxt).then(()=>min_t('Copiado!')).catch(()=>min_t('Erro','err'));}
-    function min_imprimir(){if(!window._minHtml){min_t('Sem escala','err');return;}const w=window.open('','_blank');w.document.write(window._minHtml);w.document.close();}
+        s+='\n';
+    });
+    return s.trim();
+}
+function min_copiar(){if(!window._minTxt){min_t('Sem escala','err');return;}navigator.clipboard.writeText(window._minTxt).then(()=>min_t('Copiado!')).catch(()=>min_t('Erro','err'));}
+function min_imprimir(){if(!window._minHtml){min_t('Sem escala','err');return;}const w=window.open('','_blank');w.document.write(window._minHtml);w.document.close();}
 
-    /* ── CHECK-IN ── */
-    async function min_renderCheckin() {
-        const snapId=min_minAtivo?.id;
-        const el=document.getElementById('mintb-checkin'); if (!el) return;
-        const hoje=new Date().toISOString().split('T')[0];
-        const [checkins,escHoje]=await Promise.all([
-            min_sb(`ministerio_checkin?ministerio_id=eq.${snapId}&data=eq.${hoje}&select=*,membros(nome),cultos(nome,hora_inicio)&order=hora_checkin`).catch(()=>[]),
-            min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=eq.${hoje}&select=*,membros(id,nome),cultos(id,nome,hora_inicio)&order=culto_id`).catch(()=>[]),
-        ]);
-        if (min_minAtivo?.id!==snapId) return;
-        const baseUrl=location.origin+(location.pathname.includes('index')?location.pathname.replace('index.html',''):location.pathname.replace(/\/[^/]*$/,'/'));
-        const checkUrl=baseUrl+'checkin?min='+snapId;
-        const cultosHoje={};
-        escHoje.forEach(e=>{const c=e.cultos;if(!c)return;if(!cultosHoje[c.id])cultosHoje[c.id]={nome:c.nome,hora:c.hora_inicio?.slice(0,5),membros:[]};cultosHoje[c.id].membros.push({id:e.membro_id,nome:e.membros?.nome||'—'});});
-        const ciMap={};
-        checkins.forEach(c=>{ciMap[c.membro_id+'_'+c.culto_id]=c;});
-        el.innerHTML=`
+/* ── CHECK-IN ── */
+async function min_renderCheckin() {
+    const snapId=min_minAtivo?.id;
+    const el=document.getElementById('mintb-checkin'); if (!el) return;
+    const hoje=new Date().toISOString().split('T')[0];
+    const [checkins,escHoje]=await Promise.all([
+        min_sb(`ministerio_checkin?ministerio_id=eq.${snapId}&data=eq.${hoje}&select=*,membros(nome),cultos(nome,hora_inicio)&order=hora_checkin`).catch(()=>[]),
+        min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=eq.${hoje}&select=*,membros(id,nome),cultos(id,nome,hora_inicio)&order=culto_id`).catch(()=>[]),
+    ]);
+    if (min_minAtivo?.id!==snapId) return;
+    const baseUrl=location.origin+(location.pathname.includes('index')?location.pathname.replace('index.html',''):location.pathname.replace(/\/[^/]*$/,'/'));
+    const checkUrl=baseUrl+'checkin?min='+snapId;
+    const cultosHoje={};
+    escHoje.forEach(e=>{const c=e.cultos;if(!c)return;if(!cultosHoje[c.id])cultosHoje[c.id]={nome:c.nome,hora:c.hora_inicio?.slice(0,5),membros:[]};cultosHoje[c.id].membros.push({id:e.membro_id,nome:e.membros?.nome||'—'});});
+    const ciMap={};
+    checkins.forEach(c=>{ciMap[c.membro_id+'_'+c.culto_id]=c;});
+    el.innerHTML=`
     <div class="sec-hd">
         <div>
             <div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${min_minAtivo.nome}</div>
@@ -1366,100 +1375,100 @@
         </div>
     </div>
     ${Object.entries(cultosHoje).length?Object.entries(cultosHoje).map(([cId,cult])=>{
-            const rows=cult.membros.map(m=>{
-                const ci=ciMap[m.id+'_'+cId];
-                const hora=ci?new Date(ci.hora_checkin).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}):'—';
-                const status=ci?(ci.atrasado?'atrasado':'ok'):'ausente';
-                const agora=new Date();
-                const[hh,mm]=(cult.hora?cult.hora.split(':'):['23','59']).map(Number);
-                const horaCulto=new Date();horaCulto.setHours(hh,mm,0,0);
-                const cultoJaComecou=agora>=horaCulto;
-                const statusLbl={ok:'Presente',atrasado:`${ci?.minutos_atraso}min atraso`,ausente:cultoJaComecou?'Ausente':'Aguardando'};
-                const statusClr={ok:'var(--green)',atrasado:'var(--orange)',ausente:cultoJaComecou?'var(--red)':'var(--text-faint)'};
-                const zapBtn=ci?.atrasado&&!ci?.notificado_lider?`<button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_zapLider('${ci.id}','${m.nome}',${ci.minutos_atraso},'${cId}')">Avisar líder</button>`:ci?.atrasado&&ci?.notificado_lider?`<span style="font-size:10px;color:var(--text-faint)">Notificado</span>`:'';
-                return`<tr><td style="font-weight:600">${m.nome}</td><td style="font-family:var(--font-title);font-size:11px;color:${statusClr[status]}">${statusLbl[status]}</td><td style="font-family:var(--font-title);font-size:11px;color:var(--text-faint)">${hora}</td><td>${zapBtn}</td></tr>`;
-            }).join('');
-            return`<div style="margin-bottom:16px"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;gap:6px">${cult.nome} <span style="color:var(--text-faint);font-weight:400">${cult.hora}</span><span style="margin-left:auto;font-size:9px;color:var(--text-faint)">${cult.membros.length} escalados</span></div>
+        const rows=cult.membros.map(m=>{
+            const ci=ciMap[m.id+'_'+cId];
+            const hora=ci?new Date(ci.hora_checkin).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}):'—';
+            const status=ci?(ci.atrasado?'atrasado':'ok'):'ausente';
+            const agora=new Date();
+            const[hh,mm]=(cult.hora?cult.hora.split(':'):['23','59']).map(Number);
+            const horaCulto=new Date();horaCulto.setHours(hh,mm,0,0);
+            const cultoJaComecou=agora>=horaCulto;
+            const statusLbl={ok:'Presente',atrasado:`${ci?.minutos_atraso}min atraso`,ausente:cultoJaComecou?'Ausente':'Aguardando'};
+            const statusClr={ok:'var(--green)',atrasado:'var(--orange)',ausente:cultoJaComecou?'var(--red)':'var(--text-faint)'};
+            const zapBtn=ci?.atrasado&&!ci?.notificado_lider?`<button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_zapLider('${ci.id}','${m.nome}',${ci.minutos_atraso},'${cId}')">Avisar líder</button>`:ci?.atrasado&&ci?.notificado_lider?`<span style="font-size:10px;color:var(--text-faint)">Notificado</span>`:'';
+            return`<tr><td style="font-weight:600">${m.nome}</td><td style="font-family:var(--font-title);font-size:11px;color:${statusClr[status]}">${statusLbl[status]}</td><td style="font-family:var(--font-title);font-size:11px;color:var(--text-faint)">${hora}</td><td>${zapBtn}</td></tr>`;
+        }).join('');
+        return`<div style="margin-bottom:16px"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;gap:6px">${cult.nome} <span style="color:var(--text-faint);font-weight:400">${cult.hora}</span><span style="margin-left:auto;font-size:9px;color:var(--text-faint)">${cult.membros.length} escalados</span></div>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"><table class="t"><thead><tr><th>Nome</th><th>Estado</th><th>Hora</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-        }).join(''):`<div style="padding:30px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Sem escala para hoje</div></div>`}
+    }).join(''):`<div style="padding:30px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Sem escala para hoje</div></div>`}
     <div style="margin-top:12px;padding:12px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;gap:10px">
         <div style="flex:1;font-size:11px;color:var(--text-faint);word-break:break-all">${checkUrl}</div>
         <button class="btn-sm" onclick="navigator.clipboard.writeText('${checkUrl}').then(()=>min_t('Link copiado!'))">Copiar</button>
     </div>`;
-        window._ciCheckUrl=checkUrl;
-    }
-    function min_abrirQR(){
-        const url=window._ciCheckUrl; if(!url){min_t('Abre o tab Check-in primeiro','err');return;}
-        let modal=document.getElementById('min-modal-qr');
-        if(!modal){
-            modal=document.createElement('div');modal.id='min-modal-qr';
-            modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;align-items:center;justify-content:center';
-            modal.innerHTML=`<div style="background:var(--bg-card);border-radius:var(--radius);padding:28px;text-align:center;box-shadow:var(--shadow-md);max-width:340px;width:90%">
+    window._ciCheckUrl=checkUrl;
+}
+function min_abrirQR(){
+    const url=window._ciCheckUrl; if(!url){min_t('Abre o tab Check-in primeiro','err');return;}
+    let modal=document.getElementById('min-modal-qr');
+    if(!modal){
+        modal=document.createElement('div');modal.id='min-modal-qr';
+        modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;align-items:center;justify-content:center';
+        modal.innerHTML=`<div style="background:var(--bg-card);border-radius:var(--radius);padding:28px;text-align:center;box-shadow:var(--shadow-md);max-width:340px;width:90%">
             <div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:var(--primary-dark);margin-bottom:6px">CHECK-IN QR CODE</div>
             <div style="font-size:13px;font-weight:600;margin-bottom:16px" id="min-qr-min-nome"></div>
             <div id="min-qr-container" style="display:flex;justify-content:center;margin-bottom:16px;padding:12px;background:white;border-radius:10px"></div>
             <div style="font-size:10px;color:var(--text-faint);margin-bottom:16px;word-break:break-all" id="min-qr-url"></div>
             <button class="btn-sm" onclick="document.getElementById('min-modal-qr').style.display='none'">Fechar</button>
         </div>`;
-            modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
-            document.body.appendChild(modal);
-        }
-        document.getElementById('min-qr-min-nome').textContent=min_minAtivo.nome;
-        document.getElementById('min-qr-url').textContent=url;
-        modal.style.display='flex';
-        const container=document.getElementById('min-qr-container');container.innerHTML='';
-        const qrSrc='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(url)+'&bgcolor=ffffff&color=02161e&margin=8';
-        const img=document.createElement('img');img.src=qrSrc;img.width=180;img.height=180;img.style.borderRadius='6px';
-        img.onerror=()=>{container.innerHTML='<div style="font-size:11px;color:var(--text-faint);padding:20px">Sem ligação para gerar QR.<br>Usa o link em baixo.</div>';};
-        container.appendChild(img);
-        img.onload=()=>{
-            const dl=document.createElement('div');dl.style.cssText='margin-top:8px;display:flex;flex-direction:column;align-items:center;gap:6px';
-            dl.innerHTML='<a href="'+qrSrc+'&size=400x400" download="qr-'+min_minAtivo.nome+'.png" style="font-size:11px;color:var(--primary-dark);text-decoration:none" target="_blank">Descarregar PNG</a>';
-            const copyBtn=document.createElement('button');copyBtn.className='btn-sm';copyBtn.style.cssText='font-size:11px;padding:4px 12px;margin-top:2px';copyBtn.textContent='Copiar link';
-            copyBtn.onclick=()=>{navigator.clipboard.writeText(url).then(()=>{copyBtn.textContent='Copiado!';setTimeout(()=>{copyBtn.textContent='Copiar link';},2000);}).catch(()=>min_t('Erro','err'));};
-            dl.appendChild(copyBtn);container.appendChild(dl);
-        };
+        modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+        document.body.appendChild(modal);
     }
-    async function min_zapLider(ciId,nomeVoluntario,minAtraso,cultoId){
-        const lidRaw=await min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&papel=eq.lider&select=*,membros(nome,telefone)`).catch(()=>[]);
-        const lider=lidRaw?.[0]?.membros;const tel=lider?.telefone?.replace(/\D/g,'');
-        if(!tel){min_t('Líder sem telefone','err');return;}
-        const cultNome=min_cultsAll.find(c=>c.id===cultoId)?.nome||'';
-        const data=new Date().toLocaleDateString('pt-PT');
-        const msg=encodeURIComponent('*Zion Lisboa – Check-in*\n*'+nomeVoluntario+'* chegou com *'+minAtraso+' min de atraso*.\nMinistério: '+min_minAtivo.nome+' · '+cultNome+'\nData: '+data);
-        window.open('https://wa.me/'+tel+'?text='+msg,'_blank');
-        await min_sb(`ministerio_checkin?id=eq.${ciId}`,{method:'PATCH',body:JSON.stringify({notificado_lider:true})}).catch(console.error);
-        min_t('WhatsApp aberto'); min_renderCheckin();
-    }
+    document.getElementById('min-qr-min-nome').textContent=min_minAtivo.nome;
+    document.getElementById('min-qr-url').textContent=url;
+    modal.style.display='flex';
+    const container=document.getElementById('min-qr-container');container.innerHTML='';
+    const qrSrc='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(url)+'&bgcolor=ffffff&color=02161e&margin=8';
+    const img=document.createElement('img');img.src=qrSrc;img.width=180;img.height=180;img.style.borderRadius='6px';
+    img.onerror=()=>{container.innerHTML='<div style="font-size:11px;color:var(--text-faint);padding:20px">Sem ligação para gerar QR.<br>Usa o link em baixo.</div>';};
+    container.appendChild(img);
+    img.onload=()=>{
+        const dl=document.createElement('div');dl.style.cssText='margin-top:8px;display:flex;flex-direction:column;align-items:center;gap:6px';
+        dl.innerHTML='<a href="'+qrSrc+'&size=400x400" download="qr-'+min_minAtivo.nome+'.png" style="font-size:11px;color:var(--primary-dark);text-decoration:none" target="_blank">Descarregar PNG</a>';
+        const copyBtn=document.createElement('button');copyBtn.className='btn-sm';copyBtn.style.cssText='font-size:11px;padding:4px 12px;margin-top:2px';copyBtn.textContent='Copiar link';
+        copyBtn.onclick=()=>{navigator.clipboard.writeText(url).then(()=>{copyBtn.textContent='Copiado!';setTimeout(()=>{copyBtn.textContent='Copiar link';},2000);}).catch(()=>min_t('Erro','err'));};
+        dl.appendChild(copyBtn);container.appendChild(dl);
+    };
+}
+async function min_zapLider(ciId,nomeVoluntario,minAtraso,cultoId){
+    const lidRaw=await min_sb(`ministerio_membros?ministerio_id=eq.${min_minAtivo.id}&papel=eq.lider&select=*,membros(nome,telefone)`).catch(()=>[]);
+    const lider=lidRaw?.[0]?.membros;const tel=lider?.telefone?.replace(/\D/g,'');
+    if(!tel){min_t('Líder sem telefone','err');return;}
+    const cultNome=min_cultsAll.find(c=>c.id===cultoId)?.nome||'';
+    const data=new Date().toLocaleDateString('pt-PT');
+    const msg=encodeURIComponent('*Zion Lisboa – Check-in*\n*'+nomeVoluntario+'* chegou com *'+minAtraso+' min de atraso*.\nMinistério: '+min_minAtivo.nome+' · '+cultNome+'\nData: '+data);
+    window.open('https://wa.me/'+tel+'?text='+msg,'_blank');
+    await min_sb(`ministerio_checkin?id=eq.${ciId}`,{method:'PATCH',body:JSON.stringify({notificado_lider:true})}).catch(console.error);
+    min_t('WhatsApp aberto'); min_renderCheckin();
+}
 
-    /* ── LEMBRETES ── */
-    const MSGS_EDIFICANTES=[
-        '"Tudo posso naquele que me fortalece."_ — Fil 4:13\nDeus vai usar o teu serviço amanhã para tocar vidas!',
-        '"Sirva ao Senhor com alegria."_ — Sl 100:2\nO teu coração de servo faz diferença!',
-        '"Sede fortes e corajosos."_ — Js 1:9\nServes com propósito e unção!',
-        '"Cada um ponha ao serviço dos outros o dom que recebeu."_ — 1Pe 4:10\nO teu dom edifica a família Zion!',
-        '"O Senhor está contigo onde quer que vás."_ — Js 1:9\nAmanhã será especial porque estarás presente!',
-    ];
-    async function min_abrirLembretes(){
-        const amanha=new Date();amanha.setDate(amanha.getDate()+1);
-        const amanhaISO=amanha.toISOString().split('T')[0];
-        const diasPT=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
-        const mesesPT=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-        const amanhaFmt=diasPT[amanha.getDay()]+', '+String(amanha.getDate()).padStart(2,'0')+' de '+mesesPT[amanha.getMonth()];
-        const lidRaw=await min_sb('ministerio_membros?ministerio_id=eq.'+min_minAtivo.id+'&papel=eq.lider&select=*,membros(nome)&limit=1').catch(()=>[]);
-        const nomeLider=lidRaw?.[0]?.membros?.nome||'';
-        const checkUrl=window._ciCheckUrl||'';
-        const esc=await min_sb('ministerio_escala?ministerio_id=eq.'+min_minAtivo.id+'&data=eq.'+amanhaISO+'&select=*,membros(id,nome,telefone,checkin_pin),cultos(id,nome,hora_inicio)').catch(()=>[]);
-        if(!esc?.length){min_t('Sem escala para amanhã','err');return;}
-        const porMembro={};
-        esc.forEach(e=>{const m=e.membros;if(!m)return;if(!porMembro[m.id])porMembro[m.id]={membro:m,cultos:[]};if(e.cultos)porMembro[m.id].cultos.push(e.cultos);});
-        const lista=Object.values(porMembro),comTel=lista.filter(x=>x.membro.telefone),semTel=lista.filter(x=>!x.membro.telefone);
-        const msgEdif=MSGS_EDIFICANTES[Math.floor(Math.random()*MSGS_EDIFICANTES.length)];
-        const msgGrupo=min_gerarMsgGrupo(lista,amanhaFmt);
-        let modal=document.getElementById('min-modal-lemb');
-        if(!modal){modal=document.createElement('div');modal.id='min-modal-lemb';modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';document.body.appendChild(modal);}
-        const wrap=document.createElement('div');wrap.style.cssText='background:var(--bg-card);border-radius:var(--radius);padding:24px;width:100%;max-width:560px;margin:auto;box-shadow:var(--shadow-md)';
-        wrap.innerHTML=`
+/* ── LEMBRETES ── */
+const MSGS_EDIFICANTES=[
+    '"Tudo posso naquele que me fortalece."_ — Fil 4:13\nDeus vai usar o teu serviço amanhã para tocar vidas!',
+    '"Sirva ao Senhor com alegria."_ — Sl 100:2\nO teu coração de servo faz diferença!',
+    '"Sede fortes e corajosos."_ — Js 1:9\nServes com propósito e unção!',
+    '"Cada um ponha ao serviço dos outros o dom que recebeu."_ — 1Pe 4:10\nO teu dom edifica a família Zion!',
+    '"O Senhor está contigo onde quer que vás."_ — Js 1:9\nAmanhã será especial porque estarás presente!',
+];
+async function min_abrirLembretes(){
+    const amanha=new Date();amanha.setDate(amanha.getDate()+1);
+    const amanhaISO=amanha.toISOString().split('T')[0];
+    const diasPT=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+    const mesesPT=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const amanhaFmt=diasPT[amanha.getDay()]+', '+String(amanha.getDate()).padStart(2,'0')+' de '+mesesPT[amanha.getMonth()];
+    const lidRaw=await min_sb('ministerio_membros?ministerio_id=eq.'+min_minAtivo.id+'&papel=eq.lider&select=*,membros(nome)&limit=1').catch(()=>[]);
+    const nomeLider=lidRaw?.[0]?.membros?.nome||'';
+    const checkUrl=window._ciCheckUrl||'';
+    const esc=await min_sb('ministerio_escala?ministerio_id=eq.'+min_minAtivo.id+'&data=eq.'+amanhaISO+'&select=*,membros(id,nome,telefone,checkin_pin),cultos(id,nome,hora_inicio)').catch(()=>[]);
+    if(!esc?.length){min_t('Sem escala para amanhã','err');return;}
+    const porMembro={};
+    esc.forEach(e=>{const m=e.membros;if(!m)return;if(!porMembro[m.id])porMembro[m.id]={membro:m,cultos:[]};if(e.cultos)porMembro[m.id].cultos.push(e.cultos);});
+    const lista=Object.values(porMembro),comTel=lista.filter(x=>x.membro.telefone),semTel=lista.filter(x=>!x.membro.telefone);
+    const msgEdif=MSGS_EDIFICANTES[Math.floor(Math.random()*MSGS_EDIFICANTES.length)];
+    const msgGrupo=min_gerarMsgGrupo(lista,amanhaFmt);
+    let modal=document.getElementById('min-modal-lemb');
+    if(!modal){modal=document.createElement('div');modal.id='min-modal-lemb';modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';document.body.appendChild(modal);}
+    const wrap=document.createElement('div');wrap.style.cssText='background:var(--bg-card);border-radius:var(--radius);padding:24px;width:100%;max-width:560px;margin:auto;box-shadow:var(--shadow-md)';
+    wrap.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="font-family:var(--font-title);font-size:11px;letter-spacing:2px;color:var(--primary-dark)">LEMBRETES DE ESCALA</div>
         <button class="btn-sm" onclick="document.getElementById('min-modal-lemb').style.display='none'">Fechar</button>
@@ -1480,55 +1489,55 @@
     <div id="lemb-lista" style="display:flex;flex-direction:column;gap:6px"></div>
     ${semTel.length?`<div style="margin-top:10px;font-size:11px;color:var(--red);background:rgba(192,57,43,0.06);padding:8px 12px;border-radius:8px">Sem telemóvel: ${semTel.map(x=>x.membro.nome).join(', ')}</div>`:''}
     <button class="btn-sm" style="width:100%;margin-top:16px" onclick="document.getElementById('min-modal-lemb').style.display='none'">Fechar</button>`;
-        modal.innerHTML='';modal.appendChild(wrap);
-        window._lembMsgGrupo=msgGrupo;window._lembDados={comTel,amanhaFmt,msgEdif,nomeLider,checkUrl};
-        modal.style.display='flex';
-        const lista_el=document.getElementById('lemb-lista');
-        comTel.forEach((item,idx)=>{
-            const msg=min_gerarMsgLembrete(item.membro,item.cultos,amanhaFmt,msgEdif,nomeLider,checkUrl);
-            const tel=item.membro.telefone.replace(/\D/g,'');
-            const waUrl='https://wa.me/'+tel+'?text='+encodeURIComponent(msg);
-            const primeiroNome=item.membro.nome.split(' ')[0];
-            const cultosStr=item.cultos.map(c=>c.nome+' '+c.hora_inicio.slice(0,5)+'h').join(' · ');
-            const row=document.createElement('div');row.id='lemb-row-'+idx;
-            row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);transition:border-color 0.15s';
-            row.innerHTML=`<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${item.membro.nome}</div><div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title);letter-spacing:0.3px;margin-top:2px">${cultosStr}</div></div>
+    modal.innerHTML='';modal.appendChild(wrap);
+    window._lembMsgGrupo=msgGrupo;window._lembDados={comTel,amanhaFmt,msgEdif,nomeLider,checkUrl};
+    modal.style.display='flex';
+    const lista_el=document.getElementById('lemb-lista');
+    comTel.forEach((item,idx)=>{
+        const msg=min_gerarMsgLembrete(item.membro,item.cultos,amanhaFmt,msgEdif,nomeLider,checkUrl);
+        const tel=item.membro.telefone.replace(/\D/g,'');
+        const waUrl='https://wa.me/'+tel+'?text='+encodeURIComponent(msg);
+        const primeiroNome=item.membro.nome.split(' ')[0];
+        const cultosStr=item.cultos.map(c=>c.nome+' '+c.hora_inicio.slice(0,5)+'h').join(' · ');
+        const row=document.createElement('div');row.id='lemb-row-'+idx;
+        row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);transition:border-color 0.15s';
+        row.innerHTML=`<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${item.membro.nome}</div><div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title);letter-spacing:0.3px;margin-top:2px">${cultosStr}</div></div>
             <button class="btn-sm" style="font-size:10px;padding:3px 8px;white-space:nowrap" onclick="min_prevLembrete(${idx})">Ver</button>
             <button class="btn-sm primary" id="lemb-btn-${idx}" style="white-space:nowrap;font-size:11px" onclick="min_abrirZap(${idx},'${waUrl.replace(/'/g,"\\'")}')">Enviar a ${primeiroNome}</button>`;
-            lista_el.appendChild(row);
-            row._msg=msg;row._waUrl=waUrl;
-        });
-    }
-    function min_prevLembrete(idx){const row=document.getElementById('lemb-row-'+idx);if(!row?._msg)return;let prev=document.getElementById('lemb-prev-'+idx);if(prev){prev.remove();return;}prev=document.createElement('div');prev.id='lemb-prev-'+idx;prev.style.cssText='background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;line-height:1.8;white-space:pre-wrap;color:var(--text-main);font-family:monospace;margin-top:4px';prev.textContent=row._msg;row.after(prev);}
-    function min_abrirZap(idx,waUrl){window.open(waUrl,'_blank');const btn=document.getElementById('lemb-btn-'+idx),row=document.getElementById('lemb-row-'+idx);if(btn){btn.textContent='Enviado';btn.classList.remove('primary');btn.style.borderColor='var(--green)';btn.style.color='var(--green)';btn.disabled=true;}if(row){row.style.borderColor='var(--green)';row.style.background='rgba(46,125,50,0.05)';}}
-    function min_copiarGrupo(){if(!window._lembMsgGrupo)return;navigator.clipboard.writeText(window._lembMsgGrupo).then(()=>{const btn=document.getElementById('btn-copiar-grupo');if(btn){btn.textContent='Copiado!';btn.style.borderColor='var(--green)';btn.style.color='var(--green)';setTimeout(()=>{btn.textContent='Copiar';btn.style.borderColor='';btn.style.color='';},2500);}}).catch(()=>min_t('Erro','err'));}
-    function min_gerarMsgGrupo(lista,dataFmt){
-        const porCulto={};
-        lista.forEach(item=>{item.cultos.forEach(c=>{const key=c.id;if(!porCulto[key])porCulto[key]={nome:c.nome,hora:c.hora_inicio.slice(0,5),membros:[]};porCulto[key].membros.push(item.membro.nome);});});
-        let s=`*ESCALA DE AMANHÃ*\n*${min_minAtivo.nome.toUpperCase()}*\n*${dataFmt}*\n${'━'.repeat(16)}\n\n`;
-        Object.values(porCulto).forEach(c=>{s+=`*${c.nome}* (${c.hora}h)\n`;c.membros.forEach(nome=>{s+=`  • ${nome}\n`;});s+='\n';});
-        s+=`_Por favor confirma a tua presença com o líder._\n_Dúvidas? Fala com ${window._lembDados?.nomeLider||'o líder'}._`;
-        return s;
-    }
-    function min_gerarMsgLembrete(membro,cultos,dataFmt,msgEdif,nomeLider,checkUrl){
-        const primeiroNome=membro.nome.split(' ')[0];
-        const cultosLinhas=cultos.map(c=>'  • '+c.nome+' às '+c.hora_inicio.slice(0,5)+'h').join('\n');
-        const pinInfo=membro.checkin_pin?'\n Teu PIN de check-in: *'+membro.checkin_pin+'*':'\n Fala com o líder para definires o teu PIN.';
-        const liderInfo=nomeLider?'\n Líder: *'+nomeLider+'*':'';
-        const linkInfo=checkUrl?'\n Check-in:\n'+checkUrl:'';
-        return 'Olá, *'+primeiroNome+'*!\n\n'+msgEdif+'\n\n'+'━'.repeat(16)+'\n *Escala de amanhã*\n '+dataFmt+'\n\n'+cultosLinhas+pinInfo+'\n\n'+linkInfo+'\n\nObrigado pelo seu voluntariado';
-    }
+        lista_el.appendChild(row);
+        row._msg=msg;row._waUrl=waUrl;
+    });
+}
+function min_prevLembrete(idx){const row=document.getElementById('lemb-row-'+idx);if(!row?._msg)return;let prev=document.getElementById('lemb-prev-'+idx);if(prev){prev.remove();return;}prev=document.createElement('div');prev.id='lemb-prev-'+idx;prev.style.cssText='background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;line-height:1.8;white-space:pre-wrap;color:var(--text-main);font-family:monospace;margin-top:4px';prev.textContent=row._msg;row.after(prev);}
+function min_abrirZap(idx,waUrl){window.open(waUrl,'_blank');const btn=document.getElementById('lemb-btn-'+idx),row=document.getElementById('lemb-row-'+idx);if(btn){btn.textContent='Enviado';btn.classList.remove('primary');btn.style.borderColor='var(--green)';btn.style.color='var(--green)';btn.disabled=true;}if(row){row.style.borderColor='var(--green)';row.style.background='rgba(46,125,50,0.05)';}}
+function min_copiarGrupo(){if(!window._lembMsgGrupo)return;navigator.clipboard.writeText(window._lembMsgGrupo).then(()=>{const btn=document.getElementById('btn-copiar-grupo');if(btn){btn.textContent='Copiado!';btn.style.borderColor='var(--green)';btn.style.color='var(--green)';setTimeout(()=>{btn.textContent='Copiar';btn.style.borderColor='';btn.style.color='';},2500);}}).catch(()=>min_t('Erro','err'));}
+function min_gerarMsgGrupo(lista,dataFmt){
+    const porCulto={};
+    lista.forEach(item=>{item.cultos.forEach(c=>{const key=c.id;if(!porCulto[key])porCulto[key]={nome:c.nome,hora:c.hora_inicio.slice(0,5),membros:[]};porCulto[key].membros.push(item.membro.nome);});});
+    let s=`*ESCALA DE AMANHÃ*\n*${min_minAtivo.nome.toUpperCase()}*\n*${dataFmt}*\n${'━'.repeat(16)}\n\n`;
+    Object.values(porCulto).forEach(c=>{s+=`*${c.nome}* (${c.hora}h)\n`;c.membros.forEach(nome=>{s+=`  • ${nome}\n`;});s+='\n';});
+    s+=`_Por favor confirma a tua presença com o líder._\n_Dúvidas? Fala com ${window._lembDados?.nomeLider||'o líder'}._`;
+    return s;
+}
+function min_gerarMsgLembrete(membro,cultos,dataFmt,msgEdif,nomeLider,checkUrl){
+    const primeiroNome=membro.nome.split(' ')[0];
+    const cultosLinhas=cultos.map(c=>'  • '+c.nome+' às '+c.hora_inicio.slice(0,5)+'h').join('\n');
+    const pinInfo=membro.checkin_pin?'\n Teu PIN de check-in: *'+membro.checkin_pin+'*':'\n Fala com o líder para definires o teu PIN.';
+    const liderInfo=nomeLider?'\n Líder: *'+nomeLider+'*':'';
+    const linkInfo=checkUrl?'\n Check-in:\n'+checkUrl:'';
+    return 'Olá, *'+primeiroNome+'*!\n\n'+msgEdif+'\n\n'+'━'.repeat(16)+'\n *Escala de amanhã*\n '+dataFmt+'\n\n'+cultosLinhas+pinInfo+'\n\n'+linkInfo+'\n\nObrigado pelo seu voluntariado';
+}
 
-    /* ── SIDEBAR RESIZE ── */
-    (function(){
-        const handle=document.getElementById('min-sidebar-resize'),sidebar=document.getElementById('min-sidebar-wrap');
-        if(!handle||!sidebar)return;
-        let dragging=false,startX=0,startW=0;
-        handle.addEventListener('mousedown',e=>{dragging=true;startX=e.clientX;startW=sidebar.offsetWidth;handle.classList.add('dragging');document.body.style.cursor='col-resize';document.body.style.userSelect='none';});
-        document.addEventListener('mousemove',e=>{if(!dragging)return;sidebar.style.width=Math.min(520,Math.max(180,startW+(e.clientX-startX)))+'px';});
-        document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;handle.classList.remove('dragging');document.body.style.cursor='';document.body.style.userSelect='';});
-    })();
+/* ── SIDEBAR RESIZE ── */
+(function(){
+    const handle=document.getElementById('min-sidebar-resize'),sidebar=document.getElementById('min-sidebar-wrap');
+    if(!handle||!sidebar)return;
+    let dragging=false,startX=0,startW=0;
+    handle.addEventListener('mousedown',e=>{dragging=true;startX=e.clientX;startW=sidebar.offsetWidth;handle.classList.add('dragging');document.body.style.cursor='col-resize';document.body.style.userSelect='none';});
+    document.addEventListener('mousemove',e=>{if(!dragging)return;sidebar.style.width=Math.min(520,Math.max(180,startW+(e.clientX-startX)))+'px';});
+    document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;handle.classList.remove('dragging');document.body.style.cursor='';document.body.style.userSelect='';});
+})();
 
-    /* ── START ── */
-    min_init();
+/* ── START ── */
+min_init();
 </script>

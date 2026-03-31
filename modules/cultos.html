@@ -1,744 +1,1164 @@
 <style>
-/* ══════════════════════════════════════════════════════
-   CULTOS MODULE
-   Layout: sidebar esquerda + painel direito
-   Mesmo padrao que ministerios/links/cursos
-   ══════════════════════════════════════════════════════ */
+    /* ══════════════════════════════════════════════════════
+       CULTOS MODULE v2 — Campus + Cultos
+       Layout: 3 paineis | Fontes brancas | Auto-inativar
+    ══════════════════════════════════════════════════════ */
 
-.cu-wrap {
-    display: flex;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-    font-family: var(--font-body);
-}
+    .cu-wrap {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        font-family: var(--font-body);
+        color: #fff;
+    }
+    .cu-wrap * { box-sizing: border-box; }
 
-/* ── SIDEBAR ──────────────────────────────────────── */
-.cu-side {
-    width: 260px;
-    flex-shrink: 0;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-card);
-    overflow: hidden;
-}
-.cu-side-head {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    flex-shrink: 0;
-}
-.cu-search {
-    flex: 1;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 10px;
-    font-size: 12px;
-    font-family: var(--font-body);
-    color: var(--text-main);
-    outline: none;
-}
-.cu-search:focus { border-color: var(--primary); }
-.cu-btn-novo {
-    padding: 7px 12px;
-    border-radius: 8px;
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    font-family: var(--font-title);
-    font-size: 9px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    white-space: nowrap;
-}
-.cu-btn-novo:hover { background: var(--primary-dark); }
+    /* ── SIDEBAR BASE ── */
+    .cu-side {
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        overflow: hidden;
+    }
+    .cu-side-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-shrink: 0;
+        min-height: 48px;
+    }
+    .cu-search {
+        flex: 1;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-family: var(--font-body);
+        color: #fff;
+        outline: none;
+        min-width: 0;
+    }
+    .cu-search::placeholder { color: rgba(255,255,255,0.3); }
+    .cu-search:focus { border-color: var(--primary); }
+    .cu-btn-novo {
+        padding: 7px 11px;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .cu-btn-novo:hover { background: var(--primary-dark); }
+    .cu-list { flex: 1; overflow-y: auto; }
 
-.cu-list { flex: 1; overflow-y: auto; }
+    /* ── CAMPUS SIDEBAR (esquerda, 210px) ── */
+    .cu-campus-side { width: 210px; }
 
-/* Item da sidebar — cor de fundo por dia da semana */
-.cu-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
-    cursor: pointer;
-    border-left: 3px solid transparent;
-    border-bottom: 1px solid var(--border);
-    transition: filter 0.1s;
-}
-.cu-item:hover  { filter: brightness(0.94); }
-.cu-item.active { filter: brightness(0.88); }
+    .cu-campus-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 13px;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.12s;
+    }
+    .cu-campus-item:hover { background: rgba(255,255,255,0.04); }
+    .cu-campus-item.active {
+        border-left-color: var(--primary);
+        background: rgba(0,144,152,0.09);
+    }
+    .cu-campus-item.inativo { opacity: 0.45; }
 
-/* Fundo por dia — ciclo de 7 cores */
-.cu-dia-0 { background: rgba(0,144,152,0.07); }   /* Domingo */
-.cu-dia-1 { background: rgba(46,125,50,0.07); }   /* Segunda */
-.cu-dia-2 { background: rgba(130,60,200,0.07); }  /* Terca */
-.cu-dia-3 { background: rgba(200,100,0,0.07); }   /* Quarta */
-.cu-dia-4 { background: rgba(0,80,180,0.07); }    /* Quinta */
-.cu-dia-5 { background: rgba(160,0,80,0.07); }    /* Sexta */
-.cu-dia-6 { background: rgba(80,120,0,0.07); }    /* Sabado */
-.cu-item.inativo { opacity: 0.55; }
+    .cu-campus-thumb {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+    }
+    .cu-campus-thumb-ph {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(0,144,152,0.15);
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-title);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--primary);
+    }
+    .cu-campus-info { flex: 1; min-width: 0; }
+    .cu-campus-nome {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cu-campus-sub {
+        font-size: 10px;
+        color: rgba(255,255,255,0.4);
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cu-campus-badge {
+        font-size: 9px;
+        font-family: var(--font-title);
+        padding: 2px 7px;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #fff;
+        flex-shrink: 0;
+    }
 
-/* Cores de borda activa */
-.cu-item.cu-dia-0.active { border-left-color: rgba(0,144,152,0.8); }
-.cu-item.cu-dia-1.active { border-left-color: rgba(46,125,50,0.8); }
-.cu-item.cu-dia-2.active { border-left-color: rgba(130,60,200,0.8); }
-.cu-item.cu-dia-3.active { border-left-color: rgba(200,100,0,0.8); }
-.cu-item.cu-dia-4.active { border-left-color: rgba(0,80,180,0.8); }
-.cu-item.cu-dia-5.active { border-left-color: rgba(160,0,80,0.8); }
-.cu-item.cu-dia-6.active { border-left-color: rgba(80,120,0,0.8); }
+    /* ── CULTOS SIDEBAR (meio, 235px) ── */
+    .cu-cultos-side { width: 235px; }
+    .cu-cultos-head-label {
+        flex: 1;
+        font-size: 11px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        color: rgba(255,255,255,0.6);
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-.cu-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-title);
-    font-size: 9px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    flex-shrink: 0;
-    line-height: 1.2;
-    text-align: center;
-    padding: 2px;
-}
-.cu-avatar .hora { font-size: 11px; font-weight: 700; letter-spacing: 0; }
-.cu-item-info { flex: 1; min-width: 0; }
-.cu-item-nome {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-main);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.cu-item-sub {
-    font-size: 10px;
-    color: var(--text-faint);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.cu-pill {
-    font-size: 8px;
-    font-family: var(--font-title);
-    letter-spacing: 1px;
-    padding: 2px 7px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
+    /* Agrupamento por dia */
+    .cu-dia-header {
+        padding: 4px 13px 3px;
+        font-family: var(--font-title);
+        font-size: 8px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border);
+    }
 
-/* ── PAINEL DIREITO ──────────────────────────────── */
-.cu-panel {
-    flex: 1;
-    overflow-y: auto;
-    background: var(--bg);
-}
-.cu-panel-empty {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    color: var(--text-faint);
-}
-.cu-panel-empty-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.cu-panel-empty-txt {
-    font-family: var(--font-title);
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
+    /* Item de culto */
+    .cu-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 13px;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        border-bottom: 1px solid var(--border);
+        transition: filter 0.1s;
+    }
+    .cu-item:hover  { filter: brightness(1.15); }
+    .cu-item.active { filter: brightness(1.25); }
+    .cu-item.inativo { opacity: 0.42; }
 
-/* Header do form */
-.cu-form-header {
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-.cu-form-header-av {
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-title);
-    font-size: 9px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    flex-shrink: 0;
-    line-height: 1.3;
-    text-align: center;
-}
-.cu-form-header-av .hora { font-size: 14px; font-weight: 700; letter-spacing: 0; }
-.cu-form-header-info { flex: 1; }
-.cu-form-title {
-    font-family: var(--font-title);
-    font-size: 15px;
-    letter-spacing: 1px;
-    color: var(--text-main);
-}
-.cu-form-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+    .cu-dia-0 { background: rgba(0,144,152,0.07); }
+    .cu-dia-1 { background: rgba(46,125,50,0.07); }
+    .cu-dia-2 { background: rgba(130,60,200,0.07); }
+    .cu-dia-3 { background: rgba(200,100,0,0.07); }
+    .cu-dia-4 { background: rgba(0,80,180,0.07); }
+    .cu-dia-5 { background: rgba(160,0,80,0.07); }
+    .cu-dia-6 { background: rgba(80,120,0,0.07); }
+    .cu-item.cu-dia-0.active { border-left-color: rgba(0,144,152,0.9); }
+    .cu-item.cu-dia-1.active { border-left-color: rgba(46,125,50,0.9); }
+    .cu-item.cu-dia-2.active { border-left-color: rgba(130,60,200,0.9); }
+    .cu-item.cu-dia-3.active { border-left-color: rgba(200,100,0,0.9); }
+    .cu-item.cu-dia-4.active { border-left-color: rgba(0,80,180,0.9); }
+    .cu-item.cu-dia-5.active { border-left-color: rgba(160,0,80,0.9); }
+    .cu-item.cu-dia-6.active { border-left-color: rgba(80,120,0,0.9); }
 
-/* Formulario */
-.cu-form { padding: 16px 20px 32px; }
+    .cu-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-title);
+        font-size: 7.5px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        line-height: 1.2;
+        text-align: center;
+    }
+    .cu-avatar .hora { font-size: 11px; font-weight: 700; letter-spacing: 0; }
+    .cu-item-info { flex: 1; min-width: 0; }
+    .cu-item-nome {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cu-item-sub {
+        font-size: 10px;
+        color: rgba(255,255,255,0.4);
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cu-pill-off {
+        font-size: 8px;
+        font-family: var(--font-title);
+        letter-spacing: 0.5px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.35);
+        border: 1px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;
+    }
 
-.cu-section-title {
-    font-family: var(--font-title);
-    font-size: 9px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-faint);
-    padding: 16px 0 8px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.cu-field-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 16px;
-    margin-bottom: 4px;
-}
-.cu-field { display: flex; flex-direction: column; gap: 4px; }
-.cu-field.full { grid-column: 1 / -1; }
-.cu-label {
-    font-size: 9px;
-    font-family: var(--font-title);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--text-faint);
-}
-.cu-input, .cu-select, .cu-textarea {
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 13px;
-    font-family: var(--font-body);
-    color: var(--text-main);
-    outline: none;
-    transition: border-color 0.15s;
-}
-.cu-input:focus, .cu-select:focus, .cu-textarea:focus { border-color: var(--primary); }
-.cu-textarea { resize: vertical; min-height: 70px; }
-.cu-toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text-main);
-    cursor: pointer;
-    padding: 6px 0;
-}
-.cu-toggle-row input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--primary);
-    cursor: pointer;
-}
+    /* ── PAINEL DIREITO ── */
+    .cu-panel {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--bg);
+    }
+    .cu-panel-empty {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .cu-panel-empty-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.25);
+    }
+    .cu-panel-empty-txt {
+        font-family: var(--font-title);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.3);
+    }
 
-/* Mensagem feedback */
-.cu-msg {
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    margin-bottom: 10px;
-    display: none;
-}
-.cu-msg.error   { display: block; background: rgba(198,40,40,0.08); color: #c62828; border: 1px solid rgba(198,40,40,0.25); }
-.cu-msg.success { display: block; background: rgba(46,125,50,0.08); color: #2e7d32; border: 1px solid rgba(46,125,50,0.25); }
+    /* Breadcrumb */
+    .cu-breadcrumb {
+        padding: 8px 20px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        color: rgba(255,255,255,0.4);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .cu-breadcrumb-link {
+        color: var(--primary);
+        cursor: pointer;
+        font-family: var(--font-title);
+        font-size: 10px;
+        letter-spacing: 0.5px;
+    }
+    .cu-breadcrumb-link:hover { text-decoration: underline; }
+    .cu-breadcrumb-cur { color: rgba(255,255,255,0.7); font-weight: 600; }
 
-/* Accoes */
-.cu-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    margin-top: 20px;
-}
-.cu-btn-cancel {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-muted);
-    font-family: var(--font-title);
-    font-size: 9px;
-    letter-spacing: 1px;
-    cursor: pointer;
-}
-.cu-btn-save {
-    padding: 8px 20px;
-    border-radius: 8px;
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    font-family: var(--font-title);
-    font-size: 9px;
-    letter-spacing: 1px;
-    cursor: pointer;
-}
-.cu-btn-save:hover { background: var(--primary-dark); }
-.cu-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-.cu-btn-toggle {
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-family: var(--font-title);
-    font-size: 9px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    margin-right: auto;
-}
-.cu-btn-toggle.inativar {
-    border: 1px solid rgba(198,40,40,0.35);
-    background: rgba(198,40,40,0.06);
-    color: #c62828;
-}
-.cu-btn-toggle.ativar {
-    border: 1px solid rgba(46,125,50,0.35);
-    background: rgba(46,125,50,0.06);
-    color: #2e7d32;
-}
+    /* Form header */
+    .cu-form-header {
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .cu-form-header-av {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        line-height: 1.3;
+        text-align: center;
+    }
+    .cu-form-header-av .hora { font-size: 14px; font-weight: 700; letter-spacing: 0; }
+    .cu-form-header-img {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+        background: var(--bg-input);
+    }
+    .cu-form-header-info { flex: 1; min-width: 0; }
+    .cu-form-title {
+        font-family: var(--font-title);
+        font-size: 15px;
+        letter-spacing: 1px;
+        color: #fff;
+    }
+    .cu-form-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
 
-/* Cartao de info na sidebar — quando nao ha cultos */
-.cu-empty-side {
-    padding: 20px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--text-faint);
-    line-height: 1.7;
-}
+    /* Formulario */
+    .cu-form { padding: 16px 20px 32px; }
+    .cu-section-title {
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.4);
+        padding: 16px 0 8px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .cu-field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 16px;
+        margin-bottom: 4px;
+    }
+    .cu-field { display: flex; flex-direction: column; gap: 4px; }
+    .cu-field.full { grid-column: 1 / -1; }
+    .cu-label {
+        font-size: 9px;
+        font-family: var(--font-title);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.4);
+    }
+    .cu-input, .cu-select, .cu-textarea {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        color: #fff;
+        outline: none;
+        transition: border-color 0.15s;
+        width: 100%;
+    }
+    .cu-input::placeholder, .cu-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .cu-select option { background: var(--bg-card, #081c26); color: #fff; }
+    .cu-input:focus, .cu-select:focus, .cu-textarea:focus { border-color: var(--primary); }
+    .cu-textarea { resize: vertical; min-height: 70px; }
+
+    .cu-toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        color: #fff;
+        cursor: pointer;
+        padding: 6px 0;
+    }
+    .cu-toggle-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    /* Preview imagem campus */
+    .cu-img-preview {
+        width: 100%;
+        max-height: 130px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        margin-top: 6px;
+        display: none;
+    }
+    .cu-img-preview.visible { display: block; }
+
+    /* Mensagem feedback */
+    .cu-msg {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: var(--font-body);
+        margin-bottom: 10px;
+        display: none;
+    }
+    .cu-msg.error   { display: block; background: rgba(198,40,40,0.1);  color: #ff7070; border: 1px solid rgba(198,40,40,0.3); }
+    .cu-msg.success { display: block; background: rgba(46,125,50,0.1);  color: #70d988; border: 1px solid rgba(46,125,50,0.3); }
+
+    /* Accoes */
+    .cu-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        margin-top: 20px;
+    }
+    .cu-btn-cancel {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: rgba(255,255,255,0.55);
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+    }
+    .cu-btn-cancel:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .cu-btn-save {
+        padding: 8px 20px;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+    }
+    .cu-btn-save:hover { background: var(--primary-dark); }
+    .cu-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .cu-btn-toggle {
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-family: var(--font-title);
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        margin-right: auto;
+        background: transparent;
+    }
+    .cu-btn-toggle.inativar { border: 1px solid rgba(198,40,40,0.35); color: #ff7070; }
+    .cu-btn-toggle.inativar:hover { background: rgba(198,40,40,0.08); }
+    .cu-btn-toggle.ativar   { border: 1px solid rgba(46,125,50,0.35);  color: #70d988; }
+    .cu-btn-toggle.ativar:hover   { background: rgba(46,125,50,0.08); }
+
+    .cu-empty-side {
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+        font-family: var(--font-body);
+        color: rgba(255,255,255,0.3);
+        line-height: 1.7;
+    }
 </style>
 
 <div class="cu-wrap">
 
-    <!-- SIDEBAR -->
-    <div class="cu-side">
+    <!-- SIDEBAR CAMPUS -->
+    <div class="cu-side cu-campus-side">
         <div class="cu-side-head">
-            <input class="cu-search" id="cu-search" placeholder="Pesquisar culto..."
-                   oninput="cu_filtrar()">
-            <button class="cu-btn-novo" onclick="cu_novo()">+ Novo</button>
+            <input class="cu-search" id="cu-campus-search"
+                   placeholder="Campus..." oninput="cu_filtrarCampus()">
+            <button class="cu-btn-novo" onclick="cu_novoCampus()">+ Campus</button>
         </div>
-        <div class="cu-list" id="cu-list">
-            <div style="padding:20px;text-align:center;font-size:12px;color:var(--text-faint)">
+        <div class="cu-list" id="cu-campus-list">
+            <div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,0.3)">
                 A carregar...
             </div>
         </div>
+    </div>
+
+    <!-- SIDEBAR CULTOS -->
+    <div class="cu-side cu-cultos-side">
+        <div class="cu-side-head" id="cu-cultos-head">
+            <span class="cu-cultos-head-label" style="color:rgba(255,255,255,0.3)">
+                Seleciona um campus
+            </span>
+        </div>
+        <div class="cu-list" id="cu-culto-list"></div>
     </div>
 
     <!-- PAINEL DIREITO -->
     <div class="cu-panel" id="cu-panel">
         <div class="cu-panel-empty">
             <div class="cu-panel-empty-icon">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"
-                     viewBox="0 0 24 24">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
+                <svg width="24" height="24" fill="none" stroke="currentColor"
+                     stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
             </div>
-            <div class="cu-panel-empty-txt">Seleciona um culto</div>
+            <div class="cu-panel-empty-txt">Seleciona um campus</div>
         </div>
     </div>
 
 </div>
 
 <script>
-// ── Estado ────────────────────────────────────────────────────────────────────
-var cu_dados = [];
-var cu_id    = null;
+    // ── ESTADO ────────────────────────────────────────────────────────────────────
+    var cu = {
+        campus:   [],
+        cultos:   [],
+        campusId: null,
+        cultoId:  null,
+    };
 
-// Dia da semana -> indice para classe de cor (0=Dom ... 6=Sab)
-var CU_DIAS_MAP = {
-    'Domingo':       0,
-    'Segunda-feira': 1,
-    'Terca-feira':   2,
-    'Quarta-feira':  3,
-    'Quinta-feira':  4,
-    'Sexta-feira':   5,
-    'Sabado':        6,
-};
-// Cores associadas a cada dia
-var CU_CORES = [
-    { bg: 'rgba(0,144,152,0.13)',   fg: 'var(--primary-dark)' },  // 0 Dom
-    { bg: 'rgba(46,125,50,0.13)',   fg: '#2e7d32' },               // 1 Seg
-    { bg: 'rgba(130,60,200,0.13)',  fg: '#7040c0' },               // 2 Ter
-    { bg: 'rgba(200,100,0,0.13)',   fg: '#b05000' },               // 3 Qua
-    { bg: 'rgba(0,80,180,0.13)',    fg: '#0050b0' },               // 4 Qui
-    { bg: 'rgba(160,0,80,0.13)',    fg: '#a00050' },               // 5 Sex
-    { bg: 'rgba(80,120,0,0.13)',    fg: '#507800' },               // 6 Sab
-];
-function cu_cor(dia) {
-    var idx = CU_DIAS_MAP[dia];
-    if (idx === undefined) idx = 0;
-    return CU_CORES[idx] || CU_CORES[0];
-}
-function cu_diaIdx(dia) {
-    var idx = CU_DIAS_MAP[dia];
-    return idx === undefined ? 0 : idx;
-}
+    var CU_DIAS_MAP = {
+        'Domingo':0,'Segunda-feira':1,'Terca-feira':2,
+        'Quarta-feira':3,'Quinta-feira':4,'Sexta-feira':5,'Sabado':6,
+    };
+    var CU_CORES = [
+        { bg:'rgba(0,144,152,0.15)',  fg:'var(--primary)' },
+        { bg:'rgba(46,125,50,0.15)',  fg:'#4caf50' },
+        { bg:'rgba(130,60,200,0.15)', fg:'#ab73e8' },
+        { bg:'rgba(200,100,0,0.15)',  fg:'#ffa040' },
+        { bg:'rgba(0,80,180,0.15)',   fg:'#5090e0' },
+        { bg:'rgba(160,0,80,0.15)',   fg:'#e060a0' },
+        { bg:'rgba(80,120,0,0.15)',   fg:'#a0c030' },
+    ];
+    var DIAS_OPCOES = [
+        'Domingo','Segunda-feira','Terca-feira','Quarta-feira',
+        'Quinta-feira','Sexta-feira','Sabado'
+    ];
 
-var DIAS_OPCOES = ['Domingo','Segunda-feira','Terca-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sabado'];
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function cu_init() {
-    try {
-        cu_dados = await sb('cultos?select=*&order=dia_semana,hora_inicio') || [];
-    } catch (e) {
-        cu_dados = [];
-        console.error('Erro ao carregar cultos:', e);
+    function cu_cor(dia) {
+        var idx = CU_DIAS_MAP[dia];
+        return CU_CORES[idx !== undefined ? idx : 0];
     }
-    cu_renderList();
-}
-
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-function cu_renderList() {
-    var el = document.getElementById('cu-list');
-    if (!el) return;
-    var q = (document.getElementById('cu-search')?.value || '').toLowerCase();
-
-    var lista = cu_dados.filter(function(c) {
-        if (!q) return true;
-        return (c.nome || '').toLowerCase().includes(q) ||
-               (c.dia_semana || '').toLowerCase().includes(q);
-    });
-
-    if (!lista.length) {
-        el.innerHTML = '<div class="cu-empty-side">Nenhum culto encontrado.<br>Clica em + Novo para adicionar.</div>';
-        return;
+    function cu_diaIdx(dia) {
+        var idx = CU_DIAS_MAP[dia];
+        return idx !== undefined ? idx : 0;
     }
 
-    // Agrupar por dia da semana
-    var grupos = {};
-    var ordemDias = ['Domingo','Segunda-feira','Terca-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sabado'];
-    lista.forEach(function(c) {
-        var dia = c.dia_semana || 'Sem dia';
-        if (!grupos[dia]) grupos[dia] = [];
-        grupos[dia].push(c);
-    });
-
-    var html = '';
-    ordemDias.forEach(function(dia) {
-        if (!grupos[dia]) return;
-        var cor = cu_cor(dia);
-        var idx = cu_diaIdx(dia);
-        // Cabecalho de grupo
-        html += '<div style="padding:5px 14px 3px;font-family:var(--font-title);font-size:8px;' +
-            'letter-spacing:2px;text-transform:uppercase;color:' + cor.fg + ';' +
-            'background:' + cor.bg + ';border-bottom:1px solid var(--border)">' + dia + '</div>';
-
-        grupos[dia].forEach(function(c) {
-            var ativo   = c.ativo !== false;
-            var horaStr = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '—';
-            var ativo_c = ativo ? '' : ' inativo';
-            var active_c = cu_id === c.id ? ' active' : '';
-            var sub = [
-                c.hora_inicio ? c.hora_inicio.slice(0,5) : null,
-                c.hora_fim    ? c.hora_fim.slice(0,5) : null,
-            ].filter(Boolean).join(' – ');
-            if (c.recorrente) sub += ' · Recorrente';
-
-            html += '<div class="cu-item cu-dia-' + idx + ativo_c + active_c + '" onclick="cu_selecionar(\'' + c.id + '\')">' +
-                '<div class="cu-avatar" style="background:' + cor.bg + ';color:' + cor.fg + '">' +
-                    '<span class="hora">' + horaStr + '</span>' +
-                    dia.slice(0, 3).toUpperCase() +
-                '</div>' +
-                '<div class="cu-item-info">' +
-                    '<div class="cu-item-nome">' + (c.nome || '—') + '</div>' +
-                    '<div class="cu-item-sub">' + (sub || '—') + '</div>' +
-                '</div>' +
-                (!ativo ? '<span class="cu-pill" style="background:var(--bg-input);color:var(--text-faint);border:1px solid var(--border)">Inativo</span>' : '') +
-            '</div>';
-        });
-    });
-
-    // Cultos sem dia definido
-    if (grupos['Sem dia']) {
-        grupos['Sem dia'].forEach(function(c) {
-            var ativo   = c.ativo !== false;
-            html += '<div class="cu-item cu-dia-0' + (ativo ? '' : ' inativo') + (cu_id === c.id ? ' active' : '') +
-                '" onclick="cu_selecionar(\'' + c.id + '\')">' +
-                '<div class="cu-item-info"><div class="cu-item-nome">' + (c.nome || '—') + '</div></div>' +
-            '</div>';
-        });
-    }
-
-    el.innerHTML = html;
-}
-
-window.cu_filtrar = function() { cu_renderList(); };
-
-// ── Seleccionar ───────────────────────────────────────────────────────────────
-window.cu_selecionar = function(id) {
-    cu_id = id;
-    cu_renderList();
-    var c = cu_dados.find(function(x) { return x.id === id; });
-    if (c) cu_renderForm(c);
-};
-
-// ── Novo ──────────────────────────────────────────────────────────────────────
-window.cu_novo = function() {
-    cu_id = null;
-    cu_renderList();
-    cu_renderFormNovo();
-};
-
-// ── Form — culto existente ────────────────────────────────────────────────────
-function cu_renderForm(c) {
-    var panel = document.getElementById('cu-panel');
-    if (!panel) return;
-
-    var ativo = c.ativo !== false;
-    var cor   = cu_cor(c.dia_semana);
-    var idx   = cu_diaIdx(c.dia_semana);
-    var horaStr = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '—';
-    var diaAbrev = (c.dia_semana || '').slice(0, 3).toUpperCase();
-
-    panel.innerHTML =
-        // Header
-        '<div class="cu-form-header">' +
-            '<div class="cu-form-header-av" style="background:' + cor.bg + ';color:' + cor.fg + '">' +
-                '<span class="hora">' + horaStr + '</span>' + diaAbrev +
-            '</div>' +
-            '<div class="cu-form-header-info">' +
-                '<div class="cu-form-title">' + (c.nome || '—') + '</div>' +
-                '<div class="cu-form-sub">' +
-                    (c.dia_semana || '') +
-                    (c.hora_inicio ? ' · ' + c.hora_inicio.slice(0,5) : '') +
-                    (c.hora_fim    ? ' – ' + c.hora_fim.slice(0,5) : '') +
-                    (!ativo ? ' · <span style="color:var(--text-faint)">Inativo</span>' : '') +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-
-        cu_buildForm(c);
-}
-
-// ── Form — novo ───────────────────────────────────────────────────────────────
-function cu_renderFormNovo() {
-    var panel = document.getElementById('cu-panel');
-    if (!panel) return;
-
-    panel.innerHTML =
-        '<div class="cu-form-header">' +
-            '<div class="cu-form-header-av" style="background:var(--primary-faint);color:var(--primary-dark)">+ NOVO</div>' +
-            '<div class="cu-form-header-info">' +
-                '<div class="cu-form-title">Novo Culto</div>' +
-                '<div class="cu-form-sub">Preenche os campos e guarda</div>' +
-            '</div>' +
-        '</div>' +
-        cu_buildForm(null);
-}
-
-// ── HTML do formulario ────────────────────────────────────────────────────────
-function cu_buildForm(c) {
-    var fv = function(k, d) {
-        var v = c ? c[k] : undefined;
-        if (v === undefined || v === null) return (d !== undefined ? d : '');
-        return v;
-    };
-
-    var diaOpts = DIAS_OPCOES.map(function(d) {
-        return '<option value="' + d + '" ' + (fv('dia_semana') === d ? 'selected' : '') + '>' + d + '</option>';
-    }).join('');
-
-    var id = c ? c.id : '';
-    var ativo = c ? (c.ativo !== false) : true;
-
-    return '<div class="cu-form">' +
-        '<div class="cu-msg" id="cu-msg"></div>' +
-
-        '<div class="cu-section-title">Identificacao</div>' +
-        '<div class="cu-field-grid">' +
-            '<div class="cu-field full">' +
-                '<label class="cu-label">Nome *</label>' +
-                '<input class="cu-input" id="cf-nome" type="text" value="' + fv('nome') + '" placeholder="Ex: Culto de Domingo">' +
-            '</div>' +
-            '<div class="cu-field">' +
-                '<label class="cu-label">Dia da Semana</label>' +
-                '<select class="cu-select" id="cf-dia">' + diaOpts + '</select>' +
-            '</div>' +
-            '<div class="cu-field">' +
-                '<label class="cu-label">Data Especifica</label>' +
-                '<input class="cu-input" id="cf-data" type="date" value="' + fv('data_especifica') + '" ' +
-                    'title="Preenche so se o culto for numa data unica">' +
-            '</div>' +
-        '</div>' +
-
-        '<div class="cu-section-title">Horario</div>' +
-        '<div class="cu-field-grid">' +
-            '<div class="cu-field">' +
-                '<label class="cu-label">Hora de Inicio</label>' +
-                '<input class="cu-input" id="cf-inicio" type="time" value="' + fv('hora_inicio') + '">' +
-            '</div>' +
-            '<div class="cu-field">' +
-                '<label class="cu-label">Hora de Fim</label>' +
-                '<input class="cu-input" id="cf-fim" type="time" value="' + fv('hora_fim') + '">' +
-            '</div>' +
-            '<div class="cu-field">' +
-                '<label class="cu-toggle-row">' +
-                    '<input type="checkbox" id="cf-recorrente" ' + (fv('recorrente', true) ? 'checked' : '') + '>' +
-                    'Recorrente (todas as semanas)' +
-                '</label>' +
-            '</div>' +
-            '<div class="cu-field">' +
-                '<label class="cu-toggle-row">' +
-                    '<input type="checkbox" id="cf-ativo" ' + (ativo ? 'checked' : '') + '>' +
-                    'Ativo' +
-                '</label>' +
-            '</div>' +
-        '</div>' +
-
-        '<div class="cu-section-title">Descricao</div>' +
-        '<div class="cu-field-grid">' +
-            '<div class="cu-field full">' +
-                '<label class="cu-label">Descricao / Notas</label>' +
-                '<textarea class="cu-textarea" id="cf-descricao" placeholder="Informacoes adicionais...">' + fv('descricao') + '</textarea>' +
-            '</div>' +
-        '</div>' +
-
-        '<div class="cu-actions">' +
-            (c ? '<button class="cu-btn-toggle ' + (ativo ? 'inativar' : 'ativar') + '" onclick="cu_toggleAtivo(\'' + id + '\',' + ativo + ')">' + (ativo ? 'Inativar' : 'Ativar') + '</button>' : '') +
-            '<button class="cu-btn-cancel" onclick="cu_fechar()">Cancelar</button>' +
-            '<button class="cu-btn-save" id="cu-btn-save" onclick="cu_guardar(\'' + id + '\')">' +
-                (c ? 'Guardar Alteracoes' : 'Criar Culto') +
-            '</button>' +
-        '</div>' +
-    '</div>';
-}
-
-// ── Guardar ───────────────────────────────────────────────────────────────────
-window.cu_guardar = async function(id) {
-    var get = function(k) {
-        var el = document.getElementById('cf-' + k);
-        return el ? (el.value || '').trim() || null : null;
-    };
-    var chkEl = function(k) {
-        var el = document.getElementById('cf-' + k);
-        return el ? el.checked : false;
-    };
-
-    var nome = get('nome');
-    if (!nome) { cu_showMsg('Nome obrigatorio.', 'error'); return; }
-
-    var body = {
-        nome:           nome,
-        dia_semana:     get('dia'),
-        data_especifica:get('data'),
-        hora_inicio:    get('inicio'),
-        hora_fim:       get('fim'),
-        recorrente:     chkEl('recorrente'),
-        descricao:      get('descricao'),
-        ativo:          chkEl('ativo'),
-    };
-
-    var btn = document.getElementById('cu-btn-save');
-    if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
-
-    try {
-        if (!id) {
-            await sb('cultos', { method: 'POST', body: JSON.stringify(body) });
-        } else {
-            await sb('cultos?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) });
+    // ── INIT ──────────────────────────────────────────────────────────────────────
+    async function cu_init() {
+        try {
+            cu.campus = await sb('campus?select=*&order=nome') || [];
+            cu.cultos = await sb('cultos?select=*&order=dia_semana,hora_inicio') || [];
+            await cu_autoInativar();
+        } catch(e) {
+            console.error('[Cultos] Erro ao carregar:', e);
+            cu.campus = [];
+            cu.cultos = [];
         }
+        cu_renderCampusList();
+        cu_renderCultoList();
+    }
 
-        cu_showMsg('Guardado com sucesso!', 'success');
-        cu_dados = await sb('cultos?select=*&order=dia_semana,hora_inicio') || [];
-        cu_renderList();
-
-        // Re-seleccionar
-        if (id) {
-            var updated = cu_dados.find(function(x) { return x.id === id; });
-            if (updated) setTimeout(function() { cu_renderForm(updated); }, 600);
-        } else {
-            var criado = cu_dados.find(function(x) { return x.nome === nome; });
-            if (criado) {
-                cu_id = criado.id;
-                cu_renderList();
-                setTimeout(function() { cu_renderForm(criado); }, 600);
+    // ── AUTO-INATIVAR cultos com data especifica expirada ─────────────────────────
+    async function cu_autoInativar() {
+        var hoje = new Date().toISOString().split('T')[0];
+        var expirados = cu.cultos.filter(function(c) {
+            return c.data_especifica && c.data_especifica < hoje && c.ativo === true;
+        });
+        if (!expirados.length) return;
+        console.log('[Cultos] Auto-inativando ' + expirados.length + ' culto(s) expirado(s)...');
+        for (var c of expirados) {
+            try {
+                await sb('cultos?id=eq.' + c.id, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ ativo: false })
+                });
+                c.ativo = false;
+            } catch(e) {
+                console.warn('[Cultos] Erro ao auto-inativar ' + c.id, e);
             }
         }
-
-    } catch (e) {
-        cu_showMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
-        if (btn) { btn.disabled = false; btn.textContent = id ? 'Guardar Alteracoes' : 'Criar Culto'; }
     }
-};
 
-// ── Toggle ativo ──────────────────────────────────────────────────────────────
-window.cu_toggleAtivo = async function(id, ativoAtual) {
-    if (!confirm(ativoAtual ? 'Inativar este culto?' : 'Ativar este culto?')) return;
-    try {
-        await sb('cultos?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativoAtual }) });
-        cu_dados = await sb('cultos?select=*&order=dia_semana,hora_inicio') || [];
-        cu_renderList();
-        var c = cu_dados.find(function(x) { return x.id === id; });
-        if (c) cu_renderForm(c);
-    } catch (e) {
-        alert('Erro: ' + (e?.message || JSON.stringify(e)));
+    // ── SIDEBAR CAMPUS ────────────────────────────────────────────────────────────
+    function cu_renderCampusList() {
+        var el = document.getElementById('cu-campus-list');
+        if (!el) return;
+        var q = (document.getElementById('cu-campus-search')?.value || '').toLowerCase();
+        var lista = cu.campus.filter(function(c) {
+            return !q ||
+                (c.nome||'').toLowerCase().includes(q) ||
+                (c.cidade||'').toLowerCase().includes(q);
+        });
+
+        if (!lista.length) {
+            el.innerHTML = '<div class="cu-empty-side">Nenhum campus.<br>Clica em + Campus para adicionar.</div>';
+            return;
+        }
+
+        var html = '';
+        lista.forEach(function(c) {
+            var ativo  = c.ativo !== false;
+            var active = cu.campusId === c.id ? ' active' : '';
+            var inati  = !ativo ? ' inativo' : '';
+            var nCultos = cu.cultos.filter(function(x) { return x.campus_id === c.id; }).length;
+
+            var thumb = c.imagem_url
+                ? '<img class="cu-campus-thumb" src="' + c.imagem_url.replace(/"/g,'') + '" onerror="this.style.display=\'none\'">'
+                : '<div class="cu-campus-thumb-ph">' + (c.nome||'?').charAt(0).toUpperCase() + '</div>';
+
+            html +=
+                '<div class="cu-campus-item' + active + inati + '" onclick="cu_selecionarCampus(\'' + c.id + '\')">' +
+                thumb +
+                '<div class="cu-campus-info">' +
+                '<div class="cu-campus-nome">' + (c.nome||'—') + '</div>' +
+                '<div class="cu-campus-sub">' + (c.cidade || (ativo ? 'Ativo' : 'Inativo')) + '</div>' +
+                '</div>' +
+                (nCultos ? '<span class="cu-campus-badge">' + nCultos + '</span>' : '') +
+                '</div>';
+        });
+        el.innerHTML = html;
     }
-};
 
-// ── Fechar painel ─────────────────────────────────────────────────────────────
-window.cu_fechar = function() {
-    cu_id = null;
-    cu_renderList();
-    var panel = document.getElementById('cu-panel');
-    if (panel) panel.innerHTML =
-        '<div class="cu-panel-empty">' +
-            '<div class="cu-panel-empty-icon">' +
-                '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
-                    '<path d="M12 2L2 7l10 5 10-5-10-5z"/>' +
-                    '<path d="M2 17l10 5 10-5"/>' +
-                    '<path d="M2 12l10 5 10-5"/>' +
-                '</svg>' +
+    window.cu_filtrarCampus = function() { cu_renderCampusList(); };
+
+    // ── SIDEBAR CULTOS ────────────────────────────────────────────────────────────
+    function cu_renderCultoList() {
+        var headEl = document.getElementById('cu-cultos-head');
+        var el     = document.getElementById('cu-culto-list');
+        if (!el) return;
+
+        if (!cu.campusId) {
+            if (headEl) headEl.innerHTML =
+                '<span class="cu-cultos-head-label" style="color:rgba(255,255,255,0.3)">Seleciona um campus</span>';
+            el.innerHTML = '';
+            return;
+        }
+
+        var campus = cu.campus.find(function(c) { return c.id === cu.campusId; });
+        if (headEl) headEl.innerHTML =
+            '<span class="cu-cultos-head-label">' + (campus ? campus.nome : '') + '</span>' +
+            '<button class="cu-btn-novo" onclick="cu_novoCulto()">+ Culto</button>';
+
+        var lista = cu.cultos.filter(function(c) { return c.campus_id === cu.campusId; });
+        if (!lista.length) {
+            el.innerHTML = '<div class="cu-empty-side">Sem cultos neste campus.<br>Clica em + Culto para adicionar.</div>';
+            return;
+        }
+
+        // Agrupar por dia da semana
+        var grupos = {};
+        lista.forEach(function(c) {
+            var d = c.dia_semana || 'Sem dia';
+            if (!grupos[d]) grupos[d] = [];
+            grupos[d].push(c);
+        });
+
+        var html = '';
+        var ordem = ['Domingo','Segunda-feira','Terca-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sabado','Sem dia'];
+        ordem.forEach(function(dia) {
+            if (!grupos[dia]) return;
+            var cor = cu_cor(dia);
+            var idx = cu_diaIdx(dia);
+
+            html += '<div class="cu-dia-header cu-dia-' + idx +
+                '" style="color:' + cor.fg + ';background:' + cor.bg + '">' + dia + '</div>';
+
+            grupos[dia].forEach(function(c) {
+                var ativo   = c.ativo !== false;
+                var horaStr = c.hora_inicio ? c.hora_inicio.slice(0,5) : '—';
+                var diaAb   = c.dia_semana ? c.dia_semana.slice(0,3).toUpperCase() : 'ESP';
+                var active  = cu.cultoId === c.id ? ' active' : '';
+                var sub = c.data_especifica
+                    ? 'Data: ' + c.data_especifica
+                    : [c.hora_inicio ? c.hora_inicio.slice(0,5) : null,
+                        c.hora_fim    ? c.hora_fim.slice(0,5) : null]
+                        .filter(Boolean).join(' – ')
+                    + (c.recorrente ? ' · Recorrente' : '');
+
+                html +=
+                    '<div class="cu-item cu-dia-' + idx + (ativo ? '' : ' inativo') + active +
+                    '" onclick="cu_selecionarCulto(\'' + c.id + '\')">' +
+                    '<div class="cu-avatar" style="background:' + cor.bg + ';color:' + cor.fg + '">' +
+                    '<span class="hora">' + horaStr + '</span>' + diaAb +
+                    '</div>' +
+                    '<div class="cu-item-info">' +
+                    '<div class="cu-item-nome">' + (c.nome||'—') + '</div>' +
+                    '<div class="cu-item-sub">' + (sub||'—') + '</div>' +
+                    '</div>' +
+                    (!ativo ? '<span class="cu-pill-off">Off</span>' : '') +
+                    '</div>';
+            });
+        });
+        el.innerHTML = html;
+    }
+
+    // ── SELECIONAR CAMPUS ─────────────────────────────────────────────────────────
+    window.cu_selecionarCampus = function(id) {
+        cu.campusId = id;
+        cu.cultoId  = null;
+        cu_renderCampusList();
+        cu_renderCultoList();
+        var c = cu.campus.find(function(x) { return x.id === id; });
+        if (c) cu_renderFormCampus(c);
+    };
+
+    // ── SELECIONAR CULTO ──────────────────────────────────────────────────────────
+    window.cu_selecionarCulto = function(id) {
+        cu.cultoId = id;
+        cu_renderCultoList();
+        var c = cu.cultos.find(function(x) { return x.id === id; });
+        if (c) cu_renderFormCulto(c);
+    };
+
+    // ── NOVO CAMPUS ───────────────────────────────────────────────────────────────
+    window.cu_novoCampus = function() {
+        cu.campusId = null;
+        cu.cultoId  = null;
+        cu_renderCampusList();
+        cu_renderCultoList();
+        cu_renderFormNovoCampus();
+    };
+
+    // ── NOVO CULTO ────────────────────────────────────────────────────────────────
+    window.cu_novoCulto = function() {
+        if (!cu.campusId) { alert('Seleciona um campus primeiro.'); return; }
+        cu.cultoId = null;
+        cu_renderCultoList();
+        cu_renderFormNovoCulto();
+    };
+
+    // ── FORM CAMPUS — existente ───────────────────────────────────────────────────
+    function cu_renderFormCampus(c) {
+        var panel = document.getElementById('cu-panel');
+        if (!panel) return;
+        var ativo = c.ativo !== false;
+
+        panel.innerHTML =
+            '<div class="cu-form-header">' +
+            (c.imagem_url
+                ? '<img class="cu-form-header-img" src="' + c.imagem_url.replace(/"/g,'') + '" onerror="this.style.display=\'none\'">'
+                : '<div class="cu-form-header-av" style="background:rgba(0,144,152,0.15);color:var(--primary)">' +
+                (c.nome||'?').charAt(0).toUpperCase() + '</div>') +
+            '<div class="cu-form-header-info">' +
+            '<div class="cu-form-title">' + (c.nome||'—') + '</div>' +
+            '<div class="cu-form-sub">Campus' +
+            (c.cidade ? ' · ' + c.cidade : '') +
+            (!ativo ? ' · <span style="color:rgba(255,255,255,0.3)">Inativo</span>' : '') +
             '</div>' +
-            '<div class="cu-panel-empty-txt">Seleciona um culto</div>' +
-        '</div>';
-};
+            '</div>' +
+            '</div>' +
+            cu_buildFormCampus(c);
+    }
 
-// ── Mensagem feedback ─────────────────────────────────────────────────────────
-function cu_showMsg(txt, tipo) {
-    var el = document.getElementById('cu-msg');
-    if (!el) return;
-    el.textContent = txt;
-    el.className = 'cu-msg ' + tipo;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    if (tipo === 'success') setTimeout(function() { el.className = 'cu-msg'; }, 3000);
-}
+    // ── FORM CAMPUS — novo ────────────────────────────────────────────────────────
+    function cu_renderFormNovoCampus() {
+        var panel = document.getElementById('cu-panel');
+        if (!panel) return;
+        panel.innerHTML =
+            '<div class="cu-form-header">' +
+            '<div class="cu-form-header-av" style="background:rgba(0,144,152,0.15);color:var(--primary);font-size:18px">+</div>' +
+            '<div class="cu-form-header-info">' +
+            '<div class="cu-form-title">Novo Campus</div>' +
+            '<div class="cu-form-sub">Preenche os campos e guarda</div>' +
+            '</div>' +
+            '</div>' +
+            cu_buildFormCampus(null);
+    }
 
-// ── Arrancar ──────────────────────────────────────────────────────────────────
+    // ── HTML FORM CAMPUS ──────────────────────────────────────────────────────────
+    function cu_buildFormCampus(c) {
+        var fv = function(k, d) {
+            var v = c ? c[k] : undefined;
+            return (v === undefined || v === null) ? (d !== undefined ? d : '') : v;
+        };
+        var id   = c ? c.id : '';
+        var ativo = c ? (c.ativo !== false) : true;
+        var img  = fv('imagem_url');
 
-// Expor init para o admin.html reInitMap
-window.cu_init = cu_init;
+        return '<div class="cu-form">' +
+            '<div class="cu-msg" id="cu-msg"></div>' +
 
-cu_init();
+            '<div class="cu-section-title">Identificacao</div>' +
+            '<div class="cu-field-grid">' +
+            '<div class="cu-field full">' +
+            '<label class="cu-label">Nome do Campus *</label>' +
+            '<input class="cu-input" id="cf-camp-nome" type="text" value="' + fv('nome') + '" placeholder="Ex: Campus Lisboa">' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-label">Cidade</label>' +
+            '<input class="cu-input" id="cf-camp-cidade" type="text" value="' + fv('cidade') + '" placeholder="Ex: Lisboa">' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-label">Endereco</label>' +
+            '<input class="cu-input" id="cf-camp-endereco" type="text" value="' + fv('endereco') + '" placeholder="Rua, numero...">' +
+            '</div>' +
+            '</div>' +
 
+            '<div class="cu-section-title">Imagem do Campus</div>' +
+            '<div class="cu-field-grid">' +
+            '<div class="cu-field full">' +
+            '<label class="cu-label">URL da Imagem</label>' +
+            '<input class="cu-input" id="cf-camp-img" type="url" value="' + img + '" placeholder="https://..." oninput="cu_previewImg()">' +
+            '<img id="cu-img-preview" class="cu-img-preview' + (img ? ' visible' : '') + '" ' +
+            'src="' + img + '" onerror="this.classList.remove(\'visible\')">' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="cu-section-title">Informacoes</div>' +
+            '<div class="cu-field-grid">' +
+            '<div class="cu-field full">' +
+            '<label class="cu-label">Descricao / Notas</label>' +
+            '<textarea class="cu-textarea" id="cf-camp-descricao" placeholder="Informacoes sobre o campus...">' + fv('descricao') + '</textarea>' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-toggle-row">' +
+            '<input type="checkbox" id="cf-camp-ativo" ' + (ativo ? 'checked' : '') + '>' +
+            'Campus Ativo' +
+            '</label>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="cu-actions">' +
+            (c ? '<button class="cu-btn-toggle ' + (ativo ? 'inativar' : 'ativar') +
+                '" onclick="cu_toggleCampus(\'' + id + '\',' + ativo + ')">' +
+                (ativo ? 'Inativar Campus' : 'Ativar Campus') + '</button>' : '') +
+            '<button class="cu-btn-cancel" onclick="cu_fechar()">Cancelar</button>' +
+            '<button class="cu-btn-save" id="cu-btn-save" onclick="cu_guardarCampus(\'' + id + '\')">' +
+            (c ? 'Guardar Alteracoes' : 'Criar Campus') +
+            '</button>' +
+            '</div>' +
+            '</div>';
+    }
+
+    window.cu_previewImg = function() {
+        var inp = document.getElementById('cf-camp-img');
+        var img = document.getElementById('cu-img-preview');
+        if (!inp || !img) return;
+        var url = inp.value.trim();
+        if (url) {
+            img.src = url;
+            img.classList.add('visible');
+            img.onerror = function() { img.classList.remove('visible'); };
+        } else {
+            img.classList.remove('visible');
+            img.src = '';
+        }
+    };
+
+    // ── GUARDAR CAMPUS ────────────────────────────────────────────────────────────
+    window.cu_guardarCampus = async function(id) {
+        var get = function(k) {
+            var el = document.getElementById('cf-camp-' + k);
+            return el ? (el.value || '').trim() || null : null;
+        };
+        var nome = get('nome');
+        if (!nome) { cu_showMsg('Nome obrigatorio.', 'error'); return; }
+
+        var body = {
+            nome:       nome,
+            cidade:     get('cidade'),
+            endereco:   get('endereco'),
+            descricao:  get('descricao'),
+            imagem_url: get('img'),
+            ativo:      document.getElementById('cf-camp-ativo')?.checked ?? true,
+        };
+
+        var btn = document.getElementById('cu-btn-save');
+        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+        try {
+            if (!id) {
+                await sb('campus', { method: 'POST', body: JSON.stringify(body) });
+            } else {
+                await sb('campus?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) });
+            }
+            cu_showMsg('Campus guardado!', 'success');
+            cu.campus = await sb('campus?select=*&order=nome') || [];
+            cu_renderCampusList();
+
+            if (!id) {
+                var criado = cu.campus.find(function(x) { return x.nome === nome; });
+                if (criado) {
+                    cu.campusId = criado.id;
+                    cu_renderCampusList();
+                    cu_renderCultoList();
+                    setTimeout(function() { cu_renderFormCampus(criado); }, 600);
+                }
+            } else {
+                var updated = cu.campus.find(function(x) { return x.id === id; });
+                if (updated) setTimeout(function() { cu_renderFormCampus(updated); }, 600);
+            }
+        } catch(e) {
+            cu_showMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
+            if (btn) { btn.disabled = false; btn.textContent = id ? 'Guardar Alteracoes' : 'Criar Campus'; }
+        }
+    };
+
+    // ── TOGGLE CAMPUS ─────────────────────────────────────────────────────────────
+    window.cu_toggleCampus = async function(id, ativoAtual) {
+        if (!confirm(ativoAtual ? 'Inativar este campus?' : 'Ativar este campus?')) return;
+        try {
+            await sb('campus?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativoAtual }) });
+            cu.campus = await sb('campus?select=*&order=nome') || [];
+            cu_renderCampusList();
+            var c = cu.campus.find(function(x) { return x.id === id; });
+            if (c) cu_renderFormCampus(c);
+        } catch(e) {
+            alert('Erro: ' + (e?.message || JSON.stringify(e)));
+        }
+    };
+
+    // ── FORM CULTO — existente ────────────────────────────────────────────────────
+    function cu_renderFormCulto(c) {
+        var panel = document.getElementById('cu-panel');
+        if (!panel) return;
+        var ativo   = c.ativo !== false;
+        var cor     = cu_cor(c.dia_semana);
+        var horaStr = c.hora_inicio ? c.hora_inicio.slice(0,5) : '—';
+        var diaAb   = (c.dia_semana||'').slice(0,3).toUpperCase() || 'ESP';
+        var campus  = cu.campus.find(function(x) { return x.id === c.campus_id; });
+
+        panel.innerHTML =
+            '<div class="cu-breadcrumb">' +
+            (campus
+                ? '<span class="cu-breadcrumb-link" onclick="cu_selecionarCampus(\'' + campus.id + '\')">' + campus.nome + '</span> › '
+                : '') +
+            '<span class="cu-breadcrumb-cur">' + (c.nome||'—') + '</span>' +
+            '</div>' +
+            '<div class="cu-form-header">' +
+            '<div class="cu-form-header-av" style="background:' + cor.bg + ';color:' + cor.fg + '">' +
+            '<span class="hora">' + horaStr + '</span>' + diaAb +
+            '</div>' +
+            '<div class="cu-form-header-info">' +
+            '<div class="cu-form-title">' + (c.nome||'—') + '</div>' +
+            '<div class="cu-form-sub">' +
+            (c.dia_semana||'') +
+            (c.hora_inicio ? ' · ' + c.hora_inicio.slice(0,5) : '') +
+            (c.hora_fim    ? ' – ' + c.hora_fim.slice(0,5) : '') +
+            (c.data_especifica ? ' · ' + c.data_especifica : '') +
+            (!ativo ? ' · <span style="color:rgba(255,255,255,0.3)">Inativo</span>' : '') +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            cu_buildFormCulto(c);
+    }
+
+    // ── FORM CULTO — novo ─────────────────────────────────────────────────────────
+    function cu_renderFormNovoCulto() {
+        var panel  = document.getElementById('cu-panel');
+        if (!panel) return;
+        var campus = cu.campus.find(function(x) { return x.id === cu.campusId; });
+
+        panel.innerHTML =
+            '<div class="cu-breadcrumb">' +
+            (campus
+                ? '<span class="cu-breadcrumb-link" onclick="cu_selecionarCampus(\'' + campus.id + '\')">' + campus.nome + '</span> › '
+                : '') +
+            '<span class="cu-breadcrumb-cur">Novo Culto</span>' +
+            '</div>' +
+            '<div class="cu-form-header">' +
+            '<div class="cu-form-header-av" style="background:rgba(0,144,152,0.15);color:var(--primary);font-size:16px">+</div>' +
+            '<div class="cu-form-header-info">' +
+            '<div class="cu-form-title">Novo Culto</div>' +
+            '<div class="cu-form-sub">' + (campus ? campus.nome : 'Campus') + '</div>' +
+            '</div>' +
+            '</div>' +
+            cu_buildFormCulto(null);
+    }
+
+    // ── HTML FORM CULTO ───────────────────────────────────────────────────────────
+    function cu_buildFormCulto(c) {
+        var fv = function(k, d) {
+            var v = c ? c[k] : undefined;
+            return (v === undefined || v === null) ? (d !== undefined ? d : '') : v;
+        };
+        var diaOpts = '<option value="">Selecionar...</option>' +
+            DIAS_OPCOES.map(function(d) {
+                return '<option value="' + d + '" ' + (fv('dia_semana') === d ? 'selected' : '') + '>' + d + '</option>';
+            }).join('');
+        var id   = c ? c.id : '';
+        var ativo = c ? (c.ativo !== false) : true;
+
+        return '<div class="cu-form">' +
+            '<div class="cu-msg" id="cu-msg"></div>' +
+
+            '<div class="cu-section-title">Identificacao</div>' +
+            '<div class="cu-field-grid">' +
+            '<div class="cu-field full">' +
+            '<label class="cu-label">Nome *</label>' +
+            '<input class="cu-input" id="cf-nome" type="text" value="' + fv('nome') + '" placeholder="Ex: Culto de Domingo">' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-label">Dia da Semana</label>' +
+            '<select class="cu-select" id="cf-dia">' + diaOpts + '</select>' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-label">Data Especifica</label>' +
+            '<input class="cu-input" id="cf-data" type="date" value="' + fv('data_especifica') + '" title="So para cultos de data unica">' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="cu-section-title">Horario</div>' +
+            '<div class="cu-field-grid">' +
+            '<div class="cu-field">' +
+            '<label class="cu-label">Hora de Inicio</label>' +
+            '<input class="cu-input" id="cf-inicio" type="time" value="' + fv('hora_inicio') + '">' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-label">Hora de Fim</label>' +
+            '<input class="cu-input" id="cf-fim" type="time" value="' + fv('hora_fim') + '">' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-toggle-row">' +
+            '<input type="checkbox" id="cf-recorrente" ' + (fv('recorrente', true) ? 'checked' : '') + '>' +
+            'Recorrente (todas as semanas)' +
+            '</label>' +
+            '</div>' +
+            '<div class="cu-field">' +
+            '<label class="cu-toggle-row">' +
+            '<input type="checkbox" id="cf-ativo" ' + (ativo ? 'checked' : '') + '>' +
+            'Ativo' +
+            '</label>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="cu-section-title">Descricao</div>' +
+            '<div class="cu-field-grid">' +
+            '<div class="cu-field full">' +
+            '<label class="cu-label">Descricao / Notas</label>' +
+            '<textarea class="cu-textarea" id="cf-descricao" placeholder="Informacoes adicionais...">' + fv('descricao') + '</textarea>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="cu-actions">' +
+            (c ? '<button class="cu-btn-toggle ' + (ativo ? 'inativar' : 'ativar') +
+                '" onclick="cu_toggleCulto(\'' + id + '\',' + ativo + ')">' +
+                (ativo ? 'Inativar' : 'Ativar') + '</button>' : '') +
+            '<button class="cu-btn-cancel" onclick="cu_selecionarCampus(\'' + cu.campusId + '\')">Cancelar</button>' +
+            '<button class="cu-btn-save" id="cu-btn-save" onclick="cu_guardarCulto(\'' + id + '\')">' +
+            (c ? 'Guardar Alteracoes' : 'Criar Culto') +
+            '</button>' +
+            '</div>' +
+            '</div>';
+    }
+
+    // ── GUARDAR CULTO ─────────────────────────────────────────────────────────────
+    window.cu_guardarCulto = async function(id) {
+        var get = function(k) {
+            var el = document.getElementById('cf-' + k);
+            return el ? (el.value || '').trim() || null : null;
+        };
+        var chk = function(k) {
+            var el = document.getElementById('cf-' + k);
+            return el ? el.checked : false;
+        };
+
+        var nome = get('nome');
+        if (!nome) { cu_showMsg('Nome obrigatorio.', 'error'); return; }
+        if (!cu.campusId) { cu_showMsg('Campus nao definido.', 'error'); return; }
+
+        var body = {
+            nome:            nome,
+            campus_id:       cu.campusId,
+            dia_semana:      get('dia'),
+            data_especifica: get('data'),
+            hora_inicio:     get('inicio'),
+            hora_fim:        get('fim'),
+            recorrente:      chk('recorrente'),
+            descricao:       get('descricao'),
+            ativo:           chk('ativo'),
+        };
+
+        var btn = document.getElementById('cu-btn-save');
+        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+        try {
+            if (!id) {
+                await sb('cultos', { method: 'POST', body: JSON.stringify(body) });
+            } else {
+                await sb('cultos?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) });
+            }
+            cu_showMsg('Guardado com sucesso!', 'success');
+            cu.cultos = await sb('cultos?select=*&order=dia_semana,hora_inicio') || [];
+            cu_renderCultoList();
+            cu_renderCampusList(); // atualizar badges de contagem
+
+            if (id) {
+                var updated = cu.cultos.find(function(x) { return x.id === id; });
+                if (updated) setTimeout(function() { cu_renderFormCulto(updated); }, 600);
+            } else {
+                var criado = cu.cultos.find(function(x) {
+                    return x.nome === nome && x.campus_id === cu.campusId;
+                });
+                if (criado) {
+                    cu.cultoId = criado.id;
+                    cu_renderCultoList();
+                    setTimeout(function() { cu_renderFormCulto(criado); }, 600);
+                }
+            }
+        } catch(e) {
+            cu_showMsg('Erro: ' + (e?.message || JSON.stringify(e)), 'error');
+            if (btn) { btn.disabled = false; btn.textContent = id ? 'Guardar Alteracoes' : 'Criar Culto'; }
+        }
+    };
+
+    // ── TOGGLE CULTO ──────────────────────────────────────────────────────────────
+    window.cu_toggleCulto = async function(id, ativoAtual) {
+        if (!confirm(ativoAtual ? 'Inativar este culto?' : 'Ativar este culto?')) return;
+        try {
+            await sb('cultos?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ ativo: !ativoAtual }) });
+            cu.cultos = await sb('cultos?select=*&order=dia_semana,hora_inicio') || [];
+            cu_renderCultoList();
+            var c = cu.cultos.find(function(x) { return x.id === id; });
+            if (c) cu_renderFormCulto(c);
+        } catch(e) {
+            alert('Erro: ' + (e?.message || JSON.stringify(e)));
+        }
+    };
+
+    // ── FECHAR ────────────────────────────────────────────────────────────────────
+    window.cu_fechar = function() {
+        cu.campusId = null;
+        cu.cultoId  = null;
+        cu_renderCampusList();
+        cu_renderCultoList();
+        var panel = document.getElementById('cu-panel');
+        if (panel) panel.innerHTML =
+            '<div class="cu-panel-empty">' +
+            '<div class="cu-panel-empty-icon">' +
+            '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
+            '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' +
+            '<polyline points="9 22 9 12 15 12 15 22"/>' +
+            '</svg>' +
+            '</div>' +
+            '<div class="cu-panel-empty-txt">Seleciona um campus</div>' +
+            '</div>';
+    };
+
+    // ── MENSAGEM ──────────────────────────────────────────────────────────────────
+    function cu_showMsg(txt, tipo) {
+        var el = document.getElementById('cu-msg');
+        if (!el) return;
+        el.textContent = txt;
+        el.className = 'cu-msg ' + tipo;
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (tipo === 'success') setTimeout(function() { el.className = 'cu-msg'; }, 3000);
+    }
+
+    // ── ARRANCAR ──────────────────────────────────────────────────────────────────
+    window.cu_init = cu_init;
+    cu_init();
 </script>

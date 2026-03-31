@@ -1523,9 +1523,30 @@
         }
         return r.json();
     }
+    // ── FIM SUPABASE ───────────────────────────────────────────────
+
+    async function verificarPermissao(flags = []) {
+        const tipo    = currentUser.tipo    || '';
+        const isAdmin = currentUser.e_admin === true || tipo === 'admin';
+        if (isAdmin) return true;
+        if (flags.includes('e_presbitero') && tipo === 'presbitero') return true;
+        if (flags.includes('e_lider')      && tipo === 'lider')      return true;
+
+        if (currentUser.membro_id) {
+            try {
+                const cols = ['e_admin', ...flags].join(',');
+                const rows = await sb(`membros?id=eq.${currentUser.membro_id}&select=${cols}&ativo=eq.true`);
+                const m = rows?.[0];
+                if (!m) return false;
+                return !!m.e_admin || flags.some(f => !!m[f]);
+            } catch(e) { return false; }
+        }
+
+        return false;
+    }
 
     // ── INIT ───────────────────────────────────────────────────
-    async function init() {
+    async function initOld() {
 
         // ── Permissões a partir do tipo do utilizador (tabela usuarios) ──
         const tipo = currentUser.tipo || 'visitante';
@@ -1547,6 +1568,22 @@
                 console.warn('Permissões:', e);
             }
         }
+
+        renderUserCard();
+
+        try {
+            salas = await sb('salas?select=*&ativo=eq.true&order=espaco,nome');
+            preencherHoras();
+            renderSalas();
+        } catch (e) {
+            document.getElementById('main-content').innerHTML =
+                '<div class="loading">Erro ao carregar. Verifica a configuração Supabase.</div>';
+        }
+    }
+
+    async function init() {
+        perms.canAgendar = await verificarPermissao(['e_lider', 'e_presbitero', 'e_admin']);
+        perms.canAprovar = await verificarPermissao(['e_presbitero', 'e_admin']);
 
         renderUserCard();
 

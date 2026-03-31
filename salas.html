@@ -403,6 +403,7 @@
             .overlay {
                 align-items: center;
             }
+
             .modal {
                 border-radius: 16px !important;
                 animation: popIn 0.22s ease !important;
@@ -1474,7 +1475,9 @@
                         <polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
                     <div>
-                        <div class="aviso-txt">Entregue a sala <strong>limpa e organizada</strong>, tal como a encontrou.</div>
+                        <div class="aviso-txt">Entregue a sala <strong>limpa e organizada</strong>, tal como a
+                            encontrou.
+                        </div>
                         <label class="aviso-check">
                             <input type="checkbox" id="f-aviso">
                             <span>Li e aceito esta condição</span>
@@ -1526,8 +1529,8 @@
 
         // ── Permissões a partir do tipo do utilizador (tabela usuarios) ──
         const tipo = currentUser.tipo || 'visitante';
-        const isAdmin  = currentUser.e_admin === true || tipo === 'admin';
-        const isLider  = tipo === 'lider' || tipo === 'membro';  // ajusta conforme as tuas regras
+        const isAdmin = currentUser.e_admin === true || tipo === 'admin';
+        const isLider = tipo === 'lider' || tipo === 'membro';  // ajusta conforme as tuas regras
 
         perms.canAgendar = isAdmin || isLider;
         perms.canAprovar = isAdmin;
@@ -1643,7 +1646,8 @@
             const hoje = toDateStr(new Date());
             const raw = await sb(`sala_agendamentos?select=sala_id,data_inicio,data_fim,status&data_inicio=gte.${hoje}T00:00:00&data_inicio=lte.${hoje}T23:59:59&status=eq.aprovado`);
             agendHoje = Array.isArray(raw) ? raw : [];
-        } catch (e) { /* ignora */ }
+        } catch (e) { /* ignora */
+        }
 
         const grupos = {};
         (Array.isArray(salas) ? salas : []).forEach(s => {
@@ -1658,10 +1662,13 @@
             list.forEach((s, i) => {
                 const oc = isOcupada(s.id, agendHoje);
                 const cap = s.capacidade ? `${s.capacidade} pessoas` : 'Capacidade a definir';
+
                 let btnHtml;
-                if (oc) btnHtml = `<button class="sala-btn" disabled>Ocupada agora</button>`;
-                else if (!perms.canAgendar) btnHtml = `<button class="sala-btn bloqueado" disabled>Só Líderes</button>`;
-                else btnHtml = `<button class="sala-btn" onclick="abrirModal('${s.id}')">Agendar</button>`;
+                if (!perms.canAgendar) {
+                    btnHtml = `<button class="sala-btn bloqueado" disabled>Só Líderes</button>`;
+                } else {
+                    btnHtml = `<button class="sala-btn" onclick="abrirModal('${s.id}')">Agendar</button>`;
+                }
 
                 html += `
             <div class="sala-card${oc ? ' ocupada' : ''}" style="animation-delay:${i * 0.05}s">
@@ -1845,19 +1852,28 @@
         else if (calState.view === 'semana') d.setDate(d.getDate() + dir * 7);
         else d.setMonth(d.getMonth() + dir);
         calState.anchorDate = new Date(d);
-        try { await carregarAgendaCalendario(); } catch (e) {}
+        try {
+            await carregarAgendaCalendario();
+        } catch (e) {
+        }
         paintAgendaContent();
     }
 
     async function calToday() {
         calState.anchorDate = new Date();
-        try { await carregarAgendaCalendario(); } catch (e) {}
+        try {
+            await carregarAgendaCalendario();
+        } catch (e) {
+        }
         paintAgendaContent();
     }
 
     async function calSetView(v) {
         calState.view = v;
-        try { await carregarAgendaCalendario(); } catch (e) {}
+        try {
+            await carregarAgendaCalendario();
+        } catch (e) {
+        }
         paintAgendaContent();
     }
 

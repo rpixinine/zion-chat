@@ -599,6 +599,78 @@
         margin-bottom: 10px;
         grid-column: 1/-1;
     }
+
+    /* REPORTS */
+    .ev-rel-chk-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 7px 6px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        margin-bottom: 3px;
+        transition: all .12s;
+    }
+    .ev-rel-chk-item.sel {
+        background: var(--primary-faint);
+        border-color: var(--primary);
+    }
+    .ev-rel-chk-item:hover:not(.sel) {
+        background: var(--bg-input);
+    }
+    .ev-rel-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    .ev-rel-table th {
+        background: var(--bg-card);
+        padding: 7px 8px;
+        text-align: left;
+        font-size: 8px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .ev-rel-table th.ev-center {
+        text-align: center;
+        min-width: 72px;
+        max-width: 90px;
+        font-size: 8px;
+        padding: 6px 4px;
+    }
+    .ev-rel-table td {
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+    .ev-rel-table tr:hover td { background: rgba(0,144,152,.04); }
+    .ev-rel-td-pres  { text-align:center; background:rgba(46,125,50,.07);  color:#2e7d32; font-weight:700; font-size:13px; }
+    .ev-rel-td-faltm { text-align:center; background:rgba(230,81,0,.07);   color:#e65100; font-size:11px; }
+    .ev-rel-td-falt  { text-align:center; background:rgba(198,40,40,.06);  color:#c62828; font-weight:700; font-size:13px; }
+    .ev-rel-td-nd    { text-align:center; color:var(--text-faint);         font-size:11px; }
+    .ev-rel-td-pend  { text-align:center; color:var(--text-faint);         font-size:10px; font-style:italic; }
+    .ev-rel-group-hdr td {
+        padding: 7px 10px;
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        border-top: 2px solid transparent;
+    }
+    .ev-rel-subtotal td {
+        font-size: 9px;
+        font-weight: 700;
+        background: rgba(0,0,0,.025);
+        border-top: 1px dashed var(--border);
+    }
+
 </style>
 
 <div class="ev-wrap" id="ev-wrap">
@@ -608,6 +680,7 @@
             <div class="ev-tabs">
                 <button class="ev-tab active" id="ev-tab-0" onclick="evSetTab(0)">Eventos</button>
                 <button class="ev-tab" id="ev-tab-1" onclick="evSetTab(1)">Tipos</button>
+                <button class="ev-tab" id="ev-tab-2" onclick="evSetTab(2)">Relatórios</button>
             </div>
             <div id="ev-filtros-wrap">
                 <input class="ev-search" id="ev-search" type="text" placeholder="Pesquisar evento..."
@@ -662,6 +735,10 @@
         let evPresSearchQ = '';
         let _motivoId = null;
         let evTipoIdx = null;
+        let evRelSel      = new Set();   // IDs de eventos selecionados
+        let evRelFiltroTipo = '';
+        let evRelFiltroQ  = '';
+        let evRelDados    = null;        // { eventos, presencas, minMap }
 
         const ST = {
             aberto: {label: 'Aberto', cls: 'badge-green'},
@@ -705,7 +782,7 @@
             try {
                 const obs = JSON.parse(p.observacoes || '{}');
                 if (obs.nome) return obs.nome;
-                if (obs.email) return obs.email; 
+                if (obs.email) return obs.email;
             } catch {}
             return '(Visitante)';
         }
@@ -1172,6 +1249,18 @@
                 }
                 evRenderSideTipos();
                 evPanelEmpty('Seleciona um tipo para editar ou cria um novo.');
+            }
+            if (t === 2) {
+                if (nb) {
+                    nb.textContent = '⟳ Gerar Relatório';
+                    nb.onclick = () => evGerarRelatorio();
+                }
+                evRenderSideRel();
+                if (!evRelDados) {
+                    evPanelEmpty('Seleciona eventos à esquerda e clica em Gerar Relatório.');
+                } else {
+                    evRenderRelatorio();
+                }
             }
         }
 
@@ -2545,6 +2634,609 @@
             }
         }
 
+        function evRenderSideRel() {
+            let lista = [...evEventos].sort((a, b) => new Date(b.data_inicio) - new Date(a.data_inicio));
+            if (evRelFiltroTipo) lista = lista.filter(e => e.tipo === evRelFiltroTipo);
+            if (evRelFiltroQ)    lista = lista.filter(e => (e.titulo || '').toLowerCase().includes(evRelFiltroQ.toLowerCase()));
+
+            const tipos  = getTipos();
+            const tOpts  = tipos.map(t => `<option value="${t}" ${evRelFiltroTipo === t ? 'selected' : ''}>${t}</option>`).join('');
+            const allSel = lista.length > 0 && lista.every(e => evRelSel.has(e.id));
+
+            let html = `<div style="padding:6px 10px 4px">
+        <input class="ev-search" type="text" placeholder="Pesquisar evento..."
+               value="${evRelFiltroQ}" oninput="evRelSetFiltroQ(this.value)">
+        <select class="ev-filtro-select" onchange="evRelSetFiltroTipo(this.value)" style="margin-bottom:6px">
+            <option value="">Todos os tipos</option>${tOpts}
+        </select>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid var(--border)">
+            <span style="font-size:10px;color:var(--text-faint)">${evRelSel.size} selecionado(s)</span>
+            <button class="ev-btn" style="font-size:9px;padding:3px 8px" onclick="evRelSelTodos()">
+                ${allSel ? 'Dessel. todos' : 'Sel. todos'}
+            </button>
+        </div>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:4px 6px 6px">`;
+
+            if (!lista.length) {
+                html += `<div style="padding:16px;font-size:12px;color:var(--text-faint)">Nenhum evento encontrado.</div>`;
+            } else {
+                lista.forEach(e => {
+                    const sel = evRelSel.has(e.id);
+                    const st  = ST[e.status] || ST.aberto;
+                    const dI  = e.data_inicio
+                        ? new Date(e.data_inicio).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: '2-digit' })
+                        : '—';
+                    html += `<label class="ev-rel-chk-item ${sel ? 'sel' : ''}">
+                <input type="checkbox" ${sel ? 'checked' : ''} onchange="evRelToggle('${e.id}',this.checked)"
+                       style="margin-top:3px;accent-color:var(--primary);flex-shrink:0">
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:11px;font-weight:600;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.titulo}</div>
+                    <div style="font-size:9px;color:var(--text-faint);margin-top:1px">${dI}${e.tipo ? ' · ' + e.tipo : ''}</div>
+                    <div style="margin-top:2px"><span class="badge ${st.cls}" style="font-size:7px;padding:1px 5px">${st.label}</span></div>
+                </div>
+            </label>`;
+                });
+            }
+
+            html += `</div>`;
+            document.getElementById('ev-list').innerHTML = html;
+        }
+
+        function evRelToggle(id, checked) {
+            if (checked) evRelSel.add(id);
+            else          evRelSel.delete(id);
+            evRenderSideRel();
+        }
+
+        function evRelSelTodos() {
+            let lista = [...evEventos];
+            if (evRelFiltroTipo) lista = lista.filter(e => e.tipo === evRelFiltroTipo);
+            if (evRelFiltroQ)    lista = lista.filter(e => (e.titulo || '').toLowerCase().includes(evRelFiltroQ.toLowerCase()));
+            const allSel = lista.every(e => evRelSel.has(e.id));
+            lista.forEach(e => allSel ? evRelSel.delete(e.id) : evRelSel.add(e.id));
+            evRenderSideRel();
+        }
+
+        function evRelSetFiltroQ(v)    { evRelFiltroQ = v;    evRenderSideRel(); }
+        function evRelSetFiltroTipo(v) { evRelFiltroTipo = v; evRenderSideRel(); }
+
+        /* ════════════════════════════════════════════════════════════════════════
+           RELATÓRIOS — GERAR (carrega dados e renderiza)
+        ════════════════════════════════════════════════════════════════════════ */
+        async function evGerarRelatorio() {
+            if (!evRelSel.size) { alert('Seleciona pelo menos um evento.'); return; }
+
+            const nb = document.getElementById('ev-btn-novo');
+            if (nb) { nb.disabled = true; nb.textContent = 'A carregar...'; }
+
+            const ids     = [...evRelSel];
+            const eventos = evEventos
+                .filter(e => ids.includes(e.id))
+                .sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
+
+            const presencas = await _sb(
+                `evento_presencas?select=*,membros(id,nome)&evento_id=in.(${ids.join(',')})&order=evento_id,created_at`
+            ).catch(() => []) || [];
+
+            const mIds = [...new Set(presencas.map(p => p.membro_id).filter(Boolean))];
+            const minMap = {};
+            if (mIds.length) {
+                const mins = await _sb(
+                    `membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`
+                ).catch(() => []) || [];
+                mins.forEach(m => {
+                    if (!minMap[m.membro_id]) minMap[m.membro_id] = [];
+                    minMap[m.membro_id].push({
+                        papel: m.papel || '',
+                        nome:  m.ministerios?.nome || '—',
+                        tipo:  m.ministerios?.tipo || '—'
+                    });
+                });
+            }
+
+            evRelDados = { eventos, presencas, minMap };
+            evRenderRelatorio();
+
+            if (nb) { nb.disabled = false; nb.textContent = '⟳ Gerar Relatório'; }
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════
+           RELATÓRIOS — HELPERS PARTILHADOS
+        ════════════════════════════════════════════════════════════════════════ */
+        const _REL_GRUPOS = [
+            { key: 'ae',          label: 'AE — Áreas Executivas', cor: '#1565c0', bg: 'rgba(21,101,192,.08)'  },
+            { key: 'ministerio',  label: 'Ministérios',            cor: '#6a1b9a', bg: 'rgba(106,27,154,.07)' },
+            { key: 'links',       label: 'Links',                  cor: '#00695c', bg: 'rgba(0,105,92,.07)'   },
+            { key: 'outros',      label: 'Outros Membros',         cor: '#546e7a', bg: 'rgba(84,110,122,.06)' },
+            { key: 'visitantes',  label: 'Visitantes',             cor: '#78909c', bg: 'rgba(120,144,156,.05)'},
+        ];
+
+        function _relTipoKey(pessoa) {
+            const ts = (pessoa.areas || []).map(a => (a.tipo || '').toLowerCase().trim());
+            if (ts.some(t => t === 'ae'         || t.includes('extensao')))  return 'ae';
+            if (ts.some(t => t === 'links'      || t.includes('link')))      return 'links';
+            if (ts.some(t => t === 'ministerio' || t.includes('minister')))  return 'ministerio';
+            if (pessoa.membro_id)                                             return 'outros';
+            return 'visitantes';
+        }
+
+        function _relNomePres(p) {
+            if (p.membros?.nome) return p.membros.nome;
+            try { const o = JSON.parse(p.observacoes || '{}'); return o.nome || o.email || '(Visitante)'; }
+            catch { return '(Visitante)'; }
+        }
+
+        function _relBuildPessoas(presencas, minMap) {
+            const pessoas = {};
+            presencas.forEach(p => {
+                const key = p.membro_id || ('v_' + p.id);
+                if (!pessoas[key]) pessoas[key] = {
+                    nome:      _relNomePres(p),
+                    membro_id: p.membro_id || null,
+                    areas:     minMap[p.membro_id] || [],
+                    eventos:   {}
+                };
+                pessoas[key].eventos[p.evento_id] = { status: p.status, motivo: p.motivo || '' };
+            });
+            return pessoas;
+        }
+
+        function _relAgrupar(pessoas) {
+            const grupos = {};
+            _REL_GRUPOS.forEach(g => grupos[g.key] = []);
+            Object.values(pessoas).forEach(p => {
+                const k = _relTipoKey(p);
+                grupos[k].push(p);
+            });
+            _REL_GRUPOS.forEach(g => grupos[g.key].sort((a, b) => a.nome.localeCompare(b.nome)));
+            return grupos;
+        }
+
+        function _relAreasStr(areas, sep = ', ') {
+            if (!areas.length) return '—';
+            const uniq = [...new Map(areas.map(a => [a.nome, a])).values()];
+            return uniq.map(a => a.nome + (a.papel ? ' · ' + a.papel : '')).join(sep);
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════
+           RELATÓRIOS — RENDER NO ECRÃ
+        ════════════════════════════════════════════════════════════════════════ */
+        function evRenderRelatorio() {
+            const { eventos, presencas, minMap } = evRelDados;
+
+            const pessoas = _relBuildPessoas(presencas, minMap);
+            const grupos  = _relAgrupar(pessoas);
+
+            /* Resumo global */
+            const totalPessoas  = Object.keys(pessoas).length;
+            const totalPres     = presencas.filter(p => p.status === 'presente').length;
+            const totalFalt     = presencas.filter(p => p.status === 'faltou' || p.status === 'faltou_motivo').length;
+            const totalReg      = presencas.length;
+            const taxaMedia     = totalReg > 0 ? Math.round(totalPres / totalReg * 100) : 0;
+            const corTaxa       = taxaMedia >= 80 ? 'var(--green)' : taxaMedia >= 50 ? '#e65100' : 'var(--red)';
+
+            /* Cabeçalho das colunas de eventos */
+            const thEvs = eventos.map(e => {
+                const d = e.data_inicio
+                    ? new Date(e.data_inicio).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })
+                    : '—';
+                const t = e.titulo.length > 13 ? e.titulo.slice(0, 13) + '…' : e.titulo;
+                return `<th class="ev-center" title="${e.titulo}">${t}<br>
+                <span style="font-weight:400;opacity:.75">${d}</span></th>`;
+            }).join('');
+
+            /* Célula de status */
+            const _cell = (evId, pessoa) => {
+                const ev = pessoa.eventos[evId];
+                if (!ev) return `<td class="ev-rel-td-nd">—</td>`;
+                if (ev.status === 'presente')      return `<td class="ev-rel-td-pres">✓</td>`;
+                if (ev.status === 'faltou')        return `<td class="ev-rel-td-falt">✗</td>`;
+                if (ev.status === 'faltou_motivo') {
+                    const mot = ev.motivo ? ev.motivo.substring(0, 22) + (ev.motivo.length > 22 ? '…' : '') : '';
+                    return `<td class="ev-rel-td-faltm" title="${ev.motivo}">⚠${mot ? `<br><span style="font-size:9px">${mot}</span>` : ''}</td>`;
+                }
+                return `<td class="ev-rel-td-pend">pend.</td>`;
+            };
+
+            /* Áreas inline */
+            const _areasHtml = areas => {
+                if (!areas.length) return '<span style="color:var(--text-faint);font-size:10px">—</span>';
+                const uniq = [...new Map(areas.map(a => [a.nome, a])).values()];
+                return uniq.map(a =>
+                    `<span style="font-size:9px;background:var(--bg-input);border-radius:3px;padding:1px 5px;color:var(--text-muted);white-space:nowrap;display:inline-block;margin:1px 1px 1px 0">${a.nome}${a.papel ? ' · ' + a.papel : ''}</span>`
+                ).join('');
+            };
+
+            /* Linha de subtotal por grupo */
+            const _subtotalRow = (g) => {
+                const members = grupos[g.key] || [];
+                const cells = eventos.map(e => {
+                    const pres  = members.filter(p => p.eventos[e.id]?.status === 'presente').length;
+                    const total = members.filter(p => p.eventos[e.id]).length;
+                    if (!total) return `<td class="ev-rel-td-nd">—</td>`;
+                    const pct = Math.round(pres / total * 100);
+                    const cor = pct >= 80 ? '#2e7d32' : pct >= 50 ? '#e65100' : '#c62828';
+                    return `<td style="text-align:center;font-weight:700;font-size:10px;color:${cor}">${pres}/${total}</td>`;
+                }).join('');
+                return `<tr class="ev-rel-subtotal">
+            <td colspan="2" style="color:${g.cor};padding-left:12px">Subtotal — ${members.length} pessoa(s)</td>
+            ${cells}
+        </tr>`;
+            };
+
+            /* Monta tabela */
+            let tbody = '';
+            let anyGroup = false;
+            _REL_GRUPOS.forEach(g => {
+                const members = grupos[g.key] || [];
+                if (!members.length) return;
+                anyGroup = true;
+                tbody += `<tr class="ev-rel-group-hdr">
+            <td colspan="${2 + eventos.length}"
+                style="background:${g.bg};color:${g.cor};border-top-color:${g.cor}">
+                ${g.label} — ${members.length} pessoa(s)
+            </td>
+        </tr>`;
+                members.forEach((p, pi) => {
+                    const bg = pi % 2 === 0 ? '' : 'style="background:rgba(0,0,0,.015)"';
+                    tbody += `<tr ${bg}>
+                <td style="font-weight:600;color:var(--text-main);white-space:nowrap">${p.nome}</td>
+                <td>${_areasHtml(p.areas)}</td>
+                ${eventos.map(e => _cell(e.id, p)).join('')}
+            </tr>`;
+                });
+                tbody += _subtotalRow(g);
+            });
+
+            if (!anyGroup) {
+                tbody = `<tr><td colspan="${2 + eventos.length}" style="text-align:center;padding:30px;color:var(--text-faint)">Sem dados para os eventos selecionados.</td></tr>`;
+            }
+
+            document.getElementById('ev-panel-inner').innerHTML = `
+    <div style="animation:fadeIn .2s ease">
+
+        <!-- Toolbar -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <div style="flex:1;font-size:14px;font-weight:700;color:var(--text-main)">
+                Relatório · ${eventos.length} evento(s)
+            </div>
+            <button class="ev-btn danger" onclick="evExportRelPDF()">↓ PDF</button>
+            <button class="ev-btn success" onclick="evExportRelExcel()">↓ Excel</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="ev-stats-grid" style="margin-bottom:14px">
+            <div class="ev-stat-box">
+                <div class="ev-stat-num">${eventos.length}</div>
+                <div class="ev-stat-lbl">Eventos</div>
+            </div>
+            <div class="ev-stat-box">
+                <div class="ev-stat-num">${totalPessoas}</div>
+                <div class="ev-stat-lbl">Pessoas</div>
+            </div>
+            <div class="ev-stat-box">
+                <div class="ev-stat-num" style="color:var(--green)">${totalPres}</div>
+                <div class="ev-stat-lbl">Presenças</div>
+            </div>
+            <div class="ev-stat-box">
+                <div class="ev-stat-num" style="color:${corTaxa}">${taxaMedia}%</div>
+                <div class="ev-stat-lbl">Taxa Média</div>
+            </div>
+        </div>
+
+        <!-- Eventos incluídos -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:14px">
+            <div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);margin-bottom:7px">EVENTOS INCLUÍDOS</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+                ${eventos.map(e => {
+                const d = e.data_inicio
+                    ? new Date(e.data_inicio).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : '—';
+                return `<span style="background:var(--primary-faint);border:1px solid var(--primary);border-radius:6px;padding:3px 9px;font-size:10px;color:var(--primary-dark)">${e.titulo} · ${d}</span>`;
+            }).join('')}
+            </div>
+        </div>
+
+        <!-- Legenda -->
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:var(--text-muted)">
+            <span>✓ Presente</span>
+            <span>✗ Faltou</span>
+            <span>⚠ Faltou c/ Motivo</span>
+            <span style="color:var(--text-faint)">— Não listado</span>
+        </div>
+
+        <!-- Tabela -->
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:12px">
+            <table class="ev-rel-table">
+                <thead>
+                    <tr>
+                        <th style="min-width:140px">Nome</th>
+                        <th style="min-width:130px">Áreas</th>
+                        ${thEvs}
+                    </tr>
+                </thead>
+                <tbody>${tbody}</tbody>
+            </table>
+        </div>
+
+    </div>`;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════
+           RELATÓRIOS — EXPORT PDF
+        ════════════════════════════════════════════════════════════════════════ */
+        function evExportRelPDF() {
+            if (!evRelDados) return;
+            const { eventos, presencas, minMap } = evRelDados;
+
+            const pessoas  = _relBuildPessoas(presencas, minMap);
+            const grupos   = _relAgrupar(pessoas);
+
+            const totalPessoas = Object.keys(pessoas).length;
+            const totalPres    = presencas.filter(p => p.status === 'presente').length;
+            const totalFalt    = presencas.filter(p => p.status === 'faltou' || p.status === 'faltou_motivo').length;
+            const totalReg     = presencas.length;
+            const taxaMedia    = totalReg > 0 ? Math.round(totalPres / totalReg * 100) : 0;
+            const corTaxa      = taxaMedia >= 80 ? '#2e7d32' : taxaMedia >= 50 ? '#e65100' : '#c62828';
+
+            const geradoEm = new Date().toLocaleDateString('pt-PT', {
+                day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            /* Cabeçalho colunas */
+            const thEvs = eventos.map(e => {
+                const d = e.data_inicio
+                    ? new Date(e.data_inicio).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })
+                    : '—';
+                const t = e.titulo.length > 14 ? e.titulo.slice(0, 14) + '…' : e.titulo;
+                return `<th style="text-align:center;font-size:7px;padding:5px 3px;min-width:58px;white-space:nowrap">${t}<br>${d}</th>`;
+            }).join('');
+
+            /* Célula status */
+            const _cell = (evId, pessoa) => {
+                const ev = pessoa.eventos[evId];
+                if (!ev) return `<td style="text-align:center;color:#ccc;font-size:11px">—</td>`;
+                if (ev.status === 'presente')
+                    return `<td style="text-align:center;background:#e8f5e9;color:#2e7d32;font-weight:700;font-size:13px">✓</td>`;
+                if (ev.status === 'faltou')
+                    return `<td style="text-align:center;background:#ffebee;color:#c62828;font-weight:700;font-size:13px">✗</td>`;
+                if (ev.status === 'faltou_motivo') {
+                    const mot = ev.motivo ? ev.motivo.substring(0, 20) + (ev.motivo.length > 20 ? '…' : '') : '';
+                    return `<td style="text-align:center;background:#fff8e1;color:#e65100;font-size:10px">⚠${mot ? '<br><span style="font-size:8px">' + mot + '</span>' : ''}</td>`;
+                }
+                return `<td style="text-align:center;color:#aaa;font-size:9px">—</td>`;
+            };
+
+            /* Linhas da tabela */
+            let rows = '';
+            _REL_GRUPOS.forEach(g => {
+                const members = grupos[g.key] || [];
+                if (!members.length) return;
+
+                rows += `<tr>
+            <td colspan="${2 + eventos.length}"
+                style="background:${g.bg.replace('rgba', 'rgb').replace(/,[^)]+\)/, ')')};
+                       padding:6px 10px;font-size:8px;font-weight:700;color:${g.cor};
+                       letter-spacing:1.5px;text-transform:uppercase;
+                       border-top:2px solid ${g.cor}">
+                ${g.label} — ${members.length} pessoa(s)
+            </td>
+        </tr>`;
+
+                members.forEach((p, pi) => {
+                    const bg = pi % 2 === 0 ? '' : 'background:#fafafa';
+                    rows += `<tr style="${bg}">
+                <td style="padding:5px 8px;font-weight:600;font-size:11px;white-space:nowrap">${p.nome}</td>
+                <td style="padding:5px 6px;font-size:10px;color:#555">${_relAreasStr(p.areas)}</td>
+                ${eventos.map(e => _cell(e.id, p)).join('')}
+            </tr>`;
+                });
+
+                /* subtotal */
+                const subCells = eventos.map(e => {
+                    const pres  = members.filter(p => p.eventos[e.id]?.status === 'presente').length;
+                    const total = members.filter(p => p.eventos[e.id]).length;
+                    if (!total) return `<td style="text-align:center;color:#ccc;border-top:1px dashed #ddd">—</td>`;
+                    const pct = Math.round(pres / total * 100);
+                    const cor = pct >= 80 ? '#2e7d32' : pct >= 50 ? '#e65100' : '#c62828';
+                    return `<td style="text-align:center;font-size:9px;font-weight:700;color:${cor};border-top:1px dashed #ddd">${pres}/${total}</td>`;
+                }).join('');
+                rows += `<tr style="background:#f5f5f5">
+            <td colspan="2" style="font-size:9px;font-weight:700;color:${g.cor};padding:4px 8px;border-top:1px dashed #ddd">Subtotal</td>
+            ${subCells}
+        </tr>`;
+            });
+
+            const htm = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+    <title>Relatório de Presenças — Zion Lisboa</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;padding:24px 32px;font-size:12px}
+        h1{font-size:22px;color:#005f65;margin:0 0 4px}
+        table{width:100%;border-collapse:collapse;font-size:11px;margin:10px 0}
+        th{background:#f0f7f8;padding:6px 8px;text-align:left;font-size:8px;letter-spacing:1px;
+           text-transform:uppercase;color:#888;border-bottom:2px solid #c8e6e8;white-space:nowrap}
+        td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+        .cover{background:linear-gradient(135deg,#004c52,#009098);color:#fff;
+               padding:24px 28px;border-radius:10px;margin-bottom:20px}
+        .cover h1{color:#fff}
+        .stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+        .sc{border:1px solid #e0e0e0;border-top:3px solid #009098;border-radius:7px;
+            padding:8px 14px;min-width:80px;text-align:center}
+        .sn{font-size:20px;font-weight:800;color:#005f65}
+        .sl{font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+        .legend{display:flex;gap:14px;margin-bottom:10px;font-size:11px}
+        .legend span{display:flex;align-items:center;gap:4px}
+        .legend i{display:inline-block;width:11px;height:11px;border-radius:2px}
+        .footer{margin-top:36px;padding-top:10px;border-top:1px solid #e0e0e0;
+                font-size:9px;color:#bbb;text-align:center}
+        @media print{
+            body{padding:12px 16px}
+            .cover{padding:14px 18px}
+            th{font-size:7px;padding:4px 5px}
+            td{font-size:10px;padding:3px 5px}
+        }
+    </style></head><body>
+
+    <div class="cover">
+        <div style="font-size:8px;letter-spacing:2px;opacity:.7;margin-bottom:6px;text-transform:uppercase">
+            Relatório de Presenças · Zion Lisboa
+        </div>
+        <h1>Relatório Multi-Eventos</h1>
+        <div style="opacity:.8;font-size:11px;margin-top:5px">
+            ${eventos.length} evento(s) &nbsp;·&nbsp; Gerado em ${geradoEm}
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="sc"><div class="sn">${eventos.length}</div><div class="sl">Eventos</div></div>
+        <div class="sc"><div class="sn">${totalPessoas}</div><div class="sl">Pessoas</div></div>
+        <div class="sc"><div class="sn" style="color:#2e7d32">${totalPres}</div><div class="sl">Presenças</div></div>
+        <div class="sc"><div class="sn" style="color:#c62828">${totalFalt}</div><div class="sl">Faltas</div></div>
+        <div class="sc"><div class="sn" style="color:${corTaxa}">${taxaMedia}%</div><div class="sl">Taxa Média</div></div>
+    </div>
+
+    <div class="legend">
+        <span><i style="background:#2e7d32"></i>✓ Presente</span>
+        <span><i style="background:#c62828"></i>✗ Faltou</span>
+        <span><i style="background:#e65100"></i>⚠ Faltou c/ Motivo</span>
+        <span><i style="background:#ddd"></i>— Não listado</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="min-width:130px">Nome</th>
+                <th style="min-width:110px">Áreas</th>
+                ${thEvs}
+            </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+    </table>
+
+    <div class="footer">
+        Zion Lisboa &nbsp;·&nbsp; Sistema de Gestão &nbsp;·&nbsp; Devs Zion &nbsp;·&nbsp; ${geradoEm}
+    </div>
+
+    <script>window.onload = () => window.print();<\/script>
+    </body></html>`;
+
+            const w = window.open('', '_blank');
+            w.document.write(htm);
+            w.document.close();
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════
+           RELATÓRIOS — EXPORT EXCEL (SheetJS)
+        ════════════════════════════════════════════════════════════════════════ */
+        async function evExportRelExcel() {
+            if (!evRelDados) return;
+
+            /* Carrega SheetJS se necessário */
+            if (!window.XLSX) {
+                const btn = document.querySelector('[onclick="evExportRelExcel()"]');
+                if (btn) { btn.disabled = true; btn.textContent = 'A carregar...'; }
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                    s.onload = res;
+                    s.onerror = () => rej(new Error('Falha ao carregar SheetJS'));
+                    document.head.appendChild(s);
+                }).catch(e => { alert('Erro ao carregar biblioteca Excel: ' + e.message); return; });
+                if (btn) { btn.disabled = false; btn.textContent = '↓ Excel'; }
+            }
+
+            const { eventos, presencas, minMap } = evRelDados;
+            const pessoas = _relBuildPessoas(presencas, minMap);
+            const grupos  = _relAgrupar(pessoas);
+
+            const totalPessoas = Object.keys(pessoas).length;
+            const totalPres    = presencas.filter(p => p.status === 'presente').length;
+            const totalFalt    = presencas.filter(p => p.status === 'faltou' || p.status === 'faltou_motivo').length;
+            const totalReg     = presencas.length;
+            const taxaMedia    = totalReg > 0 ? Math.round(totalPres / totalReg * 100) : 0;
+
+            const _cellVal = (evId, pessoa) => {
+                const ev = pessoa.eventos[evId];
+                if (!ev) return '—';
+                if (ev.status === 'presente')      return 'Presente';
+                if (ev.status === 'faltou')        return 'Faltou';
+                if (ev.status === 'faltou_motivo') return ev.motivo ? `Faltou: ${ev.motivo}` : 'Faltou c/Motivo';
+                return 'Pendente';
+            };
+
+            const wb  = window.XLSX.utils.book_new();
+            const aoa = []; // array of arrays
+
+            /* Cabeçalho do ficheiro */
+            aoa.push(['Relatório de Presenças — Zion Lisboa']);
+            aoa.push([`Gerado em: ${new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`]);
+            aoa.push([]);
+            aoa.push([`Eventos: ${eventos.length}`, `Pessoas: ${totalPessoas}`, `Presenças: ${totalPres}`, `Faltas: ${totalFalt}`, `Taxa Média: ${taxaMedia}%`]);
+            aoa.push([]);
+
+            /* Linha de cabeçalho da tabela */
+            const headerRow = ['Nome', 'Áreas'];
+            eventos.forEach(e => {
+                const d = e.data_inicio
+                    ? new Date(e.data_inicio).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                    : '—';
+                headerRow.push(`${e.titulo} (${d})`);
+            });
+            aoa.push(headerRow);
+
+            /* Dados por grupo */
+            _REL_GRUPOS.forEach(g => {
+                const members = grupos[g.key] || [];
+                if (!members.length) return;
+
+                aoa.push([g.label.toUpperCase()]);
+
+                members.forEach(p => {
+                    const row = [p.nome, _relAreasStr(p.areas)];
+                    eventos.forEach(e => row.push(_cellVal(e.id, p)));
+                    aoa.push(row);
+                });
+
+                /* Subtotal */
+                const sub = ['', 'SUBTOTAL'];
+                eventos.forEach(e => {
+                    const pres  = members.filter(p => p.eventos[e.id]?.status === 'presente').length;
+                    const total = members.filter(p => p.eventos[e.id]).length;
+                    sub.push(total > 0 ? `${pres}/${total} (${Math.round(pres / total * 100)}%)` : '—');
+                });
+                aoa.push(sub);
+                aoa.push([]);
+            });
+
+            const ws = window.XLSX.utils.aoa_to_sheet(aoa);
+
+            /* Larguras das colunas */
+            ws['!cols'] = [{ wch: 32 }, { wch: 28 }, ...eventos.map(() => ({ wch: 20 }))];
+
+            window.XLSX.utils.book_append_sheet(wb, ws, 'Presenças');
+
+            /* Segunda folha: resumo por evento */
+            const aoaRes = [['Resumo por Evento']];
+            aoaRes.push(['Evento', 'Data', 'Presentes', 'Faltaram', 'Total', 'Taxa']);
+            eventos.forEach(e => {
+                const evPres  = presencas.filter(p => p.evento_id === e.id);
+                const nPres   = evPres.filter(p => p.status === 'presente').length;
+                const nFalt   = evPres.filter(p => p.status === 'faltou' || p.status === 'faltou_motivo').length;
+                const tot     = evPres.length;
+                const taxa    = tot > 0 ? `${Math.round(nPres / tot * 100)}%` : '—';
+                const d       = e.data_inicio ? new Date(e.data_inicio).toLocaleDateString('pt-PT') : '—';
+                aoaRes.push([e.titulo, d, nPres, nFalt, tot, taxa]);
+            });
+            const wsRes = window.XLSX.utils.aoa_to_sheet(aoaRes);
+            wsRes['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }];
+            window.XLSX.utils.book_append_sheet(wb, wsRes, 'Resumo por Evento');
+
+            const fileName = `relatorio-presencas-${new Date().toISOString().slice(0, 10)}.xlsx`;
+            window.XLSX.writeFile(wb, fileName);
+        }
+
         /* ════════════════════════════════════════════════════════════════════════
            EXPORT
         ════════════════════════════════════════════════════════════════════════ */
@@ -2564,7 +3256,11 @@
             evCopiarLinkInscricao, evVerInscricoes,
             evRenderFilaPagamento, evMarcarPago, evCancelarInscricao, evCancelarPagamento,
             evRenderDetalhe, evVoltarDetalhe,
-            evFecharCaixaEvento, evEscolherMetodoPagamento
+            evFecharCaixaEvento, evEscolherMetodoPagamento,
+            evRenderSideRel, evRelToggle, evRelSelTodos,
+            evRelSetFiltroQ, evRelSetFiltroTipo,
+            evGerarRelatorio, evRenderRelatorio,
+            evExportRelPDF, evExportRelExcel,
         });
 
         evInit();

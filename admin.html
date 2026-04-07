@@ -424,7 +424,9 @@
     let membros = [];
     let userPerms = {};
     let _autoRefreshTimer = null;
+    let _lastUserActivity = Date.now();
 
+    const ACTIVITY_GRACE_MS = 45_000; // 45s sem interação = safe to refresh
     const AUTO_REFRESH_MS = 60_000;
 
     const REGISTRO_MODULOS = [
@@ -508,8 +510,18 @@
         return txt ? JSON.parse(txt) : [];
     }
 
+
     // ── AUTO-REFRESH ─────────────────────────────────────────────────────────────
-    function iniciarAutoRefresh() {
+
+    ['mousemove','mousedown','keydown','touchstart','click','scroll'].forEach(ev => {
+        document.addEventListener(ev, () => { _lastUserActivity = Date.now(); }, { passive: true });
+    });
+
+    function _userIsActive() {
+        return (Date.now() - _lastUserActivity) < ACTIVITY_GRACE_MS;
+    }
+
+    function iniciarAutoRefreshOld() {
         pararAutoRefresh();
         _autoRefreshTimer = setInterval(async () => {
             // Só atualiza se não houver nada aberto (drawer fechado)
@@ -574,6 +586,44 @@
                 if (refresh) refresh();
             } catch (_) {
             }
+        }, AUTO_REFRESH_MS);
+    }
+
+    function iniciarAutoRefresh() {
+        pararAutoRefresh();
+        _autoRefreshTimer = setInterval(async () => {
+            const drawerAberto = !document.getElementById('overlay')?.classList.contains('hidden');
+            const inputFocado  = ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
+
+            // Não interrupe se drawer aberto, input focado, ou utilizador ativo recentemente
+            if (drawerAberto || inputFocado || _userIsActive()) return;
+
+            try {
+                const reInitMap = {
+                    'membros':                 () => { if (window.mb_init)        mb_init(); },
+                    'novos':                   () => { if (window.nv_init)        nv_init(); },
+                    'voluntarios':             () => { if (window.vl_init)        vl_init(); },
+                    'ministerios':             () => { if (window.min_renderSide) min_renderSide(); },
+                    'keola':                   () => { if (window.kl_init)        kl_init(); },
+                    'financeiro-receber':      () => { if (window.rec_init)       rec_init(); },
+                    'financeiro-invoices':     () => { if (window.fem_init)       fem_init(); },
+                    'financeiro-pagar':        () => { if (window.pag_init)       pag_init(); },
+                    'financeiro-faturas':      () => { if (window.fat_init)       fat_init(); },
+                    'financeiro-relatorios':   () => { if (window.rel_init)       rel_init(); },
+                    'fornecedores':            () => { if (window.fn_init)        fn_init(); },
+                    'salas':                   () => { if (window.sl_init)        sl_init(); },
+                    'cursos':                  () => { if (window.cz_renderSidebar) cz_renderSidebar(); },
+                    'dashboard':               () => { if (window.db_init)        db_init(); },
+                    'loja':                    () => { if (typeof lj_init === 'function') lj_init(); },
+
+                    // Eventos: refresh silencioso — NÃO reseta a view atual
+                    'eventos': () => {
+                        if (typeof evSilentRefresh === 'function') evSilentRefresh();
+                    },
+                };
+                const refresh = reInitMap[secaoAtiva];
+                if (refresh) refresh();
+            } catch (_) {}
         }, AUTO_REFRESH_MS);
     }
 

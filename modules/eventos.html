@@ -3245,6 +3245,21 @@
             evPanelEmpty('Seleciona eventos à esquerda e clica em Gerar Relatório.');
         }
 
+        async function evSilentRefresh() {
+            evEventos = await _sb('eventos?select=*&order=data_inicio').catch(() => evEventos) || evEventos;
+
+            if (evAtivo) {
+                evAtivo = evEventos.find(e => e.id === evAtivo.id) || evAtivo;
+            }
+
+            if (evTab === 0) evRenderSide();
+            else if (evTab === 1) evRenderSideTipos();
+
+            if (evView === 'info' && evAtivo) {
+                evRenderDetalhe();
+            }
+        }
+
         /* ════════════════════════════════════════════════════════════════════════
            EXPORT
         ════════════════════════════════════════════════════════════════════════ */
@@ -3268,7 +3283,8 @@
             evRenderSideRel, evRelToggle, evRelSelTodos,
             evRelSetFiltroQ, evRelSetFiltroTipo,
             evGerarRelatorio, evRenderRelatorio,
-            evExportRelPDF, evExportRelExcel, evLimparRelatorio
+            evExportRelPDF, evExportRelExcel, evLimparRelatorio,
+            evSilentRefresh
         });
 
         evInit();

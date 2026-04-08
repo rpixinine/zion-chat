@@ -1652,14 +1652,17 @@
             const mIds = evPresencas.map(p => p.membro_id).filter(Boolean);
             evLidMin = {};
             if (mIds.length) {
-                const vs = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo,parente:parente_id(id,nome,avo:parente_id(id,nome)))&membro_id=in.(${mIds.join(',')})&ativo=eq.true`) || [];
+                const vs = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`).catch(() => []) || [];
+                const allMinsV = await _sb('ministerios?select=id,nome,parente_id').catch(() => []) || [];
+                const pilarMapV = _buildPilarMap(allMinsV);
+
                 vs.forEach(v => {
                     if (!evLidMin[v.membro_id]) evLidMin[v.membro_id] = [];
                     evLidMin[v.membro_id].push({
                         papel: v.papel,
                         nome: v.ministerios?.nome || '—',
                         tipo: v.ministerios?.tipo || '—',
-                        pilar: _resolvePilar(v.ministerios)
+                        pilar: pilarMapV[v.ministerios?.id] || v.ministerios?.nome || '—'
                     });
                 });
             }
@@ -2097,7 +2100,10 @@
             const mIds = pres.map(p => p.membro_id).filter(Boolean);
             let mMap = {};
             if (mIds.length) {
-                const v = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`) || [];
+                const v = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`).catch(() => []) || [];
+                const allMinsP = await _sb('ministerios?select=id,nome,parente_id').catch(() => []) || [];
+                const pilarMapP = _buildPilarMap(allMinsP);
+
                 v.forEach(x => {
                     if (!mMap[x.membro_id]) mMap[x.membro_id] = [];
                     mMap[x.membro_id].push({
@@ -2105,7 +2111,7 @@
                         nome: x.ministerios?.nome || '—',
                         papel: x.papel || '',
                         tipoLabel: _pdfTipoLabel(x.ministerios?.tipo),
-                        pilar: _resolvePilar(x.ministerios)
+                        pilar: pilarMapP[x.ministerios?.id] || x.ministerios?.nome || '—'
                     });
                 });
             }
@@ -2744,15 +2750,19 @@
             const minMap = {};
             if (mIds.length) {
                 const mins = await _sb(
-                    `membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo,parente:parente_id(id,nome,avo:parente_id(id,nome)))&membro_id=in.(${mIds.join(',')})&ativo=eq.true`
+                    `membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`
                 ).catch(() => []) || [];
+
+                const allMins = await _sb('ministerios?select=id,nome,parente_id').catch(() => []) || [];
+                const pilarMap = _buildPilarMap(allMins);
+
                 mins.forEach(m => {
                     if (!minMap[m.membro_id]) minMap[m.membro_id] = [];
                     minMap[m.membro_id].push({
                         papel: m.papel || '',
                         nome: m.ministerios?.nome || '—',
                         tipo: m.ministerios?.tipo || '—',
-                        pilar: _resolvePilar(m.ministerios)
+                        pilar: pilarMap[m.ministerios?.id] || m.ministerios?.nome || '—'
                     });
                 });
             }
@@ -2824,17 +2834,6 @@
         /* ════════════════════════════════════════════════════════════════════════
            RELATÓRIOS — RENDER NO ECRÃ
         ════════════════════════════════════════════════════════════════════════ */
-
-        // Resolve o pilar (topo da hierarquia) de um ministerio
-        function _resolvePilar(min) {
-            if (!min) return '—';
-            // 3 níveis: live → Multimidia → AE → pilar = AE
-            if (min.parente?.avo?.nome) return min.parente.avo.nome;
-            // 2 níveis: Multimidia → AE → pilar = AE
-            if (min.parente?.nome) return min.parente.nome;
-            // 1 nível: AE sem pai → pilar = AE
-            return min.nome || '—';
-        }
 
         function evRenderRelatorioOld() {
             const { eventos, presencas, minMap } = evRelDados;
@@ -2996,6 +2995,27 @@
         </div>
 
     </div>`;
+        }
+
+        function _buildPilarMap(allMins) {
+            const byId = {};
+            allMins.forEach(m => byId[m.id] = m);
+
+            const _pilarDeId = (id) => {
+                const m = byId[id];
+                if (!m) return '—';
+                if (m.parente_id && byId[m.parente_id]?.parente_id) {
+                    return byId[byId[m.parente_id].parente_id]?.nome || byId[m.parente_id].nome || m.nome;
+                }
+                if (m.parente_id && byId[m.parente_id]) {
+                    return byId[m.parente_id].nome || m.nome;
+                }
+                return m.nome || '—';
+            };
+
+            const map = {};
+            allMins.forEach(m => map[m.id] = _pilarDeId(m.id));
+            return map;
         }
 
         function evRenderRelatorio() {
@@ -3564,7 +3584,7 @@
             //     aoa.push(sub);
             //     aoa.push([]);
             // });
-            
+
             /* Agrupamento por pilar */
             const pilarGrupos = {};
             Object.values(pessoas).forEach(p => {

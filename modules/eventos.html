@@ -1654,7 +1654,7 @@
             if (mIds.length) {
 
                 const vs = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`).catch(() => []) || [];
-                const allMinsV = await _sb('ministerios?select=id,nome,parente_id&limit=1000').catch(() => []) || [];
+                const allMinsV = await _sb('ministerios?select=id,nome,parent_id&limit=1000').catch(() => []) || [];
                 const { pilarMap: pilarMapV, areaMap: areaMapV } = _buildHierarchyMaps(allMinsV);  // ← destructuring correcto
 
                 vs.forEach(v => {
@@ -2104,7 +2104,7 @@
             if (mIds.length) {
 
                 const v = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`).catch(() => []) || [];
-                const allMinsP = await _sb('ministerios?select=id,nome,parente_id&limit=1000').catch(() => []) || [];
+                const allMinsP = await _sb('ministerios?select=id,nome,parent_id&limit=1000').catch(() => []) || [];
                 const { pilarMap: pilarMapP, areaMap: areaMapP } = _buildHierarchyMaps(allMinsP);  // ← destructuring correcto
 
                 v.forEach(x => {
@@ -2758,7 +2758,7 @@
                     `membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`
                 ).catch(() => []) || [];
 
-                const allMins = await _sb('ministerios?select=id,nome,parente_id&limit=1000').catch(() => []) || [];
+                const allMins = await _sb('ministerios?select=id,nome,parent_id&limit=1000').catch(() => []) || [];
                 const { pilarMap, areaMap } = _buildHierarchyMaps(allMins);  // ← destructuring correcto
                 console.log('Total ministerios carregados:', allMins.length);
 
@@ -2846,28 +2846,24 @@
             const byId = {};
             allMins.forEach(m => byId[m.id] = m);
 
-            const pilarMap = {};  // ministerio_id → nome do pilar (topo)
-            const areaMap  = {};  // ministerio_id → nome da área (filho do pilar)
+            const pilarMap = {};
+            const areaMap  = {};
 
             allMins.forEach(m => {
-                const p1 = m.parente_id          ? byId[m.parente_id]          : null; // pai
-                const p2 = p1?.parente_id        ? byId[p1.parente_id]         : null; // avô
-                const p3 = p2?.parente_id        ? byId[p2.parente_id]         : null; // bisavô
+                const p1 = m.parent_id          ? byId[m.parent_id]          : null;
+                const p2 = p1?.parent_id        ? byId[p1.parent_id]         : null;
+                const p3 = p2?.parent_id        ? byId[p2.parent_id]         : null;
 
                 if (p3) {
-                    // 4 níveis: m → área → sub-pilar → pilar  (raro mas suportado)
                     pilarMap[m.id] = p3.nome;
                     areaMap[m.id]  = p2.nome;
                 } else if (p2) {
-                    // 3 níveis normais: sub-área → área → pilar
                     pilarMap[m.id] = p2.nome;
                     areaMap[m.id]  = p1.nome;
                 } else if (p1) {
-                    // 2 níveis: área → pilar (membro está directamente na área)
                     pilarMap[m.id] = p1.nome;
                     areaMap[m.id]  = m.nome;
                 } else {
-                    // 1 nível: membro está no próprio pilar
                     pilarMap[m.id] = m.nome;
                     areaMap[m.id]  = m.nome;
                 }
@@ -2875,7 +2871,6 @@
 
             return { pilarMap, areaMap };
         }
-
 
         function evRenderRelatorio() {
             const {eventos, presencas, minMap} = evRelDados;

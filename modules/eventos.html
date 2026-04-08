@@ -1652,17 +1652,19 @@
             const mIds = evPresencas.map(p => p.membro_id).filter(Boolean);
             evLidMin = {};
             if (mIds.length) {
+
                 const vs = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`).catch(() => []) || [];
                 const allMinsV = await _sb('ministerios?select=id,nome,parente_id').catch(() => []) || [];
-                const pilarMapV = _buildHierarchyMaps(allMinsV);
+                const { pilarMap: pilarMapV, areaMap: areaMapV } = _buildHierarchyMaps(allMinsV);  // ← destructuring correcto
 
                 vs.forEach(v => {
                     if (!evLidMin[v.membro_id]) evLidMin[v.membro_id] = [];
                     evLidMin[v.membro_id].push({
                         papel: v.papel,
-                        nome: v.ministerios?.nome || '—',
-                        tipo: v.ministerios?.tipo || '—',
-                        pilar: pilarMapV[v.ministerios?.id] || v.ministerios?.nome || '—'
+                        nome:  v.ministerios?.nome || '—',
+                        tipo:  v.ministerios?.tipo || '—',
+                        pilar: pilarMapV[v.ministerios?.id] || v.ministerios?.nome || '—',
+                        area:  areaMapV[v.ministerios?.id]  || v.ministerios?.nome || '—'  // ← campo area
                     });
                 });
             }
@@ -2100,18 +2102,20 @@
             const mIds = pres.map(p => p.membro_id).filter(Boolean);
             let mMap = {};
             if (mIds.length) {
+
                 const v = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`).catch(() => []) || [];
                 const allMinsP = await _sb('ministerios?select=id,nome,parente_id').catch(() => []) || [];
-                const pilarMapP = _buildHierarchyMaps(allMinsP);
+                const { pilarMap: pilarMapP, areaMap: areaMapP } = _buildHierarchyMaps(allMinsP);  // ← destructuring correcto
 
                 v.forEach(x => {
                     if (!mMap[x.membro_id]) mMap[x.membro_id] = [];
                     mMap[x.membro_id].push({
-                        tipo: x.ministerios?.tipo || 'outro',
-                        nome: x.ministerios?.nome || '—',
-                        papel: x.papel || '',
+                        tipo:      x.ministerios?.tipo || 'outro',
+                        nome:      x.ministerios?.nome || '—',
+                        papel:     x.papel || '',
                         tipoLabel: _pdfTipoLabel(x.ministerios?.tipo),
-                        pilar: pilarMapP[x.ministerios?.id] || x.ministerios?.nome || '—'
+                        pilar:     pilarMapP[x.ministerios?.id] || x.ministerios?.nome || '—',
+                        area:      areaMapP[x.ministerios?.id]  || x.ministerios?.nome || '—'  // ← campo area
                     });
                 });
             }
@@ -2755,15 +2759,16 @@
                 ).catch(() => []) || [];
 
                 const allMins = await _sb('ministerios?select=id,nome,parente_id').catch(() => []) || [];
-                const pilarMap = _buildHierarchyMaps(allMins);
+                const { pilarMap, areaMap } = _buildHierarchyMaps(allMins);  // ← destructuring correcto
 
                 mins.forEach(m => {
                     if (!minMap[m.membro_id]) minMap[m.membro_id] = [];
                     minMap[m.membro_id].push({
                         papel: m.papel || '',
-                        nome: m.ministerios?.nome || '—',
-                        tipo: m.ministerios?.tipo || '—',
-                        pilar: pilarMap[m.ministerios?.id] || m.ministerios?.nome || '—'
+                        nome:  m.ministerios?.nome || '—',
+                        tipo:  m.ministerios?.tipo || '—',
+                        pilar: pilarMap[m.ministerios?.id] || m.ministerios?.nome || '—',
+                        area:  areaMap[m.ministerios?.id]  || m.ministerios?.nome || '—'  // ← campo area
                     });
                 });
             }
@@ -3383,7 +3388,7 @@
             const fileName = `relatorio-presencas-${new Date().toISOString().slice(0, 10)}.xlsx`;
             window.XLSX.writeFile(wb, fileName);
         }
-        
+
         function evLimparRelatorio() {
             evRelDados = null;
             evRelSel.clear();

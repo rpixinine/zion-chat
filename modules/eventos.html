@@ -754,6 +754,9 @@
         let evRelFiltroTipo = '';
         let evRelFiltroQ  = '';
         let evRelDados    = null;        // { eventos, presencas, minMap }
+        let evRelFiltPilar   = '';
+        let evRelFiltArea    = '';
+        let evRelFiltSubArea = '';
 
         const ST = {
             aberto: {label: 'Aberto', cls: 'badge-green'},
@@ -2872,12 +2875,58 @@
             return { pilarMap, areaMap };
         }
 
+        /* ── RELATÓRIOS — helpers de filtro ──────────────────────────────────────── */
+        function _relGetFiltroOptions(todasPessoas) {
+            const pilSet = new Set(), areaSet = new Set(), subSet = new Set();
+
+            Object.values(todasPessoas).forEach(p => {
+                const pilar = p.areas[0]?.pilar || '__sem_pilar__';
+                const area  = p.areas[0]?.area  || '__sem_area__';
+                pilSet.add(pilar);
+
+                if (!evRelFiltPilar || pilar === evRelFiltPilar) {
+                    areaSet.add(area);
+                    if (!evRelFiltArea || area === evRelFiltArea) {
+                        p.areas.forEach(a => subSet.add(a.nome));
+                    }
+                }
+            });
+
+            return {
+                pilares:  [...pilSet].sort((a,b) => a==='__sem_pilar__'?1:b==='__sem_pilar__'?-1:a.localeCompare(b)),
+                areas:    [...areaSet].sort((a,b) => a==='__sem_area__'?1:b==='__sem_area__'?-1:a.localeCompare(b)),
+                subAreas: [...subSet].sort()
+            };
+        }
+
+        function _relFiltrarPessoas(todasPessoas) {
+            if (!evRelFiltPilar && !evRelFiltArea && !evRelFiltSubArea) return todasPessoas;
+            const result = {};
+            Object.entries(todasPessoas).forEach(([key, p]) => {
+                const pilar = p.areas[0]?.pilar || '__sem_pilar__';
+                const area  = p.areas[0]?.area  || '__sem_area__';
+                if (evRelFiltPilar  && pilar !== evRelFiltPilar)                        return;
+                if (evRelFiltArea   && area  !== evRelFiltArea)                         return;
+                if (evRelFiltSubArea && !p.areas.some(a => a.nome === evRelFiltSubArea)) return;
+                result[key] = p;
+            });
+            return result;
+        }
+
+        function evRelSetFiltPilar(v)   { evRelFiltPilar = v; evRelFiltArea = ''; evRelFiltSubArea = ''; evRenderRelatorio(); }
+        function evRelSetFiltArea(v)    { evRelFiltArea = v; evRelFiltSubArea = ''; evRenderRelatorio(); }
+        function evRelSetFiltSubArea(v) { evRelFiltSubArea = v; evRenderRelatorio(); }
+        function evRelLimparFiltros()   { evRelFiltPilar = ''; evRelFiltArea = ''; evRelFiltSubArea = ''; evRenderRelatorio(); }
+
         function evRenderRelatorio() {
             const {eventos, presencas, minMap} = evRelDados;
-            const pessoas = _relBuildPessoas(presencas, minMap);
+            const todasPessoas  = _relBuildPessoas(presencas, minMap);
+            const { pilares, areas, subAreas } = _relGetFiltroOptions(todasPessoas);
+            const pessoas       = _relFiltrarPessoas(todasPessoas);
+            const filtroActivo  = !!(evRelFiltPilar || evRelFiltArea || evRelFiltSubArea);
 
             /* ── Estrutura: pilar → area → [pessoas] ─────────────────────────── */
-            const estrutura = {}; // { pilarKey: { areaKey: [pessoa, ...] } }
+            const estrutura = {};
             Object.values(pessoas).forEach(p => {
                 const pilarKey = p.areas[0]?.pilar || '__sem_pilar__';
                 const areaKey  = p.areas[0]?.area  || '__sem_area__';
@@ -2891,15 +2940,23 @@
                 a === '__sem_pilar__' ? 1 : b === '__sem_pilar__' ? -1 : a.localeCompare(b)
             );
 
-            /* ── Stats globais ───────────────────────────────────────────────── */
+            /* ── Stats (sobre dados filtrados) ──────────────────────────────────── */
             const totalPessoas = Object.keys(pessoas).length;
-            const totalPres    = presencas.filter(p => p.status === 'presente').length;
-            const totalFalt    = presencas.filter(p => p.status === 'faltou' || p.status === 'faltou_motivo').length;
-            const totalReg     = presencas.length;
-            const taxaMedia    = totalReg > 0 ? Math.round(totalPres / totalReg * 100) : 0;
-            const corTaxa      = taxaMedia >= 80 ? 'var(--green)' : taxaMedia >= 50 ? '#e65100' : 'var(--red)';
+            const totalTodas   = Object.keys(todasPessoas).length;
 
-            /* ── Cabeçalho eventos ───────────────────────────────────────────── */
+            /* presenças apenas das pessoas filtradas */
+            const pessoaKeys   = new Set(Object.keys(pessoas));
+            const presFilt = presencas.filter(p => {
+                const k = p.membro_id || ('v_' + p.id);
+                return pessoaKeys.has(k);
+            });
+            const totalPres  = presFilt.filter(p => p.status === 'presente').length;
+            const totalFalt  = presFilt.filter(p => p.status === 'faltou' || p.status === 'faltou_motivo').length;
+            const totalReg   = presFilt.length;
+            const taxaMedia  = totalReg > 0 ? Math.round(totalPres / totalReg * 100) : 0;
+            const corTaxa    = taxaMedia >= 80 ? 'var(--green)' : taxaMedia >= 50 ? '#e65100' : 'var(--red)';
+
+            /* ── Cabeçalho eventos ───────────────────────────────────────────────── */
             const thEvs = eventos.map(e => {
                 const d = e.data_inicio
                     ? new Date(e.data_inicio).toLocaleDateString('pt-PT', {day:'2-digit',month:'2-digit'})
@@ -2908,7 +2965,7 @@
                 return `<th class="ev-center" title="${e.titulo}">${t}<br><span style="font-weight:400;opacity:.75">${d}</span></th>`;
             }).join('');
 
-            /* ── Célula status ───────────────────────────────────────────────── */
+            /* ── Célula status ───────────────────────────────────────────────────── */
             const _cell = (evId, pessoa) => {
                 const ev = pessoa.eventos[evId];
                 if (!ev) return `<td class="ev-rel-td-nd">—</td>`;
@@ -2921,7 +2978,6 @@
                 return `<td class="ev-rel-td-pend">pend.</td>`;
             };
 
-            /* ── Sub-área do membro (coluna Área/Ministério) ─────────────────── */
             const _subAreaHtml = areas => {
                 if (!areas.length) return '<span style="color:var(--text-faint);font-size:10px">—</span>';
                 const uniq = [...new Map(areas.map(a => [a.nome, a])).values()];
@@ -2930,7 +2986,6 @@
                 ).join('');
             };
 
-            /* ── Subtotal de um grupo de membros ─────────────────────────────── */
             const _subtotalRow = (members, colspan, label, cor) => {
                 const cells = eventos.map(e => {
                     const pres  = members.filter(p => p.eventos[e.id]?.status === 'presente').length;
@@ -2946,8 +3001,7 @@
             </td>${cells}</tr>`;
             };
 
-            /* ── Monta tabela ────────────────────────────────────────────────── */
-            const NCOLS = 2 + eventos.length; // Nome + Sub-área + eventos
+            const NCOLS = 2 + eventos.length;
             let tbody = '';
 
             sortedPilares.forEach(pilarKey => {
@@ -2956,11 +3010,8 @@
                 const sortedAreas = Object.keys(areas).sort((a,b) =>
                     a === '__sem_area__' ? 1 : b === '__sem_area__' ? -1 : a.localeCompare(b)
                 );
-
-                /* Todos os membros deste pilar (para subtotal do pilar) */
                 const allPilarMembers = sortedAreas.flatMap(ak => areas[ak]);
 
-                /* Header do Pilar */
                 tbody += `<tr class="ev-rel-group-hdr">
             <td colspan="${NCOLS}"
                 style="background:var(--primary-faint);color:var(--primary-dark);
@@ -2971,10 +3022,9 @@
         </tr>`;
 
                 sortedAreas.forEach(areaKey => {
-                    const members  = areas[areaKey];
+                    const members   = areas[areaKey];
                     const areaLabel = areaKey === '__sem_area__' ? 'Sem Área' : areaKey;
 
-                    /* Sub-header da Área */
                     tbody += `<tr>
                 <td colspan="${NCOLS}"
                     style="background:rgba(0,144,152,.06);color:var(--primary-dark);
@@ -2984,7 +3034,6 @@
                 </td>
             </tr>`;
 
-                    /* Linhas dos membros */
                     members
                         .sort((a,b) => a.nome.localeCompare(b.nome))
                         .forEach((p, pi) => {
@@ -2996,11 +3045,9 @@
                     </tr>`;
                         });
 
-                    /* Subtotal da Área */
                     tbody += _subtotalRow(members, 2, areaLabel, 'var(--primary-dark)');
                 });
 
-                /* Subtotal do Pilar */
                 tbody += `<tr style="background:var(--primary-faint)">
             <td colspan="${NCOLS}"
                 style="font-size:9px;font-weight:800;color:var(--primary-dark);
@@ -3011,23 +3058,70 @@
             });
 
             if (!tbody) {
-                tbody = `<tr><td colspan="${NCOLS}" style="text-align:center;padding:30px;color:var(--text-faint)">Sem dados.</td></tr>`;
+                tbody = `<tr><td colspan="${NCOLS}" style="text-align:center;padding:30px;color:var(--text-faint)">Sem dados para os filtros seleccionados.</td></tr>`;
             }
+
+            /* ── Barra de filtros ────────────────────────────────────────────────── */
+            const _opt = (arr, cur, emptyLabel, labelFn) =>
+                `<option value="">${emptyLabel}</option>` +
+                arr.map(v => `<option value="${v}" ${cur===v?'selected':''}>${labelFn?labelFn(v):v}</option>`).join('');
+
+            const filtroLabel = v => v === '__sem_pilar__' ? 'Sem Pilar' : v === '__sem_area__' ? 'Sem Área' : v;
+
+            const filtroBar = `
+    <div style="background:var(--bg-card);border:1px solid ${filtroActivo ? 'var(--primary)' : 'var(--border)'};
+                border-radius:10px;padding:10px 12px;margin-bottom:12px;
+                display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+                ${filtroActivo ? 'box-shadow:0 0 0 2px var(--primary-faint)' : ''}">
+        <span style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;
+                     color:${filtroActivo?'var(--primary-dark)':'var(--text-faint)'};
+                     white-space:nowrap;flex-shrink:0">
+            ${filtroActivo ? '⚡ FILTRO ACTIVO' : 'FILTRAR'}
+        </span>
+        <select class="ev-filtro-select" style="flex:1;min-width:130px"
+                onchange="evRelSetFiltPilar(this.value)">
+            ${_opt(pilares, evRelFiltPilar, 'Todos os pilares', filtroLabel)}
+        </select>
+        <select class="ev-filtro-select" style="flex:1;min-width:120px"
+                onchange="evRelSetFiltArea(this.value)" ${!evRelFiltPilar?'':''}>
+            ${_opt(areas, evRelFiltArea, 'Todas as áreas', filtroLabel)}
+        </select>
+        <select class="ev-filtro-select" style="flex:1;min-width:120px"
+                onchange="evRelSetFiltSubArea(this.value)">
+            ${_opt(subAreas, evRelFiltSubArea, 'Todas as sub-áreas')}
+        </select>
+        ${filtroActivo
+                ? `<button class="ev-btn danger" style="font-size:9px;padding:5px 10px;white-space:nowrap;flex-shrink:0"
+                        onclick="evRelLimparFiltros()">✕ Limpar</button>`
+                : ''}
+        <span style="font-size:10px;color:var(--text-faint);white-space:nowrap;flex-shrink:0">
+            ${filtroActivo
+                ? `<strong style="color:var(--primary-dark)">${totalPessoas}</strong> / ${totalTodas} pessoa(s)`
+                : `${totalPessoas} pessoa(s)`}
+        </span>
+    </div>`;
 
             document.getElementById('ev-panel-inner').innerHTML = `
     <div style="animation:fadeIn .2s ease">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-            <div style="flex:1;font-size:14px;font-weight:700;color:var(--text-main)">Relatório · ${eventos.length} evento(s)</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <div style="flex:1;font-size:14px;font-weight:700;color:var(--text-main)">
+                Relatório · ${eventos.length} evento(s)
+                ${filtroActivo ? `<span style="font-size:10px;font-weight:400;color:var(--primary-dark);margin-left:6px">— filtrado</span>` : ''}
+            </div>
             <button class="ev-btn" onclick="evLimparRelatorio()">✕ Limpar</button>
             <button class="ev-btn danger" onclick="evExportRelPDF()">↓ PDF</button>
             <button class="ev-btn success" onclick="evExportRelExcel()">↓ Excel</button>
         </div>
+
+        ${filtroBar}
+
         <div class="ev-stats-grid" style="margin-bottom:14px">
             <div class="ev-stat-box"><div class="ev-stat-num">${eventos.length}</div><div class="ev-stat-lbl">Eventos</div></div>
-            <div class="ev-stat-box"><div class="ev-stat-num">${totalPessoas}</div><div class="ev-stat-lbl">Pessoas</div></div>
+            <div class="ev-stat-box"><div class="ev-stat-num">${totalPessoas}</div><div class="ev-stat-lbl">Pessoas${filtroActivo?'<br><span style="font-size:8px;color:var(--primary-dark)">filtrado</span>':''}</div></div>
             <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--green)">${totalPres}</div><div class="ev-stat-lbl">Presenças</div></div>
             <div class="ev-stat-box"><div class="ev-stat-num" style="color:${corTaxa}">${taxaMedia}%</div><div class="ev-stat-lbl">Taxa Média</div></div>
         </div>
+
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:14px">
             <div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);margin-bottom:7px">EVENTOS INCLUÍDOS</div>
             <div style="display:flex;flex-wrap:wrap;gap:5px">
@@ -3037,10 +3131,12 @@
             }).join('')}
             </div>
         </div>
+
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:var(--text-muted)">
             <span>✓ Presente</span><span>✗ Faltou</span><span>⚠ Faltou c/ Motivo</span>
             <span style="color:var(--text-faint)">— Não listado</span>
         </div>
+
         <div style="overflow-x:auto;border:1px solid var(--border);border-radius:12px">
             <table class="ev-rel-table">
                 <thead><tr>
@@ -3060,7 +3156,10 @@
         function evExportRelPDF() {
             if (!evRelDados) return;
             const {eventos, presencas, minMap} = evRelDados;
-            const pessoas = _relBuildPessoas(presencas, minMap);
+            //const pessoas = _relBuildPessoas(presencas, minMap);
+            const todasPessoas = _relBuildPessoas(presencas, minMap);
+            const pessoas = _relFiltrarPessoas(todasPessoas);
+            const filtroActivo = !!(evRelFiltPilar || evRelFiltArea || evRelFiltSubArea);
 
             const estrutura = {};
             Object.values(pessoas).forEach(p => {
@@ -3082,6 +3181,13 @@
             const taxaMedia = totalReg>0 ? Math.round(totalPres/totalReg*100) : 0;
             const corTaxa   = taxaMedia>=80?'#2e7d32':taxaMedia>=50?'#e65100':'#c62828';
             const geradoEm  = new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+            const filtroInfo = filtroActivo
+                ? [evRelFiltPilar, evRelFiltArea, evRelFiltSubArea]
+                    .filter(Boolean)
+                    .map(v => v==='__sem_pilar__'?'Sem Pilar':v==='__sem_area__'?'Sem Área':v)
+                    .join(' › ')
+                : '';
 
             const thEvs = eventos.map(e => {
                 const d = e.data_inicio ? new Date(e.data_inicio).toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit'}) : '—';
@@ -3208,6 +3314,7 @@
     <div class="cover">
         <div style="font-size:8px;letter-spacing:2px;opacity:.7;margin-bottom:4px;text-transform:uppercase">Relatório de Presenças · Zion Lisboa</div>
         <h1>Relatório Multi-Eventos</h1>
+        ${filtroInfo ? `<div style="margin-top:6px;background:rgba(255,255,255,.15);border-radius:6px;padding:4px 12px;display:inline-block;font-size:11px">⚡ Filtro: ${filtroInfo}</div>` : ''}
         <div style="opacity:.8;font-size:11px;margin-top:4px">${eventos.length} evento(s) &nbsp;·&nbsp; ${geradoEm}</div>
     </div>
     <div class="stats">
@@ -3260,7 +3367,9 @@
             }
 
             const { eventos, presencas, minMap } = evRelDados;
-            const pessoas = _relBuildPessoas(presencas, minMap);
+            //const pessoas = _relBuildPessoas(presencas, minMap);
+            const todasPessoas = _relBuildPessoas(presencas, minMap);
+            const pessoas = _relFiltrarPessoas(todasPessoas);
 
             const totalPessoas = Object.keys(pessoas).length;
             const totalPres    = presencas.filter(p => p.status === 'presente').length;
@@ -3431,7 +3540,9 @@
             evRelSetFiltroQ, evRelSetFiltroTipo,
             evGerarRelatorio, evRenderRelatorio,
             evExportRelPDF, evExportRelExcel, evLimparRelatorio,
-            evSilentRefresh
+            evSilentRefresh,
+            evRelSetFiltPilar, evRelSetFiltArea, evRelSetFiltSubArea,
+            evRelLimparFiltros,
         });
 
         evInit();

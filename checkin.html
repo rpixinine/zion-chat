@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
     <script src="config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -240,14 +241,14 @@
 
         /* ── LOCKED ── */
         .checkin-locked {
-            background: rgba(251,140,0,0.08);
-            border: 1px solid rgba(251,140,0,0.25);
+            background: rgba(0,144,152,0.08);
+            border: 1px solid rgba(0,144,152,0.25);
             border-radius: 10px;
-            padding: 14px 16px;
+            padding: 16px 18px;
             text-align: center;
-            color: #ffcc80;
+            color: rgba(232,238,240,0.85);
             font-size: 13px;
-            line-height: 1.6;
+            line-height: 1.7;
             margin-bottom: 18px;
         }
 
@@ -256,8 +257,29 @@
             font-family: 'Cinzel', serif;
             font-size: 11px;
             letter-spacing: 1px;
-            color: var(--orange);
-            margin-bottom: 4px;
+            color: var(--teal);
+            margin-bottom: 6px;
+        }
+
+        .checkin-locked .hora-destaque {
+            display: inline-block;
+            font-weight: 700;
+            color: var(--teal);
+            font-size: 15px;
+        }
+
+        .checkin-locked .sala-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 8px;
+            padding: 5px 12px;
+            background: rgba(0,144,152,0.12);
+            border: 1px solid rgba(0,144,152,0.2);
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--teal);
+            letter-spacing: 0.5px;
         }
 
         /* ── FIELD / SELECT ── */
@@ -295,65 +317,67 @@
         .field select option { background: #031f2a; color: #e8eef0; }
         .field select:focus  { border-color: var(--teal); }
 
-        /* ── PIN INPUT ── */
-        .pin-wrap { margin-bottom: 14px; }
+        /* ── QR CODE ── */
+        .qr-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 22px 16px 18px;
+            background: rgba(0,144,152,0.06);
+            border: 1px solid rgba(0,144,152,0.2);
+            border-radius: 12px;
+            margin-bottom: 14px;
+            animation: fadeInUp 0.3s ease;
+        }
 
-        .pin-wrap label {
-            display: block;
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .qr-label {
             font-size: 9px;
             font-family: 'Cinzel', serif;
-            letter-spacing: 1.5px;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 6px;
+            color: var(--teal);
+            text-align: center;
         }
 
-        .pin-input-row { position: relative; display: flex; align-items: center; }
-
-        .pin-input {
-            width: 100%;
-            padding: 12px 48px 12px 16px;
+        .qr-canvas-wrap {
+            padding: 12px;
+            background: white;
             border-radius: 10px;
-            border: 1px solid var(--border);
-            background: rgba(255,255,255,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .qr-canvas-wrap canvas,
+        .qr-canvas-wrap img { display: block; }
+
+        .qr-nome {
+            font-family: 'Cinzel', serif;
+            font-size: 17px;
+            font-weight: 700;
             color: var(--text);
-            font-size: 24px;
-            font-family: 'Lato', sans-serif;
-            letter-spacing: 8px;
-            outline: none;
-            transition: border-color 0.15s;
-            -webkit-appearance: none;
-            appearance: none;
+            text-align: center;
         }
 
-        .pin-input:focus { border-color: var(--teal); }
-
-        .pin-input::placeholder {
-            font-size: 13px;
-            letter-spacing: 1px;
+        .qr-culto {
+            font-size: 12px;
             color: var(--muted);
+            text-align: center;
         }
 
-        /* prevent iOS zoom on focus */
-        @media (max-width: 600px) {
-            .pin-input { font-size: 20px; }
-        }
-
-        .pin-eye {
-            position: absolute;
-            right: 10px;
-            background: none;
-            border: none;
-            cursor: pointer;
+        .qr-hint {
+            font-size: 11px;
             color: var(--muted);
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            transition: color 0.15s;
-            line-height: 0;
+            text-align: center;
+            line-height: 1.5;
+            max-width: 260px;
         }
 
-        .pin-eye:hover { color: var(--teal); }
+        .qr-hint strong { color: var(--text); }
 
         /* ── BOTÕES ── */
         .btn-submit {
@@ -571,261 +595,231 @@
 </div>
 
 <script>
-/* ═══════════════════════════════════════════
-   UTILITÁRIOS
-═══════════════════════════════════════════ */
-function sb(path, opts) {
-    return fetch(SB_URL + '/rest/v1/' + path, {
-        headers: {
-            'apikey': SB_KEY,
-            'Authorization': 'Bearer ' + SB_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation',
-            ...(opts?.headers || {})
-        },
-        ...opts
-    }).then(async r => {
-        const d = await r.json().catch(() => null);
-        if (!r.ok) throw new Error(d?.message || d?.error || r.statusText);
-        return d;
-    });
-}
-
-function hojeISO() { return new Date().toISOString().split('T')[0]; }
-
-function addDias(iso, n) {
-    const d = new Date(iso + 'T00:00:00');
-    d.setDate(d.getDate() + n);
-    return d.toISOString().split('T')[0];
-}
-
-function diasAte(iso) {
-    return Math.round((new Date(iso + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
-}
-
-function agoraHHMM() {
-    const n = new Date();
-    return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
-}
-
-function dataFmt(iso) {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('pt-PT', {
-        weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
-    });
-}
-
-const DIAS  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-function dataLabel(iso) {
-    const dt = new Date(iso + 'T00:00:00');
-    return DIAS[dt.getDay()] + ', ' + String(dt.getDate()).padStart(2,'0') + ' ' + MESES[dt.getMonth()];
-}
-
-function diffLabel(iso) {
-    const d = diasAte(iso);
-    if (d === 0) return 'hoje';
-    if (d === 1) return 'amanhã';
-    if (d === 7) return 'semana que vem';
-    return 'em ' + d + ' dias';
-}
-
-function minutosParaCulto(horaInicio) {
-    const agora = new Date();
-    const [hh, mm] = horaInicio.split(':').map(Number);
-    const i = new Date(agora); i.setHours(hh, mm, 0, 0);
-    return Math.round((i - agora) / 60000);
-}
-
-const WAP_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
-
-const EYE_ON  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
-const EYE_OFF = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
-
-/* ═══════════════════════════════════════════
-   ESTADO
-═══════════════════════════════════════════ */
-var CI = {
-    ministerioId: null, ministerioNome: '', lideres: [],
-    cultos: [], cultSel: null, membroSel: null,
-    preGrupos: [], preGrupoSel: null, preMembroSel: null,
-    escFut: [], checkins: []
-};
-
-/* ═══════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════ */
-async function ciInit() {
-    const params = new URLSearchParams(location.search);
-    CI.ministerioId = params.get('min');
-
-    const hoje = hojeISO();
-    document.getElementById('ci-data').textContent = dataFmt(hoje);
-
-    if (!CI.ministerioId) { ciErroFatal('URL inválido — sem parâmetro de ministério.'); return; }
-
-    try {
-        const mins = await sb(`ministerios?id=eq.${CI.ministerioId}&select=id,nome`);
-        if (!mins?.length) { ciErroFatal('Ministério não encontrado.'); return; }
-        CI.ministerioNome = mins[0].nome;
-        document.getElementById('ci-min-nome').textContent = CI.ministerioNome;
-
-        const lidRaw = await sb(`ministerio_membros?ministerio_id=eq.${CI.ministerioId}&papel=eq.lider&select=*,membros(id,nome,telefone)`).catch(() => []);
-        CI.lideres = (lidRaw || []).map(l => l.membros).filter(Boolean);
-        ciRenderLider();
-
-        const escAll = await sb(
-            `ministerio_escala?ministerio_id=eq.${CI.ministerioId}` +
-            `&data=gte.${hoje}&data=lte.${addDias(hoje,30)}` +
-            `&select=*,membros(id,nome),cultos(id,nome,hora_inicio)&order=data&order=culto_id`
-        );
-
-        CI.checkins = await sb(
-            `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}` +
-            `&data=gte.${hoje}&data=lte.${addDias(hoje,PRE_CHECKIN_DIAS)}&select=id,membro_id,culto_id,data,status`
-        ).catch(() => []);
-
-        const escHoje = (escAll || []).filter(e => e.data === hoje);
-        const escPre  = (escAll || []).filter(e => { const d = diasAte(e.data); return d >= 1 && d <= PRE_CHECKIN_DIAS; });
-        CI.escFut     = (escAll || []).filter(e => diasAte(e.data) > PRE_CHECKIN_DIAS);
-
-        /* Agrupar hoje */
-        if (escHoje.length) {
-            const m = {};
-            escHoje.forEach(e => {
-                const c = e.cultos; if (!c) return;
-                if (!m[c.id]) m[c.id] = { ...c, escalados: [] };
-                m[c.id].escalados.push(e);
-            });
-            CI.cultos = Object.values(m).sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio));
-            if (CI.cultos.length === 1) CI.cultSel = CI.cultos[0];
-        }
-
-        /* Agrupar pré */
-        const pm = {};
-        escPre.forEach(e => {
-            const k = e.data + '_' + e.culto_id;
-            if (!pm[k]) pm[k] = { key: k, data: e.data, culto: e.cultos, escalados: [] };
-            pm[k].escalados.push(e);
+    /* ═══════════════════════════════════════════
+       UTILITÁRIOS
+    ═══════════════════════════════════════════ */
+    function sb(path, opts) {
+        return fetch(SB_URL + '/rest/v1/' + path, {
+            headers: {
+                'apikey': SB_KEY,
+                'Authorization': 'Bearer ' + SB_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation',
+                ...(opts?.headers || {})
+            },
+            ...opts
+        }).then(async r => {
+            const d = await r.json().catch(() => null);
+            if (!r.ok) throw new Error(d?.message || d?.error || r.statusText);
+            return d;
         });
-        CI.preGrupos = Object.values(pm).sort((a,b) =>
-            a.data.localeCompare(b.data) || (a.culto?.hora_inicio||'').localeCompare(b.culto?.hora_inicio||'')
-        );
-        if (CI.preGrupos.length === 1) CI.preGrupoSel = CI.preGrupos[0];
-
-        /* Badge aba pré */
-        const pendentes = CI.preGrupos.reduce((acc, g) =>
-            acc + g.escalados.filter(e => !CI.checkins.some(c =>
-                c.membro_id === e.membro_id && c.culto_id === g.culto?.id && c.data === g.data
-            )).length, 0
-        );
-        const badge = document.getElementById('tab-pre-badge');
-        if (CI.preGrupos.length > 0 && pendentes > 0) {
-            badge.textContent = pendentes;
-            badge.classList.add('show');
-        }
-
-        /* Mostrar abas */
-        document.getElementById('pane-loading').classList.remove('active');
-        document.getElementById('ci-tabs').style.display = 'flex';
-
-        ciRenderPresenca();
-        ciRenderPreConfirm();
-
-    } catch (e) {
-        ciErroFatal('Erro ao carregar dados: ' + e.message);
     }
-}
 
-/* ═══════════════════════════════════════════
-   ABAS
-═══════════════════════════════════════════ */
-function ciSwitchTab(tab) {
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
-    document.getElementById('pane-' + tab).classList.add('active');
-}
+    function hojeISO() { return new Date().toISOString().split('T')[0]; }
 
-/* ═══════════════════════════════════════════
-   LÍDER HEADER
-═══════════════════════════════════════════ */
-function ciRenderLider() {
-    if (!CI.lideres.length) return;
-    const l = CI.lideres[0];
-    const tel = (l.telefone || '').replace(/\D/g,'');
-    const el = document.getElementById('ci-lider-hd');
-    el.innerHTML =
-        `<span class="card-hd-lider-label">Líder:</span>
+    function addDias(iso, n) {
+        const d = new Date(iso + 'T00:00:00');
+        d.setDate(d.getDate() + n);
+        return d.toISOString().split('T')[0];
+    }
+
+    function diasAte(iso) {
+        return Math.round((new Date(iso + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
+    }
+
+    function agoraHHMM() {
+        const n = new Date();
+        return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+    }
+
+    function dataFmt(iso) {
+        return new Date(iso + 'T00:00:00').toLocaleDateString('pt-PT', {
+            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+        });
+    }
+
+    const DIAS  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+    function dataLabel(iso) {
+        const dt = new Date(iso + 'T00:00:00');
+        return DIAS[dt.getDay()] + ', ' + String(dt.getDate()).padStart(2,'0') + ' ' + MESES[dt.getMonth()];
+    }
+
+    function diffLabel(iso) {
+        const d = diasAte(iso);
+        if (d === 0) return 'hoje';
+        if (d === 1) return 'amanhã';
+        if (d === 7) return 'semana que vem';
+        return 'em ' + d + ' dias';
+    }
+
+    function minutosParaCulto(horaInicio) {
+        const agora = new Date();
+        const [hh, mm] = horaInicio.split(':').map(Number);
+        const i = new Date(agora); i.setHours(hh, mm, 0, 0);
+        return Math.round((i - agora) / 60000);
+    }
+
+    const WAP_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+
+    /* ═══════════════════════════════════════════
+       ESTADO
+    ═══════════════════════════════════════════ */
+    var CI = {
+        ministerioId: null, ministerioNome: '', lideres: [],
+        cultos: [], cultSel: null, membroSel: null, membroNome: null,
+        preGrupos: [], preGrupoSel: null, preMembroSel: null,
+        escFut: [], checkins: []
+    };
+
+    /* ═══════════════════════════════════════════
+       INIT
+    ═══════════════════════════════════════════ */
+    async function ciInit() {
+        const params = new URLSearchParams(location.search);
+        CI.ministerioId = params.get('min');
+
+        const hoje = hojeISO();
+        document.getElementById('ci-data').textContent = dataFmt(hoje);
+
+        if (!CI.ministerioId) { ciErroFatal('URL inválido — sem parâmetro de ministério.'); return; }
+
+        try {
+            const mins = await sb(`ministerios?id=eq.${CI.ministerioId}&select=id,nome`);
+            if (!mins?.length) { ciErroFatal('Ministério não encontrado.'); return; }
+            CI.ministerioNome = mins[0].nome;
+            document.getElementById('ci-min-nome').textContent = CI.ministerioNome;
+
+            const lidRaw = await sb(`ministerio_membros?ministerio_id=eq.${CI.ministerioId}&papel=eq.lider&select=*,membros(id,nome,telefone)`).catch(() => []);
+            CI.lideres = (lidRaw || []).map(l => l.membros).filter(Boolean);
+            ciRenderLider();
+
+            const escAll = await sb(
+                `ministerio_escala?ministerio_id=eq.${CI.ministerioId}` +
+                `&data=gte.${hoje}&data=lte.${addDias(hoje,30)}` +
+                `&select=*,membros(id,nome),cultos(id,nome,hora_inicio)&order=data&order=culto_id`
+            );
+
+            CI.checkins = await sb(
+                `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}` +
+                `&data=gte.${hoje}&data=lte.${addDias(hoje,PRE_CHECKIN_DIAS)}&select=id,membro_id,culto_id,data,status`
+            ).catch(() => []);
+
+            const escHoje = (escAll || []).filter(e => e.data === hoje);
+            const escPre  = (escAll || []).filter(e => { const d = diasAte(e.data); return d >= 1 && d <= PRE_CHECKIN_DIAS; });
+            CI.escFut     = (escAll || []).filter(e => diasAte(e.data) > PRE_CHECKIN_DIAS);
+
+            /* Agrupar hoje */
+            if (escHoje.length) {
+                const m = {};
+                escHoje.forEach(e => {
+                    const c = e.cultos; if (!c) return;
+                    if (!m[c.id]) m[c.id] = { ...c, escalados: [] };
+                    m[c.id].escalados.push(e);
+                });
+                CI.cultos = Object.values(m).sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio));
+                if (CI.cultos.length === 1) CI.cultSel = CI.cultos[0];
+            }
+
+            /* Agrupar pré */
+            const pm = {};
+            escPre.forEach(e => {
+                const k = e.data + '_' + e.culto_id;
+                if (!pm[k]) pm[k] = { key: k, data: e.data, culto: e.cultos, escalados: [] };
+                pm[k].escalados.push(e);
+            });
+            CI.preGrupos = Object.values(pm).sort((a,b) =>
+                a.data.localeCompare(b.data) || (a.culto?.hora_inicio||'').localeCompare(b.culto?.hora_inicio||'')
+            );
+            if (CI.preGrupos.length === 1) CI.preGrupoSel = CI.preGrupos[0];
+
+            /* Badge aba pré */
+            const pendentes = CI.preGrupos.reduce((acc, g) =>
+                    acc + g.escalados.filter(e => !CI.checkins.some(c =>
+                        c.membro_id === e.membro_id && c.culto_id === g.culto?.id && c.data === g.data
+                    )).length, 0
+            );
+            const badge = document.getElementById('tab-pre-badge');
+            if (CI.preGrupos.length > 0 && pendentes > 0) {
+                badge.textContent = pendentes;
+                badge.classList.add('show');
+            }
+
+            /* Mostrar abas */
+            document.getElementById('pane-loading').classList.remove('active');
+            document.getElementById('ci-tabs').style.display = 'flex';
+
+            ciRenderPresenca();
+            ciRenderPreConfirm();
+
+        } catch (e) {
+            ciErroFatal('Erro ao carregar dados: ' + e.message);
+        }
+    }
+
+    /* ═══════════════════════════════════════════
+       ABAS
+    ═══════════════════════════════════════════ */
+    function ciSwitchTab(tab) {
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('pane-' + tab).classList.add('active');
+    }
+
+    /* ═══════════════════════════════════════════
+       LÍDER HEADER
+    ═══════════════════════════════════════════ */
+    function ciRenderLider() {
+        if (!CI.lideres.length) return;
+        const l = CI.lideres[0];
+        const tel = (l.telefone || '').replace(/\D/g,'');
+        const el = document.getElementById('ci-lider-hd');
+        el.innerHTML =
+            `<span class="card-hd-lider-label">Líder:</span>
          <span class="card-hd-lider-nome">${l.nome}</span>
          ${tel ? `<a class="card-hd-lider-wap" href="https://wa.me/${tel}" target="_blank">${WAP_SVG}</a>` : ''}`;
-    el.style.display = 'flex';
-}
+        el.style.display = 'flex';
+    }
 
-/* ═══════════════════════════════════════════
-   ERRO FATAL
-═══════════════════════════════════════════ */
-function ciErroFatal(msg) {
-    document.getElementById('pane-loading').innerHTML =
-        `<div class="msg err show" style="margin:0">${msg}</div>`;
-}
+    /* ═══════════════════════════════════════════
+       ERRO FATAL
+    ═══════════════════════════════════════════ */
+    function ciErroFatal(msg) {
+        document.getElementById('pane-loading').innerHTML =
+            `<div class="msg err show" style="margin:0">${msg}</div>`;
+    }
 
-/* ═══════════════════════════════════════════
-   BUILD: campo PIN
-═══════════════════════════════════════════ */
-function buildPin(inputId, eyeId) {
-    return `<div class="pin-wrap">
-        <label>PIN de 4 dígitos</label>
-        <div class="pin-input-row">
-            <input class="pin-input" id="${inputId}"
-                   type="password" inputmode="numeric" pattern="[0-9]*"
-                   maxlength="4" placeholder="••••" autocomplete="off">
-            <button class="pin-eye" type="button" id="${eyeId}"
-                    onclick="ciToggleEye('${inputId}','${eyeId}')">${EYE_ON}</button>
-        </div>
-    </div>`;
-}
+    /* ═══════════════════════════════════════════
+       BUILD: próximas
+    ═══════════════════════════════════════════ */
+    function buildProximas() {
+        const futGrupos = CI.escFut.reduce((acc, e) => {
+            const k = e.data + '_' + e.culto_id;
+            let g = acc.find(x => x.key === k);
+            if (!g) { g = { key: k, data: e.data, culto: e.cultos, escalados: [] }; acc.push(g); }
+            g.escalados.push(e);
+            return acc;
+        }, []);
 
-function ciToggleEye(inputId, eyeId) {
-    const inp = document.getElementById(inputId);
-    const btn = document.getElementById(eyeId);
-    if (!inp) return;
-    const show = inp.type === 'password';
-    inp.type = show ? 'text' : 'password';
-    btn.innerHTML = show ? EYE_OFF : EYE_ON;
-}
+        const todos = [...CI.preGrupos, ...futGrupos].sort((a,b) => a.data.localeCompare(b.data));
+        if (!todos.length) return '';
 
-/* ═══════════════════════════════════════════
-   BUILD: próximas (aparece nas duas abas)
-   Inclui escalas de pré + futuras
-═══════════════════════════════════════════ */
-function buildProximas() {
-    /* Une pré-grupos + futuras */
-    const futGrupos = CI.escFut.reduce((acc, e) => {
-        const k = e.data + '_' + e.culto_id;
-        let g = acc.find(x => x.key === k);
-        if (!g) { g = { key: k, data: e.data, culto: e.cultos, escalados: [] }; acc.push(g); }
-        g.escalados.push(e);
-        return acc;
-    }, []);
-
-    const todos = [...CI.preGrupos, ...futGrupos].sort((a,b) => a.data.localeCompare(b.data));
-    if (!todos.length) return '';
-
-    let html = `<div class="divider"></div><div class="proximas-section">
+        let html = `<div class="divider"></div><div class="proximas-section">
         <div class="section-label">Próximas Escalas</div>`;
 
-    todos.forEach(p => {
-        const tags = p.escalados.map(e => {
-            const nome = e.membros?.nome || '—';
-            const ci   = CI.checkins.find(c =>
-                c.membro_id === e.membro_id && c.culto_id === p.culto?.id && c.data === p.data
-            );
-            const conf = ci?.status === 'pre_confirmado';
-            return `<span class="prox-tag ${conf ? 'confirmado' : ''}">${nome}${conf ? ' ✓' : ''}</span>`;
-        }).join('');
+        todos.forEach(p => {
+            const tags = p.escalados.map(e => {
+                const nome = e.membros?.nome || '—';
+                const ci   = CI.checkins.find(c =>
+                    c.membro_id === e.membro_id && c.culto_id === p.culto?.id && c.data === p.data
+                );
+                const conf = ci?.status === 'pre_confirmado';
+                return `<span class="prox-tag ${conf ? 'confirmado' : ''}">${nome}${conf ? ' ✓' : ''}</span>`;
+            }).join('');
 
-        html += `<div class="prox-card">
+            html += `<div class="prox-card">
             <div class="prox-card-hd">
                 <div class="prox-card-data">${dataLabel(p.data)}</div>
                 <div class="prox-card-diff">${diffLabel(p.data)}</div>
@@ -833,124 +827,184 @@ function buildProximas() {
             <div class="prox-card-culto">${p.culto ? p.culto.nome + ' · ' + p.culto.hora_inicio.slice(0,5) : ''}</div>
             <div class="prox-card-membros">${tags}</div>
         </div>`;
-    });
+        });
 
-    return html + '</div>';
-}
+        return html + '</div>';
+    }
 
-/* ═══════════════════════════════════════════
-   ABA: PRESENÇA
-═══════════════════════════════════════════ */
-function ciRenderPresenca() {
-    const el = document.getElementById('pane-presenca');
-    let html = '';
+    /* ═══════════════════════════════════════════
+       ABA: PRESENÇA
+    ═══════════════════════════════════════════ */
+    function ciRenderPresenca() {
+        const el = document.getElementById('pane-presenca');
+        let html = '';
 
-    if (!CI.cultos.length) {
-        html = `<div class="sem-escala">
+        if (!CI.cultos.length) {
+            html = `<div class="sem-escala">
             <div class="sem-escala-title">Sem Escala Hoje</div>
             <div class="sem-escala-sub">Não há escala para <strong style="color:var(--text)">${CI.ministerioNome}</strong> hoje.</div>
         </div>`;
-    } else {
-        if (CI.cultos.length > 1) {
-            html += `<div class="field" style="margin-bottom:14px">
+        } else {
+            if (CI.cultos.length > 1) {
+                html += `<div class="field" style="margin-bottom:14px">
                 <label>Culto de hoje</label>
                 <div class="culto-chips" id="ci-culto-chips">
                     ${CI.cultos.map(c =>
-                        `<div class="culto-chip ${CI.cultSel?.id === c.id ? 'on' : ''}" onclick="ciSelCulto('${c.id}')">
+                    `<div class="culto-chip ${CI.cultSel?.id === c.id ? 'on' : ''}" onclick="ciSelCulto('${c.id}')">
                             <div style="font-weight:600">${c.nome}</div>
                             <div style="font-size:10px;opacity:.8">${c.hora_inicio.slice(0,5)}</div>
                         </div>`
-                    ).join('')}
+                ).join('')}
                 </div>
             </div>`;
+            }
+            html += `<div id="ci-escala-panel"></div><div id="ci-checkin-area"></div>`;
         }
-        html += `<div id="ci-escala-panel"></div><div id="ci-checkin-area"></div>`;
+
+        html += buildProximas();
+        el.innerHTML = html;
+        el.classList.add('active');
+
+        if (CI.cultSel) ciRenderCultoAtual();
     }
 
-    html += buildProximas();
-    el.innerHTML = html;
-    el.classList.add('active');
+    /* ═══════════════════════════════════════════
+       CULTO SELECIONADO — painel + área QR
+    ═══════════════════════════════════════════ */
+    function ciRenderCultoAtual() {
+        if (!CI.cultSel) return;
+        const escalados = CI.cultSel.escalados || [];
+        const hoje      = hojeISO();
+        const aberto    = minutosParaCulto(CI.cultSel.hora_inicio) <= JANELA_CHECKIN_MIN;
 
-    if (CI.cultSel) ciRenderCultoAtual();
-}
-
-/* ═══════════════════════════════════════════
-   CULTO SELECIONADO (painel + form)
-═══════════════════════════════════════════ */
-function ciRenderCultoAtual() {
-    if (!CI.cultSel) return;
-    const escalados = CI.cultSel.escalados || [];
-    const hoje      = hojeISO();
-    const aberto    = minutosParaCulto(CI.cultSel.hora_inicio) <= JANELA_CHECKIN_MIN;
-
-    /* Painel de escala */
-    const membHtml = escalados.map(e => {
-        const ci = CI.checkins.find(c =>
-            c.membro_id === e.membro_id && c.culto_id === CI.cultSel.id && c.data === hoje
-        );
-        const st = ci?.status;
-        let dot = '', badge = '';
-        if      (st === 'presente')       { dot = 'green';  badge = `<span class="member-badge ok">✓ presente</span>`; }
-        else if (st === 'atrasado')       { dot = 'orange'; badge = `<span class="member-badge late">⏱ atrasado</span>`; }
-        else if (st === 'pre_confirmado') {                 badge = `<span class="member-badge pre">✓ confirmado</span>`; }
-        else if (e.papel)                 {                 badge = `<span class="escala-member-role">${e.papel}</span>`; }
-        return `<div class="escala-member">
+        /* Painel de escala */
+        const membHtml = escalados.map(e => {
+            const ci = CI.checkins.find(c =>
+                c.membro_id === e.membro_id && c.culto_id === CI.cultSel.id && c.data === hoje
+            );
+            const st = ci?.status;
+            let dot = '', badge = '';
+            if      (st === 'presente')       { dot = 'green';  badge = `<span class="member-badge ok">✓ presente</span>`; }
+            else if (st === 'atrasado')       { dot = 'orange'; badge = `<span class="member-badge late">⏱ atrasado</span>`; }
+            else if (st === 'pre_confirmado') {                 badge = `<span class="member-badge pre">✓ confirmado</span>`; }
+            else if (e.papel)                 {                 badge = `<span class="escala-member-role">${e.papel}</span>`; }
+            return `<div class="escala-member">
             <div class="escala-member-dot ${dot}"></div>
             <span>${e.membros?.nome || '—'}</span>${badge}
         </div>`;
-    }).join('');
+        }).join('');
 
-    document.getElementById('ci-escala-panel').innerHTML =
-        `<div class="escala-panel">
+        document.getElementById('ci-escala-panel').innerHTML =
+            `<div class="escala-panel">
             <div class="escala-panel-title">Escala · ${CI.cultSel.nome} · ${CI.cultSel.hora_inicio.slice(0,5)}</div>
             ${membHtml || '<div style="font-size:12px;color:var(--muted)">Sem membros escalados.</div>'}
         </div>`;
 
-    const areaEl = document.getElementById('ci-checkin-area');
-    if (!areaEl) return;
+        const areaEl = document.getElementById('ci-checkin-area');
+        if (!areaEl) return;
 
-    if (!aberto) {
-        const [hh, mm] = CI.cultSel.hora_inicio.split(':').map(Number);
-        const abre = new Date(); abre.setHours(hh, mm - JANELA_CHECKIN_MIN, 0, 0);
-        const abreStr = String(abre.getHours()).padStart(2,'0') + ':' + String(abre.getMinutes()).padStart(2,'0');
-        areaEl.innerHTML =
-            `<div class="checkin-locked">
+        if (!aberto) {
+            /* ── MENSAGEM DE BLOQUEIO ACTUALIZADA ── */
+            const [hh, mm] = CI.cultSel.hora_inicio.split(':').map(Number);
+            const abre = new Date(); abre.setHours(hh, mm - JANELA_CHECKIN_MIN, 0, 0);
+            const abreStr = String(abre.getHours()).padStart(2,'0') + ':' + String(abre.getMinutes()).padStart(2,'0');
+
+            areaEl.innerHTML =
+                `<div class="checkin-locked">
                 <strong>Check-in ainda não disponível</strong>
-                O registo abre às <strong>${abreStr}</strong> (${JANELA_CHECKIN_MIN/60}h antes do culto).
+                O check-in estará disponível a partir das
+                <span class="hora-destaque">${abreStr}</span>
+                junto com a equipa de gerenciamento
+                na <strong>Sala de Voluntários</strong>.
+                <div class="sala-tag">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Sala de Voluntários
+                </div>
             </div>`;
-    } else {
-        areaEl.innerHTML =
-            `<div class="field">
+        } else {
+            /* ── SELECT DO NOME + QR CODE ── */
+            areaEl.innerHTML =
+                `<div class="field">
                 <label>O teu nome</label>
-                <select id="ci-sel-membro" onchange="ciSelMembro(this.value)">
+                <select id="ci-sel-membro" onchange="ciSelMembro(this.value, this.options[this.selectedIndex].text)">
                     <option value="">— Seleciona o teu nome —</option>
-                    ${escalados.map(e => `<option value="${e.membro_id}">${e.membros?.nome || '—'}</option>`).join('')}
+                    ${escalados.map(e =>
+                        `<option value="${e.membro_id}">${e.membros?.nome || '—'}</option>`
+                    ).join('')}
                 </select>
             </div>
-            <div class="msg" id="ci-msg"></div>
-            ${buildPin('ci-pin','ci-eye')}
-            <button class="btn-submit" id="ci-btn" onclick="ciSubmit()" disabled>Confirmar Presença</button>`;
+            <div id="ci-qr-area"></div>`;
 
-        document.getElementById('ci-pin').addEventListener('input', ciAtualizarBtn);
-        CI.membroSel = null;
+            CI.membroSel  = null;
+            CI.membroNome = null;
+        }
     }
-}
 
-/* ═══════════════════════════════════════════
-   ABA: PRÉ-CONFIRMAÇÃO
-═══════════════════════════════════════════ */
-function ciRenderPreConfirm() {
-    const el = document.getElementById('pane-preconfirm');
-    let html = '';
+    /* ═══════════════════════════════════════════
+       GERAR QR CODE DE PRESENÇA
+    ═══════════════════════════════════════════ */
+    function ciSelMembro(id, nomeOpt) {
+        CI.membroSel  = id || null;
+        CI.membroNome = id ? nomeOpt : null;
+        ciGerarQR();
+    }
 
-    if (!CI.preGrupos.length) {
-        html = `<div class="sem-escala">
+    function ciGerarQR() {
+        const area = document.getElementById('ci-qr-area');
+        if (!area) return;
+
+        if (!CI.membroSel || !CI.cultSel) {
+            area.innerHTML = '';
+            return;
+        }
+
+        /* Payload que a página de leitura vai usar para registar o check-in */
+        const payload = JSON.stringify({
+            membro_id:      CI.membroSel,
+            ministerio_id:  CI.ministerioId,
+            culto_id:       CI.cultSel.id,
+            data:           hojeISO()
+        });
+
+        area.innerHTML = `
+            <div class="qr-wrap">
+                <div class="qr-label">Mostra este código ao responsável</div>
+                <div class="qr-canvas-wrap" id="ci-qr-canvas"></div>
+                <div class="qr-nome">${CI.membroNome || ''}</div>
+                <div class="qr-culto">${CI.ministerioNome} · ${CI.cultSel.nome} · ${CI.cultSel.hora_inicio.slice(0,5)}</div>
+                <div class="qr-hint">O responsável irá ler este QR code<br>para registar a tua presença.</div>
+            </div>`;
+
+        new QRCode(document.getElementById('ci-qr-canvas'), {
+            text:        payload,
+            width:       200,
+            height:      200,
+            colorDark:   '#007078',
+            colorLight:  '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
+    /* ═══════════════════════════════════════════
+       ABA: PRÉ-CONFIRMAÇÃO  (sem PIN)
+    ═══════════════════════════════════════════ */
+    function ciRenderPreConfirm() {
+        const el = document.getElementById('pane-preconfirm');
+        let html = '';
+
+        if (!CI.preGrupos.length) {
+            html = `<div class="sem-escala">
             <div class="sem-escala-title">Sem Escalas para Confirmar</div>
             <div class="sem-escala-sub">Não há escalas nos próximos ${PRE_CHECKIN_DIAS} dias para pré-confirmar.</div>
         </div>`;
-    } else {
-        if (CI.preGrupos.length > 1) {
-            html += `<div class="culto-chips" id="ci-pre-chips" style="margin-bottom:16px">
+        } else {
+            if (CI.preGrupos.length > 1) {
+                html += `<div class="culto-chips" id="ci-pre-chips" style="margin-bottom:16px">
                 ${CI.preGrupos.map(g =>
                     `<div class="culto-chip ${CI.preGrupoSel?.key === g.key ? 'on' : ''}" onclick="ciSelPreGrupo('${g.key}')">
                         <div style="font-weight:600">${dataLabel(g.data)}</div>
@@ -958,55 +1012,56 @@ function ciRenderPreConfirm() {
                     </div>`
                 ).join('')}
             </div>`;
+            }
+            html += `<div id="ci-pre-escala-panel"></div><div id="ci-pre-form-area"></div>`;
         }
-        html += `<div id="ci-pre-escala-panel"></div><div id="ci-pre-form-area"></div>`;
+
+        html += buildProximas();
+        el.innerHTML = html;
+        if (CI.preGrupoSel) ciRenderPreGrupo();
     }
 
-    html += buildProximas();
-    el.innerHTML = html;
-    if (CI.preGrupoSel) ciRenderPreGrupo();
-}
+    function ciRenderPreGrupo() {
+        const g = CI.preGrupoSel; if (!g) return;
 
-function ciRenderPreGrupo() {
-    const g = CI.preGrupoSel; if (!g) return;
-
-    const membHtml = g.escalados.map(e => {
-        const ci = CI.checkins.find(c =>
-            c.membro_id === e.membro_id && c.culto_id === g.culto?.id && c.data === g.data
-        );
-        const conf = ci?.status === 'pre_confirmado';
-        let badge = conf
-            ? `<span class="member-badge pre">✓ confirmado</span>`
-            : (e.papel ? `<span class="escala-member-role">${e.papel}</span>` : '');
-        return `<div class="escala-member">
+        const membHtml = g.escalados.map(e => {
+            const ci = CI.checkins.find(c =>
+                c.membro_id === e.membro_id && c.culto_id === g.culto?.id && c.data === g.data
+            );
+            const conf = ci?.status === 'pre_confirmado';
+            let badge = conf
+                ? `<span class="member-badge pre">✓ confirmado</span>`
+                : (e.papel ? `<span class="escala-member-role">${e.papel}</span>` : '');
+            return `<div class="escala-member">
             <div class="escala-member-dot ${conf ? 'green' : ''}"></div>
             <span>${e.membros?.nome || '—'}</span>${badge}
         </div>`;
-    }).join('');
+        }).join('');
 
-    const pEl = document.getElementById('ci-pre-escala-panel');
-    if (pEl) pEl.innerHTML =
-        `<div class="escala-panel">
+        const pEl = document.getElementById('ci-pre-escala-panel');
+        if (pEl) pEl.innerHTML =
+            `<div class="escala-panel">
             <div class="escala-panel-title">${dataLabel(g.data)} · ${diffLabel(g.data)} · ${g.culto?.nome || ''} · ${(g.culto?.hora_inicio||'').slice(0,5)}</div>
             ${membHtml || '<div style="font-size:12px;color:var(--muted)">Sem membros escalados.</div>'}
         </div>`;
 
-    const fEl = document.getElementById('ci-pre-form-area');
-    if (!fEl) return;
+        const fEl = document.getElementById('ci-pre-form-area');
+        if (!fEl) return;
 
-    const pendentes = g.escalados.filter(e =>
-        !CI.checkins.some(c =>
-            c.membro_id === e.membro_id && c.culto_id === g.culto?.id && c.data === g.data
-        )
-    );
+        const pendentes = g.escalados.filter(e =>
+            !CI.checkins.some(c =>
+                c.membro_id === e.membro_id && c.culto_id === g.culto?.id && c.data === g.data
+            )
+        );
 
-    if (!pendentes.length) {
-        fEl.innerHTML = `<div class="msg ok show" style="margin:0">Todos os membros já confirmaram! 🎉</div>`;
-        return;
-    }
+        if (!pendentes.length) {
+            fEl.innerHTML = `<div class="msg ok show" style="margin:0">Todos os membros já confirmaram! 🎉</div>`;
+            return;
+        }
 
-    fEl.innerHTML =
-        `<div class="field">
+        /* ── SEM PIN: só select + botão ── */
+        fEl.innerHTML =
+            `<div class="field">
             <label>O teu nome</label>
             <select id="ci-pre-sel" onchange="ciPreSelMembro(this.value)">
                 <option value="">— Seleciona o teu nome —</option>
@@ -1014,214 +1069,105 @@ function ciRenderPreGrupo() {
             </select>
         </div>
         <div class="msg" id="ci-pre-msg"></div>
-        ${buildPin('ci-pre-pin','ci-pre-eye')}
         <button class="btn-submit pre" id="ci-pre-btn" onclick="ciSubmitPre()" disabled>
             Confirmar que estarei presente
         </button>`;
 
-    document.getElementById('ci-pre-pin').addEventListener('input', ciPreAtualizarBtn);
-    CI.preMembroSel = null;
-}
+        CI.preMembroSel = null;
+    }
 
-/* ═══════════════════════════════════════════
-   INTERACÇÕES
-═══════════════════════════════════════════ */
-function ciSelCulto(cId) {
-    CI.cultSel = CI.cultos.find(c => c.id === cId);
-    CI.membroSel = null;
-    document.querySelectorAll('#ci-culto-chips .culto-chip').forEach(el =>
-        el.classList.toggle('on', el.getAttribute('onclick').includes(`'${cId}'`))
-    );
-    ciRenderCultoAtual();
-}
-
-function ciSelMembro(id) { CI.membroSel = id || null; ciAtualizarBtn(); }
-function ciAtualizarBtn() {
-    const pin = (document.getElementById('ci-pin')?.value || '').replace(/\D/g,'');
-    const btn = document.getElementById('ci-btn');
-    if (btn) btn.disabled = !(CI.membroSel && pin.length === 4 && CI.cultSel);
-}
-function ciShowMsg(msg, tipo) {
-    const el = document.getElementById('ci-msg');
-    if (el) { el.textContent = msg; el.className = 'msg show ' + tipo; }
-}
-function ciHideMsg() { const el = document.getElementById('ci-msg'); if (el) el.className = 'msg'; }
-
-function ciSelPreGrupo(key) {
-    CI.preGrupoSel = CI.preGrupos.find(g => g.key === key);
-    CI.preMembroSel = null;
-    document.querySelectorAll('#ci-pre-chips .culto-chip').forEach(el =>
-        el.classList.toggle('on', el.getAttribute('onclick').includes(`'${key}'`))
-    );
-    ciRenderPreGrupo();
-}
-
-function ciPreSelMembro(id) { CI.preMembroSel = id || null; ciPreAtualizarBtn(); }
-function ciPreAtualizarBtn() {
-    const pin = (document.getElementById('ci-pre-pin')?.value || '').replace(/\D/g,'');
-    const btn = document.getElementById('ci-pre-btn');
-    if (btn) btn.disabled = !(CI.preMembroSel && pin.length === 4 && CI.preGrupoSel);
-}
-function ciPreShowMsg(msg, tipo) {
-    const el = document.getElementById('ci-pre-msg');
-    if (el) { el.textContent = msg; el.className = 'msg show ' + tipo; }
-}
-
-/* ═══════════════════════════════════════════
-   SUBMIT — PRESENÇA
-═══════════════════════════════════════════ */
-async function ciSubmit() {
-    if (!CI.membroSel || !CI.cultSel) return;
-    const pin = (document.getElementById('ci-pin')?.value || '').replace(/\D/g,'');
-    if (pin.length !== 4) return;
-    ciHideMsg();
-
-    const btn = document.getElementById('ci-btn');
-    btn.disabled = true; btn.textContent = 'A verificar...';
-
-    try {
-        const memRes = await sb(`membros?id=eq.${CI.membroSel}&select=id,nome,checkin_pin`);
-        const mem = memRes?.[0];
-        if (!mem) throw new Error('Membro não encontrado.');
-        if (!mem.checkin_pin) throw new Error('PIN não configurado. Fala com o líder.');
-        if (mem.checkin_pin !== pin) {
-            ciShowMsg('PIN incorreto. Tenta novamente.', 'err');
-            document.getElementById('ci-pin').value = '';
-            btn.disabled = false; btn.textContent = 'Confirmar Presença';
-            return;
-        }
-
-        const agora = new Date();
-        const [hh, mm] = CI.cultSel.hora_inicio.split(':').map(Number);
-        const inicio = new Date(agora); inicio.setHours(hh, mm, 0, 0);
-        const diffMin   = Math.round((agora - inicio) / 60000);
-        const atrasado  = diffMin > TOLERANCIA_MIN;
-        const minAtraso = atrasado ? diffMin : 0;
-        const status    = atrasado ? 'atrasado' : 'presente';
-        const hoje      = hojeISO();
-
-        const ex = await sb(
-            `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}` +
-            `&membro_id=eq.${CI.membroSel}&culto_id=eq.${CI.cultSel.id}&data=eq.${hoje}&select=id,status`
+    /* ═══════════════════════════════════════════
+       INTERACÇÕES
+    ═══════════════════════════════════════════ */
+    function ciSelCulto(cId) {
+        CI.cultSel    = CI.cultos.find(c => c.id === cId);
+        CI.membroSel  = null;
+        CI.membroNome = null;
+        document.querySelectorAll('#ci-culto-chips .culto-chip').forEach(el =>
+            el.classList.toggle('on', el.getAttribute('onclick').includes(`'${cId}'`))
         );
+        ciRenderCultoAtual();
+    }
 
-        if (ex?.length) {
-            if (ex[0].status === 'presente' || ex[0].status === 'atrasado') {
-                ciShowMsg('Já fizeste check-in hoje para este culto.', 'ok');
-                btn.disabled = false; btn.textContent = 'Confirmar Presença'; return;
+    function ciSelPreGrupo(key) {
+        CI.preGrupoSel  = CI.preGrupos.find(g => g.key === key);
+        CI.preMembroSel = null;
+        document.querySelectorAll('#ci-pre-chips .culto-chip').forEach(el =>
+            el.classList.toggle('on', el.getAttribute('onclick').includes(`'${key}'`))
+        );
+        ciRenderPreGrupo();
+    }
+
+    function ciPreSelMembro(id) {
+        CI.preMembroSel = id || null;
+        const btn = document.getElementById('ci-pre-btn');
+        if (btn) btn.disabled = !CI.preMembroSel;
+    }
+
+    function ciPreShowMsg(msg, tipo) {
+        const el = document.getElementById('ci-pre-msg');
+        if (el) { el.textContent = msg; el.className = 'msg show ' + tipo; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SUBMIT — PRÉ-CONFIRMAÇÃO  (sem PIN)
+    ═══════════════════════════════════════════ */
+    async function ciSubmitPre() {
+        if (!CI.preMembroSel || !CI.preGrupoSel) return;
+
+        const btn = document.getElementById('ci-pre-btn');
+        btn.disabled = true; btn.textContent = 'A registar...';
+
+        try {
+            const memRes = await sb(`membros?id=eq.${CI.preMembroSel}&select=id,nome`);
+            const mem = memRes?.[0];
+            if (!mem) throw new Error('Membro não encontrado.');
+
+            const g = CI.preGrupoSel;
+            const jaFeito = await sb(
+                `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}` +
+                `&membro_id=eq.${CI.preMembroSel}&culto_id=eq.${g.culto?.id}&data=eq.${g.data}`
+            );
+            if (jaFeito?.length) {
+                ciPreShowMsg('Já confirmaste a tua presença para este evento.', 'ok');
+                btn.disabled = false; btn.textContent = 'Confirmar que estarei presente'; return;
             }
-            await sb(`ministerio_checkin?id=eq.${ex[0].id}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status, atrasado, minutos_atraso: minAtraso, hora_checkin: agoraHHMM() })
-            });
-        } else {
+
             await sb('ministerio_checkin', {
                 method: 'POST',
                 body: JSON.stringify({
-                    ministerio_id: CI.ministerioId, membro_id: CI.membroSel,
-                    culto_id: CI.cultSel.id, data: hoje, status, atrasado,
-                    minutos_atraso: minAtraso, hora_checkin: agoraHHMM(), notificado_lider: false
+                    ministerio_id: CI.ministerioId, membro_id: CI.preMembroSel,
+                    culto_id: g.culto?.id, data: g.data,
+                    status: 'pre_confirmado', atrasado: false, minutos_atraso: 0, notificado_lider: false
                 })
             });
+
+            CI.checkins.push({ membro_id: CI.preMembroSel, culto_id: g.culto?.id, data: g.data, status: 'pre_confirmado' });
+            ciShowSucessoPre(mem.nome);
+            if (CI.lideres.length) setTimeout(() => ciWapPre(mem.nome, g), 1500);
+
+        } catch (e) {
+            ciPreShowMsg(e.message, 'err');
+            const b = document.getElementById('ci-pre-btn');
+            if (b) { b.disabled = false; b.textContent = 'Confirmar que estarei presente'; }
         }
-
-        ciShowSucesso(mem.nome, atrasado, minAtraso);
-        if (atrasado && CI.lideres.length) setTimeout(() => ciWapAtraso(mem.nome, minAtraso), 1500);
-
-    } catch (e) {
-        ciShowMsg(e.message, 'err');
-        const b = document.getElementById('ci-btn');
-        if (b) { b.disabled = false; b.textContent = 'Confirmar Presença'; }
     }
-}
 
-/* ═══════════════════════════════════════════
-   SUBMIT — PRÉ-CONFIRMAÇÃO
-═══════════════════════════════════════════ */
-async function ciSubmitPre() {
-    if (!CI.preMembroSel || !CI.preGrupoSel) return;
-    const pin = (document.getElementById('ci-pre-pin')?.value || '').replace(/\D/g,'');
-    if (pin.length !== 4) return;
+    /* ═══════════════════════════════════════════
+       TELAS DE SUCESSO
+    ═══════════════════════════════════════════ */
+    function ciMostrarSucesso(html) {
+        document.getElementById('ci-tabs').style.display = 'none';
+        document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+        const s = document.getElementById('ci-success');
+        s.innerHTML = html;
+        s.classList.add('show');
+    }
 
-    const btn = document.getElementById('ci-pre-btn');
-    btn.disabled = true; btn.textContent = 'A verificar...';
-
-    try {
-        const memRes = await sb(`membros?id=eq.${CI.preMembroSel}&select=id,nome,checkin_pin`);
-        const mem = memRes?.[0];
-        if (!mem) throw new Error('Membro não encontrado.');
-        if (!mem.checkin_pin) throw new Error('PIN não configurado. Fala com o líder.');
-        if (mem.checkin_pin !== pin) {
-            ciPreShowMsg('PIN incorreto. Tenta novamente.', 'err');
-            document.getElementById('ci-pre-pin').value = '';
-            btn.disabled = false; btn.textContent = 'Confirmar que estarei presente'; return;
-        }
-
+    function ciShowSucessoPre(nome) {
         const g = CI.preGrupoSel;
-        const jaFeito = await sb(
-            `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}` +
-            `&membro_id=eq.${CI.preMembroSel}&culto_id=eq.${g.culto?.id}&data=eq.${g.data}`
-        );
-        if (jaFeito?.length) {
-            ciPreShowMsg('Já confirmaste a tua presença para este evento.', 'ok');
-            btn.disabled = false; btn.textContent = 'Confirmar que estarei presente'; return;
-        }
-
-        await sb('ministerio_checkin', {
-            method: 'POST',
-            body: JSON.stringify({
-                ministerio_id: CI.ministerioId, membro_id: CI.preMembroSel,
-                culto_id: g.culto?.id, data: g.data,
-                status: 'pre_confirmado', atrasado: false, minutos_atraso: 0, notificado_lider: false
-            })
-        });
-
-        CI.checkins.push({ membro_id: CI.preMembroSel, culto_id: g.culto?.id, data: g.data, status: 'pre_confirmado' });
-        ciShowSucessoPre(mem.nome);
-        if (CI.lideres.length) setTimeout(() => ciWapPre(mem.nome, g), 1500);
-
-    } catch (e) {
-        ciPreShowMsg(e.message, 'err');
-        const b = document.getElementById('ci-pre-btn');
-        if (b) { b.disabled = false; b.textContent = 'Confirmar que estarei presente'; }
-    }
-}
-
-/* ═══════════════════════════════════════════
-   TELAS DE SUCESSO
-═══════════════════════════════════════════ */
-function ciMostrarSucesso(html) {
-    document.getElementById('ci-tabs').style.display = 'none';
-    document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
-    const s = document.getElementById('ci-success');
-    s.innerHTML = html;
-    s.classList.add('show');
-}
-
-function ciShowSucesso(nome, atrasado, minAtraso) {
-    ciMostrarSucesso(
-        `<div class="success-badge ${atrasado ? 'late' : 'ok'}">
-            ${atrasado
-                ? `<svg viewBox="0 0 24 24" fill="none" stroke="#fb8c00" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
-                : `<svg viewBox="0 0 24 24" fill="none" stroke="#43a047" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
-            }
-         </div>
-         <div class="success-nome">${nome}</div>
-         <div class="success-hora">Check-in às ${agoraHHMM()}</div>
-         <div class="success-min">${CI.ministerioNome} · ${CI.cultSel?.nome || ''}</div>
-         ${atrasado
-            ? `<div class="late-banner">Chegada com <strong>${minAtraso} min de atraso.</strong><br>
-               ${CI.lideres.length ? 'O líder será notificado por WhatsApp.' : 'Fala com o teu líder.'}</div>`
-            : `<div style="margin-top:10px;font-size:12px;color:var(--muted)">Presença registada no horário. ✓</div>`
-         }
-         <button class="btn-outro" onclick="location.reload()">Registar outro check-in</button>`
-    );
-}
-
-function ciShowSucessoPre(nome) {
-    const g = CI.preGrupoSel;
-    ciMostrarSucesso(
-        `<div class="success-badge pre">
+        ciMostrarSucesso(
+            `<div class="success-badge pre">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2"/>
                 <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
@@ -1233,34 +1179,26 @@ function ciShowSucessoPre(nome) {
          <div class="success-min">${CI.ministerioNome} · ${dataLabel(g.data)} · ${g.culto?.nome || ''}</div>
          <div style="margin-top:14px;padding:12px 14px;background:rgba(0,144,152,0.08);border:1px solid rgba(0,144,152,0.2);border-radius:10px;font-size:13px;color:var(--text);line-height:1.6;text-align:center">
              Confirmação recebida! Até ${diffLabel(g.data)}.<br>
-             <span style="font-size:12px;color:var(--muted)">Não te esqueças de fazer o check-in no dia.</span>
+             <span style="font-size:12px;color:var(--muted)">Não te esqueças de fazer o check-in no dia na Sala de Voluntários.</span>
          </div>
          ${CI.lideres.length ? `<div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center">O líder será notificado via WhatsApp.</div>` : ''}
          <button class="btn-outro" onclick="location.reload()">Voltar</button>`
-    );
-}
+        );
+    }
 
-/* ═══════════════════════════════════════════
-   WHATSAPP
-═══════════════════════════════════════════ */
-function ciWapAtraso(nome, min) {
-    const tel = CI.lideres[0]?.telefone?.replace(/\D/g,'');
-    if (!tel) return;
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(
-        `*Zion Lisboa – Check-in*\n*${nome}* chegou com *${min} min de atraso*.\nMinistério: ${CI.ministerioNome} · ${CI.cultSel?.nome || ''}\nData: ${dataFmt(hojeISO())}`
-    )}`, '_blank');
-}
+    /* ═══════════════════════════════════════════
+       WHATSAPP
+    ═══════════════════════════════════════════ */
+    function ciWapPre(nome, g) {
+        const tel = CI.lideres[0]?.telefone?.replace(/\D/g,'');
+        if (!tel) return;
+        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(
+            `*Zion Lisboa – Pré-Confirmação ✅*\n*${nome}* confirmou presença.\nMinistério: ${CI.ministerioNome}\nEvento: ${g.culto?.nome || ''} · ${dataLabel(g.data)}\nHorário: ${(g.culto?.hora_inicio||'').slice(0,5)}`
+        )}`, '_blank');
+    }
 
-function ciWapPre(nome, g) {
-    const tel = CI.lideres[0]?.telefone?.replace(/\D/g,'');
-    if (!tel) return;
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(
-        `*Zion Lisboa – Pré-Confirmação ✅*\n*${nome}* confirmou presença.\nMinistério: ${CI.ministerioNome}\nEvento: ${g.culto?.nome || ''} · ${dataLabel(g.data)}\nHorário: ${(g.culto?.hora_inicio||'').slice(0,5)}`
-    )}`, '_blank');
-}
-
-/* START */
-ciInit();
+    /* START */
+    ciInit();
 </script>
 </body>
 </html>

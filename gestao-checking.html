@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão · Presenças</title>
+
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
+
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -170,9 +175,14 @@
 
         .scanner-viewport {
             position: relative;
-            width: 100%; aspect-ratio: 4/3;
+            width: 100%;
+            height: 260px;
             background: #000;
             overflow: hidden;
+        }
+
+        @media (max-width: 479px) {
+            .scanner-viewport { height: 220px; }
         }
 
         #g-video {
@@ -723,343 +733,343 @@
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   UTILITÁRIOS SUPABASE
-═══════════════════════════════════════════════════ */
-function sb(path, opts) {
-    return fetch(SB_URL + '/rest/v1/' + path, {
-        headers: {
-            'apikey': SB_KEY,
-            'Authorization': 'Bearer ' + SB_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation',
-            ...(opts?.headers || {})
-        },
-        ...opts
-    }).then(async r => {
-        const d = await r.json().catch(() => null);
-        if (!r.ok) throw new Error(d?.message || d?.error || r.statusText);
-        return d;
-    });
-}
-
-/* ═══════════════════════════════════════════════════
-   UTILITÁRIOS GERAIS
-═══════════════════════════════════════════════════ */
-function hojeISO() { return new Date().toISOString().split('T')[0]; }
-
-function agoraHHMM() {
-    const n = new Date();
-    return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
-}
-
-function dataFmt(iso) {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('pt-PT', {
-        weekday: 'long', day: '2-digit', month: 'long'
-    });
-}
-
-function minutosDesde(horaInicio) {
-    const agora = new Date();
-    const [hh, mm] = horaInicio.split(':').map(Number);
-    const ini = new Date(agora); ini.setHours(hh, mm, 0, 0);
-    return Math.round((agora - ini) / 60000);
-}
-
-function iniciais(nome) {
-    return nome.split(' ').slice(0,2).map(p => p[0]).join('').toUpperCase();
-}
-
-/* ═══════════════════════════════════════════════════
-   ESTADO GLOBAL
-═══════════════════════════════════════════════════ */
-const G = {
-    escalaHoje:  [],   // todos os registos de escala para hoje
-    checkins:    [],   // todos os checkins de hoje
-    cultos:      [],   // cultos únicos de hoje
-    cultSel:     null, // culto filtrado actualmente
-    scanning:    false,
-    videoStream: null,
-    animFrame:   null,
-    lastQR:      null,
-    lastQRTime:  0,
-    scanResult:  null, // { membro, escalas, selectedEscala }
-    searchTimer: null
-};
-
-/* ═══════════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════════ */
-async function gInit() {
-    const hoje = hojeISO();
-    document.getElementById('g-top-date').textContent = dataFmt(hoje);
-
-    try {
-        /* Buscar todas as escalas de hoje (todos os ministérios) */
-        const escRaw = await sb(
-            `ministerio_escala?data=eq.${hoje}` +
-            `&select=id,membro_id,ministerio_id,culto_id,` +
-            `membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio)` +
-            `&order=culto_id`
-        );
-        G.escalaHoje = escRaw || [];
-
-        /* Buscar checkins de hoje */
-        G.checkins = await sb(
-            `ministerio_checkin?data=eq.${hoje}&select=*`
-        ).catch(() => []);
-
-        /* Extrair cultos únicos */
-        const cultMap = {};
-        G.escalaHoje.forEach(e => {
-            if (e.cultos) cultMap[e.cultos.id] = e.cultos;
+    /* ═══════════════════════════════════════════════════
+       UTILITÁRIOS SUPABASE
+    ═══════════════════════════════════════════════════ */
+    function sb(path, opts) {
+        return fetch(SB_URL + '/rest/v1/' + path, {
+            headers: {
+                'apikey': SB_KEY,
+                'Authorization': 'Bearer ' + SB_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation',
+                ...(opts?.headers || {})
+            },
+            ...opts
+        }).then(async r => {
+            const d = await r.json().catch(() => null);
+            if (!r.ok) throw new Error(d?.message || d?.error || r.statusText);
+            return d;
         });
-        G.cultos = Object.values(cultMap).sort((a,b) =>
-            a.hora_inicio.localeCompare(b.hora_inicio)
-        );
-        if (G.cultos.length === 1) G.cultSel = G.cultos[0];
-
-        document.getElementById('g-loading').style.display = 'none';
-        document.getElementById('g-main').style.display = 'block';
-
-        gRenderCultoFilter();
-        gRenderPresencas();
-        gAtualizarBadge();
-
-    } catch (e) {
-        document.getElementById('g-loading').innerHTML =
-            `<div class="msg-banner err" style="margin:20px">Erro ao carregar: ${e.message}</div>`;
     }
-}
 
-/* ═══════════════════════════════════════════════════
-   TABS
-═══════════════════════════════════════════════════ */
-function gSwitchTab(tab) {
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-    document.getElementById('g-tab-' + tab).classList.add('active');
-    document.getElementById('pane-' + tab).classList.add('active');
-    if (tab === 'presencas') gRenderPresencas();
-}
+    /* ═══════════════════════════════════════════════════
+       UTILITÁRIOS GERAIS
+    ═══════════════════════════════════════════════════ */
+    function hojeISO() { return new Date().toISOString().split('T')[0]; }
 
-/* ═══════════════════════════════════════════════════
-   FILTRO DE CULTO
-═══════════════════════════════════════════════════ */
-function gRenderCultoFilter() {
-    const el = document.getElementById('g-culto-filter');
-    if (G.cultos.length <= 1) { el.style.display = 'none'; return; }
-    el.innerHTML = G.cultos.map(c =>
-        `<div class="culto-chip ${G.cultSel?.id === c.id ? 'on' : ''}"
+    function agoraHHMM() {
+        const n = new Date();
+        return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+    }
+
+    function dataFmt(iso) {
+        return new Date(iso + 'T00:00:00').toLocaleDateString('pt-PT', {
+            weekday: 'long', day: '2-digit', month: 'long'
+        });
+    }
+
+    function minutosDesde(horaInicio) {
+        const agora = new Date();
+        const [hh, mm] = horaInicio.split(':').map(Number);
+        const ini = new Date(agora); ini.setHours(hh, mm, 0, 0);
+        return Math.round((agora - ini) / 60000);
+    }
+
+    function iniciais(nome) {
+        return nome.split(' ').slice(0,2).map(p => p[0]).join('').toUpperCase();
+    }
+
+    /* ═══════════════════════════════════════════════════
+       ESTADO GLOBAL
+    ═══════════════════════════════════════════════════ */
+    const G = {
+        escalaHoje:  [],   // todos os registos de escala para hoje
+        checkins:    [],   // todos os checkins de hoje
+        cultos:      [],   // cultos únicos de hoje
+        cultSel:     null, // culto filtrado actualmente
+        scanning:    false,
+        videoStream: null,
+        animFrame:   null,
+        lastQR:      null,
+        lastQRTime:  0,
+        scanResult:  null, // { membro, escalas, selectedEscala }
+        searchTimer: null
+    };
+
+    /* ═══════════════════════════════════════════════════
+       INIT
+    ═══════════════════════════════════════════════════ */
+    async function gInit() {
+        const hoje = hojeISO();
+        document.getElementById('g-top-date').textContent = dataFmt(hoje);
+
+        try {
+            /* Buscar todas as escalas de hoje (todos os ministérios) */
+            const escRaw = await sb(
+                `ministerio_escala?data=eq.${hoje}` +
+                `&select=id,membro_id,ministerio_id,culto_id,` +
+                `membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio)` +
+                `&order=culto_id`
+            );
+            G.escalaHoje = escRaw || [];
+
+            /* Buscar checkins de hoje */
+            G.checkins = await sb(
+                `ministerio_checkin?data=eq.${hoje}&select=*`
+            ).catch(() => []);
+
+            /* Extrair cultos únicos */
+            const cultMap = {};
+            G.escalaHoje.forEach(e => {
+                if (e.cultos) cultMap[e.cultos.id] = e.cultos;
+            });
+            G.cultos = Object.values(cultMap).sort((a,b) =>
+                a.hora_inicio.localeCompare(b.hora_inicio)
+            );
+            if (G.cultos.length === 1) G.cultSel = G.cultos[0];
+
+            document.getElementById('g-loading').style.display = 'none';
+            document.getElementById('g-main').style.display = 'block';
+
+            gRenderCultoFilter();
+            gRenderPresencas();
+            gAtualizarBadge();
+
+        } catch (e) {
+            document.getElementById('g-loading').innerHTML =
+                `<div class="msg-banner err" style="margin:20px">Erro ao carregar: ${e.message}</div>`;
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       TABS
+    ═══════════════════════════════════════════════════ */
+    function gSwitchTab(tab) {
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+        document.getElementById('g-tab-' + tab).classList.add('active');
+        document.getElementById('pane-' + tab).classList.add('active');
+        if (tab === 'presencas') gRenderPresencas();
+    }
+
+    /* ═══════════════════════════════════════════════════
+       FILTRO DE CULTO
+    ═══════════════════════════════════════════════════ */
+    function gRenderCultoFilter() {
+        const el = document.getElementById('g-culto-filter');
+        if (G.cultos.length <= 1) { el.style.display = 'none'; return; }
+        el.innerHTML = G.cultos.map(c =>
+            `<div class="culto-chip ${G.cultSel?.id === c.id ? 'on' : ''}"
               onclick="gSelCulto('${c.id}')">
             <span style="font-weight:700">${c.nome}</span>
             <span style="font-size:10px;opacity:.75;margin-left:4px">${c.hora_inicio.slice(0,5)}</span>
         </div>`
-    ).join('');
-}
-
-function gSelCulto(id) {
-    G.cultSel = G.cultos.find(c => c.id === id) || null;
-    document.querySelectorAll('#g-culto-filter .culto-chip').forEach(el =>
-        el.classList.toggle('on', el.getAttribute('onclick').includes(`'${id}'`))
-    );
-    gRenderPresencas();
-    gAtualizarBadge();
-}
-
-/* ═══════════════════════════════════════════════════
-   SCANNER
-═══════════════════════════════════════════════════ */
-function gToggleScanner() {
-    if (G.scanning) gStopScanner();
-    else gStartScanner();
-}
-
-async function gStartScanner() {
-    const video = document.getElementById('g-video');
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
-        G.videoStream = stream;
-        video.srcObject = stream;
-        video.classList.add('active');
-        await video.play();
-        G.scanning = true;
-        document.getElementById('g-placeholder').style.display = 'none';
-        document.getElementById('g-frame-overlay').classList.add('active');
-        document.getElementById('g-scanline').classList.add('active');
-        document.getElementById('g-scan-status').classList.add('show');
-        const btn = document.getElementById('g-scan-btn');
-        btn.textContent = '■ Parar Scanner';
-        btn.classList.add('stop');
-        gScanLoop();
-    } catch (e) {
-        gShowMsgBanner('Não foi possível aceder à câmara. Usa a pesquisa manual.', 'warn');
+        ).join('');
     }
-}
 
-function gStopScanner() {
-    if (G.videoStream) { G.videoStream.getTracks().forEach(t => t.stop()); G.videoStream = null; }
-    if (G.animFrame)   { cancelAnimationFrame(G.animFrame); G.animFrame = null; }
-    G.scanning = false;
-    const video = document.getElementById('g-video');
-    video.classList.remove('active');
-    document.getElementById('g-placeholder').style.display = '';
-    document.getElementById('g-frame-overlay').classList.remove('active');
-    document.getElementById('g-scanline').classList.remove('active');
-    document.getElementById('g-scan-status').classList.remove('show');
-    const btn = document.getElementById('g-scan-btn');
-    btn.textContent = '▶ Iniciar Scanner';
-    btn.classList.remove('stop');
-}
+    function gSelCulto(id) {
+        G.cultSel = G.cultos.find(c => c.id === id) || null;
+        document.querySelectorAll('#g-culto-filter .culto-chip').forEach(el =>
+            el.classList.toggle('on', el.getAttribute('onclick').includes(`'${id}'`))
+        );
+        gRenderPresencas();
+        gAtualizarBadge();
+    }
 
-function gScanLoop() {
-    if (!G.scanning) return;
-    const video  = document.getElementById('g-video');
-    const canvas = document.getElementById('g-canvas');
+    /* ═══════════════════════════════════════════════════
+       SCANNER
+    ═══════════════════════════════════════════════════ */
+    function gToggleScanner() {
+        if (G.scanning) gStopScanner();
+        else gStartScanner();
+    }
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width  = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imgData.data, imgData.width, imgData.height, {
-            inversionAttempts: 'dontInvert'
-        });
-        if (code) {
-            const now = Date.now();
-            if (code.data !== G.lastQR || now - G.lastQRTime > 4000) {
-                G.lastQR     = code.data;
-                G.lastQRTime = now;
-                gFlashCamera();
-                gHandleQR(code.data);
+    async function gStartScanner() {
+        const video = document.getElementById('g-video');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+            G.videoStream = stream;
+            video.srcObject = stream;
+            video.classList.add('active');
+            await video.play();
+            G.scanning = true;
+            document.getElementById('g-placeholder').style.display = 'none';
+            document.getElementById('g-frame-overlay').classList.add('active');
+            document.getElementById('g-scanline').classList.add('active');
+            document.getElementById('g-scan-status').classList.add('show');
+            const btn = document.getElementById('g-scan-btn');
+            btn.textContent = '■ Parar Scanner';
+            btn.classList.add('stop');
+            gScanLoop();
+        } catch (e) {
+            gShowMsgBanner('Não foi possível aceder à câmara. Usa a pesquisa manual.', 'warn');
+        }
+    }
+
+    function gStopScanner() {
+        if (G.videoStream) { G.videoStream.getTracks().forEach(t => t.stop()); G.videoStream = null; }
+        if (G.animFrame)   { cancelAnimationFrame(G.animFrame); G.animFrame = null; }
+        G.scanning = false;
+        const video = document.getElementById('g-video');
+        video.classList.remove('active');
+        document.getElementById('g-placeholder').style.display = '';
+        document.getElementById('g-frame-overlay').classList.remove('active');
+        document.getElementById('g-scanline').classList.remove('active');
+        document.getElementById('g-scan-status').classList.remove('show');
+        const btn = document.getElementById('g-scan-btn');
+        btn.textContent = '▶ Iniciar Scanner';
+        btn.classList.remove('stop');
+    }
+
+    function gScanLoop() {
+        if (!G.scanning) return;
+        const video  = document.getElementById('g-video');
+        const canvas = document.getElementById('g-canvas');
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imgData.data, imgData.width, imgData.height, {
+                inversionAttempts: 'dontInvert'
+            });
+            if (code) {
+                const now = Date.now();
+                if (code.data !== G.lastQR || now - G.lastQRTime > 4000) {
+                    G.lastQR     = code.data;
+                    G.lastQRTime = now;
+                    gFlashCamera();
+                    gHandleQR(code.data);
+                }
             }
         }
+        G.animFrame = requestAnimationFrame(gScanLoop);
     }
-    G.animFrame = requestAnimationFrame(gScanLoop);
-}
 
-function gFlashCamera() {
-    const f = document.getElementById('g-flash');
-    f.classList.add('flash');
-    setTimeout(() => f.classList.remove('flash'), 200);
-}
-
-/* ═══════════════════════════════════════════════════
-   PROCESSAR QR
-═══════════════════════════════════════════════════ */
-async function gHandleQR(qrData) {
-    let payload;
-    try   { payload = JSON.parse(qrData); }
-    catch { payload = { membro_id: qrData }; }
-
-    const membro_id = payload?.membro_id;
-    if (!membro_id) {
-        gShowMsgBanner('QR inválido — não foi possível identificar o voluntário.', 'err');
-        return;
+    function gFlashCamera() {
+        const f = document.getElementById('g-flash');
+        f.classList.add('flash');
+        setTimeout(() => f.classList.remove('flash'), 200);
     }
-    await gProcessarVoluntario(membro_id, payload);
-}
 
-async function gProcessarVoluntario(membro_id, hint) {
-    try {
-        const hoje = hojeISO();
+    /* ═══════════════════════════════════════════════════
+       PROCESSAR QR
+    ═══════════════════════════════════════════════════ */
+    async function gHandleQR(qrData) {
+        let payload;
+        try   { payload = JSON.parse(qrData); }
+        catch { payload = { membro_id: qrData }; }
 
-        /* Info do membro */
-        const memRes = await sb(`membros?id=eq.${membro_id}&select=id,nome`);
-        const mem = memRes?.[0];
-        if (!mem) throw new Error('Voluntário não encontrado na base de dados.');
-
-        /* Todas as escalas deste voluntário hoje */
-        let escalasHoje = G.escalaHoje.filter(e => e.membro_id === membro_id);
-
-        if (!escalasHoje.length) {
-            gShowResultErro(mem, 'Este voluntário não tem escala para hoje.');
+        const membro_id = payload?.membro_id;
+        if (!membro_id) {
+            gShowMsgBanner('QR inválido — não foi possível identificar o voluntário.', 'err');
             return;
         }
-
-        /* Filtrar pelo culto seleccionado (se houver) */
-        if (G.cultSel) {
-            const filtradas = escalasHoje.filter(e => e.culto_id === G.cultSel.id);
-            if (filtradas.length) escalasHoje = filtradas;
-        }
-
-        /* Checkins actuais deste voluntário */
-        const checkinsDoMembro = G.checkins.filter(c => c.membro_id === membro_id);
-
-        /* Filtrar escalas ainda não confirmadas fisicamente */
-        const pendentes = escalasHoje.filter(e => {
-            const ci = checkinsDoMembro.find(c =>
-                c.ministerio_id === e.ministerio_id && c.culto_id === e.culto_id
-            );
-            return !ci || ci.status === 'pre_confirmado';
-        });
-
-        const jaDone = escalasHoje.filter(e => {
-            const ci = checkinsDoMembro.find(c =>
-                c.ministerio_id === e.ministerio_id && c.culto_id === e.culto_id
-            );
-            return ci && (ci.status === 'presente' || ci.status === 'atrasado');
-        });
-
-        if (!pendentes.length && jaDone.length) {
-            /* Todos já confirmados */
-            gShowResultJaConcluido(mem, jaDone, checkinsDoMembro);
-            return;
-        }
-
-        G.scanResult = {
-            membro: mem,
-            escalas: pendentes,
-            selectedEscala: pendentes.length === 1 ? pendentes[0] : null
-        };
-        gRenderResultCard();
-
-    } catch (e) {
-        gShowMsgBanner(e.message, 'err');
+        await gProcessarVoluntario(membro_id, payload);
     }
-}
 
-/* ═══════════════════════════════════════════════════
-   RENDER: CARD DE RESULTADO
-═══════════════════════════════════════════════════ */
-function gRenderResultCard() {
-    const { membro, escalas, selectedEscala } = G.scanResult;
-    const area = document.getElementById('g-result-area');
+    async function gProcessarVoluntario(membro_id, hint) {
+        try {
+            const hoje = hojeISO();
 
-    /* Calcular timing com base na escala seleccionada */
-    let timingHtml = '';
-    if (selectedEscala) {
-        const min = minutosDesde(selectedEscala.cultos?.hora_inicio || '00:00');
-        if (min < 0) {
-            const falta = Math.abs(min);
-            timingHtml = `<span class="timing-ok">✓ ${falta} min antes do início</span>`;
-        } else if (min <= TOLERANCIA_MIN) {
-            timingHtml = `<span class="timing-ok">✓ No horário (${min} min após início)</span>`;
-        } else {
-            timingHtml = `<span class="timing-late">⏱ Atrasado · ${min} min</span>`;
+            /* Info do membro */
+            const memRes = await sb(`membros?id=eq.${membro_id}&select=id,nome`);
+            const mem = memRes?.[0];
+            if (!mem) throw new Error('Voluntário não encontrado na base de dados.');
+
+            /* Todas as escalas deste voluntário hoje */
+            let escalasHoje = G.escalaHoje.filter(e => e.membro_id === membro_id);
+
+            if (!escalasHoje.length) {
+                gShowResultErro(mem, 'Este voluntário não tem escala para hoje.');
+                return;
+            }
+
+            /* Filtrar pelo culto seleccionado (se houver) */
+            if (G.cultSel) {
+                const filtradas = escalasHoje.filter(e => e.culto_id === G.cultSel.id);
+                if (filtradas.length) escalasHoje = filtradas;
+            }
+
+            /* Checkins actuais deste voluntário */
+            const checkinsDoMembro = G.checkins.filter(c => c.membro_id === membro_id);
+
+            /* Filtrar escalas ainda não confirmadas fisicamente */
+            const pendentes = escalasHoje.filter(e => {
+                const ci = checkinsDoMembro.find(c =>
+                    c.ministerio_id === e.ministerio_id && c.culto_id === e.culto_id
+                );
+                return !ci || ci.status === 'pre_confirmado';
+            });
+
+            const jaDone = escalasHoje.filter(e => {
+                const ci = checkinsDoMembro.find(c =>
+                    c.ministerio_id === e.ministerio_id && c.culto_id === e.culto_id
+                );
+                return ci && (ci.status === 'presente' || ci.status === 'atrasado');
+            });
+
+            if (!pendentes.length && jaDone.length) {
+                /* Todos já confirmados */
+                gShowResultJaConcluido(mem, jaDone, checkinsDoMembro);
+                return;
+            }
+
+            G.scanResult = {
+                membro: mem,
+                escalas: pendentes,
+                selectedEscala: pendentes.length === 1 ? pendentes[0] : null
+            };
+            gRenderResultCard();
+
+        } catch (e) {
+            gShowMsgBanner(e.message, 'err');
         }
     }
 
-    /* Chips de área (se múltiplas) */
-    let areaHtml = '';
-    if (escalas.length > 1) {
-        areaHtml = `
+    /* ═══════════════════════════════════════════════════
+       RENDER: CARD DE RESULTADO
+    ═══════════════════════════════════════════════════ */
+    function gRenderResultCard() {
+        const { membro, escalas, selectedEscala } = G.scanResult;
+        const area = document.getElementById('g-result-area');
+
+        /* Calcular timing com base na escala seleccionada */
+        let timingHtml = '';
+        if (selectedEscala) {
+            const min = minutosDesde(selectedEscala.cultos?.hora_inicio || '00:00');
+            if (min < 0) {
+                const falta = Math.abs(min);
+                timingHtml = `<span class="timing-ok">✓ ${falta} min antes do início</span>`;
+            } else if (min <= TOLERANCIA_MIN) {
+                timingHtml = `<span class="timing-ok">✓ No horário (${min} min após início)</span>`;
+            } else {
+                timingHtml = `<span class="timing-late">⏱ Atrasado · ${min} min</span>`;
+            }
+        }
+
+        /* Chips de área (se múltiplas) */
+        let areaHtml = '';
+        if (escalas.length > 1) {
+            areaHtml = `
             <div class="result-section-label">Em que área está a servir agora?</div>
             <div class="area-chips">
                 ${escalas.map(e =>
-                    `<div class="area-chip ${G.scanResult.selectedEscala?.ministerio_id === e.ministerio_id ? 'on' : ''}"
+                `<div class="area-chip ${G.scanResult.selectedEscala?.ministerio_id === e.ministerio_id ? 'on' : ''}"
                           onclick="gSelArea('${e.ministerio_id}', '${e.culto_id}')">
                         <div class="area-chip-nome">${e.ministerios?.nome || '—'}</div>
                         <div class="area-chip-culto">${e.cultos?.nome || ''} · ${(e.cultos?.hora_inicio||'').slice(0,5)}</div>
                     </div>`
-                ).join('')}
+            ).join('')}
             </div>`;
-    } else if (escalas.length === 1) {
-        const e = escalas[0];
-        areaHtml = `
+        } else if (escalas.length === 1) {
+            const e = escalas[0];
+            areaHtml = `
             <div class="result-section-label">Área</div>
             <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">
                 ${e.ministerios?.nome || '—'}
@@ -1067,9 +1077,9 @@ function gRenderResultCard() {
                     ${e.cultos?.nome || ''} · ${(e.cultos?.hora_inicio||'').slice(0,5)}
                 </span>
             </div>`;
-    }
+        }
 
-    area.innerHTML = `
+        area.innerHTML = `
         <div class="result-card">
             <div class="result-hd">
                 <div class="result-badge-row">
@@ -1093,13 +1103,13 @@ function gRenderResultCard() {
             </div>
         </div>`;
 
-    /* Scroll para o card */
-    setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
-}
+        /* Scroll para o card */
+        setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    }
 
-function gShowResultErro(mem, msg) {
-    const area = document.getElementById('g-result-area');
-    area.innerHTML = `
+    function gShowResultErro(mem, msg) {
+        const area = document.getElementById('g-result-area');
+        area.innerHTML = `
         <div class="result-card" style="border-color:rgba(229,57,53,0.3)">
             <div class="result-hd" style="background:rgba(229,57,53,0.06)">
                 <div class="result-badge-row">
@@ -1116,21 +1126,21 @@ function gShowResultErro(mem, msg) {
                 <button class="btn-cancelar" style="width:100%" onclick="gCancelarResult()">Fechar</button>
             </div>
         </div>`;
-}
+    }
 
-function gShowResultJaConcluido(mem, jaDone, checkins) {
-    const areas = jaDone.map(e => {
-        const ci = checkins.find(c => c.ministerio_id === e.ministerio_id && c.culto_id === e.culto_id);
-        const st = ci?.status === 'atrasado' ? `⏱ Atrasado · ${ci.minutos_atraso}min` : '✓ Presente';
-        const cls = ci?.status === 'atrasado' ? 'timing-late' : 'timing-ok';
-        return `<div style="margin-bottom:6px;font-size:13px">
+    function gShowResultJaConcluido(mem, jaDone, checkins) {
+        const areas = jaDone.map(e => {
+            const ci = checkins.find(c => c.ministerio_id === e.ministerio_id && c.culto_id === e.culto_id);
+            const st = ci?.status === 'atrasado' ? `⏱ Atrasado · ${ci.minutos_atraso}min` : '✓ Presente';
+            const cls = ci?.status === 'atrasado' ? 'timing-late' : 'timing-ok';
+            return `<div style="margin-bottom:6px;font-size:13px">
             <strong>${e.ministerios?.nome || '—'}</strong>
             <span class="${cls}" style="margin-left:8px;font-size:11px">${st} · ${ci?.hora_checkin?.slice(0,5) || ''}</span>
         </div>`;
-    }).join('');
+        }).join('');
 
-    const area = document.getElementById('g-result-area');
-    area.innerHTML = `
+        const area = document.getElementById('g-result-area');
+        area.innerHTML = `
         <div class="result-card" style="border-color:rgba(0,144,152,0.3)">
             <div class="result-hd">
                 <div class="result-badge-row">
@@ -1146,152 +1156,152 @@ function gShowResultJaConcluido(mem, jaDone, checkins) {
                 <button class="btn-cancelar" style="width:100%;margin-top:8px" onclick="gCancelarResult()">Fechar</button>
             </div>
         </div>`;
-}
-
-function gSelArea(ministerio_id, culto_id) {
-    G.scanResult.selectedEscala = G.scanResult.escalas.find(e =>
-        e.ministerio_id === ministerio_id && e.culto_id === culto_id
-    );
-    /* Actualizar chips */
-    document.querySelectorAll('.area-chip').forEach(el => {
-        el.classList.toggle('on',
-            el.getAttribute('onclick').includes(`'${ministerio_id}'`)
-        );
-    });
-    /* Activar botão + recalcular timing */
-    const btn = document.getElementById('g-btn-confirmar');
-    if (btn) btn.disabled = false;
-
-    /* Actualizar timing display */
-    const e = G.scanResult.selectedEscala;
-    if (e) {
-        const min = minutosDesde(e.cultos?.hora_inicio || '00:00');
-        let html = '';
-        if (min < 0)              html = `<span class="timing-ok">✓ ${Math.abs(min)} min antes do início</span>`;
-        else if (min <= TOLERANCIA_MIN) html = `<span class="timing-ok">✓ No horário</span>`;
-        else                      html = `<span class="timing-late">⏱ Atrasado · ${min} min</span>`;
-        const timEl = document.querySelector('.result-timing');
-        if (timEl) timEl.innerHTML = html;
     }
-}
 
-function gCancelarResult() {
-    document.getElementById('g-result-area').innerHTML = '';
-    G.scanResult = null;
-    G.lastQR = null;
-    G.lastQRTime = 0;
-}
-
-/* ═══════════════════════════════════════════════════
-   CONFIRMAR CHECK-IN
-═══════════════════════════════════════════════════ */
-async function gConfirmarCheckin() {
-    const { membro, selectedEscala } = G.scanResult || {};
-    if (!membro || !selectedEscala) return;
-
-    const btn = document.getElementById('g-btn-confirmar');
-    if (btn) { btn.disabled = true; btn.textContent = 'A registar...'; }
-
-    try {
-        const hoje = hojeISO();
-        const diffMin   = minutosDesde(selectedEscala.cultos?.hora_inicio || '00:00');
-        const atrasado  = diffMin > TOLERANCIA_MIN;
-        const minAtraso = atrasado ? diffMin : 0;
-        const status    = atrasado ? 'atrasado' : 'presente';
-
-        /* Verificar se já existe registo (pre_confirmado ou outro) */
-        const ex = await sb(
-            `ministerio_checkin?ministerio_id=eq.${selectedEscala.ministerio_id}` +
-            `&membro_id=eq.${membro.id}&culto_id=eq.${selectedEscala.culto_id}&data=eq.${hoje}&select=id,status`
+    function gSelArea(ministerio_id, culto_id) {
+        G.scanResult.selectedEscala = G.scanResult.escalas.find(e =>
+            e.ministerio_id === ministerio_id && e.culto_id === culto_id
         );
-
-        if (ex?.length) {
-            /* Actualizar registo existente */
-            await sb(`ministerio_checkin?id=eq.${ex[0].id}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    status, atrasado, minutos_atraso: minAtraso,
-                    hora_checkin: agoraHHMM()
-                })
-            });
-            /* Actualizar estado local */
-            const idx = G.checkins.findIndex(c => c.id === ex[0].id);
-            if (idx >= 0) {
-                G.checkins[idx] = {
-                    ...G.checkins[idx], status, atrasado,
-                    minutos_atraso: minAtraso, hora_checkin: agoraHHMM()
-                };
-            }
-        } else {
-            /* Criar novo registo */
-            const novo = await sb('ministerio_checkin', {
-                method: 'POST',
-                body: JSON.stringify({
-                    ministerio_id: selectedEscala.ministerio_id,
-                    membro_id: membro.id,
-                    culto_id: selectedEscala.culto_id,
-                    data: hoje, status, atrasado,
-                    minutos_atraso: minAtraso,
-                    hora_checkin: agoraHHMM(),
-                    notificado_lider: false
-                })
-            });
-            if (novo?.[0]) G.checkins.push(novo[0]);
-        }
-
-        /* Mostrar toast */
-        gToast(
-            atrasado ? 'late' : 'ok',
-            membro.nome,
-            atrasado
-                ? `${selectedEscala.ministerios?.nome} · Atrasado ${minAtraso} min`
-                : `${selectedEscala.ministerios?.nome} · Presença registada ✓`
-        );
-
-        gCancelarResult();
-        gAtualizarBadge();
-
-    } catch (e) {
-        gToast('err', 'Erro', e.message);
-        if (btn) { btn.disabled = false; btn.textContent = '✓ Registar Presença'; }
-    }
-}
-
-/* ═══════════════════════════════════════════════════
-   PESQUISA MANUAL
-═══════════════════════════════════════════════════ */
-function gSearchVoluntario(query) {
-    clearTimeout(G.searchTimer);
-    const el = document.getElementById('g-search-results');
-    if (!query || query.length < 2) { el.innerHTML = ''; return; }
-
-    G.searchTimer = setTimeout(() => {
-        const q = query.toLowerCase();
-        /* Filtrar dos dados já carregados */
-        const hoje = hojeISO();
-        const membrosMap = {};
-        G.escalaHoje.forEach(e => {
-            if (!e.membros) return;
-            const nome = e.membros.nome.toLowerCase();
-            if (!nome.includes(q)) return;
-            if (!membrosMap[e.membro_id]) {
-                membrosMap[e.membro_id] = { membro: e.membros, areas: [] };
-            }
-            membrosMap[e.membro_id].areas.push(e.ministerios?.nome || '—');
+        /* Actualizar chips */
+        document.querySelectorAll('.area-chip').forEach(el => {
+            el.classList.toggle('on',
+                el.getAttribute('onclick').includes(`'${ministerio_id}'`)
+            );
         });
+        /* Activar botão + recalcular timing */
+        const btn = document.getElementById('g-btn-confirmar');
+        if (btn) btn.disabled = false;
 
-        const resultados = Object.values(membrosMap).slice(0, 6);
+        /* Actualizar timing display */
+        const e = G.scanResult.selectedEscala;
+        if (e) {
+            const min = minutosDesde(e.cultos?.hora_inicio || '00:00');
+            let html = '';
+            if (min < 0)              html = `<span class="timing-ok">✓ ${Math.abs(min)} min antes do início</span>`;
+            else if (min <= TOLERANCIA_MIN) html = `<span class="timing-ok">✓ No horário</span>`;
+            else                      html = `<span class="timing-late">⏱ Atrasado · ${min} min</span>`;
+            const timEl = document.querySelector('.result-timing');
+            if (timEl) timEl.innerHTML = html;
+        }
+    }
 
-        if (!resultados.length) {
-            el.innerHTML = `<div class="manual-results">
+    function gCancelarResult() {
+        document.getElementById('g-result-area').innerHTML = '';
+        G.scanResult = null;
+        G.lastQR = null;
+        G.lastQRTime = 0;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       CONFIRMAR CHECK-IN
+    ═══════════════════════════════════════════════════ */
+    async function gConfirmarCheckin() {
+        const { membro, selectedEscala } = G.scanResult || {};
+        if (!membro || !selectedEscala) return;
+
+        const btn = document.getElementById('g-btn-confirmar');
+        if (btn) { btn.disabled = true; btn.textContent = 'A registar...'; }
+
+        try {
+            const hoje = hojeISO();
+            const diffMin   = minutosDesde(selectedEscala.cultos?.hora_inicio || '00:00');
+            const atrasado  = diffMin > TOLERANCIA_MIN;
+            const minAtraso = atrasado ? diffMin : 0;
+            const status    = atrasado ? 'atrasado' : 'presente';
+
+            /* Verificar se já existe registo (pre_confirmado ou outro) */
+            const ex = await sb(
+                `ministerio_checkin?ministerio_id=eq.${selectedEscala.ministerio_id}` +
+                `&membro_id=eq.${membro.id}&culto_id=eq.${selectedEscala.culto_id}&data=eq.${hoje}&select=id,status`
+            );
+
+            if (ex?.length) {
+                /* Actualizar registo existente */
+                await sb(`ministerio_checkin?id=eq.${ex[0].id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        status, atrasado, minutos_atraso: minAtraso,
+                        hora_checkin: agoraHHMM()
+                    })
+                });
+                /* Actualizar estado local */
+                const idx = G.checkins.findIndex(c => c.id === ex[0].id);
+                if (idx >= 0) {
+                    G.checkins[idx] = {
+                        ...G.checkins[idx], status, atrasado,
+                        minutos_atraso: minAtraso, hora_checkin: agoraHHMM()
+                    };
+                }
+            } else {
+                /* Criar novo registo */
+                const novo = await sb('ministerio_checkin', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        ministerio_id: selectedEscala.ministerio_id,
+                        membro_id: membro.id,
+                        culto_id: selectedEscala.culto_id,
+                        data: hoje, status, atrasado,
+                        minutos_atraso: minAtraso,
+                        hora_checkin: agoraHHMM(),
+                        notificado_lider: false
+                    })
+                });
+                if (novo?.[0]) G.checkins.push(novo[0]);
+            }
+
+            /* Mostrar toast */
+            gToast(
+                atrasado ? 'late' : 'ok',
+                membro.nome,
+                atrasado
+                    ? `${selectedEscala.ministerios?.nome} · Atrasado ${minAtraso} min`
+                    : `${selectedEscala.ministerios?.nome} · Presença registada ✓`
+            );
+
+            gCancelarResult();
+            gAtualizarBadge();
+
+        } catch (e) {
+            gToast('err', 'Erro', e.message);
+            if (btn) { btn.disabled = false; btn.textContent = '✓ Registar Presença'; }
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       PESQUISA MANUAL
+    ═══════════════════════════════════════════════════ */
+    function gSearchVoluntario(query) {
+        clearTimeout(G.searchTimer);
+        const el = document.getElementById('g-search-results');
+        if (!query || query.length < 2) { el.innerHTML = ''; return; }
+
+        G.searchTimer = setTimeout(() => {
+            const q = query.toLowerCase();
+            /* Filtrar dos dados já carregados */
+            const hoje = hojeISO();
+            const membrosMap = {};
+            G.escalaHoje.forEach(e => {
+                if (!e.membros) return;
+                const nome = e.membros.nome.toLowerCase();
+                if (!nome.includes(q)) return;
+                if (!membrosMap[e.membro_id]) {
+                    membrosMap[e.membro_id] = { membro: e.membros, areas: [] };
+                }
+                membrosMap[e.membro_id].areas.push(e.ministerios?.nome || '—');
+            });
+
+            const resultados = Object.values(membrosMap).slice(0, 6);
+
+            if (!resultados.length) {
+                el.innerHTML = `<div class="manual-results">
                 <div class="manual-result-item" style="cursor:default;color:var(--muted)">
                     Nenhum voluntário encontrado para hoje.
                 </div>
             </div>`;
-            return;
-        }
+                return;
+            }
 
-        el.innerHTML = `<div class="manual-results">
+            el.innerHTML = `<div class="manual-results">
             ${resultados.map(r =>
                 `<div class="manual-result-item"
                       onclick="gSelectManual('${r.membro.id}')">
@@ -1305,72 +1315,72 @@ function gSearchVoluntario(query) {
                 </div>`
             ).join('')}
         </div>`;
-    }, 200);
-}
+        }, 200);
+    }
 
-function gSelectManual(membro_id) {
-    document.getElementById('g-search').value = '';
-    document.getElementById('g-search-results').innerHTML = '';
-    gProcessarVoluntario(membro_id, { membro_id });
-}
+    function gSelectManual(membro_id) {
+        document.getElementById('g-search').value = '';
+        document.getElementById('g-search-results').innerHTML = '';
+        gProcessarVoluntario(membro_id, { membro_id });
+    }
 
-/* ═══════════════════════════════════════════════════
-   RENDER: LISTA DE PRESENÇAS
-═══════════════════════════════════════════════════ */
-function gRenderPresencas() {
-    const el = document.getElementById('g-presenca-list');
+    /* ═══════════════════════════════════════════════════
+       RENDER: LISTA DE PRESENÇAS
+    ═══════════════════════════════════════════════════ */
+    function gRenderPresencas() {
+        const el = document.getElementById('g-presenca-list');
 
-    /* Agrupar por ministério → dentro do culto seleccionado */
-    let escalas = G.escalaHoje;
-    if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
+        /* Agrupar por ministério → dentro do culto seleccionado */
+        let escalas = G.escalaHoje;
+        if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
 
-    if (!escalas.length) {
-        el.innerHTML = `<div class="empty-state">
+        if (!escalas.length) {
+            el.innerHTML = `<div class="empty-state">
             <div class="empty-state-title">Sem escala</div>
             <p>${G.cultSel ? 'Nenhuma escala para este culto.' : 'Nenhuma escala para hoje.'}</p>
         </div>`;
-        return;
-    }
+            return;
+        }
 
-    /* Agrupar por ministério */
-    const minMap = {};
-    escalas.forEach(e => {
-        const mId = e.ministerio_id;
-        if (!minMap[mId]) minMap[mId] = { nome: e.ministerios?.nome || '—', membros: [] };
-        minMap[mId].membros.push(e);
-    });
+        /* Agrupar por ministério */
+        const minMap = {};
+        escalas.forEach(e => {
+            const mId = e.ministerio_id;
+            if (!minMap[mId]) minMap[mId] = { nome: e.ministerios?.nome || '—', membros: [] };
+            minMap[mId].membros.push(e);
+        });
 
-    let html = '';
-    Object.values(minMap).forEach(group => {
-        let totPresente = 0, totAtrasado = 0, totFaltou = 0, totPendente = 0;
+        let html = '';
+        Object.values(minMap).forEach(group => {
+            let totPresente = 0, totAtrasado = 0, totFaltou = 0, totPendente = 0;
 
-        const rows = group.membros.map(e => {
-            const ci = G.checkins.find(c =>
-                c.membro_id === e.membro_id &&
-                c.ministerio_id === e.ministerio_id &&
-                c.culto_id === e.culto_id
-            );
-            const st = ci?.status || 'pendente';
+            const rows = group.membros.map(e => {
+                const ci = G.checkins.find(c =>
+                    c.membro_id === e.membro_id &&
+                    c.ministerio_id === e.ministerio_id &&
+                    c.culto_id === e.culto_id
+                );
+                const st = ci?.status || 'pendente';
 
-            if      (st === 'presente')    totPresente++;
-            else if (st === 'atrasado')    totAtrasado++;
-            else if (st === 'faltou')      totFaltou++;
-            else                            totPendente++;
+                if      (st === 'presente')    totPresente++;
+                else if (st === 'atrasado')    totAtrasado++;
+                else if (st === 'faltou')      totFaltou++;
+                else                            totPendente++;
 
-            const horaLabel = ci?.hora_checkin ? ` · ${ci.hora_checkin.slice(0,5)}` : '';
-            const tardLabel  = st === 'atrasado' && ci?.minutos_atraso ? ` +${ci.minutos_atraso}min` : '';
+                const horaLabel = ci?.hora_checkin ? ` · ${ci.hora_checkin.slice(0,5)}` : '';
+                const tardLabel  = st === 'atrasado' && ci?.minutos_atraso ? ` +${ci.minutos_atraso}min` : '';
 
-            const statusLabel = {
-                presente: '✓ Presente',
-                atrasado: '⏱ Atrasado',
-                pre_confirmado: '• Confirmado',
-                faltou: '✕ Falta',
-                pendente: '— Pendente'
-            }[st] || '—';
+                const statusLabel = {
+                    presente: '✓ Presente',
+                    atrasado: '⏱ Atrasado',
+                    pre_confirmado: '• Confirmado',
+                    faltou: '✕ Falta',
+                    pendente: '— Pendente'
+                }[st] || '—';
 
-            const showFaltaBtn = (st === 'pendente' || st === 'pre_confirmado');
+                const showFaltaBtn = (st === 'pendente' || st === 'pre_confirmado');
 
-            return `<div class="vol-row" id="row-${e.membro_id}-${e.ministerio_id}-${e.culto_id}">
+                return `<div class="vol-row" id="row-${e.membro_id}-${e.ministerio_id}-${e.culto_id}">
                 <div class="vol-dot ${st === 'pre_confirmado' ? 'pre' : st}"></div>
                 <div style="flex:1;min-width:0">
                     <div class="vol-nome">${e.membros?.nome || '—'}</div>
@@ -1387,44 +1397,112 @@ function gRenderPresencas() {
                        </button>`
                     : ''}
             </div>`;
-        }).join('');
+            }).join('');
 
-        const stats = [
-            totPresente  ? `<span class="stat-pill ok">${totPresente} ✓</span>` : '',
-            totAtrasado  ? `<span class="stat-pill orange">${totAtrasado} ⏱</span>` : '',
-            totFaltou    ? `<span class="stat-pill red">${totFaltou} ✕</span>` : '',
-            totPendente  ? `<span class="stat-pill muted">${totPendente} —</span>` : ''
-        ].filter(Boolean).join('');
+            const stats = [
+                totPresente  ? `<span class="stat-pill ok">${totPresente} ✓</span>` : '',
+                totAtrasado  ? `<span class="stat-pill orange">${totAtrasado} ⏱</span>` : '',
+                totFaltou    ? `<span class="stat-pill red">${totFaltou} ✕</span>` : '',
+                totPendente  ? `<span class="stat-pill muted">${totPendente} —</span>` : ''
+            ].filter(Boolean).join('');
 
-        html += `<div class="ministry-group">
+            html += `<div class="ministry-group">
             <div class="ministry-group-hd">
                 <div class="ministry-group-nome">${group.nome}</div>
                 <div class="ministry-group-stats">${stats}</div>
             </div>
             ${rows}
         </div>`;
-    });
+        });
 
-    el.innerHTML = html;
-}
+        el.innerHTML = html;
+    }
 
-/* ═══════════════════════════════════════════════════
-   MARCAR FALTA
-═══════════════════════════════════════════════════ */
-async function gMarcarFalta(membro_id, ministerio_id, culto_id, nome) {
-    const btnId = `falta-${membro_id}-${ministerio_id}-${culto_id}`;
-    const btn = document.getElementById(btnId);
-    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    /* ═══════════════════════════════════════════════════
+       MARCAR FALTA
+    ═══════════════════════════════════════════════════ */
+    async function gMarcarFalta(membro_id, ministerio_id, culto_id, nome) {
+        const btnId = `falta-${membro_id}-${ministerio_id}-${culto_id}`;
+        const btn = document.getElementById(btnId);
+        if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
-    try {
+        try {
+            const hoje = hojeISO();
+
+            /* Verificar se já existe (pre_confirmado → actualizar) */
+            const ex = await sb(
+                `ministerio_checkin?ministerio_id=eq.${ministerio_id}` +
+                `&membro_id=eq.${membro_id}&culto_id=eq.${culto_id}&data=eq.${hoje}&select=id`
+            );
+
+            if (ex?.length) {
+                await sb(`ministerio_checkin?id=eq.${ex[0].id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: 'faltou', atrasado: false, minutos_atraso: 0 })
+                });
+                const idx = G.checkins.findIndex(c => c.id === ex[0].id);
+                if (idx >= 0) G.checkins[idx] = { ...G.checkins[idx], status: 'faltou' };
+            } else {
+                const novo = await sb('ministerio_checkin', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        ministerio_id, membro_id, culto_id, data: hoje,
+                        status: 'faltou', atrasado: false, minutos_atraso: 0,
+                        hora_checkin: agoraHHMM(), notificado_lider: false
+                    })
+                });
+                if (novo?.[0]) G.checkins.push(novo[0]);
+            }
+
+            gToast('falta', nome, 'Falta registada');
+            gRenderPresencas();
+            gAtualizarBadge();
+
+        } catch (e) {
+            gToast('err', 'Erro', e.message);
+            if (btn) { btn.disabled = false; btn.textContent = 'Falta'; }
+        }
+    }
+
+    async function gMarcarTodosFalta() {
+        let escalas = G.escalaHoje;
+        if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
+
+        const pendentes = escalas.filter(e => {
+            const ci = G.checkins.find(c =>
+                c.membro_id === e.membro_id &&
+                c.ministerio_id === e.ministerio_id &&
+                c.culto_id === e.culto_id
+            );
+            return !ci || ci.status === 'pre_confirmado';
+        });
+
+        if (!pendentes.length) {
+            gToast('ok', 'Tudo registado', 'Nenhum voluntário pendente.');
+            return;
+        }
+
+        if (!confirm(`Marcar ${pendentes.length} voluntário(s) como FALTA?`)) return;
+
+        let done = 0;
+        for (const e of pendentes) {
+            try {
+                await gMarcarFaltaSilent(e.membro_id, e.ministerio_id, e.culto_id);
+                done++;
+            } catch (_) {}
+        }
+
+        gToast('falta', `${done} falta(s) registada(s)`, 'Concluído');
+        gRenderPresencas();
+        gAtualizarBadge();
+    }
+
+    async function gMarcarFaltaSilent(membro_id, ministerio_id, culto_id) {
         const hoje = hojeISO();
-
-        /* Verificar se já existe (pre_confirmado → actualizar) */
         const ex = await sb(
             `ministerio_checkin?ministerio_id=eq.${ministerio_id}` +
             `&membro_id=eq.${membro_id}&culto_id=eq.${culto_id}&data=eq.${hoje}&select=id`
         );
-
         if (ex?.length) {
             await sb(`ministerio_checkin?id=eq.${ex[0].id}`, {
                 method: 'PATCH',
@@ -1443,138 +1521,70 @@ async function gMarcarFalta(membro_id, ministerio_id, culto_id, nome) {
             });
             if (novo?.[0]) G.checkins.push(novo[0]);
         }
-
-        gToast('falta', nome, 'Falta registada');
-        gRenderPresencas();
-        gAtualizarBadge();
-
-    } catch (e) {
-        gToast('err', 'Erro', e.message);
-        if (btn) { btn.disabled = false; btn.textContent = 'Falta'; }
-    }
-}
-
-async function gMarcarTodosFalta() {
-    let escalas = G.escalaHoje;
-    if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
-
-    const pendentes = escalas.filter(e => {
-        const ci = G.checkins.find(c =>
-            c.membro_id === e.membro_id &&
-            c.ministerio_id === e.ministerio_id &&
-            c.culto_id === e.culto_id
-        );
-        return !ci || ci.status === 'pre_confirmado';
-    });
-
-    if (!pendentes.length) {
-        gToast('ok', 'Tudo registado', 'Nenhum voluntário pendente.');
-        return;
     }
 
-    if (!confirm(`Marcar ${pendentes.length} voluntário(s) como FALTA?`)) return;
+    /* ═══════════════════════════════════════════════════
+       BADGE
+    ═══════════════════════════════════════════════════ */
+    function gAtualizarBadge() {
+        let escalas = G.escalaHoje;
+        if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
 
-    let done = 0;
-    for (const e of pendentes) {
-        try {
-            await gMarcarFaltaSilent(e.membro_id, e.ministerio_id, e.culto_id);
-            done++;
-        } catch (_) {}
+        const pendentes = escalas.filter(e => {
+            const ci = G.checkins.find(c =>
+                c.membro_id === e.membro_id &&
+                c.ministerio_id === e.ministerio_id &&
+                c.culto_id === e.culto_id
+            );
+            return !ci || ci.status === 'pre_confirmado';
+        }).length;
+
+        const badge = document.getElementById('g-badge-pend');
+        if (pendentes > 0) {
+            badge.textContent = pendentes;
+            badge.classList.add('show');
+        } else {
+            badge.classList.remove('show');
+        }
     }
 
-    gToast('falta', `${done} falta(s) registada(s)`, 'Concluído');
-    gRenderPresencas();
-    gAtualizarBadge();
-}
+    /* ═══════════════════════════════════════════════════
+       TOAST
+    ═══════════════════════════════════════════════════ */
+    var _toastTimer = null;
+    function gToast(tipo, nome, info) {
+        const iconMap = {
+            ok:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43a047" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,
+            late:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb8c00" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+            err:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+            falta: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+        };
 
-async function gMarcarFaltaSilent(membro_id, ministerio_id, culto_id) {
-    const hoje = hojeISO();
-    const ex = await sb(
-        `ministerio_checkin?ministerio_id=eq.${ministerio_id}` +
-        `&membro_id=eq.${membro_id}&culto_id=eq.${culto_id}&data=eq.${hoje}&select=id`
-    );
-    if (ex?.length) {
-        await sb(`ministerio_checkin?id=eq.${ex[0].id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: 'faltou', atrasado: false, minutos_atraso: 0 })
-        });
-        const idx = G.checkins.findIndex(c => c.id === ex[0].id);
-        if (idx >= 0) G.checkins[idx] = { ...G.checkins[idx], status: 'faltou' };
-    } else {
-        const novo = await sb('ministerio_checkin', {
-            method: 'POST',
-            body: JSON.stringify({
-                ministerio_id, membro_id, culto_id, data: hoje,
-                status: 'faltou', atrasado: false, minutos_atraso: 0,
-                hora_checkin: agoraHHMM(), notificado_lider: false
-            })
-        });
-        if (novo?.[0]) G.checkins.push(novo[0]);
+        document.getElementById('g-toast-icon').innerHTML  = iconMap[tipo] || iconMap.ok;
+        document.getElementById('g-toast-icon').className  = `toast-icon ${tipo}`;
+        document.getElementById('g-toast-nome').textContent = nome;
+        document.getElementById('g-toast-info').textContent = info;
+
+        const toast = document.getElementById('g-toast');
+        toast.classList.add('show');
+
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
     }
-}
 
-/* ═══════════════════════════════════════════════════
-   BADGE
-═══════════════════════════════════════════════════ */
-function gAtualizarBadge() {
-    let escalas = G.escalaHoje;
-    if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
-
-    const pendentes = escalas.filter(e => {
-        const ci = G.checkins.find(c =>
-            c.membro_id === e.membro_id &&
-            c.ministerio_id === e.ministerio_id &&
-            c.culto_id === e.culto_id
-        );
-        return !ci || ci.status === 'pre_confirmado';
-    }).length;
-
-    const badge = document.getElementById('g-badge-pend');
-    if (pendentes > 0) {
-        badge.textContent = pendentes;
-        badge.classList.add('show');
-    } else {
-        badge.classList.remove('show');
+    /* ═══════════════════════════════════════════════════
+       HELPERS UI
+    ═══════════════════════════════════════════════════ */
+    function gShowMsgBanner(msg, tipo) {
+        const area = document.getElementById('g-result-area');
+        area.innerHTML = `<div class="msg-banner ${tipo}">${msg}</div>`;
+        setTimeout(() => { if (area.querySelector('.msg-banner')) area.innerHTML = ''; }, 4000);
     }
-}
 
-/* ═══════════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════════ */
-var _toastTimer = null;
-function gToast(tipo, nome, info) {
-    const iconMap = {
-        ok:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43a047" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,
-        late:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb8c00" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-        err:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
-        falta: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
-    };
-
-    document.getElementById('g-toast-icon').innerHTML  = iconMap[tipo] || iconMap.ok;
-    document.getElementById('g-toast-icon').className  = `toast-icon ${tipo}`;
-    document.getElementById('g-toast-nome').textContent = nome;
-    document.getElementById('g-toast-info').textContent = info;
-
-    const toast = document.getElementById('g-toast');
-    toast.classList.add('show');
-
-    clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
-}
-
-/* ═══════════════════════════════════════════════════
-   HELPERS UI
-═══════════════════════════════════════════════════ */
-function gShowMsgBanner(msg, tipo) {
-    const area = document.getElementById('g-result-area');
-    area.innerHTML = `<div class="msg-banner ${tipo}">${msg}</div>`;
-    setTimeout(() => { if (area.querySelector('.msg-banner')) area.innerHTML = ''; }, 4000);
-}
-
-/* ═══════════════════════════════════════════════════
-   ARRANQUE
-═══════════════════════════════════════════════════ */
-gInit();
+    /* ═══════════════════════════════════════════════════
+       ARRANQUE
+    ═══════════════════════════════════════════════════ */
+    gInit();
 </script>
 </body>
 </html>

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HUB · Balcão de Informações · Zion Lisboa</title>
+
+    <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+
+    <meta name="theme-color" content="#009098">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zion Lisboa">
+    <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --navy:   #02161e;
+            --navy2:  #031f2a;
+            --navy3:  #04263a;
+            --teal:   #009098;
+            --teal-d: #007078;
+            --teal-f: rgba(0,144,152,0.10);
+            --teal-b: rgba(0,144,152,0.20);
+            --beige:  #d8c3a5;
+            --text:   #ffffff;
+            --muted:  #7a9aa8;
+            --border: rgba(255,255,255,0.08);
+            --card:   rgba(255,255,255,0.04);
+            --red:    #e53935;
+            --red-f:  rgba(229,57,53,0.10);
+            --green:  #43a047;
+            --orange: #fb8c00;
+            --radius: 14px;
+            --font-title: 'Cinzel', serif;
+            --font-body:  'Lato', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--navy);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,144,152,0.16) 0%, transparent 70%);
+        }
+
+        .page {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 560px;
+            padding: 0 0 60px;
+            display: flex; flex-direction: column;
+        }
+
+        /* ── HEADER ── */
+        .card-hd {
+            padding: 28px 24px 22px;
+            background: linear-gradient(135deg, var(--teal-d) 0%, var(--teal) 100%);
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+            text-align: center;
+        }
+        .hd-logo { height: 40px; width: auto; object-fit: contain; margin-bottom: 4px; }
+        .hd-logo-text {
+            font-family: var(--font-title);
+            font-size: 20px; font-weight: 700;
+            letter-spacing: 3px; color: white;
+            display: none;
+        }
+        .hd-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 4px 12px;
+            margin-bottom: 6px;
+        }
+        .hd-badge-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #a5d6a7;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.5; transform: scale(0.8); }
+        }
+        .hd-badge-txt {
+            font-size: 9px; letter-spacing: 2px;
+            text-transform: uppercase; color: rgba(255,255,255,0.85);
+            font-family: var(--font-title);
+        }
+        .hd-title {
+            font-family: var(--font-title);
+            font-size: 16px; font-weight: 700;
+            letter-spacing: 3px; color: white;
+            margin-top: 2px;
+        }
+        .hd-sub {
+            font-size: 11px; letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.65);
+            margin-top: 2px;
+        }
+
+        /* ── PROGRESS BAR ── */
+        .progress-wrap {
+            background: var(--navy2);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            padding: 16px 20px 0;
+        }
+        .progress-steps {
+            display: flex; align-items: center;
+            margin-bottom: 16px;
+        }
+        .progress-step {
+            display: flex; align-items: center; gap: 6px; flex: 1;
+        }
+        .progress-step-dot {
+            width: 26px; height: 26px; border-radius: 50%;
+            border: 2px solid var(--border);
+            background: rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-title); font-size: 10px;
+            color: var(--muted); flex-shrink: 0; transition: all .3s;
+        }
+        .progress-step-dot.active { border-color: var(--teal); background: var(--teal-f); color: var(--teal); }
+        .progress-step-dot.done   { border-color: var(--teal); background: var(--teal); color: white; }
+        .progress-step-label {
+            font-size: 9px; font-family: var(--font-title);
+            letter-spacing: 1px; text-transform: uppercase;
+            color: var(--muted); transition: color .3s;
+            white-space: nowrap;
+        }
+        .progress-step.active .progress-step-label { color: var(--teal); }
+        .progress-step.done   .progress-step-label { color: rgba(255,255,255,0.4); }
+        .progress-line {
+            flex: 1; height: 1px; background: var(--border); margin: 0 4px; transition: background .3s;
+        }
+        .progress-line.done { background: var(--teal); }
+
+        /* ── BODY / CARD ── */
+        .card-body {
+            background: var(--navy2);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            padding: 24px 20px; min-height: 320px;
+        }
+        .card-footer {
+            background: var(--navy2);
+            border: 1px solid var(--border);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding: 14px 20px; text-align: center;
+            font-size: 11px; color: var(--muted); letter-spacing: 0.5px;
+        }
+
+        /* ── STEPS ── */
+        .step { display: none; }
+        .step.active { display: block; }
+
+        /* ── SECTION LABEL ── */
+        .section-lbl {
+            font-family: var(--font-title); font-size: 9px;
+            letter-spacing: 2px; text-transform: uppercase; color: var(--teal);
+            padding: 18px 0 10px; border-bottom: 1px solid var(--border); margin-bottom: 14px;
+        }
+        .section-lbl:first-child { padding-top: 0; }
+
+        /* ── TIPO GRID ── */
+        .tipo-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-bottom: 20px;
+        }
+        .tipo-card {
+            padding: 24px 16px; border-radius: var(--radius);
+            border: 2px solid var(--border); background: var(--card);
+            text-align: center; cursor: pointer; transition: all .2s;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .tipo-card:hover { border-color: var(--teal); background: var(--teal-f); }
+        .tipo-card.selected {
+            border-color: var(--teal); background: var(--teal-f);
+            box-shadow: 0 0 0 1px var(--teal-b) inset;
+        }
+        .tipo-card-icon {
+            width: 54px; height: 54px; border-radius: 50%;
+            border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; transition: all .2s;
+        }
+        .tipo-card.selected .tipo-card-icon { border-color: var(--teal); background: rgba(0,144,152,0.15); }
+        .tipo-card-title {
+            font-family: var(--font-title); font-size: 11px;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--muted); transition: color .2s;
+        }
+        .tipo-card.selected .tipo-card-title { color: white; }
+        .tipo-card-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+        /* ── FORM FIELDS ── */
+        .field { margin-bottom: 14px; }
+        .field label {
+            display: block; font-size: 9px; font-family: var(--font-title);
+            letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 6px;
+        }
+        .field label.req::after { content: ' *'; color: var(--red); font-size: 10px; }
+        .field input, .field select, .field textarea {
+            width: 100%; padding: 12px 14px; border-radius: 10px;
+            border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+            color: var(--text); font-size: 15px; font-family: var(--font-body);
+            outline: none; transition: border-color .15s, background .15s;
+            -webkit-appearance: none; appearance: none;
+        }
+        .field select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23009098' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center;
+            padding-right: 36px; background-color: rgba(255,255,255,0.05);
+        }
+        .field select option { background: #031f2a; color: #fff; }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            border-color: var(--teal); background: rgba(255,255,255,0.07);
+        }
+        .field input.invalid, .field select.invalid, .field textarea.invalid {
+            border-color: var(--red) !important; background: rgba(229,57,53,0.05);
+        }
+        .field textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+        ::placeholder { color: rgba(255,255,255,0.20); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* ── MESSAGES ── */
+        .msg {
+            padding: 12px 14px; border-radius: 10px; font-size: 13px;
+            margin-bottom: 16px; display: none; text-align: center; line-height: 1.5;
+        }
+        .msg.show { display: block; }
+        .msg.err  { background: var(--red-f); border: 1px solid rgba(229,57,53,0.3); color: #ef9a9a; }
+        .msg.ok   { background: rgba(67,160,71,0.10); border: 1px solid rgba(67,160,71,0.3); color: #a5d6a7; }
+
+        /* ── BUTTONS ── */
+        .btn-primary {
+            width: 100%; padding: 16px; border: none; border-radius: 12px;
+            background: var(--teal); color: white;
+            font-family: var(--font-title); font-size: 11px;
+            letter-spacing: 2px; text-transform: uppercase;
+            cursor: pointer; transition: background .15s; margin-top: 8px;
+        }
+        .btn-primary:hover { background: var(--teal-d); }
+        .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+        .btn-outline {
+            width: 100%; padding: 13px; border: 1px solid var(--border);
+            border-radius: 12px; background: transparent; color: var(--muted);
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 1px;
+            cursor: pointer; margin-top: 8px; transition: all .15s;
+        }
+        .btn-outline:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-f); }
+        .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-row .btn-primary { flex: 2; margin-top: 0; }
+        .btn-row .btn-outline  { flex: 1; margin-top: 0; }
+
+        /* ── STEP INTRO ── */
+        .step-intro { text-align: center; padding: 6px 0 20px; }
+        .step-intro-title {
+            font-family: var(--font-title); font-size: 16px;
+            letter-spacing: 1.5px; color: white; margin-bottom: 6px;
+        }
+        .step-intro-sub {
+            font-size: 13px; color: var(--muted); line-height: 1.6;
+            max-width: 360px; margin: 0 auto;
+        }
+
+        /* ── NOTICE ── */
+        .notice {
+            background: var(--teal-f); border: 1px solid var(--teal-b);
+            border-radius: 10px; padding: 12px 16px;
+            font-size: 12px; color: rgba(255,255,255,0.65);
+            line-height: 1.6; margin-bottom: 16px;
+        }
+        .notice strong { color: var(--teal); }
+
+        /* ── MEMBER SEARCH ── */
+        .search-wrap { margin-bottom: 6px; }
+        .search-input-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 6px; }
+        .search-input-row input {
+            flex: 1; padding: 12px 14px; border-radius: 10px;
+            border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+            color: var(--text); font-size: 15px; font-family: var(--font-body);
+            outline: none; transition: border-color .15s; -webkit-appearance: none;
+        }
+        .search-input-row input:focus { border-color: var(--teal); background: rgba(255,255,255,0.07); }
+        .btn-search {
+            padding: 0 18px; border-radius: 10px;
+            border: 1px solid var(--teal-b); background: var(--teal-f);
+            color: var(--teal); font-family: var(--font-title); font-size: 10px;
+            letter-spacing: 1px; cursor: pointer; white-space: nowrap; transition: all .15s;
+            -webkit-appearance: none;
+        }
+        .btn-search:hover { background: var(--teal); color: white; border-color: var(--teal); }
+        .search-hint {
+            font-size: 11px; color: var(--muted); margin-bottom: 10px;
+            text-align: center;
+        }
+        .search-results {
+            border-radius: 10px; border: 1px solid var(--teal-b);
+            background: var(--navy3); overflow: hidden; display: none; margin-bottom: 8px;
+        }
+        .search-results.show { display: block; }
+        .result-item {
+            padding: 12px 16px; display: flex; align-items: center;
+            gap: 12px; cursor: pointer; transition: background .15s;
+            border-bottom: 1px solid var(--border);
+        }
+        .result-item:last-child { border-bottom: none; }
+        .result-item:hover { background: var(--teal-f); }
+        .result-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--teal-f); border: 1px solid var(--teal-b);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-title); font-size: 12px;
+            color: var(--teal); flex-shrink: 0; font-weight: 700;
+        }
+        .result-info { flex: 1; min-width: 0; }
+        .result-nome { font-size: 14px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .result-empty {
+            padding: 20px 16px; text-align: center;
+            font-size: 13px; color: var(--muted); font-style: italic;
+        }
+        .searching-msg {
+            padding: 16px; text-align: center; font-size: 13px; color: var(--muted);
+        }
+
+        /* ── SELECTED PERSON CARD ── */
+        .selected-person {
+            padding: 14px 16px; border-radius: 12px;
+            border: 1px solid var(--teal-b); background: var(--teal-f);
+            display: flex; align-items: center; gap: 12px; margin-top: 14px;
+        }
+        .selected-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(0,144,152,0.2); border: 2px solid var(--teal);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-title); font-size: 15px;
+            color: var(--teal); flex-shrink: 0; font-weight: 700;
+        }
+        .selected-info { flex: 1; min-width: 0; }
+        .selected-nome { font-size: 15px; color: white; font-weight: 600; }
+        .selected-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .selected-tag {
+            font-size: 9px; font-family: var(--font-title);
+            letter-spacing: 1px; text-transform: uppercase; color: var(--teal);
+            background: rgba(0,144,152,0.15); padding: 3px 8px;
+            border-radius: 20px; border: 1px solid var(--teal-b); white-space: nowrap;
+        }
+        .btn-clear {
+            background: none; border: none; color: var(--muted);
+            cursor: pointer; font-size: 20px; padding: 4px;
+            transition: color .15s; line-height: 1; flex-shrink: 0;
+        }
+        .btn-clear:hover { color: var(--red); }
+
+        /* ── QUESTIONS ── */
+        .questao-item {
+            margin-bottom: 16px; padding: 16px 18px;
+            border-radius: 12px; border: 1px solid var(--border);
+            background: rgba(255,255,255,0.02); transition: border-color .15s;
+        }
+        .questao-item:focus-within { border-color: rgba(0,144,152,0.3); }
+        .questao-num {
+            font-size: 9px; font-family: var(--font-title);
+            letter-spacing: 2px; text-transform: uppercase;
+            color: var(--teal); margin-bottom: 5px;
+        }
+        .questao-label { font-size: 14px; color: white; line-height: 1.5; margin-bottom: 12px; }
+        .questao-item input, .questao-item select {
+            width: 100%; padding: 10px 14px; border-radius: 8px;
+            border: 1px solid var(--border); background: rgba(255,255,255,0.06);
+            color: var(--text); font-size: 14px; font-family: var(--font-body);
+            outline: none; transition: border-color .15s; -webkit-appearance: none;
+        }
+        .questao-item select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23009098' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
+            padding-right: 34px; background-color: rgba(255,255,255,0.06);
+        }
+        .questao-item select option { background: #031f2a; }
+        .questao-item input:focus, .questao-item select:focus { border-color: var(--teal); }
+
+        /* ── DOUBT CATEGORY GRID ── */
+        .duvida-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px; margin-bottom: 20px;
+        }
+        .duvida-card {
+            padding: 18px 12px; border-radius: var(--radius);
+            border: 2px solid var(--border); background: var(--card);
+            text-align: center; cursor: pointer; transition: all .2s;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .duvida-card:hover { border-color: var(--teal); background: var(--teal-f); }
+        .duvida-card.selected {
+            border-color: var(--teal); background: var(--teal-f);
+            box-shadow: 0 0 0 1px var(--teal-b) inset;
+        }
+        .duvida-card-icon { font-size: 26px; line-height: 1; }
+        .duvida-card-label {
+            font-size: 11px; color: var(--muted); line-height: 1.4; transition: color .2s;
+        }
+        .duvida-card.selected .duvida-card-label { color: white; }
+
+        /* ── SUCCESS ── */
+        .success-wrap {
+            text-align: center; padding: 32px 16px;
+            display: flex; flex-direction: column; align-items: center; gap: 14px;
+        }
+        .success-icon {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: rgba(67,160,71,0.12); border: 2px solid rgba(67,160,71,0.35);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .success-title { font-family: var(--font-title); font-size: 20px; color: #a5d6a7; letter-spacing: 1.5px; }
+        .success-sub { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 340px; }
+        .success-name { color: var(--teal); font-weight: 700; }
+        .success-detail {
+            background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 18px; width: 100%; max-width: 340px;
+            text-align: left;
+        }
+        .success-detail-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .success-detail-row:last-child { margin-bottom: 0; }
+        .success-detail-lbl { font-size: 10px; font-family: var(--font-title); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+        .success-detail-val { font-size: 12px; color: var(--teal); }
+        .btn-novo {
+            padding: 14px 28px; border-radius: 12px;
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            color: var(--muted); font-family: var(--font-title); font-size: 10px;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            cursor: pointer; transition: all .15s; margin-top: 6px;
+        }
+        .btn-novo:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-f); }
+
+        /* ── SPINNER ── */
+        .spinner-inline {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%;
+            animation: spin .6s linear infinite;
+            vertical-align: middle; margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 420px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .tipo-grid { grid-template-columns: 1fr; }
+            .duvida-grid { grid-template-columns: 1fr 1fr; }
+            .progress-step-label { display: none; }
+        }
+        @media (max-width: 340px) {
+            .duvida-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <!-- ══ HEADER ══ -->
+    <div class="card-hd">
+        <img class="hd-logo"
+             src="assets/logo-zion-branca.svg"
+             alt="Zion Lisboa"
+             onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
+        <span id="logo-fb" class="hd-logo-text">ZION LISBOA</span>
+        <div class="hd-badge">
+            <span class="hd-badge-dot"></span>
+            <span class="hd-badge-txt">Em atendimento</span>
+        </div>
+        <div class="hd-title">HUB</div>
+        <div class="hd-sub">Balcão de Informações</div>
+    </div>
+
+    <!-- ══ PROGRESS ══ -->
+    <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-steps">
+            <div class="progress-step" id="ps-1">
+                <div class="progress-step-dot active" id="pd-1">1</div>
+                <div class="progress-step-label">Tipo</div>
+            </div>
+            <div class="progress-line" id="pl-1"></div>
+            <div class="progress-step" id="ps-2">
+                <div class="progress-step-dot" id="pd-2">2</div>
+                <div class="progress-step-label">Pessoa</div>
+            </div>
+            <div class="progress-line" id="pl-2"></div>
+            <div class="progress-step" id="ps-3">
+                <div class="progress-step-dot" id="pd-3">3</div>
+                <div class="progress-step-label">Perguntas</div>
+            </div>
+            <div class="progress-line" id="pl-3"></div>
+            <div class="progress-step" id="ps-4">
+                <div class="progress-step-dot" id="pd-4">4</div>
+                <div class="progress-step-label">Dúvida</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ BODY ══ -->
+    <div class="card-body" id="main-body">
+
+        <!-- ══════════════════════════════════════
+             STEP 1 — TIPO DE PESSOA
+        ══════════════════════════════════════ -->
+        <div class="step active" id="step-1">
+            <div class="step-intro">
+                <div class="step-intro-title">Bem-vindo ao HUB</div>
+                <div class="step-intro-sub">
+                    Esta pessoa já é membro registado na Zion ou é um visitante?
+                </div>
+            </div>
+
+            <div class="tipo-grid">
+                <div class="tipo-card" id="tipo-membro" onclick="selecionarTipo('membro')">
+                    <div class="tipo-card-icon">🏛️</div>
+                    <div>
+                        <div class="tipo-card-title">Membro</div>
+                        <div class="tipo-card-desc">Já é membro registado da Zion Lisboa</div>
+                    </div>
+                </div>
+                <div class="tipo-card" id="tipo-visitante" onclick="selecionarTipo('visitante')">
+                    <div class="tipo-card-icon">👤</div>
+                    <div>
+                        <div class="tipo-card-title">Visitante</div>
+                        <div class="tipo-card-desc">Ainda não é membro ou chegou recentemente</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="msg" id="msg-1"></div>
+            <button class="btn-primary" onclick="irParaStep(2)">Continuar</button>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             STEP 2 — IDENTIFICAÇÃO DA PESSOA
+        ══════════════════════════════════════ -->
+        <div class="step" id="step-2">
+
+            <!-- BLOCO MEMBRO: Pesquisa -->
+            <div id="bloco-membro" style="display:none">
+                <div class="section-lbl">Pesquisar Membro</div>
+                <div class="notice">
+                    Pesquise pelo <strong>nome</strong>, <strong>email</strong>,
+                    <strong>telefone</strong> ou <strong>NIF</strong> do membro.
+                </div>
+                <div class="search-wrap">
+                    <div class="search-input-row">
+                        <input type="text" id="search-input"
+                               placeholder="Nome, email, telefone ou NIF..."
+                               autocomplete="off"
+                               onkeydown="if(event.key==='Enter')pesquisarMembro()">
+                        <button class="btn-search" onclick="pesquisarMembro()">Pesquisar</button>
+                    </div>
+                    <div class="search-hint">Prima Enter ou clique em Pesquisar</div>
+                    <div class="search-results" id="search-results"></div>
+                </div>
+
+                <div id="membro-sel-wrap" style="display:none">
+                    <div class="selected-person">
+                        <div class="selected-avatar" id="sel-avatar"></div>
+                        <div class="selected-info">
+                            <div class="selected-nome" id="sel-nome"></div>
+                            <div class="selected-meta" id="sel-meta"></div>
+                        </div>
+                        <span class="selected-tag">Membro</span>
+                        <button class="btn-clear" onclick="limparMembro()" title="Remover seleção">×</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BLOCO VISITANTE: Formulário -->
+            <div id="bloco-visitante" style="display:none">
+                <div class="section-lbl">Dados do Visitante</div>
+                <div class="notice">
+                    Preencha os dados de contacto. Ficam guardados na base de dados do HUB.
+                </div>
+                <div class="field">
+                    <label class="req">Nome Completo</label>
+                    <input type="text" id="v_nome" placeholder="Nome completo do visitante"
+                           autocomplete="name" autocapitalize="words">
+                </div>
+                <div class="field">
+                    <label>Telefone</label>
+                    <input type="tel" id="v_telefone" placeholder="+351 900 000 000" autocomplete="tel">
+                </div>
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" id="v_email" placeholder="email@exemplo.com"
+                           autocomplete="email" autocapitalize="none">
+                </div>
+                <div class="field">
+                    <label>Morada Completa</label>
+                    <textarea id="v_morada" placeholder="Rua, número, código postal, cidade..."
+                              style="min-height:76px"></textarea>
+                </div>
+            </div>
+
+            <div class="msg" id="msg-2"></div>
+            <div class="btn-row">
+                <button class="btn-outline" onclick="irParaStep(1)">Voltar</button>
+                <button class="btn-primary" onclick="irParaStep(3)">Continuar</button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             STEP 3 — PERGUNTAS
+        ══════════════════════════════════════ -->
+        <div class="step" id="step-3">
+            <div class="section-lbl">Perguntas de Acompanhamento</div>
+            <div class="notice">
+                Responda às perguntas em conjunto com a pessoa. Todos os campos são <strong>opcionais</strong>.
+            </div>
+            <div id="questoes-list"></div>
+
+            <div class="msg" id="msg-3"></div>
+            <div class="btn-row">
+                <button class="btn-outline" onclick="irParaStep(2)">Voltar</button>
+                <button class="btn-primary" onclick="irParaStep(4)">Continuar</button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             STEP 4 — DÚVIDA / PEDIDO
+        ══════════════════════════════════════ -->
+        <div class="step" id="step-4">
+            <div class="section-lbl">Tipo de Informação Solicitada</div>
+            <div id="duvida-grid" class="duvida-grid"></div>
+
+            <div class="section-lbl">Detalhe da Dúvida</div>
+            <div class="field">
+                <label class="req">Descreve a dúvida ou pedido</label>
+                <textarea id="duvida-texto"
+                          placeholder="Descreve detalhadamente a informação solicitada, o que foi explicado e o que fica pendente..."
+                          style="min-height:130px"></textarea>
+            </div>
+
+            <div class="msg" id="msg-4"></div>
+            <div class="btn-row">
+                <button class="btn-outline" onclick="irParaStep(3)">Voltar</button>
+                <button class="btn-primary" id="btn-guardar" onclick="guardar()">Guardar Registo</button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             STEP 5 — SUCESSO
+        ══════════════════════════════════════ -->
+        <div class="step" id="step-5">
+            <div class="success-wrap">
+                <div class="success-icon">
+                    <svg width="32" height="32" fill="none" stroke="#43a047" stroke-width="2.5" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <div class="success-title">Atendimento Guardado</div>
+                <div class="success-sub" id="success-msg">
+                    O registo foi guardado com sucesso.
+                </div>
+                <div class="success-detail" id="success-detail"></div>
+                <button class="btn-novo" onclick="novoAtendimento()">
+                    Novo Atendimento
+                </button>
+            </div>
+        </div>
+
+    </div><!-- /card-body -->
+
+    <div class="card-footer">2026 · HUB · Balcão de Informações · Zion Lisboa</div>
+
+</div><!-- /page -->
+
+<script>
+    /*
+     * ╔══════════════════════════════════════════════════════════════════════╗
+     * ║  SQL — Execute no Supabase antes de usar esta página                 ║
+     * ╠══════════════════════════════════════════════════════════════════════╣
+     * ║                                                                      ║
+     * ║  CREATE TABLE IF NOT EXISTS visitantes_hub (                         ║
+     * ║    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),           ║
+     * ║    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),                   ║
+     * ║                                                                      ║
+     * ║    -- Tipo: 'membro' | 'visitante'                                   ║
+     * ║    tipo_pessoa TEXT NOT NULL,                                         ║
+     * ║                                                                      ║
+     * ║    -- Para membros (referência à tabela membros)                     ║
+     * ║    membro_id   UUID,                                                 ║
+     * ║    nome_membro TEXT,                                                 ║
+     * ║                                                                      ║
+     * ║    -- Para visitantes                                                ║
+     * ║    nome     TEXT,                                                    ║
+     * ║    telefone TEXT,                                                    ║
+     * ║    email    TEXT,                                                    ║
+     * ║    morada   TEXT,                                                    ║
+     * ║                                                                      ║
+     * ║    -- Respostas às perguntas (labels definidos no JS abaixo)         ║
+     * ║    pergunta1  TEXT,                                                  ║
+     * ║    pergunta2  TEXT,                                                  ║
+     * ║    pergunta3  TEXT,                                                  ║
+     * ║    pergunta4  TEXT,                                                  ║
+     * ║    pergunta5  TEXT,                                                  ║
+     * ║    pergunta6  TEXT,                                                  ║
+     * ║    pergunta7  TEXT,                                                  ║
+     * ║    pergunta8  TEXT,                                                  ║
+     * ║    pergunta9  TEXT,                                                  ║
+     * ║    pergunta10 TEXT,                                                  ║
+     * ║                                                                      ║
+     * ║    -- Registo da dúvida                                              ║
+     * ║    tipo_duvida TEXT,                                                 ║
+     * ║    duvida      TEXT                                                  ║
+     * ║  );                                                                  ║
+     * ║                                                                      ║
+     * ║  CREATE INDEX IF NOT EXISTS idx_hub_membro ON visitantes_hub (membro_id);
+     * ║  CREATE INDEX IF NOT EXISTS idx_hub_email  ON visitantes_hub (email);║
+     * ║  CREATE INDEX IF NOT EXISTS idx_hub_data   ON visitantes_hub (created_at DESC);
+     * ║                                                                      ║
+     * ╚══════════════════════════════════════════════════════════════════════╝
+     */
+
+    (function () {
+
+        /* ═══════════════════════════════════════════════════════
+           ⚙️  CONFIG
+        ═══════════════════════════════════════════════════════ */
+        const SB_URL = window.SUPABASE_URL      || '';
+        const SB_KEY = window.SUPABASE_ANON_KEY || '';
+
+        /* ═══════════════════════════════════════════════════════
+           📝  PERGUNTAS — Edita aqui. Máximo 10.
+               Tipos: 'text' | 'select'
+               Os labels NÃO estão na BD, só estão aqui.
+               A BD sempre terá pergunta1 … pergunta10.
+               Para adicionar, copie um bloco. Para remover,
+               basta apagar o bloco — os campos da BD ficam vazios.
+        ═══════════════════════════════════════════════════════ */
+        const PERGUNTAS = [
+            {
+                label: 'É membro da Zion há quanto tempo?',
+                tipo: 'text',
+                placeholder: 'Ex: 2 anos, desde 2020, há 6 meses...'
+            },
+            {
+                label: 'Já fez o processo Raízes?',
+                tipo: 'select',
+                options: ['', 'Sim, já fiz', 'Não ainda', 'Não conhecia o processo']
+            },
+            {
+                label: 'Sabe que temos a nossa escola ZAO que traz capacitação para os membros?',
+                tipo: 'select',
+                options: ['', 'Sim, já sabia', 'Não sabia', 'Tenho interesse em participar']
+            },
+            {
+                label: 'Sabe que existe um sistema para garantir que todas as informações da igreja estejam num só lugar?',
+                tipo: 'select',
+                options: ['', 'Sim, já utilizo', 'Sim, sabia mas não uso', 'Não sabia que existia']
+            },
+            // ── Adicione mais perguntas aqui (até 10) ──
+            // {
+            //     label: 'Pergunta 5...',
+            //     tipo: 'text',
+            //     placeholder: 'Resposta...'
+            // },
+        ];
+
+        /* ═══════════════════════════════════════════════════════
+           🏷️  CATEGORIAS DE DÚVIDA
+        ═══════════════════════════════════════════════════════ */
+        const TIPOS_DUVIDA = [
+            { value: 'link',        label: 'Como entrar\nem um link',           icon: '🔗' },
+            { value: 'voluntarios', label: 'Como ser\nvoluntário',              icon: '🤝' },
+            { value: 'doacoes',     label: 'Como fazer\ndoações',               icon: '💝' },
+            { value: 'pastores',    label: 'Dúvidas sobre\nos pastores',        icon: '📖' },
+            { value: 'horarios',    label: 'Horários de cultos\ne eventos',     icon: '📅' },
+            { value: 'geral',       label: 'Dúvidas\ngerais',                   icon: '💬' },
+        ];
+
+        /* ═══════════════════════════════════════════════════════
+           🗂️  ESTADO
+        ═══════════════════════════════════════════════════════ */
+        let _tipoPessoa        = null;  // 'membro' | 'visitante'
+        let _membroSelecionado = null;  // objeto com dados do membro
+        let _tipoDuvida        = null;  // valor da categoria
+        let _searchResults     = [];    // resultados da última pesquisa
+        let _currentStep       = 1;
+
+        /* ═══════════════════════════════════════════════════════
+           🔧  SUPABASE HELPER
+        ═══════════════════════════════════════════════════════ */
+        async function sb(path, opts = {}) {
+            const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+                ...opts,
+                headers: {
+                    apikey: SB_KEY,
+                    Authorization: `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation',
+                    ...(opts.headers || {}),
+                },
+            });
+            if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
+            const t = await r.text(); return t ? JSON.parse(t) : [];
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           🏁  INIT
+        ═══════════════════════════════════════════════════════ */
+        function init() {
+            renderPerguntas();
+            renderDuvidaGrid();
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           📋  RENDER — PERGUNTAS (Step 3)
+        ═══════════════════════════════════════════════════════ */
+        function renderPerguntas() {
+            const container = document.getElementById('questoes-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            PERGUNTAS.slice(0, 10).forEach((q, i) => {
+                const fieldId = `pergunta${i + 1}`;
+                const div = document.createElement('div');
+                div.className = 'questao-item';
+
+                let inputHtml = '';
+                if (q.tipo === 'select') {
+                    const opts = (q.options || ['']).map(o =>
+                        `<option value="${escHtml(o)}">${escHtml(o) || '— Seleciona —'}</option>`
+                    ).join('');
+                    inputHtml = `<select id="${fieldId}">${opts}</select>`;
+                } else {
+                    inputHtml = `<input type="text" id="${fieldId}"
+                    placeholder="${escHtml(q.placeholder || '')}">`;
+                }
+
+                div.innerHTML = `
+                <div class="questao-num">Pergunta ${i + 1} de ${PERGUNTAS.length}</div>
+                <div class="questao-label">${escHtml(q.label)}</div>
+                ${inputHtml}
+            `;
+                container.appendChild(div);
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           🎯  RENDER — DÚVIDA GRID (Step 4)
+        ═══════════════════════════════════════════════════════ */
+        function renderDuvidaGrid() {
+            const grid = document.getElementById('duvida-grid');
+            if (!grid) return;
+
+            grid.innerHTML = TIPOS_DUVIDA.map(t => `
+            <div class="duvida-card" id="dc-${t.value}" onclick="selecionarDuvida('${t.value}')">
+                <div class="duvida-card-icon">${t.icon}</div>
+                <div class="duvida-card-label">${t.label.replace(/\n/g, '<br>')}</div>
+            </div>
+        `).join('');
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           👤  STEP 1: TIPO
+        ═══════════════════════════════════════════════════════ */
+        window.selecionarTipo = function (tipo) {
+            _tipoPessoa = tipo;
+            document.getElementById('tipo-membro').classList.toggle('selected',    tipo === 'membro');
+            document.getElementById('tipo-visitante').classList.toggle('selected', tipo === 'visitante');
+            clearMsg('msg-1');
+        };
+
+        /* ═══════════════════════════════════════════════════════
+           🔍  STEP 2: PESQUISA DE MEMBRO
+        ═══════════════════════════════════════════════════════ */
+        window.pesquisarMembro = async function () {
+            const q = (document.getElementById('search-input').value || '').trim();
+            if (!q) return;
+
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.className = 'search-results show';
+            resultsEl.innerHTML = '<div class="searching-msg"><span class="spinner-inline"></span>A pesquisar...</div>';
+
+            try {
+                const enc = encodeURIComponent(`%${q}%`);
+                // Ajusta os nomes das colunas conforme a tua tabela de membros
+                const data = await sb(
+                    `membros?or=(nome.ilike.${enc},email.ilike.${enc},telefone.ilike.${enc},nif.ilike.${enc})&limit=8&select=id,nome,email,telefone,nif`,
+                    { method: 'GET' }
+                );
+                _searchResults = data || [];
+
+                if (!_searchResults.length) {
+                    resultsEl.innerHTML = '<div class="result-empty">Nenhum membro encontrado com esses dados.<br>Verifique ou registe como visitante.</div>';
+                    return;
+                }
+
+                resultsEl.innerHTML = _searchResults.map((m, idx) => `
+                <div class="result-item" onclick="selecionarMembro(${idx})">
+                    <div class="result-avatar">${iniciais(m.nome)}</div>
+                    <div class="result-info">
+                        <div class="result-nome">${escHtml(m.nome || '–')}</div>
+                        <div class="result-meta">${escHtml([m.email, m.telefone].filter(Boolean).join(' · ') || 'Sem contacto')}</div>
+                    </div>
+                    <svg width="16" height="16" fill="none" stroke="var(--teal)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;opacity:.6">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </div>
+            `).join('');
+
+            } catch (e) {
+                console.error(e);
+                resultsEl.innerHTML = '<div class="result-empty">Erro ao pesquisar. Verifica a ligação e tenta novamente.</div>';
+            }
+        };
+
+        window.selecionarMembro = function (idx) {
+            const membro = _searchResults[idx];
+            if (!membro) return;
+            _membroSelecionado = membro;
+
+            document.getElementById('search-results').className = 'search-results';
+
+            const wrap = document.getElementById('membro-sel-wrap');
+            wrap.style.display = 'block';
+            document.getElementById('sel-avatar').textContent = iniciais(membro.nome);
+            document.getElementById('sel-nome').textContent   = membro.nome || '–';
+            document.getElementById('sel-meta').textContent   =
+                [membro.email, membro.telefone].filter(Boolean).join(' · ') || 'Sem contacto';
+
+            clearMsg('msg-2');
+        };
+
+        window.limparMembro = function () {
+            _membroSelecionado = null;
+            document.getElementById('membro-sel-wrap').style.display = 'none';
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-results').className = 'search-results';
+            _searchResults = [];
+        };
+
+        /* ═══════════════════════════════════════════════════════
+           🏷️  STEP 4: SELECIONAR DÚVIDA
+        ═══════════════════════════════════════════════════════ */
+        window.selecionarDuvida = function (valor) {
+            _tipoDuvida = valor;
+            TIPOS_DUVIDA.forEach(t => {
+                document.getElementById('dc-' + t.value)?.classList.toggle('selected', t.value === valor);
+            });
+            clearMsg('msg-4');
+        };
+
+        /* ═══════════════════════════════════════════════════════
+           🔄  NAVEGAÇÃO
+        ═══════════════════════════════════════════════════════ */
+        window.irParaStep = function (step) {
+            // Validar passo atual antes de avançar
+            if (step > _currentStep) {
+                if (_currentStep === 1 && !validarStep1()) return;
+                if (_currentStep === 2 && !validarStep2()) return;
+                // Step 3 não tem validação obrigatória (perguntas são opcionais)
+            }
+
+            // Configurar blocos do step 2
+            if (step === 2) {
+                document.getElementById('bloco-membro').style.display    = _tipoPessoa === 'membro'    ? 'block' : 'none';
+                document.getElementById('bloco-visitante').style.display = _tipoPessoa === 'visitante' ? 'block' : 'none';
+            }
+
+            document.getElementById('step-' + _currentStep).classList.remove('active');
+            document.getElementById('step-' + step).classList.add('active');
+            _currentStep = step;
+            atualizarProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        function irDireto(step) {
+            document.getElementById('step-' + _currentStep).classList.remove('active');
+            document.getElementById('step-' + step).classList.add('active');
+            _currentStep = step;
+            atualizarProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ✅  VALIDAÇÕES
+        ═══════════════════════════════════════════════════════ */
+        function gv(id) {
+            const e = document.getElementById(id);
+            return e ? (e.value || '').trim() : '';
+        }
+
+        function validarStep1() {
+            if (!_tipoPessoa) {
+                setMsg('msg-1', 'err', 'Seleciona se é membro ou visitante antes de continuar.');
+                return false;
+            }
+            clearMsg('msg-1'); return true;
+        }
+
+        function validarStep2() {
+            if (_tipoPessoa === 'membro') {
+                if (!_membroSelecionado) {
+                    setMsg('msg-2', 'err', 'Pesquisa e seleciona o membro antes de continuar.');
+                    return false;
+                }
+            } else {
+                const nomeEl = document.getElementById('v_nome');
+                if (!gv('v_nome')) {
+                    nomeEl?.classList.add('invalid');
+                    setMsg('msg-2', 'err', 'O nome do visitante é obrigatório.');
+                    nomeEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+                nomeEl?.classList.remove('invalid');
+            }
+            clearMsg('msg-2'); return true;
+        }
+
+        function validarStep4() {
+            if (!_tipoDuvida) {
+                setMsg('msg-4', 'err', 'Seleciona o tipo de informação solicitada.');
+                return false;
+            }
+            const duvidaEl = document.getElementById('duvida-texto');
+            if (!gv('duvida-texto')) {
+                duvidaEl?.classList.add('invalid');
+                setMsg('msg-4', 'err', 'Descreve a dúvida ou pedido antes de guardar.');
+                return false;
+            }
+            duvidaEl?.classList.remove('invalid');
+            clearMsg('msg-4'); return true;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           💾  GUARDAR
+        ═══════════════════════════════════════════════════════ */
+        window.guardar = async function () {
+            if (!validarStep4()) return;
+
+            const btn = document.getElementById('btn-guardar');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-inline"></span>A guardar...';
+
+            try {
+                // Recolher respostas das perguntas
+                const patch = { tipo_pessoa: _tipoPessoa };
+
+                PERGUNTAS.slice(0, 10).forEach((_, i) => {
+                    const val = gv(`pergunta${i + 1}`);
+                    if (val) patch[`pergunta${i + 1}`] = val;
+                });
+
+                patch.tipo_duvida = _tipoDuvida;
+                patch.duvida      = gv('duvida-texto') || null;
+
+                if (_tipoPessoa === 'membro') {
+                    patch.membro_id   = _membroSelecionado.id;
+                    patch.nome_membro = _membroSelecionado.nome;
+                } else {
+                    const nome = gv('v_nome');
+                    if (nome)                     patch.nome     = nome;
+                    if (gv('v_telefone'))         patch.telefone = gv('v_telefone');
+                    if (gv('v_email'))            patch.email    = gv('v_email');
+                    if (gv('v_morada'))           patch.morada   = gv('v_morada');
+                }
+
+                await sb('visitantes_hub', {
+                    method: 'POST',
+                    body: JSON.stringify(patch),
+                });
+
+                // Montar ecrã de sucesso
+                const nome = _tipoPessoa === 'membro'
+                    ? (_membroSelecionado?.nome || 'O membro')
+                    : (gv('v_nome') || 'O visitante');
+
+                const tipoLabel = TIPOS_DUVIDA.find(t => t.value === _tipoDuvida)?.label?.replace(/\n/g, ' ') || _tipoDuvida;
+
+                document.getElementById('success-msg').innerHTML =
+                    `<span class="success-name">${escHtml(nome)}</span> foi atendido/a com sucesso.`;
+
+                document.getElementById('success-detail').innerHTML = `
+                <div class="success-detail-row">
+                    <span class="success-detail-lbl">Tipo de pessoa</span>
+                    <span class="success-detail-val">${_tipoPessoa === 'membro' ? '🏛️ Membro' : '👤 Visitante'}</span>
+                </div>
+                <div class="success-detail-row">
+                    <span class="success-detail-lbl">Categoria da dúvida</span>
+                    <span class="success-detail-val">${escHtml(tipoLabel)}</span>
+                </div>
+                <div class="success-detail-row">
+                    <span class="success-detail-lbl">Data</span>
+                    <span class="success-detail-val">${new Date().toLocaleDateString('pt-PT')}</span>
+                </div>
+            `;
+
+                irDireto(5);
+
+            } catch (e) {
+                console.error(e);
+                setMsg('msg-4', 'err', 'Erro ao guardar. Verifica a ligação e tenta novamente.');
+                btn.disabled = false;
+                btn.textContent = 'Guardar Registo';
+            }
+        };
+
+        /* ═══════════════════════════════════════════════════════
+           🔁  NOVO ATENDIMENTO — Reset completo
+        ═══════════════════════════════════════════════════════ */
+        window.novoAtendimento = function () {
+            _tipoPessoa        = null;
+            _membroSelecionado = null;
+            _tipoDuvida        = null;
+            _searchResults     = [];
+
+            // Limpar campos
+            document.querySelectorAll('input:not([type=hidden]), select, textarea').forEach(el => {
+                el.value = ''; el.classList.remove('invalid');
+            });
+
+            // Reset cards
+            ['tipo-membro', 'tipo-visitante'].forEach(id => {
+                document.getElementById(id)?.classList.remove('selected');
+            });
+            TIPOS_DUVIDA.forEach(t => {
+                document.getElementById('dc-' + t.value)?.classList.remove('selected');
+            });
+
+            // Reset pesquisa
+            document.getElementById('membro-sel-wrap').style.display = 'none';
+            document.getElementById('search-results').className = 'search-results';
+
+            // Limpar mensagens
+            ['msg-1','msg-2','msg-3','msg-4'].forEach(clearMsg);
+
+            // Voltar ao step 1
+            document.getElementById('step-5').classList.remove('active');
+            document.getElementById('step-1').classList.add('active');
+            _currentStep = 1;
+            document.getElementById('progress-wrap').style.display = '';
+            atualizarProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        /* ═══════════════════════════════════════════════════════
+           📊  PROGRESS BAR
+        ═══════════════════════════════════════════════════════ */
+        function atualizarProgress() {
+            const wrap = document.getElementById('progress-wrap');
+            if (_currentStep === 5) { wrap.style.display = 'none'; return; }
+            wrap.style.display = '';
+
+            [1, 2, 3, 4].forEach(i => {
+                const dot  = document.getElementById(`pd-${i}`);
+                const step = document.getElementById(`ps-${i}`);
+                if (!dot || !step) return;
+                if (i < _currentStep) {
+                    dot.className = 'progress-step-dot done'; dot.textContent = '✓';
+                    step.className = 'progress-step done';
+                } else if (i === _currentStep) {
+                    dot.className = 'progress-step-dot active'; dot.textContent = i;
+                    step.className = 'progress-step active';
+                } else {
+                    dot.className = 'progress-step-dot'; dot.textContent = i;
+                    step.className = 'progress-step';
+                }
+            });
+
+            [1, 2, 3].forEach(i => {
+                const line = document.getElementById(`pl-${i}`);
+                if (line) line.className = 'progress-line' + (_currentStep > i ? ' done' : '');
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           🔠  UTILITÁRIOS
+        ═══════════════════════════════════════════════════════ */
+        function iniciais(nome) {
+            if (!nome) return '?';
+            const p = nome.trim().split(' ').filter(Boolean);
+            if (p.length >= 2) return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+            return p[0].slice(0, 2).toUpperCase();
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function setMsg(id, tipo, txt) {
+            const e = document.getElementById(id); if (!e) return;
+            e.textContent = txt; e.className = 'msg show ' + tipo;
+        }
+        function clearMsg(id) {
+            const e = document.getElementById(id); if (!e) return;
+            e.textContent = ''; e.className = 'msg';
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           🚀  START
+        ═══════════════════════════════════════════════════════ */
+        init();
+
+    })();
+</script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(r => console.log('SW registado:', r.scope))
+                .catch(e => console.error('SW erro:', e));
+        });
+    }
+</script>
+
+</body>
+</html>

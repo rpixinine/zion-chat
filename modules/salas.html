@@ -3013,9 +3013,28 @@
             var MAX_SHOW = 3;
             var evHtml = '';
             dayAgs.slice(0, MAX_SHOW).forEach(function(a) {
-                var statusIcon = {aprovado:'✓',pendente:'⏳',recusado:'✕',cancelado:'—'}[a.status]||'';
-                evHtml += '<div class="sl-month-ev status-' + (a.status||'aprovado') + '">' +
-                    statusIcon + ' ' + sl_esc(a.titulo || '—') + '</div>';
+                var status = a.status || 'aprovado';
+                var statusIcon = {aprovado:'', pendente:'⏳', recusado:'✕', cancelado:'—'}[status] || '';
+
+                // Mesma lógica de cor do sl_buildEvEl
+                var corBase = a._tipo === 'evento' ? '#7e57c2' : sl_salaColor(a.sala_id);
+                var bgColor, textColor;
+                if (status === 'recusado') {
+                    bgColor = 'rgba(136,14,14,0.88)';
+                    textColor = '#fff';
+                } else if (status === 'pendente') {
+                    bgColor = 'rgba(191,87,0,0.88)';
+                    textColor = '#fff';
+                } else if (status === 'cancelado') {
+                    bgColor = 'rgba(55,55,55,0.80)';
+                    textColor = '#ddd';
+                } else {
+                    bgColor = corBase + 'ee';
+                    textColor = '#fff';
+                }
+
+                evHtml += '<div class="sl-month-ev" style="background:' + bgColor + ';color:' + textColor + '">' +
+                    statusIcon + (statusIcon ? ' ' : '') + sl_esc(a.titulo || '—') + '</div>';
             });
             if (dayAgs.length > MAX_SHOW) {
                 evHtml += '<div class="sl-month-more">+' + (dayAgs.length - MAX_SHOW) + ' mais</div>';

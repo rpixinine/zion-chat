@@ -1108,22 +1108,21 @@
         }
 
         .cal-ev.status-aprovado {
-            background: rgba(46, 125, 50, 0.18);
-            border-left: 3px solid #2e7d32;
-            color: #1a5c29;
+            background: rgba(27, 94, 32, 0.92);
+            border-left: 3px solid #a5d6a7;
+            color: #fff;
         }
 
         .cal-ev.status-pendente {
-            background: rgba(230, 126, 34, 0.18);
-            border-left: 3px solid #e67e22;
-            color: #9a5910;
+            background: rgba(191, 87, 0, 0.90);
+            border-left: 3px solid #ffcc80;
+            color: #fff;
         }
 
         .cal-ev.status-recusado {
-            background: rgba(150, 150, 150, 0.12);
-            border-left: 3px solid #aaa;
-            color: #888;
-            opacity: 0.6;
+            background: rgba(136, 14, 14, 0.85);
+            border-left: 3px solid #ef9a9a;
+            color: #fff;
         }
 
         /* ── Vista mês ───────────────────────────── */
@@ -1917,6 +1916,7 @@
     async function carregarAgendaCalendario() {
         let ini, fim;
         const d = calState.anchorDate;
+
         if (calState.view === 'dia') {
             ini = fim = toDateStr(d);
         } else if (calState.view === 'semana') {
@@ -1927,12 +1927,51 @@
             fim = toDateStr(dom);
         } else {
             const first = new Date(d.getFullYear(), d.getMonth(), 1);
-            const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            const last  = new Date(d.getFullYear(), d.getMonth() + 1, 0);
             ini = toDateStr(first);
             fim = toDateStr(last);
         }
-        const raw = await sb(`sala_agendamentos?select=*&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`);
-        calAgs = Array.isArray(raw) ? raw : [];
+
+        const [rawAgs, rawEv] = await Promise.all([
+            sb(`sala_agendamentos?select=*&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`),
+            sb(`eventos?select=id,titulo,data_inicio,data_fim,sala_id,ag_sala_id,status,ativo&sala_id=not.is.null&ativo=eq.true&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59`).catch(() => []),
+        ]);
+
+        const agsArr = Array.isArray(rawAgs) ? rawAgs : [];
+        const evArr  = Array.isArray(rawEv)  ? rawEv  : [];
+
+        // IDs já presentes nos agendamentos
+        const agIds = new Set(agsArr.map(a => a.id));
+
+        // Mapa ag_sala_id → sala_id para corrigir agendamentos sem sala_id
+        const agSalaIdMap = {};
+        evArr.forEach(e => { if (e.ag_sala_id) agSalaIdMap[e.ag_sala_id] = e.sala_id; });
+
+        // Corrigir sala_id nos agendamentos gerados por trigger que ficaram sem ela
+        const agsCorrigidos = agsArr.map(a => {
+            if (!a.sala_id && agSalaIdMap[a.id]) {
+                return { ...a, sala_id: agSalaIdMap[a.id], _tipo: 'evento' };
+            }
+            return a;
+        });
+
+        // Eventos sem agendamento correspondente (fallback)
+        const eventosMissing = evArr
+            .filter(e => !(e.ag_sala_id && agIds.has(e.ag_sala_id)))
+            .map(e => ({
+                id:               'ev_' + e.id,
+                _evento_id:       e.id,
+                sala_id:          e.sala_id,
+                titulo:           e.titulo,
+                data_inicio:      e.data_inicio,
+                data_fim:         e.data_fim || e.data_inicio,
+                status:           'aprovado',
+                solicitante_nome: 'Evento',
+                solicitante_id:   null,
+                _tipo:            'evento',
+            }));
+
+        calAgs = [...agsCorrigidos, ...eventosMissing];
     }
 
     function calAgsVisiveis() {
@@ -2246,8 +2285,8 @@
         const idx = allAgs.indexOf(a);
 
         return `<div class="cal-ev status-${a.status || 'aprovado'}"
-        style="top:${topPct}%;height:${htPct}%;left:${leftPct}%;width:${widPct}%;
-               border-left-color:${cor};background:${cor}22"
+    style="top:${topPct}%;height:${htPct}%;left:${leftPct}%;width:${widPct}%;
+           border-left-color:${cor}"
         onclick="calShowPopup(event,${idx})"
         title="${title}">
         <div class="cal-ev-title">${title}</div>

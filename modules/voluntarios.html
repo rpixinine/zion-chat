@@ -512,7 +512,13 @@
             const q = _vl_q.toLowerCase();
             let lista = [...vl_ativosCache];
             if (q)      lista = lista.filter(m => m.nome.toLowerCase().includes(q));
-            if (_vl_min) lista = lista.filter(m => m._ministerios.some(mn => mn.id === _vl_min));
+
+            if (_vl_min === '__sem__') {
+                lista = lista.filter(m => !m._ministerios.length);
+            } else if (_vl_min) {
+                lista = lista.filter(m => m._ministerios.some(mn => mn.id === _vl_min));
+            }
+
             if (_vl_idi) lista = lista.filter(m => m._idiomasArr.includes(_vl_idi));
             if (_vl_nac) lista = lista.filter(m => m._nac.split(',').map(n=>n.trim()).includes(_vl_nac));
 
@@ -537,7 +543,7 @@
                 <input class="vl-input" id="vl-search-nome" placeholder="Pesquisar nome..."
                 oninput="vl_renderAtivosFiltrado()" style="flex:2;min-width:160px;max-width:240px">
                 <select class="vl-select" id="vl-filter-min" onchange="vl_renderAtivosFiltrado()" style="flex:1;min-width:150px">
-                <option value="">Todos os ministerios</option>${minOpts}
+                <option value="">Todos os ministerios</option><option value="__sem__">— Sem ministerio —</option>${minOpts}
                 </select>
                 <select class="vl-select" id="vl-filter-idi" onchange="vl_renderAtivosFiltrado()" style="flex:1;min-width:130px">
                 <option value="">Todos os idiomas</option>${idiOpts}

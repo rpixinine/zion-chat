@@ -1913,7 +1913,7 @@
         return cores[Math.abs(h) % cores.length];
     }
 
-    async function carregarAgendaCalendario() {
+    async function carregarAgendaCalendarioOld() {
         let ini, fim;
         const d = calState.anchorDate;
 
@@ -1934,7 +1934,7 @@
 
         const [rawAgs, rawEv] = await Promise.all([
             sb(`sala_agendamentos?select=*&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`),
-            sb(`eventos?select=id,titulo,data_inicio,data_fim,sala_id,ag_sala_id,ativo&sala_id=not.is.null&ativo=neq.false&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59`).catch(() => []),
+            sb(`eventos?select=*&ativo=eq.true&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`).catch(() => []),
         ]);
 
         const agsArr = Array.isArray(rawAgs) ? rawAgs : [];
@@ -1974,16 +1974,64 @@
         calAgs = [...agsCorrigidos, ...eventosMissing];
     }
 
+    async function carregarAgendaCalendario() {
+        let ini, fim;
+        const d = calState.anchorDate;
+
+        if (calState.view === 'dia') {
+            ini = fim = toDateStr(d);
+        } else if (calState.view === 'semana') {
+            const seg = calWeekStart(d);
+            const dom = new Date(seg);
+            dom.setDate(dom.getDate() + 6);
+            ini = toDateStr(seg);
+            fim = toDateStr(dom);
+        } else {
+            const first = new Date(d.getFullYear(), d.getMonth(), 1);
+            const last  = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            ini = toDateStr(first);
+            fim = toDateStr(last);
+        }
+
+        const [rawAgs, rawEv] = await Promise.all([
+            sb(`sala_agendamentos?select=*&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`),
+            sb(`eventos?select=*&ativo=eq.true&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`).catch(() => []),
+        ]);
+
+        const agsArr = Array.isArray(rawAgs) ? rawAgs : [];
+        const evArr  = Array.isArray(rawEv)  ? rawEv  : [];
+
+        // Eventos mapeados directamente — sem ligação a sala
+        const eventosMapped = evArr.map(e => ({
+            id:               'ev_' + e.id,
+            _evento_id:       e.id,
+            sala_id:          null,
+            titulo:           e.titulo,
+            data_inicio:      e.data_inicio,
+            data_fim:         e.data_fim || e.data_inicio,
+            status:           'aprovado',
+            solicitante_id:   null,
+            solicitante_nome: null,
+            descricao:        e.descricao || null,
+            _tipo:            'evento',
+        }));
+
+        calAgs = [...agsArr, ...eventosMapped];
+    }
+
     function calAgsVisiveis() {
         let ags = calAgs.filter(a => {
             const st = a.status || 'aprovado';
-            if (st === 'aprovado')  return true;
-            if (st === 'recusado')  return perms.canAprovar || a.solicitante_id === currentUser.id;
-            if (st === 'pendente')  return perms.canAprovar || a.solicitante_id === currentUser.id;
+            if (st === 'aprovado') return true;
+            if (st === 'recusado') return perms.canAprovar || a.solicitante_id === currentUser.id;
+            if (st === 'pendente') return perms.canAprovar || a.solicitante_id === currentUser.id;
             return true;
         });
         if (calState.filterSalas) {
-            ags = ags.filter(a => calState.filterSalas.has(a.sala_id));
+            ags = ags.filter(a =>
+                a._tipo === 'evento' ||          // eventos aparecem sempre
+                calState.filterSalas.has(a.sala_id)
+            );
         }
         return ags;
     }
@@ -2277,7 +2325,7 @@
         const widPct  = colW - 0.5;
 
         const sala  = salas.find(sx => sx.id === a.sala_id);
-        const cor   = calSalaColor(a.sala_id);
+        const cor = a._tipo === 'evento' ? '#9b59b6' : calSalaColor(a.sala_id);
         const title = a.titulo || (sala ? sala.nome : '—');
         const hIni  = evStart.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
         const hFim  = evEnd.toLocaleTimeString('pt-PT',   {hour: '2-digit', minute: '2-digit'});
@@ -2367,7 +2415,7 @@
         <button class="cal-ev-popup-close" onclick="calClosePopup()">×</button>
         <div class="cal-ev-popup-title">${a.titulo || '—'}</div>
         ${tipoLabel}
-        <div class="cal-ev-popup-row"><strong>Sala</strong>: ${sala ? sala.nome : '—'}</div>
+        <div class="cal-ev-popup-row"><strong>Sala</strong>: ${sala ? sala.nome : (a._tipo === 'evento' ? '📅 Evento geral' : '—')}</div>
         <div class="cal-ev-popup-row"><strong>Horário</strong>: ${ini} – ${fim}</div>
         ${a.solicitante_nome && a.solicitante_nome !== '📅 Evento'
             ? `<div class="cal-ev-popup-row"><strong>Solicitante</strong>: ${a.solicitante_nome}</div>` : ''}

@@ -3508,8 +3508,18 @@
             return;
         }
 
+        // Depois (correto):
         var dataInicioBase = new Date(dataStr + 'T' + horaIni + ':00');
         var dataFimBase = new Date(dataStr + 'T' + horaFim + ':00');
+
+       // Helper para serializar sem conversão UTC
+        function sl_toLocalISO(d) {
+            return d.getFullYear() + '-' +
+                _pad2(d.getMonth() + 1) + '-' +
+                _pad2(d.getDate()) + 'T' +
+                _pad2(d.getHours()) + ':' +
+                _pad2(d.getMinutes()) + ':00';
+        }
 
         if (dataFimBase <= dataInicioBase) {
             sl_showMsg('error', 'A hora de fim deve ser posterior à hora de início.');
@@ -3548,8 +3558,8 @@
                     return x.id === id;
                 }) || {};
                 var patchDados = Object.assign({}, dados, {
-                    data_inicio: dataInicioBase.toISOString(),
-                    data_fim: dataFimBase.toISOString(),
+                    data_inicio: sl_toLocalISO(dataInicioBase),
+                    data_fim: sl_toLocalISO(dataFimBase),
                 });
 
                 if (sl_editSerie && a.recorrencia_id) {
@@ -3566,8 +3576,8 @@
 
                     var insertData = ocorrencias.map(function (o) {
                         return Object.assign({}, dados, {
-                            data_inicio: o.inicio.toISOString(),
-                            data_fim: o.fim.toISOString(),
+                            data_inicio: sl_toLocalISO(o.inicio),
+                            data_fim: sl_toLocalISO(o.fim),
                             recorrencia_id: a.recorrencia_id,
                         });
                     });

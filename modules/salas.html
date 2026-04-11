@@ -1667,6 +1667,8 @@
     var sl_editMode = false;
     var sl_isNovo = false;
     var sl_tab = 'salas';
+    var sl_editSerie = false;
+
 
     // Foto state temporário durante edição
     var sl_fotoFile = null;   // File object seleccionado
@@ -3176,6 +3178,22 @@
             hint.style.display = (val && val !== '') ? 'block' : 'none';
         }
 
+        // Auto-fill data de fim de recorrência
+        var recFimInput = document.getElementById('slag-recorrencia_fim');
+        if (recFimInput && !recFimInput.value) {
+            var hoje = new Date();
+            var autoFim;
+            if (val === 'diaria') {
+                autoFim = new Date(hoje);
+                autoFim.setDate(hoje.getDate() + 5);
+            } else {
+                autoFim = new Date(hoje);
+                autoFim.setFullYear(hoje.getFullYear() + 1);
+            }
+            recFimInput.value = autoFim.toISOString().split('T')[0];
+            sl_atualizarContadorRec();
+        }
+
         sl_atualizarContadorRec();
     };
 
@@ -3278,8 +3296,17 @@
         };
 
         var serieWarn = (id && a.recorrencia_id)
-            ? '<div class="sl-serie-warn"><div class="sl-serie-warn-label">Evento Recorrente</div>' +
-            'Este agendamento faz parte de uma série. Ao guardar, apenas esta ocorrência será alterada.</div>'
+            ? '<div class="sl-serie-warn">' +
+            '<div class="sl-serie-warn-label">Evento Recorrente</div>' +
+            '<div style="display:flex;gap:8px;margin-top:8px">' +
+            '<button type="button" class="sl-btn' + (!sl_editSerie ? ' primary' : '') + '" ' +
+            'onclick="sl_editSerie=false;this.className=\'sl-btn primary\';this.nextElementSibling.className=\'sl-btn\'">' +
+            'Só esta ocorrência</button>' +
+            '<button type="button" class="sl-btn' + (sl_editSerie ? ' primary' : '') + '" ' +
+            'onclick="sl_editSerie=true;this.className=\'sl-btn primary\';this.previousElementSibling.className=\'sl-btn\'">' +
+            'Toda a série</button>' +
+            '</div>' +
+            '</div>'
             : '';
 
         sl_showContent(
@@ -3409,6 +3436,7 @@
     // ── CANCELAR FORM AG  [NEW] ───────────────────────────────────────────────
     window.sl_cancelarAg = function () {
         sl_recDiasSelected = new Set();
+        sl_editSerie = false;
         if (sl_tab === 'agenda') sl_renderAgenda();
         else sl_showEmpty();
     };
@@ -3471,58 +3499,43 @@
 
         try {
             if (id) {
-                // ── Edição simples (uma ocorrência) ───────────────────────
-                await sb('sala_agendamentos?id=eq.' + id, {
-                    method: 'PATCH',
-                    body: JSON.stringify(Object.assign({}, dados, {
-                        data_inicio: dataInicioBase.toISOString(),
-                        data_fim: dataFimBase.toISOString(),
-                    })),
+                var patchDados = Object.assign({}, dados, {
+                    data_inicio: dataInicioBase.toISOString(),
+                    data_fim: dataFimBase.toISOString(),
                 });
 
-            } else {
-                // ── Criação (com possível recorrência) ────────────────────
-                var ocorrencias;
-                if (recTipo && recFim) {
-                    var diasParaGerar;
-                    if (recTipo === 'semanal' || recTipo === 'mensal') {
-                        // single day — primeiro selecionado ou dia do evento
-                        diasParaGerar = diasArr.length ? [diasArr[0]] : [dataInicioBase.getDay()];
+                if (sl_editSerie && a.recorrencia_id) {
+                    // Apagar todas as ocorrências da série e recriar
+                    await sb('sala_agendamentos?recorrencia_id=eq.' + a.recorrencia_id, { method: 'DELETE' });
+
+                    var ocorrencias;
+                    var diasParaGerar = diasArr.length ? diasArr : [dataInicioBase.getDay()];
+                    if (recTipo && recFim) {
+                        ocorrencias = sl_gerarOcorrencias(dataInicioBase, dataFimBase, recTipo, diasParaGerar, recFim);
                     } else {
-                        diasParaGerar = diasArr.length ? diasArr : [dataInicioBase.getDay()];
+                        ocorrencias = [{ inicio: dataInicioBase, fim: dataFimBase }];
                     }
-                    ocorrencias = sl_gerarOcorrencias(dataInicioBase, dataFimBase, recTipo, diasParaGerar, recFim);
-                } else {
-                    ocorrencias = [{inicio: dataInicioBase, fim: dataFimBase}];
-                }
 
-                if (ocorrencias.length === 0) {
-                    sl_showMsg('error', 'Nenhuma ocorrência gerada. Verifica os dias e a data de fim.');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = 'Guardar';
-                    }
-                    return;
-                }
-
-                // Gerar recorrencia_id partilhado para a série
-                var recId = ocorrencias.length > 1 ? sl_genUUID() : null;
-
-                // Construir array de inserções
-                var insertData = ocorrencias.map(function (o) {
-                    return Object.assign({}, dados, {
-                        data_inicio: o.inicio.toISOString(),
-                        data_fim: o.fim.toISOString(),
-                        recorrencia_id: recId,
+                    var insertData = ocorrencias.map(function(o) {
+                        return Object.assign({}, dados, {
+                            data_inicio: o.inicio.toISOString(),
+                            data_fim: o.fim.toISOString(),
+                            recorrencia_id: a.recorrencia_id,
+                        });
                     });
-                });
 
-                // PostgREST aceita array para bulk insert
-                await sb('sala_agendamentos', {
-                    method: 'POST',
-                    headers: {Prefer: 'return=minimal'},
-                    body: JSON.stringify(insertData.length === 1 ? insertData[0] : insertData),
-                });
+                    await sb('sala_agendamentos', {
+                        method: 'POST',
+                        headers: { Prefer: 'return=minimal' },
+                        body: JSON.stringify(insertData.length === 1 ? insertData[0] : insertData),
+                    });
+                } else {
+                    // Só esta ocorrência
+                    await sb('sala_agendamentos?id=eq.' + id, {
+                        method: 'PATCH',
+                        body: JSON.stringify(patchDados),
+                    });
+                }
             }
 
             // Reload e voltar à agenda
@@ -3531,6 +3544,7 @@
             });
             sl_updateBadge();
             sl_recDiasSelected = new Set();
+            sl_editSerie = false;
             sl_renderAgenda();
 
         } catch (e) {

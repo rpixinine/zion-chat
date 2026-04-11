@@ -1843,50 +1843,29 @@
             var res = await Promise.all([
                 sb('salas?select=*&order=nome').catch(function () { return []; }),
                 sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () { return []; }),
-                sb('eventos?select=id,titulo,data_inicio,data_fim,sala_id,ag_sala_id,status,ativo&sala_id=not.is.null&ativo=eq.true').catch(function () { return []; }),
+                sb('eventos?select=id,titulo,data_inicio,data_fim,descricao&ativo=eq.true').catch(function () { return []; }),
             ]);
 
             sl_salas = res[0] || [];
             sl_ags   = res[1] || [];
 
-            // IDs dos agendamentos já criados pelos triggers dos eventos
-            var agIdsExistentes = new Set(
-                sl_ags.map(function(a) { return a.id; })
-            );
-
-            // Adiciona eventos que NÃO têm ag_sala_id em sl_ags (ou seja, trigger falhou / sala_id era null)
-            var eventosMissing = (res[2] || []).filter(function(e) {
-                // Se ag_sala_id existe e já está nos agendamentos, ignorar (evita duplicado)
-                if (e.ag_sala_id && agIdsExistentes.has(e.ag_sala_id)) return false;
-                return true;
-            }).map(function(e) {
+            // Mapear eventos directamente — sem sala, cor roxa
+            var eventosMapped = (res[2] || []).map(function(e) {
                 return {
-                    id:              'ev_' + e.id,   // prefixo para não colidir
-                    _evento_id:      e.id,
-                    sala_id:         e.sala_id,
-                    titulo:          e.titulo,
-                    data_inicio:     e.data_inicio,
-                    data_fim:        e.data_fim || e.data_inicio,
-                    status:          'aprovado',     // evento ativo = aprovado no calendário
-                    solicitante_nome: 'Evento',
-                    _tipo:           'evento',
+                    id:               'ev_' + e.id,
+                    _evento_id:       e.id,
+                    sala_id:          null,
+                    titulo:           e.titulo,
+                    data_inicio:      e.data_inicio,
+                    data_fim:         e.data_fim || e.data_inicio,
+                    status:           'aprovado',
+                    solicitante_nome: null,
+                    descricao:        e.descricao || null,
+                    _tipo:            'evento',
                 };
             });
 
-            // Corrigir sala_id nos agendamentos criados pelos triggers
-            // (o trigger pode ter ficado sem sala_id — vamos injetar pelo ag_sala_id do evento)
-            var agSalaIdMap = {};
-            (res[2] || []).forEach(function(e) {
-                if (e.ag_sala_id) agSalaIdMap[e.ag_sala_id] = e.sala_id;
-            });
-            sl_ags = sl_ags.map(function(a) {
-                if (!a.sala_id && agSalaIdMap[a.id]) {
-                    return Object.assign({}, a, { sala_id: agSalaIdMap[a.id], _tipo: 'evento' });
-                }
-                return a;
-            });
-
-            sl_ags = sl_ags.concat(eventosMissing);
+            sl_ags = sl_ags.concat(eventosMapped);
 
             sl_renderList();
             sl_updateBadge();
@@ -2581,9 +2560,20 @@
     };
 
     async function sl_reloadAgs() {
-        sl_ags = await sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () {
-            return sl_ags;
+        var rawAgs = await sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () { return sl_ags; });
+        var rawEv  = await sb('eventos?select=id,titulo,data_inicio,data_fim,descricao&ativo=eq.true').catch(function () { return []; });
+
+        var eventosMapped = (Array.isArray(rawEv) ? rawEv : []).map(function(e) {
+            return {
+                id: 'ev_' + e.id, _evento_id: e.id, sala_id: null,
+                titulo: e.titulo, data_inicio: e.data_inicio,
+                data_fim: e.data_fim || e.data_inicio,
+                status: 'aprovado', solicitante_nome: null,
+                descricao: e.descricao || null, _tipo: 'evento',
+            };
         });
+
+        sl_ags = (Array.isArray(rawAgs) ? rawAgs : []).concat(eventosMapped);
     }
 
     async function sl_notificar(agId, estado, motivo) {
@@ -2787,10 +2777,12 @@
         var title = document.getElementById('sl-cal-title');
         if (title) title.innerHTML = sl_calTitle();
 
-        // Mostra TODOS os agendamentos (incluindo recusados — para controlo)
         var ags = sl_ags.slice();
         if (sl_cal.filterSalas) {
-            ags = ags.filter(function(a) { return sl_cal.filterSalas.has(a.sala_id); });
+            ags = ags.filter(function(a) {
+                return a._tipo === 'evento' ||   // eventos aparecem sempre
+                    sl_cal.filterSalas.has(a.sala_id);
+            });
         }
 
         if (sl_cal.view === 'dia')    body.innerHTML = sl_buildDia(sl_cal.anchorDate, ags);
@@ -2921,7 +2913,7 @@
         var widPct   = colW - 0.5;
 
         var sala    = sl_salas.find(function(sx) { return sx.id === a.sala_id; });
-        var cor     = sl_salaColor(a.sala_id);   // cor da sala → usada só no border-left
+        var cor = a._tipo === 'evento' ? '#9b59b6' : sl_salaColor(a.sala_id);
         var status  = a.status || 'aprovado';
         var bgColor = sl_evBgColor(status);
 
@@ -3007,7 +2999,7 @@
         pop.innerHTML =
             '<button class="sl-ev-popup-close" onclick="sl_closeEvPopup()">×</button>' +
             '<div class="sl-ev-popup-title">' + sl_esc(a.titulo || '—') + '</div>' +
-            '<div class="sl-ev-popup-row"><strong>Sala</strong>: ' + (sala ? sl_esc(sala.nome) : '—') + '</div>' +
+            '<div class="sl-ev-popup-row"><strong>Sala</strong>: ' + (sala ? sl_esc(sala.nome) : (a._tipo === 'evento' ? '📅 Evento geral' : '—')) + '</div>' +
             (a.nome_evento ? '<div class="sl-ev-popup-row"><strong>Evento</strong>: ' + sl_esc(a.nome_evento) + '</div>' : '') +
             (a.nome_responsavel ? '<div class="sl-ev-popup-row"><strong>Responsável</strong>: ' + sl_esc(a.nome_responsavel) + '</div>' : '') +
             '<div class="sl-ev-popup-row"><strong>Horário</strong>: ' + sl_fmtDataHora(a.data_inicio) + ' – ' + sl_fmtHora(a.data_fim) + '</div>' +

@@ -358,7 +358,7 @@
                     <span class="label">Fazer Checking</span>
                 </a>
 
-                <a href="https://portal.zionlisboa.pt/relogio-oracao" class="btn-icon" >
+                <a href="https://portal.zionlisboa.pt/relogio-oracao" class="btn-icon">
                     <div class="icon-wrap ic-green"></div>
                     <span class="label">Relógio de Oração</span>
                 </a>
@@ -369,7 +369,7 @@
                 </a>
 
 
-                <a href="https://portal.zionlisboa.pt/novo-nascimento" data-role="jornada" class="btn-icon" style="display:none">
+                <a href="https://portal.zionlisboa.pt/novo-nascimento" data-role="jornada" class="btn-icon">
                     <div class="icon-wrap ic-green"></div>
                     <span class="label">Novo Nascimento</span>
                 </a>
@@ -518,25 +518,37 @@
         const membroId = user.membro_id || user.id;
         if (!membroId) return;
 
-        <a href="https://portal.zionlisboa.pt/novo-nascimento" data-role="jornada" className="btn-icon">
-            <div className="icon-wrap ic-green"></div>
-            <span className="label">Novo Nascimento</span>
-        </a>
+        try {
+            const res = await fetch(
+                `${SUPABASE_URL}/rest/v1/membros?id=eq.${membroId}&select=e_gerenciamento,e_lider,e_jornada`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Accept': 'application/json'
+                    }
+                }
+            );
 
-        document.querySelectorAll('[data-role]').forEach(btn => {
-            const role = btn.dataset.role;
-            if (regras[role] === true) {
-                btn.style.display = '';
-            }
-        });
+            if (!res.ok) return;
+            const [membro] = await res.json();
+            if (!membro) return;
 
-    }
+            const regras = {
+                gerenciamento: membro.e_gerenciamento,
+                lider: membro.e_lider,
+                jornada: membro.e_jornada
+            };
 
-    catch
-    (e)
-    {
-        console.warn('Erro ao carregar permissões:', e);
-    }
+            document.querySelectorAll('[data-role]').forEach(btn => {
+                const role = btn.dataset.role;
+                if (regras[role] === true) {
+                    btn.style.display = '';
+                }
+            });
+
+        } catch (e) {
+            console.warn('Erro ao carregar permissões:', e);
+        }
     }
 
     carregarPermissoes();

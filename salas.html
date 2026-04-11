@@ -1934,7 +1934,7 @@
 
         const [rawAgs, rawEv] = await Promise.all([
             sb(`sala_agendamentos?select=*&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`),
-            sb(`eventos?select=id,titulo,data_inicio,data_fim,sala_id,ag_sala_id,status,ativo&sala_id=not.is.null&ativo=eq.true&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59`).catch(() => []),
+            sb(`eventos?select=id,titulo,data_inicio,data_fim,sala_id,ag_sala_id,ativo&sala_id=not.is.null&ativo=neq.false&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59`).catch(() => []),
         ]);
 
         const agsArr = Array.isArray(rawAgs) ? rawAgs : [];
@@ -1966,8 +1966,8 @@
                 data_inicio:      e.data_inicio,
                 data_fim:         e.data_fim || e.data_inicio,
                 status:           'aprovado',
-                solicitante_nome: 'Evento',
                 solicitante_id:   null,
+                solicitante_nome: 'Eventos',
                 _tipo:            'evento',
             }));
 
@@ -1976,12 +1976,11 @@
 
     function calAgsVisiveis() {
         let ags = calAgs.filter(a => {
-            if (a.status === 'aprovado') return true;           // todos vêem aprovados
-            if (a.status === 'recusado')                        // só os meus rejeitados
-                return a.solicitante_id === currentUser.id;
-            if (a.status === 'pendente')                        // só os meus pendentes (ou admin)
-                return perms.canAprovar || a.solicitante_id === currentUser.id;
-            return false;
+            const st = a.status || 'aprovado';
+            if (st === 'aprovado')  return true;
+            if (st === 'recusado')  return perms.canAprovar || a.solicitante_id === currentUser.id;
+            if (st === 'pendente')  return perms.canAprovar || a.solicitante_id === currentUser.id;
+            return true;
         });
         if (calState.filterSalas) {
             ags = ags.filter(a => calState.filterSalas.has(a.sala_id));
@@ -2264,30 +2263,31 @@
         const gridEnd = new Date(dayRef);
         gridEnd.setHours(CAL_HOURS_END, 0, 0, 0);
         const evStart = new Date(a.data_inicio);
-        const evEnd = new Date(a.data_fim);
+        const evEnd   = new Date(a.data_fim);
         const totalMs = (CAL_HOURS_END - CAL_HOURS_START) * 3600000;
 
         const s = Math.max(evStart.getTime(), gridStart.getTime());
-        const e = Math.min(evEnd.getTime(), gridEnd.getTime());
+        const e = Math.min(evEnd.getTime(),   gridEnd.getTime());
         const topPct = (s - gridStart.getTime()) / totalMs * 100;
-        const htPct = Math.max((e - s) / totalMs * 100, 1.5);
+        const htPct  = Math.max((e - s) / totalMs * 100, 1.5);
 
-        const nCols = a._calTotalCols || 1;
-        const colW = 100 / nCols;
+        const nCols  = a._calTotalCols || 1;
+        const colW   = 100 / nCols;
         const leftPct = (a._calCol || 0) * colW;
-        const widPct = colW - 0.5;
+        const widPct  = colW - 0.5;
 
-        const sala = salas.find(sx => sx.id === a.sala_id);
-        const cor = calSalaColor(a.sala_id);
+        const sala  = salas.find(sx => sx.id === a.sala_id);
+        const cor   = calSalaColor(a.sala_id);
         const title = a.titulo || (sala ? sala.nome : '—');
-        const hIni = evStart.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
-        const hFim = evEnd.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
-        const idx = allAgs.indexOf(a);
+        const hIni  = evStart.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+        const hFim  = evEnd.toLocaleTimeString('pt-PT',   {hour: '2-digit', minute: '2-digit'});
+
+        // USA ID em vez de índice — robusto a recarregamentos
+        const safeId = JSON.stringify(a.id);
 
         return `<div class="cal-ev status-${a.status || 'aprovado'}"
-    style="top:${topPct}%;height:${htPct}%;left:${leftPct}%;width:${widPct}%;
-           border-left-color:${cor}"
-        onclick="calShowPopup(event,${idx})"
+        style="top:${topPct}%;height:${htPct}%;left:${leftPct}%;width:${widPct}%;border-left-color:${cor}"
+        onclick="calShowPopupById(event,${safeId})"
         title="${title}">
         <div class="cal-ev-title">${title}</div>
         <div class="cal-ev-sub">${hIni}–${hFim}${sala ? ' · ' + sala.nome : ''}</div>
@@ -2337,20 +2337,28 @@
     }
 
     function calShowPopup(evt, idx) {
+        const a = calAgsVisiveis()[idx];
+        if (a) calShowPopupById(evt, a.id);
+    }
+
+    function calShowPopupById(evt, agId) {
         evt.stopPropagation();
         calClosePopup();
 
-        const a = calAgsVisiveis()[idx];
+        // Procura por ID em calAgs (inclui eventos com prefixo 'ev_')
+        const a = calAgs.find(x => x.id === agId);
         if (!a) return;
+
         const sala = salas.find(s => s.id === a.sala_id);
-        const ini = new Date(a.data_inicio).toLocaleDateString('pt-PT', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+        const ini  = new Date(a.data_inicio).toLocaleDateString('pt-PT', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
         });
         const fim = new Date(a.data_fim).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+
+        const tipoLabel = a._tipo === 'evento'
+            ? `<div class="cal-ev-popup-row" style="color:var(--primary-dark);font-weight:700">📅 Evento</div>`
+            : '';
 
         const pop = document.createElement('div');
         pop.className = 'cal-ev-popup';
@@ -2358,21 +2366,21 @@
         pop.innerHTML = `
         <button class="cal-ev-popup-close" onclick="calClosePopup()">×</button>
         <div class="cal-ev-popup-title">${a.titulo || '—'}</div>
+        ${tipoLabel}
         <div class="cal-ev-popup-row"><strong>Sala</strong>: ${sala ? sala.nome : '—'}</div>
         <div class="cal-ev-popup-row"><strong>Horário</strong>: ${ini} – ${fim}</div>
-        ${a.solicitante_nome ? `<div class="cal-ev-popup-row"><strong>Solicitante</strong>: ${a.solicitante_nome}</div>` : ''}
+        ${a.solicitante_nome && a.solicitante_nome !== '📅 Evento'
+            ? `<div class="cal-ev-popup-row"><strong>Solicitante</strong>: ${a.solicitante_nome}</div>` : ''}
         ${a.descricao ? `<div class="cal-ev-popup-row"><strong>Descrição</strong>: ${a.descricao}</div>` : ''}
-        <span class="cal-ev-popup-status ${a.status || 'aprovado'}">${a.status || '—'}</span>
+        <span class="cal-ev-popup-status ${a.status || 'aprovado'}">${a.status || 'aprovado'}</span>
         ${a.status === 'recusado' && a.motivo_recusa && (perms.canAprovar || a.solicitante_id === currentUser.id)
             ? `<div class="cal-ev-popup-row" style="margin-top:6px;color:var(--red)"><em>${a.motivo_recusa}</em></div>` : ''}`;
 
         document.body.appendChild(pop);
-
-        const x = Math.min(evt.clientX + 8, window.innerWidth - 310);
+        const x = Math.min(evt.clientX + 8, window.innerWidth  - 310);
         const y = Math.min(evt.clientY + 8, window.innerHeight - 200);
         pop.style.left = x + 'px';
-        pop.style.top = y + 'px';
-
+        pop.style.top  = y + 'px';
         setTimeout(() => document.addEventListener('click', calClosePopup, {once: true}), 10);
     }
 

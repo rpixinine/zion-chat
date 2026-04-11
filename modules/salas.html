@@ -2900,7 +2900,7 @@
         return map[status] || 'rgba(55, 55, 55, 0.80)';
     }
 
-    function sl_buildEvEl(a, dayRef) {
+    function sl_buildEvElOld(a, dayRef) {
         var gridStart = new Date(dayRef); gridStart.setHours(HOURS_START, 0, 0, 0);
         var gridEnd   = new Date(dayRef); gridEnd.setHours(HOURS_END, 0, 0, 0);
         var s = Math.max(new Date(a.data_inicio).getTime(), gridStart.getTime());
@@ -2932,6 +2932,57 @@
             ';background:' + bgColor + ';color:#fff"' +
             ' onclick="sl_showEvPopup(event,' + idx + ')" title="' + sl_esc(title) + '">' +
             '<div class="sl-ev-title">' + statusIcon + ' ' + sl_esc(title) + '</div>' +
+            '<div class="sl-ev-sub">' + hIni + '–' + hFim + (sub ? ' · ' + sl_esc(sub) : '') + '</div>' +
+            '</div>';
+    }
+
+    function sl_buildEvEl(a, dayRef) {
+        var gridStart = new Date(dayRef); gridStart.setHours(HOURS_START, 0, 0, 0);
+        var gridEnd   = new Date(dayRef); gridEnd.setHours(HOURS_END, 0, 0, 0);
+        var s = Math.max(new Date(a.data_inicio).getTime(), gridStart.getTime());
+        var e = Math.min(new Date(a.data_fim).getTime(),    gridEnd.getTime());
+        var totalMs  = (HOURS_END - HOURS_START) * 3600000;
+        var topPct   = (s - gridStart.getTime()) / totalMs * 100;
+        var htPct    = Math.max((e - s) / totalMs * 100, 1.4);
+        var colW     = 100 / a._totalCols;
+        var leftPct  = a._col * colW;
+        var widPct   = colW - 0.5;
+
+        var sala   = sl_salas.find(function(sx) { return sx.id === a.sala_id; });
+        var status = a.status || 'aprovado';
+
+        // Cor base: cada sala tem a sua cor, eventos têm cor própria
+        var corBase = a._tipo === 'evento' ? '#7e57c2' : sl_salaColor(a.sala_id);
+
+        // Fundo: aprovado usa cor da sala, outros status têm cor própria
+        var bgColor;
+        if (status === 'recusado') {
+            bgColor = 'rgba(136, 14, 14, 0.88)';
+            corBase = '#ef9a9a';
+        } else if (status === 'pendente') {
+            bgColor = 'rgba(191, 87, 0, 0.88)';
+            corBase = '#ffcc80';
+        } else if (status === 'cancelado') {
+            bgColor = 'rgba(55, 55, 55, 0.80)';
+            corBase = '#aaa';
+        } else {
+            // aprovado — usa cor da sala com opacidade alta
+            bgColor = corBase + 'ee';  // hex com alpha ee ≈ 93%
+        }
+
+        var title = a.titulo || (sala ? sala.nome : '—');
+        var sub   = sala ? sala.nome : (a._tipo === 'evento' ? '📅 Evento' : '');
+        var hIni  = new Date(a.data_inicio).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+        var hFim  = new Date(a.data_fim).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+        var idx   = sl_ags.findIndex(function(x) { return x.id === a.id; });
+        var statusIcon = {aprovado:'', pendente:'⏳', recusado:'✕', cancelado:'—'}[status] || '';
+
+        return '<div class="sl-ev status-' + status + '" ' +
+            'style="top:' + topPct + '%;height:' + htPct + '%;left:' + leftPct + '%;width:' + widPct + '%' +
+            ';border-left-color:' + corBase +
+            ';background:' + bgColor + ';color:#fff"' +
+            ' onclick="sl_showEvPopup(event,' + idx + ')" title="' + sl_esc(title) + '">' +
+            '<div class="sl-ev-title">' + statusIcon + (statusIcon ? ' ' : '') + sl_esc(title) + '</div>' +
             '<div class="sl-ev-sub">' + hIni + '–' + hFim + (sub ? ' · ' + sl_esc(sub) : '') + '</div>' +
             '</div>';
     }
@@ -3574,7 +3625,7 @@
             alert('Erro ao eliminar: ' + (e?.message || e));
         }
     };
-    
+
     window.sl_closeEvPopup = function () {
         var p = document.getElementById('sl-ev-popup');
         if (p) p.remove();
@@ -3617,6 +3668,6 @@
     window.sl_onRecTipoChange = sl_onRecTipoChange;
     window.sl_atualizarContadorRec = sl_atualizarContadorRec;
     window.sl_eliminarAg = sl_eliminarAg;
-    
+
     sl_init();
 </script>

@@ -448,16 +448,18 @@
     // ── PERMISSÕES DE MEMBRO ──────────────────────────────────
     async function carregarPermissoes() {
         const user = ZionAuth.getUser();
-        if (!user) return; // não logado, tudo escondido
+        if (!user) return;
+
+        // usa membro_id se existir, senão tenta id
+        const membroId = user.membro_id || user.id;
+        if (!membroId) return;
 
         try {
-            // Busca o registo do membro pelo id ou email — ajusta o filtro ao teu schema
             const res = await fetch(
-                `${SUPABASE_URL}/rest/v1/membros?id=eq.${user.id}&select=e_gerenciamento,e_lider`,
+                `${SUPABASE_URL}/rest/v1/membros?id=eq.${membroId}&select=e_gerenciamento,e_lider`,
                 {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${ZionAuth.getToken()}`,
                         'Accept': 'application/json'
                     }
                 }
@@ -467,18 +469,17 @@
             const [membro] = await res.json();
             if (!membro) return;
 
-            // Mapa: data-role → campo na tabela
+            console.log('Permissões:', membro); // podes remover depois
+
             const regras = {
                 gerenciamento: membro.e_gerenciamento,
                 lider:         membro.e_lider,
-                // adiciona aqui futuras regras facilmente:
-                // admin:      membro.e_admin,
             };
 
             document.querySelectorAll('[data-role]').forEach(btn => {
                 const role = btn.dataset.role;
                 if (regras[role] === true) {
-                    btn.style.display = '';  // mostra
+                    btn.style.display = '';
                 }
             });
 

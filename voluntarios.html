@@ -453,160 +453,160 @@
 </div>
 
 <script>
-(function () {
-    const SB_URL = window.SUPABASE_URL      || '';
-    const SB_KEY = window.SUPABASE_ANON_KEY || '';
+    (function () {
+        const SB_URL = window.SUPABASE_URL      || '';
+        const SB_KEY = window.SUPABASE_ANON_KEY || '';
 
-    /* ═══════════════════════════════════════════════════
-       CONSTANTES DE DOMÍNIO
-    ═══════════════════════════════════════════════════ */
-    const IDIOMAS = [
-        'Portugues','Ingles','Espanhol','Frances','Alemao','Italiano',
-        'Arabe','Mandarim','Russo','Japones','Coreano','Hindi','Turco',
-        'Holandes','Polaco','Romeno','Ucraniano','Grego','Hebraico',
-        'Sueco','Noruegues','Dinamarques','Finlandes','Hungaro','Checo',
-        'Bulgaro','Croata','Servio','Albanes','Lituano','Letao','Estoniano',
-        'Catala','Galego','Afrikaans','Swahili','Tagalog','Malaio',
-        'Indonesio','Vietnamita','Tailandes','Bengali','Urdu','Persa',
-        'Punjabi','Pashto','Somali','Amharico','Yoruba','Igbo','Hausa',
-        'Zulu','Xhosa','Sinhala','Birmes','Khmer'
-    ].sort();
+        /* ═══════════════════════════════════════════════════
+           CONSTANTES DE DOMÍNIO
+        ═══════════════════════════════════════════════════ */
+        const IDIOMAS = [
+            'Portugues','Ingles','Espanhol','Frances','Alemao','Italiano',
+            'Arabe','Mandarim','Russo','Japones','Coreano','Hindi','Turco',
+            'Holandes','Polaco','Romeno','Ucraniano','Grego','Hebraico',
+            'Sueco','Noruegues','Dinamarques','Finlandes','Hungaro','Checo',
+            'Bulgaro','Croata','Servio','Albanes','Lituano','Letao','Estoniano',
+            'Catala','Galego','Afrikaans','Swahili','Tagalog','Malaio',
+            'Indonesio','Vietnamita','Tailandes','Bengali','Urdu','Persa',
+            'Punjabi','Pashto','Somali','Amharico','Yoruba','Igbo','Hausa',
+            'Zulu','Xhosa','Sinhala','Birmes','Khmer'
+        ].sort();
 
-    const ESCOLARIDADE = [
-        { v: 'sem_escolaridade',      l: 'Sem escolaridade' },
-        { v: 'ensino_basico_i',       l: '1.º Ciclo do Ensino Basico / Ensino Fundamental I' },
-        { v: 'ensino_basico_ii',      l: '2.º e 3.º Ciclo do Ensino Basico / Ensino Fundamental II' },
-        { v: 'ensino_secundario',     l: 'Ensino Secundario / Ensino Medio' },
-        { v: 'curso_profissional',    l: 'Curso Profissional / Tecnico' },
-        { v: 'licenciatura',          l: 'Licenciatura / Graduacao / Bacharelado' },
-        { v: 'pos_graduacao',         l: 'Pos-Graduacao / Especializacao' },
-        { v: 'mestrado',              l: 'Mestrado' },
-        { v: 'doutoramento',          l: 'Doutoramento / Doutorado' },
-    ];
+        const ESCOLARIDADE = [
+            { v: 'sem_escolaridade',      l: 'Sem escolaridade' },
+            { v: 'ensino_basico_i',       l: '1.º Ciclo do Ensino Basico / Ensino Fundamental I' },
+            { v: 'ensino_basico_ii',      l: '2.º e 3.º Ciclo do Ensino Basico / Ensino Fundamental II' },
+            { v: 'ensino_secundario',     l: 'Ensino Secundario / Ensino Medio' },
+            { v: 'curso_profissional',    l: 'Curso Profissional / Tecnico' },
+            { v: 'licenciatura',          l: 'Licenciatura / Graduacao / Bacharelado' },
+            { v: 'pos_graduacao',         l: 'Pos-Graduacao / Especializacao' },
+            { v: 'mestrado',              l: 'Mestrado' },
+            { v: 'doutoramento',          l: 'Doutoramento / Doutorado' },
+        ];
 
-    const NACIONALIDADES = [
-        'Afega','Albanesa','Alema','Andorrana','Angolana','Antiguense','Saudita',
-        'Argentina','Armenia','Australiana','Austriaca','Azerbaijana',
-        'Bahamense','Bangladiana','Barbadiana','Bielorrussa','Belga','Belizenha',
-        'Beninesa','Boliviana','Bosnia','Botsuanesa','Brasileira','Bruneiense',
-        'Bulgara','Burquinabe','Burundiana',
-        'Cabo-verdiana','Cambodjana','Camaronesa','Canadiana','Catariana',
-        'Cazaquistanesa','Chadiana','Chilena','Chinesa','Cipriota','Colombiana',
-        'Comoriana','Congolesa (RC)','Congolesa (RDC)','Costa-marfinense',
-        'Costa-riquenha','Croata','Cubana',
-        'Dinamarquesa','Djiboutiana','Dominicana','Equatoriana',
-        'Egipcia','Emirati','Eritreia','Eslovaca','Eslovena','Espanhola',
-        'Estadunidense','Estoniana','Etiope','Fijiana','Filipina',
-        'Finlandesa','Francesa','Gabonesa','Gambiana','Ganesa','Georgiana',
-        'Guatemalteca','Guineense','Guineense-Equatorial','Guineense-Bissau',
-        'Guianense','Haitiana','Hondurenha','Hungara','Iemenita','Indiana',
-        'Indonesia','Iraniana','Iraquiana','Irlandesa','Islandesa',
-        'Israelita','Italiana','Jamaicana','Japonesa','Jordaniana',
-        'Kuwaitiana','Laosiana','Lesotiana','Leta','Libanesa','Liberiana',
-        'Libia','Liechtensteiniana','Lituana','Luxemburguesa',
-        'Macedonia','Malaia','Maldivia','Maliana','Maltesa',
-        'Marroquina','Mauriciana','Mauritana','Mexicana','Moldava',
-        'Monegasca','Mongoliana','Montenegrina','Mocambicana',
-        'Namibiana','Nepalesa','Nicaraguense','Nigeriana','Nigerense',
-        'Norueguesa','Neozelandesa','Omanense','Paquistanesa','Palestiniana',
-        'Panamenha','Paraguaia','Peruana','Polaca','Portuguesa',
-        'Queniana','Quirguistanesa','Romena','Ruandesa','Russa',
-        'Samoana','Sao-tomense','Senegalesa','Servia','Seichelense',
-        'Serra-leonesa','Singapurense','Siria','Somali','Sudanesa',
-        'Sul-sudanesa','Sul-coreana','Norte-coreana','Sri-lankesa',
-        'Suica','Surinamesa','Sueca','Tailandesa','Tanzaniana',
-        'Timorense','Togolesa','Tonganesa','Trinitaria','Tunisina',
-        'Turca','Turquemenistanesa','Ugandesa','Ucraniana','Uruguaia',
-        'Uzbeque','Venezuelana','Vietnamita','Zambiana','Zimbabueana'
-    ].sort();
+        const NACIONALIDADES = [
+            'Afega','Albanesa','Alema','Andorrana','Angolana','Antiguense','Saudita',
+            'Argentina','Armenia','Australiana','Austriaca','Azerbaijana',
+            'Bahamense','Bangladiana','Barbadiana','Bielorrussa','Belga','Belizenha',
+            'Beninesa','Boliviana','Bosnia','Botsuanesa','Brasileira','Bruneiense',
+            'Bulgara','Burquinabe','Burundiana',
+            'Cabo-verdiana','Cambodjana','Camaronesa','Canadiana','Catariana',
+            'Cazaquistanesa','Chadiana','Chilena','Chinesa','Cipriota','Colombiana',
+            'Comoriana','Congolesa (RC)','Congolesa (RDC)','Costa-marfinense',
+            'Costa-riquenha','Croata','Cubana',
+            'Dinamarquesa','Djiboutiana','Dominicana','Equatoriana',
+            'Egipcia','Emirati','Eritreia','Eslovaca','Eslovena','Espanhola',
+            'Estadunidense','Estoniana','Etiope','Fijiana','Filipina',
+            'Finlandesa','Francesa','Gabonesa','Gambiana','Ganesa','Georgiana',
+            'Guatemalteca','Guineense','Guineense-Equatorial','Guineense-Bissau',
+            'Guianense','Haitiana','Hondurenha','Hungara','Iemenita','Indiana',
+            'Indonesia','Iraniana','Iraquiana','Irlandesa','Islandesa',
+            'Israelita','Italiana','Jamaicana','Japonesa','Jordaniana',
+            'Kuwaitiana','Laosiana','Lesotiana','Leta','Libanesa','Liberiana',
+            'Libia','Liechtensteiniana','Lituana','Luxemburguesa',
+            'Macedonia','Malaia','Maldivia','Maliana','Maltesa',
+            'Marroquina','Mauriciana','Mauritana','Mexicana','Moldava',
+            'Monegasca','Mongoliana','Montenegrina','Mocambicana',
+            'Namibiana','Nepalesa','Nicaraguense','Nigeriana','Nigerense',
+            'Norueguesa','Neozelandesa','Omanense','Paquistanesa','Palestiniana',
+            'Panamenha','Paraguaia','Peruana','Polaca','Portuguesa',
+            'Queniana','Quirguistanesa','Romena','Ruandesa','Russa',
+            'Samoana','Sao-tomense','Senegalesa','Servia','Seichelense',
+            'Serra-leonesa','Singapurense','Siria','Somali','Sudanesa',
+            'Sul-sudanesa','Sul-coreana','Norte-coreana','Sri-lankesa',
+            'Suica','Surinamesa','Sueca','Tailandesa','Tanzaniana',
+            'Timorense','Togolesa','Tonganesa','Trinitaria','Tunisina',
+            'Turca','Turquemenistanesa','Ugandesa','Ucraniana','Uruguaia',
+            'Uzbeque','Venezuelana','Vietnamita','Zambiana','Zimbabueana'
+        ].sort();
 
-    const PROIBIDOS = [
-        'e_lider','e_presbitero','e_voluntario','e_admin','professor',
-        'e_lider_link','e_lider_area','e_lider_pilar','tipo','ativo',
-        'nome','data_entrada','pastor','office','checkin_pin',
-        'convertido_de_visitante_id','pai_id','mae_id','filhos_id'
-    ];
+        const PROIBIDOS = [
+            'e_lider','e_presbitero','e_voluntario','e_admin','professor',
+            'e_lider_link','e_lider_area','e_lider_pilar','tipo','ativo',
+            'data_entrada','pastor','office','checkin_pin',
+            'convertido_de_visitante_id','pai_id','mae_id','filhos_id'
+        ];
 
-    /* ═══════════════════════════════════════════════════
-       SUPABASE HELPER
-    ═══════════════════════════════════════════════════ */
-    async function sb(path, opts = {}) {
-        const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-            ...opts,
-            headers: {
-                apikey: SB_KEY,
-                Authorization: `Bearer ${SB_KEY}`,
-                'Content-Type': 'application/json',
-                Prefer: 'return=representation',
-                ...(opts.headers || {}),
-            },
-        });
-        if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
-        const t = await r.text(); return t ? JSON.parse(t) : [];
-    }
-
-    /* ═══════════════════════════════════════════════════
-       ESTADO
-    ═══════════════════════════════════════════════════ */
-    let _ministerios = [];   // todos os ministerios AE com parent_id
-    let _links = [];
-    let _membro = null;
-    let _memMins = [];       // membro_ministerios activos do membro
-    let _idiomas = [];
-    let _nacs = [];
-    let _fotoBlob = null;
-    let _linkPending = undefined;  // undefined = sem alteração, null = remover, string = novo id
-
-    /* ═══════════════════════════════════════════════════
-       INIT
-    ═══════════════════════════════════════════════════ */
-    async function init() {
-        try {
-            /* FIX: buscar só ministérios do tipo 'ae' (lowercase como está na BD) */
-            [_ministerios, _links] = await Promise.all([
-                sb('ministerios?ativo=eq.true&tipo=in.(ae,AE)&select=id,nome,tipo,parent_id&order=nome'),
-                sb('links?ativo=eq.true&select=id,nome,zona,dia&order=nome').catch(() => []),
-            ]);
-            /* Normalizar tipo para lowercase para comparações consistentes */
-            _ministerios = _ministerios.map(m => ({ ...m, tipo: (m.tipo || '').toLowerCase() }));
-            renderStep('email');
-        } catch (e) {
-            body().innerHTML = `<div class="msg err show">Erro ao inicializar. Verifica a ligacao e tenta novamente.</div>`;
-            console.error(e);
+        /* ═══════════════════════════════════════════════════
+           SUPABASE HELPER
+        ═══════════════════════════════════════════════════ */
+        async function sb(path, opts = {}) {
+            const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+                ...opts,
+                headers: {
+                    apikey: SB_KEY,
+                    Authorization: `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation',
+                    ...(opts.headers || {}),
+                },
+            });
+            if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
+            const t = await r.text(); return t ? JSON.parse(t) : [];
         }
-    }
 
-    /* ═══════════════════════════════════════════════════
-       UTILITÁRIOS DOM
-    ═══════════════════════════════════════════════════ */
-    const body = () => document.getElementById('main-body');
-    const el   = id => document.getElementById(id);
-    const gv   = id => { const e = el(id); return e ? (e.value || '').trim() : ''; };
+        /* ═══════════════════════════════════════════════════
+           ESTADO
+        ═══════════════════════════════════════════════════ */
+        let _ministerios = [];   // todos os ministerios AE com parent_id
+        let _links = [];
+        let _membro = null;
+        let _memMins = [];       // membro_ministerios activos do membro
+        let _idiomas = [];
+        let _nacs = [];
+        let _fotoBlob = null;
+        let _linkPending = undefined;  // undefined = sem alteração, null = remover, string = novo id
 
-    function setMsg(id, tipo, txt) {
-        const e = el(id); if (!e) return;
-        e.textContent = txt; e.className = 'msg show ' + tipo;
-    }
-    function clearMsg(id) {
-        const e = el(id); if (!e) return;
-        e.textContent = ''; e.className = 'msg';
-    }
+        /* ═══════════════════════════════════════════════════
+           INIT
+        ═══════════════════════════════════════════════════ */
+        async function init() {
+            try {
+                /* FIX: buscar só ministérios do tipo 'ae' (lowercase como está na BD) */
+                [_ministerios, _links] = await Promise.all([
+                    sb('ministerios?ativo=eq.true&tipo=in.(ae,AE)&select=id,nome,tipo,parent_id&order=nome'),
+                    sb('links?ativo=eq.true&select=id,nome,zona,dia&order=nome').catch(() => []),
+                ]);
+                /* Normalizar tipo para lowercase para comparações consistentes */
+                _ministerios = _ministerios.map(m => ({ ...m, tipo: (m.tipo || '').toLowerCase() }));
+                renderStep('email');
+            } catch (e) {
+                body().innerHTML = `<div class="msg err show">Erro ao inicializar. Verifica a ligacao e tenta novamente.</div>`;
+                console.error(e);
+            }
+        }
 
-    /* ═══════════════════════════════════════════════════
-       STEPS
-    ═══════════════════════════════════════════════════ */
-    function renderStep(step) {
-        if (step === 'email')   renderEmailStep();
-        else if (step === 'form')    renderFormStep();
-        else if (step === 'success') renderSuccessStep();
-    }
+        /* ═══════════════════════════════════════════════════
+           UTILITÁRIOS DOM
+        ═══════════════════════════════════════════════════ */
+        const body = () => document.getElementById('main-body');
+        const el   = id => document.getElementById(id);
+        const gv   = id => { const e = el(id); return e ? (e.value || '').trim() : ''; };
 
-    /* ═══════════════════════════════════════════════════
-       STEP 1 — EMAIL
-       FIX: filtra e_voluntario=eq.true — só voluntários acedem
-    ═══════════════════════════════════════════════════ */
-    function renderEmailStep() {
-        body().innerHTML = `
+        function setMsg(id, tipo, txt) {
+            const e = el(id); if (!e) return;
+            e.textContent = txt; e.className = 'msg show ' + tipo;
+        }
+        function clearMsg(id) {
+            const e = el(id); if (!e) return;
+            e.textContent = ''; e.className = 'msg';
+        }
+
+        /* ═══════════════════════════════════════════════════
+           STEPS
+        ═══════════════════════════════════════════════════ */
+        function renderStep(step) {
+            if (step === 'email')   renderEmailStep();
+            else if (step === 'form')    renderFormStep();
+            else if (step === 'success') renderSuccessStep();
+        }
+
+        /* ═══════════════════════════════════════════════════
+           STEP 1 — EMAIL
+           FIX: filtra e_voluntario=eq.true — só voluntários acedem
+        ═══════════════════════════════════════════════════ */
+        function renderEmailStep() {
+            body().innerHTML = `
         <div class="search-wrap">
             <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
                 Introduz o teu email para aceder ao teu perfil de voluntario.
@@ -624,110 +624,111 @@
         <div class="search-hint">
             Se nao encontrarmos o teu email, fala com o teu lider para registar o teu perfil.
         </div>`;
-        setTimeout(() => { const i = el('email-input'); if (i) i.focus(); }, 80);
-    }
-
-    window.buscarEmail = async function () {
-        const email = (gv('email-input') || '').toLowerCase();
-        if (!email || !email.includes('@')) {
-            setMsg('msg-email', 'err', 'Introduz um email valido.');
-            return;
+            setTimeout(() => { const i = el('email-input'); if (i) i.focus(); }, 80);
         }
-        clearMsg('msg-email');
-        setMsg('msg-email', 'info', 'A procurar...');
 
-        try {
-            /*
-             * FIX: filtra e_voluntario=eq.true
-             * Qualquer membro com e_voluntario=true pode aceder,
-             * mesmo que tenha mais papeis (lider, etc.)
-             */
-            const rows = await sb(
-                `membros?email=eq.${encodeURIComponent(email)}&e_voluntario=eq.true&select=*&limit=1`
-            );
+        window.buscarEmail = async function () {
+            const email = (gv('email-input') || '').toLowerCase();
+            if (!email || !email.includes('@')) {
+                setMsg('msg-email', 'err', 'Introduz um email valido.');
+                return;
+            }
+            clearMsg('msg-email');
+            setMsg('msg-email', 'info', 'A procurar...');
 
-            if (!rows || !rows.length) {
-                /* Verificar se o email existe mas não é voluntário */
-                const existe = await sb(
-                    `membros?email=eq.${encodeURIComponent(email)}&select=id&limit=1`
-                ).catch(() => []);
+            try {
+                /*
+                 * FIX: filtra e_voluntario=eq.true
+                 * Qualquer membro com e_voluntario=true pode aceder,
+                 * mesmo que tenha mais papeis (lider, etc.)
+                 */
+                const rows = await sb(
+                    //`membros?email=eq.${encodeURIComponent(email)}&e_voluntario=eq.true&select=*&limit=1`
+                    `membros?email=eq.${encodeURIComponent(email)}&select=*&limit=1`
+                );
 
-                body().innerHTML = `
+                if (!rows || !rows.length) {
+                    /* Verificar se o email existe mas não é voluntário */
+                    const existe = await sb(
+                        `membros?email=eq.${encodeURIComponent(email)}&select=id&limit=1`
+                    ).catch(() => []);
+
+                    body().innerHTML = `
                 <div class="not-found">
                     <div class="not-found-title">${existe.length ? 'Perfil sem acesso de voluntario' : 'Email nao encontrado'}</div>
                     <div class="not-found-sub">
                         ${existe.length
-                            ? 'O teu registo existe mas nao esta marcado como voluntario. Fala com o teu lider para activar o acesso.'
-                            : 'Nao encontramos nenhum registo com esse email. Por favor, entra em contacto com o teu lider para que o teu perfil seja criado.'
-                        }
+                        ? 'O teu registo existe mas nao esta marcado como voluntario. Fala com o teu lider para activar o acesso.'
+                        : 'Nao encontramos nenhum registo com esse email. Por favor, entra em contacto com o teu lider para que o teu perfil seja criado.'
+                    }
                     </div>
                 </div>
                 <button class="btn-outline" style="margin-top:16px" onclick="renderStep('email')">Tentar outro email</button>`;
-                return;
+                    return;
+                }
+
+                _membro = rows[0];
+                await carregarRelacoes();
+                renderStep('form');
+            } catch (e) {
+                setMsg('msg-email', 'err', 'Erro ao pesquisar. Tenta novamente.');
+                console.error(e);
             }
+        };
 
-            _membro = rows[0];
-            await carregarRelacoes();
-            renderStep('form');
-        } catch (e) {
-            setMsg('msg-email', 'err', 'Erro ao pesquisar. Tenta novamente.');
-            console.error(e);
+        /* ═══════════════════════════════════════════════════
+           CARREGAR RELAÇÕES
+           FIX: normalizar tipo para lowercase na comparação
+                buscar TODOS os membro_ministerios activos (não só AE)
+                para que o toggle da árvore funcione correctamente
+        ═══════════════════════════════════════════════════ */
+        async function carregarRelacoes() {
+            const id = _membro.id;
+
+            /*
+             * FIX: buscar todos os ministerios activos do membro
+             * e depois filtrar os que são AE para mostrar na árvore.
+             * Comparação normalizada para lowercase.
+             */
+            const ms = await sb(
+                `membro_ministerios?membro_id=eq.${id}&ativo=eq.true&select=id,ministerio_id,papel,ministerios(id,nome,tipo)`
+            ).catch(() => []);
+
+            _memMins = (ms || [])
+                .filter(m => (m.ministerios?.tipo || '').toLowerCase() === 'ae')
+                .map(m => ({
+                    id:            m.id,
+                    ministerio_id: m.ministerio_id,
+                    nome:          m.ministerios?.nome || '—',
+                    papel:         m.papel || 'Voluntario'
+                }));
+
+            /* Idiomas */
+            try { _idiomas = JSON.parse(_membro['Idiomas'] || '[]'); } catch { _idiomas = []; }
+            if (!Array.isArray(_idiomas)) _idiomas = [];
+
+            /* Nacionalidade */
+            try { _nacs = JSON.parse(_membro.nacionalidade || '[]'); } catch { _nacs = []; }
+            if (!Array.isArray(_nacs)) _nacs = [];
+
+            _fotoBlob    = null;
+            _linkPending = undefined;
         }
-    };
 
-    /* ═══════════════════════════════════════════════════
-       CARREGAR RELAÇÕES
-       FIX: normalizar tipo para lowercase na comparação
-            buscar TODOS os membro_ministerios activos (não só AE)
-            para que o toggle da árvore funcione correctamente
-    ═══════════════════════════════════════════════════ */
-    async function carregarRelacoes() {
-        const id = _membro.id;
+        /* ═══════════════════════════════════════════════════
+           STEP 2 — FORMULÁRIO
+        ═══════════════════════════════════════════════════ */
+        function renderFormStep() {
+            const m        = _membro;
+            const initials = (m.nome || '?')[0].toUpperCase();
 
-        /*
-         * FIX: buscar todos os ministerios activos do membro
-         * e depois filtrar os que são AE para mostrar na árvore.
-         * Comparação normalizada para lowercase.
-         */
-        const ms = await sb(
-            `membro_ministerios?membro_id=eq.${id}&ativo=eq.true&select=id,ministerio_id,papel,ministerios(id,nome,tipo)`
-        ).catch(() => []);
-
-        _memMins = (ms || [])
-            .filter(m => (m.ministerios?.tipo || '').toLowerCase() === 'ae')
-            .map(m => ({
-                id:            m.id,
-                ministerio_id: m.ministerio_id,
-                nome:          m.ministerios?.nome || '—',
-                papel:         m.papel || 'Voluntario'
-            }));
-
-        /* Idiomas */
-        try { _idiomas = JSON.parse(_membro['Idiomas'] || '[]'); } catch { _idiomas = []; }
-        if (!Array.isArray(_idiomas)) _idiomas = [];
-
-        /* Nacionalidade */
-        try { _nacs = JSON.parse(_membro.nacionalidade || '[]'); } catch { _nacs = []; }
-        if (!Array.isArray(_nacs)) _nacs = [];
-
-        _fotoBlob    = null;
-        _linkPending = undefined;
-    }
-
-    /* ═══════════════════════════════════════════════════
-       STEP 2 — FORMULÁRIO
-    ═══════════════════════════════════════════════════ */
-    function renderFormStep() {
-        const m        = _membro;
-        const initials = (m.nome || '?')[0].toUpperCase();
-
-        body().innerHTML = `
+            body().innerHTML = `
         <!-- Header do voluntário -->
         <div class="vol-header">
             <div class="vol-avatar" id="vol-avatar-hd">
                 ${m.foto_url
-                    ? `<img src="${m.foto_url}" alt="${m.nome}" onerror="this.parentElement.textContent='${initials}'">`
-                    : initials}
+                ? `<img src="${m.foto_url}" alt="${m.nome}" onerror="this.parentElement.textContent='${initials}'">`
+                : initials}
             </div>
             <div>
                 <div class="vol-nome">${m.nome || '—'}</div>
@@ -742,8 +743,8 @@
         <div class="photo-area ${m.foto_url ? 'has-photo' : ''}" id="photo-area">
             <div class="photo-preview ${m.foto_url ? 'has-photo' : ''}" id="photo-preview">
                 ${m.foto_url
-                    ? `<img id="photo-img" src="${m.foto_url}" alt="${m.nome}" onerror="this.parentElement.textContent='${initials}'">`
-                    : `<span id="photo-initials">${initials}</span>`}
+                ? `<img id="photo-img" src="${m.foto_url}" alt="${m.nome}" onerror="this.parentElement.textContent='${initials}'">`
+                : `<span id="photo-initials">${initials}</span>`}
             </div>
             <div class="photo-notice">
                 <strong>Foto obrigatoria para melhor desempenho do teu perfil.</strong><br>
@@ -760,6 +761,10 @@
 
         <!-- DADOS PESSOAIS -->
         <div class="section-lbl">Dados Pessoais</div>
+        <div class="field">
+            <label class="req">Nome Completo</label>
+            <input type="text" id="p_nome" value="${m.nome || ''}">
+        </div>
         <div class="field">
             <label class="req">Email</label>
             <input type="email" id="p_email" value="${m.email || ''}" readonly style="opacity:.6;cursor:not-allowed">
@@ -939,414 +944,416 @@
 
         <button class="btn-primary" id="btn-save" onclick="guardar()">Guardar Perfil</button>`;
 
-        /* Renderizações iniciais */
-        renderIdiomasChips();
-        renderNacChips();
-        renderLink();
-        renderMinChips();
-        renderMinTree();
+            /* Renderizações iniciais */
+            renderIdiomasChips();
+            renderNacChips();
+            renderLink();
+            renderMinChips();
+            renderMinTree();
 
-        /* Toggle batismo — closure local */
-        let _batizado = !!m.foi_batizado;
-        window._batizadoVal = _batizado;
-        window.toggleBatismo = function () {
-            _batizado = !_batizado;
+            /* Toggle batismo — closure local */
+            let _batizado = !!m.foi_batizado;
             window._batizadoVal = _batizado;
-            const sw = el('toggle-batismo');
-            if (sw) sw.className = 'toggle-switch' + (_batizado ? ' on' : '');
-            const wrap = el('batismo-data-wrap');
-            if (wrap) wrap.style.display = _batizado ? 'block' : 'none';
-        };
-    }
-
-    /* ═══════════════════════════════════════════════════
-       FOTO
-    ═══════════════════════════════════════════════════ */
-    window.handleFoto = async function (input) {
-        const file = input.files?.[0]; if (!file) return;
-        _fotoBlob = await resizeFoto(file);
-        const url = URL.createObjectURL(_fotoBlob);
-        atualizarFotoPreview(url);
-    };
-
-    window.removerFoto = function () {
-        _fotoBlob = null;
-        _membro.foto_url = null;
-        atualizarFotoPreview(null);
-    };
-
-    function atualizarFotoPreview(url) {
-        const area     = el('photo-area');
-        const prev     = el('photo-preview');
-        const initials = (_membro.nome || '?')[0].toUpperCase();
-        if (url) {
-            prev.innerHTML = `<img id="photo-img" src="${url}" alt="Foto">`;
-            prev.className = 'photo-preview has-photo';
-            if (area) area.className = 'photo-area has-photo';
-            const hd = el('vol-avatar-hd');
-            if (hd) hd.innerHTML = `<img src="${url}" alt="Foto" onerror="this.parentElement.textContent='${initials}'">`;
-        } else {
-            prev.innerHTML = `<span>${initials}</span>`;
-            prev.className = 'photo-preview';
-            if (area) area.className = 'photo-area';
-        }
-    }
-
-    async function resizeFoto(file) {
-        return new Promise(res => {
-            const img = new Image();
-            img.onload = () => {
-                const s = Math.min(900, img.width, img.height);
-                const ratio = s / Math.min(img.width, img.height);
-                const c = document.createElement('canvas');
-                c.width  = Math.round(img.width  * ratio);
-                c.height = Math.round(img.height * ratio);
-                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-                c.toBlob(b => res(b), 'image/jpeg', 0.85);
+            window.toggleBatismo = function () {
+                _batizado = !_batizado;
+                window._batizadoVal = _batizado;
+                const sw = el('toggle-batismo');
+                if (sw) sw.className = 'toggle-switch' + (_batizado ? ' on' : '');
+                const wrap = el('batismo-data-wrap');
+                if (wrap) wrap.style.display = _batizado ? 'block' : 'none';
             };
-            img.src = URL.createObjectURL(file);
-        });
-    }
+        }
 
-    async function uploadFoto() {
-        if (!_fotoBlob) return _membro.foto_url || null;
-        try {
-            const fname = `membros/${_membro.id}_${Date.now()}.jpg`;
-            const r = await fetch(`${SB_URL}/storage/v1/object/imagens/${fname}`, {
-                method: 'POST',
-                headers: {
-                    apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
-                    'Content-Type': 'image/jpeg', 'Cache-Control': '3600', Upsert: 'true'
-                },
-                body: _fotoBlob
+        /* ═══════════════════════════════════════════════════
+           FOTO
+        ═══════════════════════════════════════════════════ */
+        window.handleFoto = async function (input) {
+            const file = input.files?.[0]; if (!file) return;
+            _fotoBlob = await resizeFoto(file);
+            const url = URL.createObjectURL(_fotoBlob);
+            atualizarFotoPreview(url);
+        };
+
+        window.removerFoto = function () {
+            _fotoBlob = null;
+            _membro.foto_url = null;
+            atualizarFotoPreview(null);
+        };
+
+        function atualizarFotoPreview(url) {
+            const area     = el('photo-area');
+            const prev     = el('photo-preview');
+            const initials = (_membro.nome || '?')[0].toUpperCase();
+            if (url) {
+                prev.innerHTML = `<img id="photo-img" src="${url}" alt="Foto">`;
+                prev.className = 'photo-preview has-photo';
+                if (area) area.className = 'photo-area has-photo';
+                const hd = el('vol-avatar-hd');
+                if (hd) hd.innerHTML = `<img src="${url}" alt="Foto" onerror="this.parentElement.textContent='${initials}'">`;
+            } else {
+                prev.innerHTML = `<span>${initials}</span>`;
+                prev.className = 'photo-preview';
+                if (area) area.className = 'photo-area';
+            }
+        }
+
+        async function resizeFoto(file) {
+            return new Promise(res => {
+                const img = new Image();
+                img.onload = () => {
+                    const s = Math.min(900, img.width, img.height);
+                    const ratio = s / Math.min(img.width, img.height);
+                    const c = document.createElement('canvas');
+                    c.width  = Math.round(img.width  * ratio);
+                    c.height = Math.round(img.height * ratio);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    c.toBlob(b => res(b), 'image/jpeg', 0.85);
+                };
+                img.src = URL.createObjectURL(file);
             });
-            if (!r.ok) throw await r.json();
-            return `${SB_URL}/storage/v1/object/public/imagens/${fname}`;
-        } catch (e) {
-            console.error('Upload foto falhou', e);
-            return _membro.foto_url || null;
         }
-    }
 
-    /* ═══════════════════════════════════════════════════
-       IDIOMAS
-    ═══════════════════════════════════════════════════ */
-    function renderIdiomasChips() {
-        const list = el('idiomas-chips'); if (!list) return;
-        if (!_idiomas.length) { list.innerHTML = '<span class="chip-empty">Nenhum idioma adicionado.</span>'; return; }
-        list.innerHTML = _idiomas.map((i, idx) =>
-            `<span class="chip">${i}<button class="chip-btn" onclick="remIdioma(${idx})">x</button></span>`
-        ).join('');
-    }
-    window.addIdioma = function () {
-        const s = el('idioma-sel'); if (!s || !s.value) return;
-        if (_idiomas.includes(s.value)) { s.value = ''; return; }
-        _idiomas.push(s.value); s.value = '';
-        renderIdiomasChips();
-    };
-    window.remIdioma = function (idx) { _idiomas.splice(idx, 1); renderIdiomasChips(); };
-
-    /* ═══════════════════════════════════════════════════
-       NACIONALIDADE
-    ═══════════════════════════════════════════════════ */
-    function renderNacChips() {
-        const list = el('nac-chips'); if (!list) return;
-        if (!_nacs.length) { list.innerHTML = '<span class="chip-empty">Nenhuma nacionalidade adicionada.</span>'; return; }
-        list.innerHTML = _nacs.map((n, idx) =>
-            `<span class="chip">${n}<button class="chip-btn" onclick="remNac(${idx})">x</button></span>`
-        ).join('');
-    }
-    window.addNac = function () {
-        const s = el('nac-sel'); if (!s || !s.value) return;
-        if (_nacs.includes(s.value)) { s.value = ''; return; }
-        _nacs.push(s.value); s.value = '';
-        renderNacChips();
-    };
-    window.remNac = function (idx) { _nacs.splice(idx, 1); renderNacChips(); };
-
-    /* ═══════════════════════════════════════════════════
-       LINK
-       FIX: _linkPending começa undefined (sem alteração).
-            null  = remover link
-            string = novo link_id
-            O select fica visível quando não há link seleccionado,
-            e esconde quando há chip a mostrar.
-    ═══════════════════════════════════════════════════ */
-    function linkAtualId() {
-        if (_linkPending === undefined) return _membro.link_id || null;
-        return _linkPending; /* null ou string */
-    }
-
-    function renderLink() {
-        const chipEl = el('link-chip');
-        const addRow = el('link-add-row');
-        if (!chipEl) return;
-
-        const lkId = linkAtualId();
-        if (lkId) {
-            const lk   = _links.find(x => x.id === lkId);
-            const nome = lk ? [lk.nome, lk.zona, lk.dia].filter(Boolean).join(' · ') : `Link (${lkId.slice(0,8)}...)`;
-            chipEl.innerHTML = `<span class="chip">${nome}<button class="chip-btn" onclick="remLink()">x</button></span>`;
-            /* Mantém o select visível mas pré-seleccionado para facilitar troca */
-            if (addRow) {
-                addRow.style.display = 'block';
-                const sel = el('link-sel');
-                if (sel) sel.value = lkId;
-            }
-        } else {
-            chipEl.innerHTML = '<span class="chip-empty">Nenhum Link associado.</span>';
-            if (addRow) {
-                addRow.style.display = 'block';
-                const sel = el('link-sel');
-                if (sel) sel.value = '';
+        async function uploadFoto() {
+            if (!_fotoBlob) return _membro.foto_url || null;
+            try {
+                const fname = `membros/${_membro.id}_${Date.now()}.jpg`;
+                const r = await fetch(`${SB_URL}/storage/v1/object/imagens/${fname}`, {
+                    method: 'POST',
+                    headers: {
+                        apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+                        'Content-Type': 'image/jpeg', 'Cache-Control': '3600', Upsert: 'true'
+                    },
+                    body: _fotoBlob
+                });
+                if (!r.ok) throw await r.json();
+                return `${SB_URL}/storage/v1/object/public/imagens/${fname}`;
+            } catch (e) {
+                console.error('Upload foto falhou', e);
+                return _membro.foto_url || null;
             }
         }
-    }
 
-    window.setLink = function () {
-        const s = el('link-sel');
-        if (!s || !s.value) return;
-        _linkPending = s.value;  /* FIX: string = novo id */
-        renderLink();
-    };
-
-    window.remLink = function () {
-        _linkPending = null;     /* FIX: null = remover link */
-        renderLink();
-    };
-
-    /* ═══════════════════════════════════════════════════
-       MINISTERIOS (AE, hierarquia)
-       FIX: comparação normalizada para lowercase
-            refresh completo da árvore após cada toggle
-    ═══════════════════════════════════════════════════ */
-    function buildTree() {
-        /* _ministerios já foi normalizado para lowercase em init() */
-        const ae   = _ministerios.filter(m => m.tipo === 'ae');
-        const root = ae.find(m => !m.parent_id);
-        if (!root) return [];
-        const pilares = ae.filter(m => m.parent_id === root.id);
-        return pilares.map(p => ({
-            ...p,
-            children: ae.filter(c => c.parent_id === p.id)
-        }));
-    }
-
-    function renderMinChips() {
-        const list = el('min-chips'); if (!list) return;
-        if (!_memMins.length) {
-            list.innerHTML = '<span class="chip-empty">Nenhuma area selecionada.</span>';
-            return;
+        /* ═══════════════════════════════════════════════════
+           IDIOMAS
+        ═══════════════════════════════════════════════════ */
+        function renderIdiomasChips() {
+            const list = el('idiomas-chips'); if (!list) return;
+            if (!_idiomas.length) { list.innerHTML = '<span class="chip-empty">Nenhum idioma adicionado.</span>'; return; }
+            list.innerHTML = _idiomas.map((i, idx) =>
+                `<span class="chip">${i}<button class="chip-btn" onclick="remIdioma(${idx})">x</button></span>`
+            ).join('');
         }
-        list.innerHTML = _memMins.map((m, i) =>
-            `<span class="chip">${m.nome}<button class="chip-btn" onclick="remMin(${i})">x</button></span>`
-        ).join('');
-    }
+        window.addIdioma = function () {
+            const s = el('idioma-sel'); if (!s || !s.value) return;
+            if (_idiomas.includes(s.value)) { s.value = ''; return; }
+            _idiomas.push(s.value); s.value = '';
+            renderIdiomasChips();
+        };
+        window.remIdioma = function (idx) { _idiomas.splice(idx, 1); renderIdiomasChips(); };
 
-    function renderMinTree() {
-        const wrap = el('min-tree'); if (!wrap) return;
-        const assocIds = new Set(_memMins.map(m => m.ministerio_id));
-        const pilares  = buildTree();
-        let html = '';
+        /* ═══════════════════════════════════════════════════
+           NACIONALIDADE
+        ═══════════════════════════════════════════════════ */
+        function renderNacChips() {
+            const list = el('nac-chips'); if (!list) return;
+            if (!_nacs.length) { list.innerHTML = '<span class="chip-empty">Nenhuma nacionalidade adicionada.</span>'; return; }
+            list.innerHTML = _nacs.map((n, idx) =>
+                `<span class="chip">${n}<button class="chip-btn" onclick="remNac(${idx})">x</button></span>`
+            ).join('');
+        }
+        window.addNac = function () {
+            const s = el('nac-sel'); if (!s || !s.value) return;
+            if (_nacs.includes(s.value)) { s.value = ''; return; }
+            _nacs.push(s.value); s.value = '';
+            renderNacChips();
+        };
+        window.remNac = function (idx) { _nacs.splice(idx, 1); renderNacChips(); };
 
-        if (!pilares.length) {
-            wrap.innerHTML = '<span class="chip-empty">Sem areas disponiveis.</span>';
-            return;
+        /* ═══════════════════════════════════════════════════
+           LINK
+           FIX: _linkPending começa undefined (sem alteração).
+                null  = remover link
+                string = novo link_id
+                O select fica visível quando não há link seleccionado,
+                e esconde quando há chip a mostrar.
+        ═══════════════════════════════════════════════════ */
+        function linkAtualId() {
+            if (_linkPending === undefined) return _membro.link_id || null;
+            return _linkPending; /* null ou string */
         }
 
-        pilares.forEach(pilar => {
-            html += `<div class="min-parent-label">${pilar.nome}</div>`;
-            if (pilar.children.length) {
-                pilar.children.forEach(area => {
-                    const sel = assocIds.has(area.id);
-                    html += `<div class="min-option child ${sel ? 'selected' : ''}"
+        function renderLink() {
+            const chipEl = el('link-chip');
+            const addRow = el('link-add-row');
+            if (!chipEl) return;
+
+            const lkId = linkAtualId();
+            if (lkId) {
+                const lk   = _links.find(x => x.id === lkId);
+                const nome = lk ? [lk.nome, lk.zona, lk.dia].filter(Boolean).join(' · ') : `Link (${lkId.slice(0,8)}...)`;
+                chipEl.innerHTML = `<span class="chip">${nome}<button class="chip-btn" onclick="remLink()">x</button></span>`;
+                /* Mantém o select visível mas pré-seleccionado para facilitar troca */
+                if (addRow) {
+                    addRow.style.display = 'block';
+                    const sel = el('link-sel');
+                    if (sel) sel.value = lkId;
+                }
+            } else {
+                chipEl.innerHTML = '<span class="chip-empty">Nenhum Link associado.</span>';
+                if (addRow) {
+                    addRow.style.display = 'block';
+                    const sel = el('link-sel');
+                    if (sel) sel.value = '';
+                }
+            }
+        }
+
+        window.setLink = function () {
+            const s = el('link-sel');
+            if (!s || !s.value) return;
+            _linkPending = s.value;  /* FIX: string = novo id */
+            renderLink();
+        };
+
+        window.remLink = function () {
+            _linkPending = null;     /* FIX: null = remover link */
+            renderLink();
+        };
+
+        /* ═══════════════════════════════════════════════════
+           MINISTERIOS (AE, hierarquia)
+           FIX: comparação normalizada para lowercase
+                refresh completo da árvore após cada toggle
+        ═══════════════════════════════════════════════════ */
+        function buildTree() {
+            /* _ministerios já foi normalizado para lowercase em init() */
+            const ae   = _ministerios.filter(m => m.tipo === 'ae');
+            const root = ae.find(m => !m.parent_id);
+            if (!root) return [];
+            const pilares = ae.filter(m => m.parent_id === root.id);
+            return pilares.map(p => ({
+                ...p,
+                children: ae.filter(c => c.parent_id === p.id)
+            }));
+        }
+
+        function renderMinChips() {
+            const list = el('min-chips'); if (!list) return;
+            if (!_memMins.length) {
+                list.innerHTML = '<span class="chip-empty">Nenhuma area selecionada.</span>';
+                return;
+            }
+            list.innerHTML = _memMins.map((m, i) =>
+                `<span class="chip">${m.nome}<button class="chip-btn" onclick="remMin(${i})">x</button></span>`
+            ).join('');
+        }
+
+        function renderMinTree() {
+            const wrap = el('min-tree'); if (!wrap) return;
+            const assocIds = new Set(_memMins.map(m => m.ministerio_id));
+            const pilares  = buildTree();
+            let html = '';
+
+            if (!pilares.length) {
+                wrap.innerHTML = '<span class="chip-empty">Sem areas disponiveis.</span>';
+                return;
+            }
+
+            pilares.forEach(pilar => {
+                html += `<div class="min-parent-label">${pilar.nome}</div>`;
+                if (pilar.children.length) {
+                    pilar.children.forEach(area => {
+                        const sel = assocIds.has(area.id);
+                        html += `<div class="min-option child ${sel ? 'selected' : ''}"
                                   onclick="toggleMin('${area.id}','${area.nome.replace(/'/g,"\\'")}',this)">
                                  <div class="min-option-dot"></div>${area.nome}
                              </div>`;
-                });
-            } else {
-                /* Pilar sem filhos é ele próprio seleccionável */
-                const sel = assocIds.has(pilar.id);
-                html += `<div class="min-option ${sel ? 'selected' : ''}"
+                    });
+                } else {
+                    /* Pilar sem filhos é ele próprio seleccionável */
+                    const sel = assocIds.has(pilar.id);
+                    html += `<div class="min-option ${sel ? 'selected' : ''}"
                                onclick="toggleMin('${pilar.id}','${pilar.nome.replace(/'/g,"\\'")}',this)">
                              <div class="min-option-dot"></div>${pilar.nome}
                          </div>`;
+                }
+            });
+
+            wrap.innerHTML = html;
+        }
+
+        /*
+         * FIX: toggleMin faz live save correctamente.
+         * Após cada operação re-renderiza chips E árvore para
+         * que os estados visuais estejam sempre sincronizados.
+         */
+        window.toggleMin = async function (minId, nome, elNode) {
+            const assocIds = new Set(_memMins.map(m => m.ministerio_id));
+
+            if (assocIds.has(minId)) {
+                /* Remover — PATCH ativo=false */
+                const item = _memMins.find(m => m.ministerio_id === minId);
+                if (item?.id) {
+                    try {
+                        await sb(`membro_ministerios?id=eq.${item.id}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ ativo: false })
+                        });
+                    } catch (e) { console.error('Erro ao remover ministerio', e); }
+                }
+                _memMins = _memMins.filter(m => m.ministerio_id !== minId);
+            } else {
+                /* Adicionar — POST */
+                try {
+                    const res = await sb('membro_ministerios', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            membro_id:    _membro.id,
+                            ministerio_id: minId,
+                            papel:        'Voluntario',
+                            ativo:        true
+                        })
+                    });
+                    const row = Array.isArray(res) ? res[0] : res;
+                    _memMins.push({ id: row?.id || null, ministerio_id: minId, nome });
+                } catch (e) { console.error('Erro ao adicionar area', e); }
             }
-        });
 
-        wrap.innerHTML = html;
-    }
+            /* FIX: re-renderiza tanto os chips como a árvore completa */
+            renderMinChips();
+            renderMinTree();
+        };
 
-    /*
-     * FIX: toggleMin faz live save correctamente.
-     * Após cada operação re-renderiza chips E árvore para
-     * que os estados visuais estejam sempre sincronizados.
-     */
-    window.toggleMin = async function (minId, nome, elNode) {
-        const assocIds = new Set(_memMins.map(m => m.ministerio_id));
-
-        if (assocIds.has(minId)) {
-            /* Remover — PATCH ativo=false */
-            const item = _memMins.find(m => m.ministerio_id === minId);
-            if (item?.id) {
+        window.remMin = async function (idx) {
+            const item = _memMins[idx]; if (!item) return;
+            if (item.id) {
                 try {
                     await sb(`membro_ministerios?id=eq.${item.id}`, {
                         method: 'PATCH',
                         body: JSON.stringify({ ativo: false })
                     });
-                } catch (e) { console.error('Erro ao remover ministerio', e); }
+                } catch (e) { console.error('Erro ao remover area', e); }
             }
-            _memMins = _memMins.filter(m => m.ministerio_id !== minId);
-        } else {
-            /* Adicionar — POST */
-            try {
-                const res = await sb('membro_ministerios', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        membro_id:    _membro.id,
-                        ministerio_id: minId,
-                        papel:        'Voluntario',
-                        ativo:        true
-                    })
-                });
-                const row = Array.isArray(res) ? res[0] : res;
-                _memMins.push({ id: row?.id || null, ministerio_id: minId, nome });
-            } catch (e) { console.error('Erro ao adicionar area', e); }
-        }
+            _memMins.splice(idx, 1);
+            renderMinChips();
+            renderMinTree();
+        };
 
-        /* FIX: re-renderiza tanto os chips como a árvore completa */
-        renderMinChips();
-        renderMinTree();
-    };
+        /* ═══════════════════════════════════════════════════
+           VALIDAÇÃO
+        ═══════════════════════════════════════════════════ */
+        const OBRIGATORIOS = [
+            { id: 'p_nome',            label: 'Nome Completo' },
+            { id: 'p_data_nascimento', label: 'Data de Nascimento' },
+            { id: 'p_genero',          label: 'Genero' },
+            { id: 'p_nif',             label: 'NIF' },
+            { id: 'p_estado_civil',    label: 'Estado Civil' },
+            { id: 'p_rua',             label: 'Rua' },
+            { id: 'p_numero',          label: 'Numero' },
+            { id: 'p_cidade',          label: 'Cidade' },
+            { id: 'p_codigo_postal',   label: 'Codigo Postal' },
+            { id: 'p_pais',            label: 'Pais' },
+        ];
 
-    window.remMin = async function (idx) {
-        const item = _memMins[idx]; if (!item) return;
-        if (item.id) {
-            try {
-                await sb(`membro_ministerios?id=eq.${item.id}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ ativo: false })
-                });
-            } catch (e) { console.error('Erro ao remover area', e); }
-        }
-        _memMins.splice(idx, 1);
-        renderMinChips();
-        renderMinTree();
-    };
+        function validar() {
+            OBRIGATORIOS.forEach(f => { const e = el(f.id); if (e) e.classList.remove('invalid'); });
+            const pa = el('photo-area'); if (pa) pa.classList.remove('invalid-photo');
 
-    /* ═══════════════════════════════════════════════════
-       VALIDAÇÃO
-    ═══════════════════════════════════════════════════ */
-    const OBRIGATORIOS = [
-        { id: 'p_data_nascimento', label: 'Data de Nascimento' },
-        { id: 'p_genero',          label: 'Genero' },
-        { id: 'p_nif',             label: 'NIF' },
-        { id: 'p_estado_civil',    label: 'Estado Civil' },
-        { id: 'p_rua',             label: 'Rua' },
-        { id: 'p_numero',          label: 'Numero' },
-        { id: 'p_cidade',          label: 'Cidade' },
-        { id: 'p_codigo_postal',   label: 'Codigo Postal' },
-        { id: 'p_pais',            label: 'Pais' },
-    ];
+            let ok = true, primeiro = null;
 
-    function validar() {
-        OBRIGATORIOS.forEach(f => { const e = el(f.id); if (e) e.classList.remove('invalid'); });
-        const pa = el('photo-area'); if (pa) pa.classList.remove('invalid-photo');
-
-        let ok = true, primeiro = null;
-
-        const temFoto = _fotoBlob || _membro.foto_url;
-        if (!temFoto) {
-            if (pa) pa.classList.add('invalid-photo');
-            if (!primeiro) primeiro = pa;
-            ok = false;
-        }
-
-        OBRIGATORIOS.forEach(f => {
-            const e = el(f.id); if (!e) return;
-            if (!(e.value || '').trim()) {
-                e.classList.add('invalid');
-                if (!primeiro) primeiro = e;
+            const temFoto = _fotoBlob || _membro.foto_url;
+            if (!temFoto) {
+                if (pa) pa.classList.add('invalid-photo');
+                if (!primeiro) primeiro = pa;
                 ok = false;
             }
-        });
 
-        if (!ok && primeiro) {
-            primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setMsg('msg-form', 'err', 'Preenche todos os campos obrigatorios (*) e adiciona uma foto.');
-        }
-        return ok;
-    }
-
-    /* ═══════════════════════════════════════════════════
-       GUARDAR
-       FIX: link_id incluído sempre que _linkPending != undefined
-            (null remove o link, string atribui novo link)
-    ═══════════════════════════════════════════════════ */
-    window.guardar = async function () {
-        clearMsg('msg-form');
-        if (!validar()) return;
-
-        const btn = el('btn-save');
-        btn.disabled = true; btn.textContent = 'A guardar...';
-
-        try {
-            const fotoUrl = await uploadFoto();
-
-            const patch = {
-                telefone:        gv('p_telefone')       || null,
-                nif:             gv('p_nif')             || null,
-                genero:          gv('p_genero')          || null,
-                data_nascimento: gv('p_data_nascimento') || null,
-                estado_civil:    gv('p_estado_civil')    || null,
-                onde_conheceu:   gv('p_onde_conheceu')   || null,
-                rua:             gv('p_rua')             || null,
-                numero:          gv('p_numero')          || null,
-                complemento:     gv('p_complemento')     || null,
-                bairro:          gv('p_bairro')          || null,
-                cidade:          gv('p_cidade')          || null,
-                distrito_estado: gv('p_distrito_estado') || null,
-                codigo_postal:   gv('p_codigo_postal')   || null,
-                pais:            gv('p_pais')            || null,
-                zona:            gv('p_zona')            || null,
-                historia:        gv('p_historia')        || null,
-                profissao:       gv('p_profissao')       || null,
-                escolaridade:    gv('p_escolaridade')    || null,
-                foi_batizado:    !!window._batizadoVal,
-                data_batismo:    gv('p_data_batismo')    || null,
-                'Idiomas':       JSON.stringify(_idiomas),
-                nacionalidade:   JSON.stringify(_nacs),
-                foto_url:        fotoUrl,
-            };
-
-            /* FIX: incluir link_id sempre que houve alteração */
-            if (_linkPending !== undefined) {
-                patch.link_id = _linkPending; /* null = remover, string = novo id */
-            }
-
-            /* Garantia: nunca enviar campos proibidos */
-            PROIBIDOS.forEach(c => delete patch[c]);
-
-            await sb(`membros?id=eq.${_membro.id}`, {
-                method: 'PATCH',
-                body: JSON.stringify(patch),
+            OBRIGATORIOS.forEach(f => {
+                const e = el(f.id); if (!e) return;
+                if (!(e.value || '').trim()) {
+                    e.classList.add('invalid');
+                    if (!primeiro) primeiro = e;
+                    ok = false;
+                }
             });
 
-            Object.assign(_membro, patch);
-            renderStep('success');
-        } catch (e) {
-            setMsg('msg-form', 'err', 'Erro ao guardar. Tenta novamente.');
-            console.error(e);
-            btn.disabled = false;
-            btn.textContent = 'Guardar Perfil';
+            if (!ok && primeiro) {
+                primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setMsg('msg-form', 'err', 'Preenche todos os campos obrigatorios (*) e adiciona uma foto.');
+            }
+            return ok;
         }
-    };
 
-    /* ═══════════════════════════════════════════════════
-       STEP 3 — SUCESSO
-    ═══════════════════════════════════════════════════ */
-    function renderSuccessStep() {
-        body().innerHTML = `
+        /* ═══════════════════════════════════════════════════
+           GUARDAR
+           FIX: link_id incluído sempre que _linkPending != undefined
+                (null remove o link, string atribui novo link)
+        ═══════════════════════════════════════════════════ */
+        window.guardar = async function () {
+            clearMsg('msg-form');
+            if (!validar()) return;
+
+            const btn = el('btn-save');
+            btn.disabled = true; btn.textContent = 'A guardar...';
+
+            try {
+                const fotoUrl = await uploadFoto();
+
+                const patch = {
+                    nome:            gv('p_nome')            || null,
+                    telefone:        gv('p_telefone')       || null,
+                    nif:             gv('p_nif')             || null,
+                    genero:          gv('p_genero')          || null,
+                    data_nascimento: gv('p_data_nascimento') || null,
+                    estado_civil:    gv('p_estado_civil')    || null,
+                    onde_conheceu:   gv('p_onde_conheceu')   || null,
+                    rua:             gv('p_rua')             || null,
+                    numero:          gv('p_numero')          || null,
+                    complemento:     gv('p_complemento')     || null,
+                    bairro:          gv('p_bairro')          || null,
+                    cidade:          gv('p_cidade')          || null,
+                    distrito_estado: gv('p_distrito_estado') || null,
+                    codigo_postal:   gv('p_codigo_postal')   || null,
+                    pais:            gv('p_pais')            || null,
+                    zona:            gv('p_zona')            || null,
+                    historia:        gv('p_historia')        || null,
+                    profissao:       gv('p_profissao')       || null,
+                    escolaridade:    gv('p_escolaridade')    || null,
+                    foi_batizado:    !!window._batizadoVal,
+                    data_batismo:    gv('p_data_batismo')    || null,
+                    'Idiomas':       JSON.stringify(_idiomas),
+                    nacionalidade:   JSON.stringify(_nacs),
+                    foto_url:        fotoUrl,
+                };
+
+                /* FIX: incluir link_id sempre que houve alteração */
+                if (_linkPending !== undefined) {
+                    patch.link_id = _linkPending; /* null = remover, string = novo id */
+                }
+
+                /* Garantia: nunca enviar campos proibidos */
+                PROIBIDOS.forEach(c => delete patch[c]);
+
+                await sb(`membros?id=eq.${_membro.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(patch),
+                });
+
+                Object.assign(_membro, patch);
+                renderStep('success');
+            } catch (e) {
+                setMsg('msg-form', 'err', 'Erro ao guardar. Tenta novamente.');
+                console.error(e);
+                btn.disabled = false;
+                btn.textContent = 'Guardar Perfil';
+            }
+        };
+
+        /* ═══════════════════════════════════════════════════
+           STEP 3 — SUCESSO
+        ═══════════════════════════════════════════════════ */
+        function renderSuccessStep() {
+            body().innerHTML = `
         <div class="success-wrap">
             <div class="success-icon">
                 <svg width="28" height="28" fill="none" stroke="#43a047" stroke-width="2.5" viewBox="0 0 24 24">
@@ -1359,16 +1366,16 @@
                 Obrigado, <strong style="color:var(--teal)">${_membro.nome || ''}</strong>.
             </div>
         </div>`;
-    }
+        }
 
-    /* ═══════════════════════════════════════════════════
-       EXPOSE & START
-    ═══════════════════════════════════════════════════ */
-    window.el         = el;
-    window.renderStep = renderStep;
+        /* ═══════════════════════════════════════════════════
+           EXPOSE & START
+        ═══════════════════════════════════════════════════ */
+        window.el         = el;
+        window.renderStep = renderStep;
 
-    init();
-})();
+        init();
+    })();
 </script>
 
 <script>

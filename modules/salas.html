@@ -3013,7 +3013,10 @@
                 ? '<button class="sl-btn approve" style="font-size:10px" onclick="sl_closeEvPopup();sl_aprovar(\'' + a.id + '\')">Aprovar</button>' +
                 '<button class="sl-btn danger"  style="font-size:10px" onclick="sl_closeEvPopup();sl_rejeitar(\'' + a.id + '\')">Rejeitar</button>'
                 : '') +
-            '<button class="sl-btn" style="font-size:10px" onclick="sl_closeEvPopup();sl_editarAg(\'' + a.id + '\')">✏ Editar</button>' +
+            (a._tipo !== 'evento'
+                ? '<button class="sl-btn" style="font-size:10px" onclick="sl_closeEvPopup();sl_editarAg(\'' + a.id + '\')">Editar</button>' +
+                '<button class="sl-btn danger" style="font-size:10px" onclick="sl_closeEvPopup();sl_eliminarAg(\'' + a.id + '\')">Eliminar</button>'
+                : '') +
             '</div>';
 
         document.body.appendChild(pop);
@@ -3560,7 +3563,18 @@
         return String(n).padStart(2, '0');
     }
 
-
+    window.sl_eliminarAg = async function(id) {
+        if (!confirm('Eliminar este agendamento? Esta acção não pode ser desfeita.')) return;
+        try {
+            await sb('sala_agendamentos?id=eq.' + id, { method: 'DELETE' });
+            sl_ags = sl_ags.filter(function(a) { return a.id !== id; });
+            sl_updateBadge();
+            sl_renderAgenda();
+        } catch (e) {
+            alert('Erro ao eliminar: ' + (e?.message || e));
+        }
+    };
+    
     window.sl_closeEvPopup = function () {
         var p = document.getElementById('sl-ev-popup');
         if (p) p.remove();
@@ -3602,6 +3616,7 @@
     window.sl_toggleRecDia = sl_toggleRecDia;
     window.sl_onRecTipoChange = sl_onRecTipoChange;
     window.sl_atualizarContadorRec = sl_atualizarContadorRec;
-
+    window.sl_eliminarAg = sl_eliminarAg;
+    
     sl_init();
 </script>

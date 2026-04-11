@@ -480,7 +480,12 @@
     }
 
     // ── UTILS ───────────────────────────────────────────────────────────
-    function toDateStr(d) { return d.toISOString().split('T')[0]; }
+    function toDateStr(d) {
+        const y  = d.getFullYear();
+        const m  = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dd}`;
+    }
 
     function fmtHora(dt) {
         return new Date(dt).toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit' });
@@ -514,7 +519,7 @@
         const [eventos, agendamentos] = await Promise.all([
             sb(`eventos?select=*&ativo=eq.true&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`)
                 .catch(() => []),
-            sb(`sala_agendamentos?select=*&status=eq.aprovado&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`)
+            sb(`sala_agendamentos?select=*&status=neq.recusado&data_inicio=gte.${ini}T00:00:00&data_inicio=lte.${fim}T23:59:59&order=data_inicio`)
                 .catch(() => []),
         ]);
 
@@ -925,6 +930,9 @@
             const sala = salas.find(s => s.id === item.sala_id);
             if (sala) extraHtml += `<div class="cal-ev-popup-row"><strong>Sala</strong>: ${sala.nome}${sala.espaco ? ' · '+sala.espaco : ''}</div>`;
             if (item.descricao) extraHtml += `<div class="cal-ev-popup-row"><strong>Descricao</strong>: ${item.descricao}</div>`;
+            const statusLabel = item.status === 'aprovado' ? 'Aprovado' : item.status === 'pendente' ? 'Pendente de aprovacao' : item.status || '';
+            const statusColor = item.status === 'aprovado' ? '#27ae60' : item.status === 'pendente' ? '#e67e22' : '#888';
+            extraHtml += `<div style="margin-top:8px"><span style="display:inline-block;font-family:var(--font-title);font-size:8px;letter-spacing:1px;padding:2px 9px;border-radius:999px;color:#fff;background:${statusColor}">${statusLabel}</span></div>`;
         }
 
         const pop = document.createElement('div');

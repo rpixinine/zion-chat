@@ -1290,24 +1290,40 @@
         border-left: 3px solid #a5d6a7;
         color: #fff;
     }
+
     .sl-ev.status-pendente {
         background: rgba(191, 87, 0, 0.90);
         border-left: 3px solid #ffcc80;
         color: #fff;
     }
+
     .sl-ev.status-recusado {
         background: rgba(136, 14, 14, 0.85);
         border-left: 3px solid #ef9a9a;
         color: #fff;
         /* recusado permanece totalmente visível — sem opacity reduzida */
     }
+
     .sl-ev.status-cancelado {
         background: rgba(60, 60, 60, 0.80);
         border-left: 3px solid #aaa;
         color: #ddd;
     }
-    .sl-ev-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sl-ev-sub   { font-size: 9px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .sl-ev-title {
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .sl-ev-sub {
+        font-size: 9px;
+        opacity: 0.85;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
     .sl-month-grid {
         display: flex;
@@ -1403,14 +1419,17 @@
         background: rgba(27, 94, 32, 0.85);
         color: #fff;
     }
+
     .sl-month-ev.status-pendente {
         background: rgba(191, 87, 0, 0.85);
         color: #fff;
     }
+
     .sl-month-ev.status-recusado {
         background: rgba(136, 14, 14, 0.80);
         color: #fff;
     }
+
     .sl-month-ev.status-cancelado {
         background: rgba(60, 60, 60, 0.70);
         color: #ddd;
@@ -1843,27 +1862,33 @@
     async function sl_init() {
         try {
             var res = await Promise.all([
-                sb('salas?select=*&order=nome').catch(function () { return []; }),
-                sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () { return []; }),
-                sb('eventos?select=id,titulo,data_inicio,data_fim,descricao&ativo=eq.true').catch(function () { return []; }),
+                sb('salas?select=*&order=nome').catch(function () {
+                    return [];
+                }),
+                sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () {
+                    return [];
+                }),
+                sb('eventos?select=id,titulo,data_inicio,data_fim,descricao&ativo=eq.true').catch(function () {
+                    return [];
+                }),
             ]);
 
             sl_salas = res[0] || [];
-            sl_ags   = res[1] || [];
+            sl_ags = res[1] || [];
 
             // Mapear eventos directamente — sem sala, cor roxa
-            var eventosMapped = (res[2] || []).map(function(e) {
+            var eventosMapped = (res[2] || []).map(function (e) {
                 return {
-                    id:               'ev_' + e.id,
-                    _evento_id:       e.id,
-                    sala_id:          null,
-                    titulo:           e.titulo,
-                    data_inicio:      e.data_inicio,
-                    data_fim:         e.data_fim || e.data_inicio,
-                    status:           'aprovado',
+                    id: 'ev_' + e.id,
+                    _evento_id: e.id,
+                    sala_id: null,
+                    titulo: e.titulo,
+                    data_inicio: e.data_inicio,
+                    data_fim: e.data_fim || e.data_inicio,
+                    status: 'aprovado',
                     solicitante_nome: null,
-                    descricao:        e.descricao || null,
-                    _tipo:            'evento',
+                    descricao: e.descricao || null,
+                    _tipo: 'evento',
                 };
             });
 
@@ -2562,10 +2587,14 @@
     };
 
     async function sl_reloadAgs() {
-        var rawAgs = await sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () { return sl_ags; });
-        var rawEv  = await sb('eventos?select=id,titulo,data_inicio,data_fim,descricao&ativo=eq.true').catch(function () { return []; });
+        var rawAgs = await sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () {
+            return sl_ags;
+        });
+        var rawEv = await sb('eventos?select=id,titulo,data_inicio,data_fim,descricao&ativo=eq.true').catch(function () {
+            return [];
+        });
 
-        var eventosMapped = (Array.isArray(rawEv) ? rawEv : []).map(function(e) {
+        var eventosMapped = (Array.isArray(rawEv) ? rawEv : []).map(function (e) {
             return {
                 id: 'ev_' + e.id, _evento_id: e.id, sala_id: null,
                 titulo: e.titulo, data_inicio: e.data_inicio,
@@ -2781,15 +2810,15 @@
 
         var ags = sl_ags.slice();
         if (sl_cal.filterSalas) {
-            ags = ags.filter(function(a) {
+            ags = ags.filter(function (a) {
                 return a._tipo === 'evento' ||   // eventos aparecem sempre
                     sl_cal.filterSalas.has(a.sala_id);
             });
         }
 
-        if (sl_cal.view === 'dia')    body.innerHTML = sl_buildDia(sl_cal.anchorDate, ags);
+        if (sl_cal.view === 'dia') body.innerHTML = sl_buildDia(sl_cal.anchorDate, ags);
         if (sl_cal.view === 'semana') body.innerHTML = sl_buildSemana(sl_cal.anchorDate, ags);
-        if (sl_cal.view === 'mes')    body.innerHTML = sl_buildMes(sl_cal.anchorDate, ags);
+        if (sl_cal.view === 'mes') body.innerHTML = sl_buildMes(sl_cal.anchorDate, ags);
     }
 
     function sl_buildDia(ref, ags) {
@@ -2894,39 +2923,45 @@
 
     function sl_evBgColor(status) {
         var map = {
-            aprovado:  'rgba(27, 94, 32, 0.92)',
-            pendente:  'rgba(191, 87, 0, 0.90)',
-            recusado:  'rgba(136, 14, 14, 0.85)',
+            aprovado: 'rgba(27, 94, 32, 0.92)',
+            pendente: 'rgba(191, 87, 0, 0.90)',
+            recusado: 'rgba(136, 14, 14, 0.85)',
             cancelado: 'rgba(55, 55, 55, 0.80)',
         };
         return map[status] || 'rgba(55, 55, 55, 0.80)';
     }
 
     function sl_buildEvElOld(a, dayRef) {
-        var gridStart = new Date(dayRef); gridStart.setHours(HOURS_START, 0, 0, 0);
-        var gridEnd   = new Date(dayRef); gridEnd.setHours(HOURS_END, 0, 0, 0);
+        var gridStart = new Date(dayRef);
+        gridStart.setHours(HOURS_START, 0, 0, 0);
+        var gridEnd = new Date(dayRef);
+        gridEnd.setHours(HOURS_END, 0, 0, 0);
         var s = Math.max(new Date(a.data_inicio).getTime(), gridStart.getTime());
-        var e = Math.min(new Date(a.data_fim).getTime(),    gridEnd.getTime());
-        var totalMs  = (HOURS_END - HOURS_START) * 3600000;
-        var topPct   = (s - gridStart.getTime()) / totalMs * 100;
-        var htPct    = Math.max((e - s) / totalMs * 100, 1.4);
-        var colW     = 100 / a._totalCols;
-        var leftPct  = a._col * colW;
-        var widPct   = colW - 0.5;
+        var e = Math.min(new Date(a.data_fim).getTime(), gridEnd.getTime());
+        var totalMs = (HOURS_END - HOURS_START) * 3600000;
+        var topPct = (s - gridStart.getTime()) / totalMs * 100;
+        var htPct = Math.max((e - s) / totalMs * 100, 1.4);
+        var colW = 100 / a._totalCols;
+        var leftPct = a._col * colW;
+        var widPct = colW - 0.5;
 
-        var sala    = sl_salas.find(function(sx) { return sx.id === a.sala_id; });
+        var sala = sl_salas.find(function (sx) {
+            return sx.id === a.sala_id;
+        });
         var cor = a._tipo === 'evento' ? '#9b59b6' : sl_salaColor(a.sala_id);
-        var status  = a.status || 'aprovado';
+        var status = a.status || 'aprovado';
         var bgColor = sl_evBgColor(status);
 
         var title = a.titulo || (sala ? sala.nome : '—');
-        var sub   = sala ? sala.nome : '';
-        var hIni  = new Date(a.data_inicio).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
-        var hFim  = new Date(a.data_fim).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
-        var idx   = sl_ags.findIndex(function(x) { return x.id === a.id; });
+        var sub = sala ? sala.nome : '';
+        var hIni = new Date(a.data_inicio).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+        var hFim = new Date(a.data_fim).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+        var idx = sl_ags.findIndex(function (x) {
+            return x.id === a.id;
+        });
 
         // Ícone de status
-        var statusIcon = {aprovado:'✓', pendente:'⏳', recusado:'✕', cancelado:'—'}[status] || '';
+        var statusIcon = {aprovado: '✓', pendente: '⏳', recusado: '✕', cancelado: '—'}[status] || '';
 
         return '<div class="sl-ev status-' + status + '" ' +
             'style="top:' + topPct + '%;height:' + htPct + '%;left:' + leftPct + '%;width:' + widPct + '%' +
@@ -2939,18 +2974,22 @@
     }
 
     function sl_buildEvEl(a, dayRef) {
-        var gridStart = new Date(dayRef); gridStart.setHours(HOURS_START, 0, 0, 0);
-        var gridEnd   = new Date(dayRef); gridEnd.setHours(HOURS_END, 0, 0, 0);
+        var gridStart = new Date(dayRef);
+        gridStart.setHours(HOURS_START, 0, 0, 0);
+        var gridEnd = new Date(dayRef);
+        gridEnd.setHours(HOURS_END, 0, 0, 0);
         var s = Math.max(new Date(a.data_inicio).getTime(), gridStart.getTime());
-        var e = Math.min(new Date(a.data_fim).getTime(),    gridEnd.getTime());
-        var totalMs  = (HOURS_END - HOURS_START) * 3600000;
-        var topPct   = (s - gridStart.getTime()) / totalMs * 100;
-        var htPct    = Math.max((e - s) / totalMs * 100, 1.4);
-        var colW     = 100 / a._totalCols;
-        var leftPct  = a._col * colW;
-        var widPct   = colW - 0.5;
+        var e = Math.min(new Date(a.data_fim).getTime(), gridEnd.getTime());
+        var totalMs = (HOURS_END - HOURS_START) * 3600000;
+        var topPct = (s - gridStart.getTime()) / totalMs * 100;
+        var htPct = Math.max((e - s) / totalMs * 100, 1.4);
+        var colW = 100 / a._totalCols;
+        var leftPct = a._col * colW;
+        var widPct = colW - 0.5;
 
-        var sala   = sl_salas.find(function(sx) { return sx.id === a.sala_id; });
+        var sala = sl_salas.find(function (sx) {
+            return sx.id === a.sala_id;
+        });
         var status = a.status || 'aprovado';
 
         // Cor base: cada sala tem a sua cor, eventos têm cor própria
@@ -2973,11 +3012,13 @@
         }
 
         var title = a.titulo || (sala ? sala.nome : '—');
-        var sub   = sala ? sala.nome : (a._tipo === 'evento' ? '📅 Evento' : '');
-        var hIni  = new Date(a.data_inicio).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
-        var hFim  = new Date(a.data_fim).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
-        var idx   = sl_ags.findIndex(function(x) { return x.id === a.id; });
-        var statusIcon = {aprovado:'', pendente:'⏳', recusado:'✕', cancelado:'—'}[status] || '';
+        var sub = sala ? sala.nome : (a._tipo === 'evento' ? '📅 Evento' : '');
+        var hIni = new Date(a.data_inicio).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+        var hFim = new Date(a.data_fim).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+        var idx = sl_ags.findIndex(function (x) {
+            return x.id === a.id;
+        });
+        var statusIcon = {aprovado: '', pendente: '⏳', recusado: '✕', cancelado: '—'}[status] || '';
 
         return '<div class="sl-ev status-' + status + '" ' +
             'style="top:' + topPct + '%;height:' + htPct + '%;left:' + leftPct + '%;width:' + widPct + '%' +
@@ -2992,31 +3033,35 @@
     function sl_buildMes(ref, ags) {
         // ags já chega sem filtro de recusados desde sl_paintCalBody —
         // mas se alguém filtrou lá, respeita. A view de mês mostra todos.
-        var year  = ref.getFullYear(), month = ref.getMonth();
-        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var year = ref.getFullYear(), month = ref.getMonth();
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
         var firstDay = new Date(year, month, 1);
         var startOffset = (firstDay.getDay() + 6) % 7;
-        var gridStart   = new Date(firstDay); gridStart.setDate(1 - startOffset);
+        var gridStart = new Date(firstDay);
+        gridStart.setDate(1 - startOffset);
         var cells = [];
         for (var i = 0; i < 42; i++) {
-            var d = new Date(gridStart); d.setDate(gridStart.getDate() + i); cells.push(d);
+            var d = new Date(gridStart);
+            d.setDate(gridStart.getDate() + i);
+            cells.push(d);
         }
-        var diaNomes = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-        var headerHtml = diaNomes.map(function(n) {
+        var diaNomes = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+        var headerHtml = diaNomes.map(function (n) {
             return '<div class="sl-month-header-day">' + n + '</div>';
         }).join('');
 
-        var bodyHtml = cells.map(function(d) {
-            var isToday    = d.getTime() === today.getTime();
+        var bodyHtml = cells.map(function (d) {
+            var isToday = d.getTime() === today.getTime();
             var otherMonth = d.getMonth() !== month;
-            var dayAgs = sl_agsForDay(ags, d).sort(function(a, b) {
+            var dayAgs = sl_agsForDay(ags, d).sort(function (a, b) {
                 return new Date(a.data_inicio) - new Date(b.data_inicio);
             });
             var MAX_SHOW = 3;
             var evHtml = '';
-            dayAgs.slice(0, MAX_SHOW).forEach(function(a) {
+            dayAgs.slice(0, MAX_SHOW).forEach(function (a) {
                 var status = a.status || 'aprovado';
-                var statusIcon = {aprovado:'', pendente:'⏳', recusado:'✕', cancelado:'—'}[status] || '';
+                var statusIcon = {aprovado: '', pendente: '⏳', recusado: '✕', cancelado: '—'}[status] || '';
 
                 // Mesma lógica de cor do sl_buildEvEl
                 var corBase = a._tipo === 'evento' ? '#7e57c2' : sl_salaColor(a.sala_id);
@@ -3499,7 +3544,9 @@
 
         try {
             if (id) {
-                var a = sl_ags.find(function(x) { return x.id === id; }) || {};
+                var a = sl_ags.find(function (x) {
+                    return x.id === id;
+                }) || {};
                 var patchDados = Object.assign({}, dados, {
                     data_inicio: dataInicioBase.toISOString(),
                     data_fim: dataFimBase.toISOString(),
@@ -3507,17 +3554,17 @@
 
                 if (sl_editSerie && a.recorrencia_id) {
                     // Apagar todas as ocorrências da série e recriar
-                    await sb('sala_agendamentos?recorrencia_id=eq.' + a.recorrencia_id, { method: 'DELETE' });
+                    await sb('sala_agendamentos?recorrencia_id=eq.' + a.recorrencia_id, {method: 'DELETE'});
 
                     var ocorrencias;
                     var diasParaGerar = diasArr.length ? diasArr : [dataInicioBase.getDay()];
                     if (recTipo && recFim) {
                         ocorrencias = sl_gerarOcorrencias(dataInicioBase, dataFimBase, recTipo, diasParaGerar, recFim);
                     } else {
-                        ocorrencias = [{ inicio: dataInicioBase, fim: dataFimBase }];
+                        ocorrencias = [{inicio: dataInicioBase, fim: dataFimBase}];
                     }
 
-                    var insertData = ocorrencias.map(function(o) {
+                    var insertData = ocorrencias.map(function (o) {
                         return Object.assign({}, dados, {
                             data_inicio: o.inicio.toISOString(),
                             data_fim: o.fim.toISOString(),
@@ -3527,7 +3574,7 @@
 
                     await sb('sala_agendamentos', {
                         method: 'POST',
-                        headers: { Prefer: 'return=minimal' },
+                        headers: {Prefer: 'return=minimal'},
                         body: JSON.stringify(insertData.length === 1 ? insertData[0] : insertData),
                     });
                 } else {
@@ -3537,12 +3584,51 @@
                         body: JSON.stringify(patchDados),
                     });
                 }
+            } else {
+                // ── Criação nova ──────────────────────────────────────────
+                var ocorrencias;
+                if (recTipo && recFim) {
+                    var diasParaGerar = (recTipo === 'semanal' || recTipo === 'mensal')
+                        ? (diasArr.length ? [diasArr[0]] : [dataInicioBase.getDay()])
+                        : (diasArr.length ? diasArr : [dataInicioBase.getDay()]);
+                    ocorrencias = sl_gerarOcorrencias(dataInicioBase, dataFimBase, recTipo, diasParaGerar, recFim);
+                } else {
+                    ocorrencias = [{inicio: dataInicioBase, fim: dataFimBase}];
+                }
+
+                if (!ocorrencias.length) {
+                    sl_showMsg('error', 'Nenhuma ocorrência gerada. Verifica os dias e a data de fim.');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'Guardar';
+                    }
+                    return;
+                }
+
+                var recId = ocorrencias.length > 1 ? sl_genUUID() : null;
+                var insertData = ocorrencias.map(function (o) {
+                    return Object.assign({}, dados, {
+                        data_inicio: o.inicio.toISOString(),
+                        data_fim: o.fim.toISOString(),
+                        recorrencia_id: recId,
+                    });
+                });
+
+                await sb('sala_agendamentos', {
+                    method: 'POST',
+                    headers: {Prefer: 'return=minimal'},
+                    body: JSON.stringify(insertData.length === 1 ? insertData[0] : insertData),
+                });
             }
 
             // Reload e voltar à agenda
-            sl_ags = await sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () {
-                return sl_ags;
-            });
+            sl_ags = await sb('sala_agendamentos?select=*&order=data_inicio.desc')
+
+            // Reload e voltar à agenda
+            // sl_ags = await sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () {
+            //     return sl_ags;
+            // });
+
             sl_updateBadge();
             sl_recDiasSelected = new Set();
             sl_editSerie = false;
@@ -3648,11 +3734,13 @@
         return String(n).padStart(2, '0');
     }
 
-    window.sl_eliminarAg = async function(id) {
+    window.sl_eliminarAg = async function (id) {
         if (!confirm('Eliminar este agendamento? Esta acção não pode ser desfeita.')) return;
         try {
-            await sb('sala_agendamentos?id=eq.' + id, { method: 'DELETE' });
-            sl_ags = sl_ags.filter(function(a) { return a.id !== id; });
+            await sb('sala_agendamentos?id=eq.' + id, {method: 'DELETE'});
+            sl_ags = sl_ags.filter(function (a) {
+                return a.id !== id;
+            });
             sl_updateBadge();
             sl_renderAgenda();
         } catch (e) {

@@ -691,6 +691,59 @@
     .sl-ev-popup-btns { display: flex; gap: 6px; margin-top: 10px; }
     .sl-aviso { background: rgba(230,126,34,0.08); border: 1px solid rgba(230,126,34,0.25); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--text-main); line-height: 1.6; margin-bottom: 12px; }
     .sl-aviso-label { font-family: var(--font-title); font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: #e67e22; margin-bottom: 4px; }
+
+    .sl-day-chip {
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        border: 1.5px solid var(--border);
+        background: var(--bg-input);
+        font-size: 10px; font-family: var(--font-title); letter-spacing: 0.3px;
+        color: var(--text-faint); cursor: pointer;
+        transition: all 0.15s;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-weight: 700;
+    }
+    .sl-day-chip:hover  { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-faint); }
+    .sl-day-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(123,106,240,0.35); }
+
+    .sl-rec-days {
+        display: flex; gap: 6px; flex-wrap: wrap;
+        padding: 6px 0 2px;
+    }
+    .sl-rec-section {
+        margin-top: 10px; padding-top: 12px;
+        border-top: 1px solid var(--border);
+    }
+    .sl-rec-hint {
+        font-size: 11px; color: var(--text-faint); margin-top: 6px; line-height: 1.5;
+    }
+    .sl-rec-count {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 10px; border-radius: 20px;
+        background: var(--primary-faint); color: var(--primary-dark);
+        border: 1px solid var(--primary);
+        font-size: 11px; font-family: var(--font-title); letter-spacing: 0.3px;
+        font-weight: 700;
+    }
+    .sl-ag-form-header {
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        position: sticky; top: 0; z-index: 10;
+    }
+    .sl-serie-warn {
+        background: rgba(123,106,240,0.08);
+        border: 1px solid rgba(123,106,240,0.25);
+        border-radius: 10px; padding: 10px 14px;
+        font-size: 12px; color: var(--text-main);
+        line-height: 1.6; margin-bottom: 12px;
+    }
+    .sl-serie-warn-label {
+        font-family: var(--font-title); font-size: 9px;
+        letter-spacing: 1.5px; text-transform: uppercase;
+        color: var(--primary-dark); margin-bottom: 4px;
+    }
 </style>
 
 <div class="sl-wrap">
@@ -754,6 +807,8 @@
     // ── ESPACOS (localStorage) ────────────────────────────────────────────────────
     var SL_ESPACOS_KEY     = 'zion_salas_espacos';
     var SL_ESPACOS_DEFAULT = ['Salao Principal', 'Lumen', 'Escritorios', 'Sala Externa', 'Outro'];
+    var sl_recDiasSelected = new Set();
+
 
     function sl_getEspacos() {
         try {
@@ -1230,7 +1285,7 @@
             '<div class="sl-aprov-row">' +
             (a.status === 'pendente'
                 ? '<button class="sl-btn approve" onclick="sl_aprovar(\'' + a.id + '\')">Aprovar</button>' +
-                  '<button class="sl-btn danger" onclick="sl_rejeitar(\'' + a.id + '\')">Rejeitar</button>'
+                '<button class="sl-btn danger" onclick="sl_rejeitar(\'' + a.id + '\')">Rejeitar</button>'
                 : '') +
             '<button class="sl-btn" onclick="sl_setTab(\'aprovacoes\')">Voltar</button>' +
             '</div></div></div>'
@@ -1251,15 +1306,15 @@
         var previewSrc = sl_fotoBase64 || currentUrl;
         var previewHtml = previewSrc
             ? '<img src="' + (sl_fotoBase64 || sl_esc(currentUrl)) + '" alt="Foto da sala">' +
-              '<div class="sl-foto-picker-overlay">' +
-              '<button class="sl-fp-btn" onclick="document.getElementById(\'slf-foto-galeria\').click()">' +
-              '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
-              'Trocar</button>' +
-              '</div>'
+            '<div class="sl-foto-picker-overlay">' +
+            '<button class="sl-fp-btn" onclick="document.getElementById(\'slf-foto-galeria\').click()">' +
+            '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+            'Trocar</button>' +
+            '</div>'
             : '<div class="sl-fp-placeholder">' +
-              '<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
-              '<span>Sem foto</span>' +
-              '</div>';
+            '<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+            '<span>Sem foto</span>' +
+            '</div>';
 
         var statusText = sl_fotoFile ? '✓ ' + sl_fotoFile.name + ' — pronto para upload' : '';
         var statusCls  = sl_fotoFile ? 'sl-foto-status ok' : 'sl-foto-status';
@@ -1601,16 +1656,21 @@
     function sl_buildToolbar() {
         var title = sl_calTitle();
         return '<div class="sl-cal-toolbar">' +
-            '<div class="sl-cal-nav"><button class="sl-cal-nav-btn" onclick="sl_calNav(-1)">&#8249;</button>' +
+            '<div class="sl-cal-nav">' +
+            '<button class="sl-cal-nav-btn" onclick="sl_calNav(-1)">&#8249;</button>' +
             '<span class="sl-cal-title" id="sl-cal-title">' + title + '</span>' +
-            '<button class="sl-cal-nav-btn" onclick="sl_calNav(1)">&#8250;</button></div>' +
+            '<button class="sl-cal-nav-btn" onclick="sl_calNav(1)">&#8250;</button>' +
+            '</div>' +
             '<button class="sl-cal-today-btn" onclick="sl_calToday()">Hoje</button>' +
             '<div class="sl-cal-views">' +
             ['dia','semana','mes'].map(function(v) {
                 var label = {dia:'Dia',semana:'Semana',mes:'Mes'}[v];
                 return '<button class="sl-cal-view-btn' + (sl_cal.view===v?' active':'') + '" onclick="sl_calSetView(\'' + v + '\')">' + label + '</button>';
             }).join('') +
-            '</div></div>';
+            '</div>' +
+            '<button class="sl-btn primary" style="padding:6px 14px;font-size:11px;white-space:nowrap;flex-shrink:0" ' +
+            'onclick="sl_novoAgendamento()">+ Agendamento</button>' +
+            '</div>';
     }
 
     function sl_buildFilter() {
@@ -1779,24 +1839,547 @@
     }
 
     window.sl_showEvPopup = function(evt, idx) {
-        evt.stopPropagation(); sl_closeEvPopup();
-        var a=sl_ags[idx]; if (!a) return;
-        var sala=sl_salas.find(function(s){return s.id===a.sala_id;});
-        var pop=document.createElement('div'); pop.className='sl-ev-popup'; pop.id='sl-ev-popup';
-        pop.innerHTML='<button class="sl-ev-popup-close" onclick="sl_closeEvPopup()">×</button>' +
-            '<div class="sl-ev-popup-title">'+(a.titulo||'—')+'</div>' +
-            '<div class="sl-ev-popup-row"><strong>Sala</strong>: '+(sala?sala.nome:'—')+'</div>' +
-            '<div class="sl-ev-popup-row"><strong>Horario</strong>: '+sl_fmtDataHora(a.data_inicio)+' – '+sl_fmtHora(a.data_fim)+'</div>' +
-            (a.solicitante_nome?'<div class="sl-ev-popup-row"><strong>Solicitante</strong>: '+sl_esc(a.solicitante_nome)+'</div>':'') +
-            (a.descricao?'<div class="sl-ev-popup-row"><strong>Descricao</strong>: '+sl_esc(a.descricao)+'</div>':'') +
-            '<div class="sl-ev-popup-row"><strong>Estado</strong>: <span class="sl-ag-status '+(a.status||'')+'" style="display:inline-flex">'+(a.status||'—')+'</span></div>' +
-            (a.status==='pendente'?'<div class="sl-ev-popup-btns"><button class="sl-btn approve" style="font-size:10px" onclick="sl_closeEvPopup();sl_aprovar(\''+a.id+'\')">Aprovar</button><button class="sl-btn danger" style="font-size:10px" onclick="sl_closeEvPopup();sl_rejeitar(\''+a.id+'\')">Rejeitar</button></div>':'') +
-            (a.status==='recusado'&&a.motivo_recusa?'<div class="sl-ev-popup-row" style="margin-top:6px"><em>'+sl_esc(a.motivo_recusa)+'</em></div>':'');
-        document.body.appendChild(pop); sl_cal.popupEl=pop;
-        var x=Math.min(evt.clientX+8,window.innerWidth-320), y=Math.min(evt.clientY+8,window.innerHeight-200);
-        pop.style.left=x+'px'; pop.style.top=y+'px';
-        setTimeout(function(){document.addEventListener('click',sl_closeEvPopup,{once:true});},10);
+        evt.stopPropagation();
+        sl_closeEvPopup();
+        var a = sl_ags[idx];
+        if (!a) return;
+        var sala = sl_salas.find(function(s) { return s.id === a.sala_id; });
+
+        var recLabel = {diaria:'Diária', semanal:'Semanal', mensal:'Mensal', personalizada:'Personalizada'};
+
+        var pop = document.createElement('div');
+        pop.className = 'sl-ev-popup';
+        pop.id = 'sl-ev-popup';
+        pop.innerHTML =
+            '<button class="sl-ev-popup-close" onclick="sl_closeEvPopup()">×</button>' +
+            '<div class="sl-ev-popup-title">' + sl_esc(a.titulo || '—') + '</div>' +
+            '<div class="sl-ev-popup-row"><strong>Sala</strong>: ' + (sala ? sl_esc(sala.nome) : '—') + '</div>' +
+            (a.nome_evento ? '<div class="sl-ev-popup-row"><strong>Evento</strong>: ' + sl_esc(a.nome_evento) + '</div>' : '') +
+            (a.nome_responsavel ? '<div class="sl-ev-popup-row"><strong>Responsável</strong>: ' + sl_esc(a.nome_responsavel) + '</div>' : '') +
+            '<div class="sl-ev-popup-row"><strong>Horário</strong>: ' + sl_fmtDataHora(a.data_inicio) + ' – ' + sl_fmtHora(a.data_fim) + '</div>' +
+            (a.solicitante_nome ? '<div class="sl-ev-popup-row"><strong>Solicitante</strong>: ' + sl_esc(a.solicitante_nome) + '</div>' : '') +
+            (a.descricao ? '<div class="sl-ev-popup-row"><strong>Descrição</strong>: ' + sl_esc(a.descricao) + '</div>' : '') +
+            '<div class="sl-ev-popup-row"><strong>Estado</strong>: <span class="sl-ag-status ' + (a.status||'') + '" style="display:inline-flex">' + (a.status||'—') + '</span></div>' +
+            (a.recorrencia_tipo ? '<div class="sl-ev-popup-row"><strong>Recorrência</strong>: ' + (recLabel[a.recorrencia_tipo] || a.recorrencia_tipo) + (a.recorrencia_fim ? ' até ' + sl_fmtData(a.recorrencia_fim) : '') + '</div>' : '') +
+            (a.status === 'recusado' && a.motivo_recusa ? '<div class="sl-ev-popup-row" style="margin-top:4px"><em>' + sl_esc(a.motivo_recusa) + '</em></div>' : '') +
+            '<div class="sl-ev-popup-btns">' +
+            (a.status === 'pendente'
+                ? '<button class="sl-btn approve" style="font-size:10px" onclick="sl_closeEvPopup();sl_aprovar(\'' + a.id + '\')">Aprovar</button>' +
+                '<button class="sl-btn danger"  style="font-size:10px" onclick="sl_closeEvPopup();sl_rejeitar(\'' + a.id + '\')">Rejeitar</button>'
+                : '') +
+            '<button class="sl-btn" style="font-size:10px" onclick="sl_closeEvPopup();sl_editarAg(\'' + a.id + '\')">✏ Editar</button>' +
+            '</div>';
+
+        document.body.appendChild(pop);
+        sl_cal.popupEl = pop;
+        var x = Math.min(evt.clientX + 8, window.innerWidth  - 320);
+        var y = Math.min(evt.clientY + 8, window.innerHeight - 280);
+        pop.style.left = x + 'px';
+        pop.style.top  = y + 'px';
+        setTimeout(function() { document.addEventListener('click', sl_closeEvPopup, {once: true}); }, 10);
     };
+
+    // ── NOVO AGENDAMENTO  [NEW] ───────────────────────────────────────────────
+    window.sl_novoAgendamento = function() {
+        sl_recDiasSelected = new Set();
+        sl_renderAgForm(null);
+    };
+
+    // ── EDITAR AGENDAMENTO  [NEW] ─────────────────────────────────────────────
+    window.sl_editarAg = function(id) {
+        var a = sl_ags.find(function(x) { return x.id === id; });
+        sl_recDiasSelected = new Set(
+            (a && a.recorrencia_dias) ? a.recorrencia_dias.map(Number) : []
+        );
+        sl_renderAgForm(id);
+    };
+
+    // ── TOGGLE DIA  [NEW] ─────────────────────────────────────────────────────
+    window.sl_toggleRecDia = function(dayNum) {
+        var tipo = document.getElementById('slag-recorrencia_tipo') &&
+            document.getElementById('slag-recorrencia_tipo').value;
+        // Semanal/Mensal → single-select; Personalizada → multi-select
+        if (tipo === 'semanal' || tipo === 'mensal') {
+            sl_recDiasSelected = new Set([dayNum]);
+        } else {
+            if (sl_recDiasSelected.has(dayNum)) sl_recDiasSelected.delete(dayNum);
+            else sl_recDiasSelected.add(dayNum);
+        }
+        document.querySelectorAll('.sl-day-chip').forEach(function(btn) {
+            btn.classList.toggle('active', sl_recDiasSelected.has(parseInt(btn.getAttribute('data-day'))));
+        });
+        sl_atualizarContadorRec();
+    };
+
+    // ── CHANGE TIPO RECORRÊNCIA  [NEW] ────────────────────────────────────────
+    window.sl_onRecTipoChange = function(sel) {
+        var val = sel.value;
+        var recExtra = document.getElementById('sl-rec-extra');
+        var dayWrap  = document.getElementById('sl-rec-days-wrap');
+        var hint     = document.getElementById('sl-rec-hint');
+
+        if (recExtra) recExtra.style.display = (val && val !== '') ? 'block' : 'none';
+        if (dayWrap)  dayWrap.style.display  = (val === 'personalizada' || val === 'semanal' || val === 'mensal') ? 'flex' : 'none';
+
+        // Auto-selecionar dia da data de início quando semanal/mensal
+        if ((val === 'semanal' || val === 'mensal') && sl_recDiasSelected.size === 0) {
+            var dataInput = document.getElementById('slag-data');
+            if (dataInput && dataInput.value) {
+                var d = new Date(dataInput.value + 'T12:00:00');
+                sl_recDiasSelected = new Set([d.getDay()]);
+                document.querySelectorAll('.sl-day-chip').forEach(function(btn) {
+                    btn.classList.toggle('active', sl_recDiasSelected.has(parseInt(btn.getAttribute('data-day'))));
+                });
+            }
+        }
+        // Para semanal/mensal forçar single-select se tiver múltiplos
+        if ((val === 'semanal' || val === 'mensal') && sl_recDiasSelected.size > 1) {
+            var first = sl_recDiasSelected.values().next().value;
+            sl_recDiasSelected = new Set([first]);
+            document.querySelectorAll('.sl-day-chip').forEach(function(btn) {
+                btn.classList.toggle('active', sl_recDiasSelected.has(parseInt(btn.getAttribute('data-day'))));
+            });
+        }
+
+        // Atualizar hint
+        if (hint) {
+            var hints = {
+                diaria: 'Repete todos os dias à mesma hora, até à data de fim.',
+                semanal: 'Repete todas as semanas no mesmo dia, até à data de fim.',
+                mensal: 'Repete todos os meses no mesmo dia da semana (ex: 2.ª terça), até à data de fim.',
+                personalizada: 'Escolhe os dias da semana em que o evento se repete.'
+            };
+            hint.textContent = hints[val] || '';
+            hint.style.display = (val && val !== '') ? 'block' : 'none';
+        }
+
+        sl_atualizarContadorRec();
+    };
+
+    // Calcula preview do nº de ocorrências em tempo real
+    function sl_atualizarContadorRec() {
+        var counter = document.getElementById('sl-rec-counter');
+        if (!counter) return;
+
+        var tipo     = document.getElementById('slag-recorrencia_tipo')?.value;
+        var dataStr  = document.getElementById('slag-data')?.value;
+        var horaIni  = document.getElementById('slag-hora_ini')?.value;
+        var horaFim  = document.getElementById('slag-hora_fim')?.value;
+        var recFimSt = document.getElementById('slag-recorrencia_fim')?.value;
+
+        if (!tipo || !dataStr || !horaIni || !horaFim || !recFimSt) {
+            counter.style.display = 'none'; return;
+        }
+
+        var ini  = new Date(dataStr + 'T' + horaIni + ':00');
+        var fim  = new Date(dataStr + 'T' + horaFim + ':00');
+        var rfim = new Date(recFimSt + 'T23:59:59');
+        if (rfim <= ini) { counter.style.display = 'none'; return; }
+
+        var dias = Array.from(sl_recDiasSelected);
+        var ocorrs = sl_gerarOcorrencias(ini, fim, tipo, dias, rfim);
+        counter.innerHTML = '<span class="sl-rec-count">📅 ' + ocorrs.length + ' ocorrência' + (ocorrs.length !== 1 ? 's' : '') + '</span>';
+        counter.style.display = 'block';
+    }
+
+
+    // ── RENDER FORM AGENDAMENTO  [NEW] ────────────────────────────────────────
+    function sl_renderAgForm(id) {
+        var a    = id ? (sl_ags.find(function(x) { return x.id === id; }) || {}) : {};
+        var isNovo = !id;
+
+        var fv = function(k, d) {
+            var v = a[k];
+            return (v !== undefined && v !== null) ? v : (d !== undefined ? d : '');
+        };
+
+        // Datas
+        var dataInicio = a.data_inicio ? new Date(a.data_inicio) : null;
+        var dataFim    = a.data_fim    ? new Date(a.data_fim)    : null;
+        var defaultD   = new Date(sl_cal.anchorDate || new Date());
+        var dataStr    = dataInicio ? dataInicio.toISOString().split('T')[0] : defaultD.toISOString().split('T')[0];
+        var horaIni    = dataInicio ? _pad2(dataInicio.getHours()) + ':' + _pad2(dataInicio.getMinutes()) : '09:00';
+        var horaFim_v  = dataFim    ? _pad2(dataFim.getHours())    + ':' + _pad2(dataFim.getMinutes())    : '10:00';
+
+        // Recorrência
+        var recTipo  = fv('recorrencia_tipo', '');
+        var recFimSt = fv('recorrencia_fim', '');
+        if (recFimSt && recFimSt.length > 10) recFimSt = recFimSt.substring(0,10);
+        var recDias  = a.recorrencia_dias ? a.recorrencia_dias.map(Number) : [];
+        sl_recDiasSelected = new Set(recDias);
+
+        // Se semanal/mensal e sem dias seleccionados, pré-selecionar dia da data
+        if ((recTipo === 'semanal' || recTipo === 'mensal') && sl_recDiasSelected.size === 0 && dataInicio) {
+            sl_recDiasSelected.add(dataInicio.getDay());
+        }
+
+        // Sala options
+        var salaOpts = '<option value="">— Selecionar Sala —</option>' +
+            sl_salas.filter(function(s) { return s.ativo !== false; }).map(function(s) {
+                return '<option value="' + s.id + '"' + (fv('sala_id') === s.id ? ' selected' : '') + '>' + sl_esc(s.nome) + '</option>';
+            }).join('');
+
+        // Status options
+        var statuses = ['aprovado','pendente','recusado','cancelado'];
+        var statusOpts = statuses.map(function(s) {
+            var def = isNovo ? 'aprovado' : fv('status', 'pendente');
+            return '<option value="' + s + '"' + (def === s ? ' selected' : '') + '>' +
+                s.charAt(0).toUpperCase() + s.slice(1) + '</option>';
+        }).join('');
+
+        // Day-of-week chips
+        var DIAS = [
+            {n:'Seg',v:1},{n:'Ter',v:2},{n:'Qua',v:3},{n:'Qui',v:4},
+            {n:'Sex',v:5},{n:'Sáb',v:6},{n:'Dom',v:0}
+        ];
+        var dayChips = DIAS.map(function(d) {
+            return '<button type="button" class="sl-day-chip' + (sl_recDiasSelected.has(d.v) ? ' active' : '') +
+                '" data-day="' + d.v + '" onclick="sl_toggleRecDia(' + d.v + ')" title="' + d.n + '">' + d.n + '</button>';
+        }).join('');
+
+        var showRecExtra = recTipo && recTipo !== '';
+        var showDays     = recTipo === 'personalizada' || recTipo === 'semanal' || recTipo === 'mensal';
+        var hintTexts = {
+            diaria: 'Repete todos os dias à mesma hora, até à data de fim.',
+            semanal: 'Repete todas as semanas no mesmo dia, até à data de fim.',
+            mensal: 'Repete todos os meses no mesmo dia da semana (ex: 2.ª terça), até à data de fim.',
+            personalizada: 'Escolhe os dias da semana em que o evento se repete.'
+        };
+
+        var serieWarn = (id && a.recorrencia_id)
+            ? '<div class="sl-serie-warn"><div class="sl-serie-warn-label">Evento Recorrente</div>' +
+            'Este agendamento faz parte de uma série. Ao guardar, apenas esta ocorrência será alterada.</div>'
+            : '';
+
+        sl_showContent(
+            // ── Header fixo ─────────────────────────────────────────────────
+            '<div class="sl-ag-form-header">' +
+            '<div>' +
+            '<div style="font-size:16px;font-weight:700;color:var(--text-main)">' +
+            (isNovo ? '+ Novo Agendamento' : '✏ Editar Agendamento') + '</div>' +
+            '<div style="font-size:12px;color:var(--text-faint);margin-top:2px">' +
+            (isNovo ? 'Cria um agendamento de sala diretamente como administrador.' : 'Altera os dados desta ocorrência.') +
+            '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px">' +
+            '<button class="sl-btn" onclick="sl_cancelarAg()">Cancelar</button>' +
+            '<button class="sl-btn primary" id="sl-btn-ag-guardar" onclick="sl_guardarAgendamento(\'' + (id||'') + '\')">Guardar</button>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="sl-panel-body">' +
+            '<div id="sl-msg" class="sl-msg"></div>' +
+            serieWarn +
+
+            // ── Card: Sala & Evento ──────────────────────────────────────────
+            '<div class="sl-card">' +
+            '<div class="sl-card-title">Sala e Evento</div>' +
+            '<div class="sl-form-grid">' +
+
+            '<div class="sl-form-full"><label class="sl-flabel">Sala</label>' +
+            '<select class="sl-select" id="slag-sala_id">' + salaOpts + '</select></div>' +
+
+            '<div class="sl-form-full"><label class="sl-flabel">Título</label>' +
+            '<input class="sl-input" id="slag-titulo" value="' + sl_esc(fv('titulo')) + '" placeholder="Título do agendamento"></div>' +
+
+            '<div><label class="sl-flabel">Nome do Evento</label>' +
+            '<input class="sl-input" id="slag-nome_evento" value="' + sl_esc(fv('nome_evento')) + '" placeholder="Ex: Culto de domingo"></div>' +
+
+            '<div><label class="sl-flabel">Nome do Responsável</label>' +
+            '<input class="sl-input" id="slag-nome_responsavel" value="' + sl_esc(fv('nome_responsavel')) + '" placeholder="Responsável pelo evento"></div>' +
+
+            '</div></div>' +
+
+            // ── Card: Data & Hora ────────────────────────────────────────────
+            '<div class="sl-card">' +
+            '<div class="sl-card-title">Data e Hora</div>' +
+            '<div class="sl-form-grid">' +
+
+            '<div><label class="sl-flabel">Data</label>' +
+            '<input class="sl-input" id="slag-data" type="date" value="' + dataStr + '" oninput="sl_atualizarContadorRec()"></div>' +
+
+            '<div></div>' + // spacer
+
+            '<div><label class="sl-flabel">Hora Início</label>' +
+            '<input class="sl-input" id="slag-hora_ini" type="time" value="' + horaIni + '" oninput="sl_atualizarContadorRec()"></div>' +
+
+            '<div><label class="sl-flabel">Hora Fim</label>' +
+            '<input class="sl-input" id="slag-hora_fim" type="time" value="' + horaFim_v + '"></div>' +
+
+            '</div></div>' +
+
+            // ── Card: Recorrência ────────────────────────────────────────────
+            '<div class="sl-card">' +
+            '<div class="sl-card-title">Recorrência</div>' +
+            '<div class="sl-form-grid">' +
+
+            '<div><label class="sl-flabel">Tipo de Repetição</label>' +
+            '<select class="sl-select" id="slag-recorrencia_tipo" onchange="sl_onRecTipoChange(this)">' +
+            '<option value="">Sem repetição</option>' +
+            '<option value="diaria"'      + (recTipo==='diaria'      ?' selected':'') + '>Diária (todos os dias)</option>' +
+            '<option value="semanal"'     + (recTipo==='semanal'     ?' selected':'') + '>Semanal (mesmo dia da semana)</option>' +
+            '<option value="mensal"'      + (recTipo==='mensal'      ?' selected':'') + '>Mensal (mesmo dia da semana do mês)</option>' +
+            '<option value="personalizada"' + (recTipo==='personalizada'?' selected':'') + '>Personalizada (escolher dias)</option>' +
+            '</select></div>' +
+
+            '<div><label class="sl-flabel">Repetir Até</label>' +
+            '<input class="sl-input" id="slag-recorrencia_fim" type="date" value="' + recFimSt + '" oninput="sl_atualizarContadorRec()"></div>' +
+
+            '</div>' + // .sl-form-grid
+
+            // Secção extra: dias da semana + hint + contador
+            '<div id="sl-rec-extra" style="' + (showRecExtra ? '' : 'display:none') + '">' +
+            '<div class="sl-rec-section">' +
+            '<div class="sl-flabel">Dias da Semana</div>' +
+            '<div class="sl-rec-days" id="sl-rec-days-wrap" style="' + (showDays ? 'display:flex' : 'display:none') + '">' +
+            dayChips +
+            '</div>' +
+            '<div class="sl-rec-hint" id="sl-rec-hint" style="' + (showRecExtra ? '' : 'display:none') + '">' +
+            (hintTexts[recTipo] || '') +
+            '</div>' +
+            '<div id="sl-rec-counter" style="margin-top:8px;' + (showRecExtra ? '' : 'display:none') + '"></div>' +
+            '</div>' +
+            '</div>' +
+
+            '</div>' + // .sl-card recorrência
+
+            // ── Card: Solicitante & Estado ───────────────────────────────────
+            '<div class="sl-card">' +
+            '<div class="sl-card-title">Solicitante e Estado</div>' +
+            '<div class="sl-form-grid">' +
+
+            '<div><label class="sl-flabel">Nome do Solicitante</label>' +
+            '<input class="sl-input" id="slag-solicitante_nome" value="' + sl_esc(fv('solicitante_nome')) + '" placeholder="Nome"></div>' +
+
+            '<div><label class="sl-flabel">Email</label>' +
+            '<input class="sl-input" id="slag-solicitante_email" type="email" value="' + sl_esc(fv('solicitante_email')) + '" placeholder="email@exemplo.com"></div>' +
+
+            '<div><label class="sl-flabel">Telefone</label>' +
+            '<input class="sl-input" id="slag-solicitante_tel" value="' + sl_esc(fv('solicitante_tel')) + '" placeholder="+351..."></div>' +
+
+            '<div><label class="sl-flabel">Estado</label>' +
+            '<select class="sl-select" id="slag-status">' + statusOpts + '</select></div>' +
+
+            '<div class="sl-form-full"><label class="sl-flabel">Descrição</label>' +
+            '<textarea class="sl-textarea" id="slag-descricao">' + sl_esc(fv('descricao')) + '</textarea></div>' +
+
+            '</div></div>' +
+
+            '</div>' // .sl-panel-body
+        );
+
+        // Forçar contagem inicial se já tem recorrência
+        if (showRecExtra) {
+            setTimeout(sl_atualizarContadorRec, 50);
+        }
+    }
+
+
+    // ── CANCELAR FORM AG  [NEW] ───────────────────────────────────────────────
+    window.sl_cancelarAg = function() {
+        sl_recDiasSelected = new Set();
+        if (sl_tab === 'agenda') sl_renderAgenda();
+        else sl_showEmpty();
+    };
+
+
+    // ── GUARDAR AGENDAMENTO  [NEW] ────────────────────────────────────────────
+    window.sl_guardarAgendamento = async function(id) {
+        var salaId  = document.getElementById('slag-sala_id')?.value;
+        var titulo  = document.getElementById('slag-titulo')?.value?.trim();
+        var dataStr = document.getElementById('slag-data')?.value;
+        var horaIni = document.getElementById('slag-hora_ini')?.value;
+        var horaFim = document.getElementById('slag-hora_fim')?.value;
+
+        if (!salaId)                     { sl_showMsg('error', 'Seleciona uma sala.');          return; }
+        if (!titulo)                     { sl_showMsg('error', 'Título obrigatório.');           return; }
+        if (!dataStr || !horaIni || !horaFim) { sl_showMsg('error', 'Data e hora obrigatórias.'); return; }
+
+        var dataInicioBase = new Date(dataStr + 'T' + horaIni + ':00');
+        var dataFimBase    = new Date(dataStr + 'T' + horaFim + ':00');
+
+        if (dataFimBase <= dataInicioBase) {
+            sl_showMsg('error', 'A hora de fim deve ser posterior à hora de início.');
+            return;
+        }
+
+        var btn = document.getElementById('sl-btn-ag-guardar');
+        if (btn) { btn.disabled = true; btn.textContent = 'A guardar...'; }
+
+        var recTipo  = document.getElementById('slag-recorrencia_tipo')?.value || null;
+        var recFimSt = document.getElementById('slag-recorrencia_fim')?.value  || null;
+        var recFim   = recFimSt ? new Date(recFimSt + 'T23:59:59') : null;
+        var diasArr  = Array.from(sl_recDiasSelected);
+
+        var dados = {
+            sala_id:           salaId,
+            titulo:            titulo,
+            nome_evento:       document.getElementById('slag-nome_evento')?.value?.trim()       || null,
+            nome_responsavel:  document.getElementById('slag-nome_responsavel')?.value?.trim()  || null,
+            solicitante_nome:  document.getElementById('slag-solicitante_nome')?.value?.trim()  || null,
+            solicitante_email: document.getElementById('slag-solicitante_email')?.value?.trim() || null,
+            solicitante_tel:   document.getElementById('slag-solicitante_tel')?.value?.trim()   || null,
+            status:            document.getElementById('slag-status')?.value                    || 'aprovado',
+            descricao:         document.getElementById('slag-descricao')?.value?.trim()         || null,
+            recorrencia_tipo:  recTipo  || null,
+            recorrencia_dias:  diasArr.length ? diasArr : null,
+            recorrencia_fim:   recFimSt || null,
+        };
+
+        try {
+            if (id) {
+                // ── Edição simples (uma ocorrência) ───────────────────────
+                await sb('sala_agendamentos?id=eq.' + id, {
+                    method: 'PATCH',
+                    body: JSON.stringify(Object.assign({}, dados, {
+                        data_inicio: dataInicioBase.toISOString(),
+                        data_fim:    dataFimBase.toISOString(),
+                    })),
+                });
+
+            } else {
+                // ── Criação (com possível recorrência) ────────────────────
+                var ocorrencias;
+                if (recTipo && recFim) {
+                    var diasParaGerar;
+                    if (recTipo === 'semanal' || recTipo === 'mensal') {
+                        // single day — primeiro selecionado ou dia do evento
+                        diasParaGerar = diasArr.length ? [diasArr[0]] : [dataInicioBase.getDay()];
+                    } else {
+                        diasParaGerar = diasArr.length ? diasArr : [dataInicioBase.getDay()];
+                    }
+                    ocorrencias = sl_gerarOcorrencias(dataInicioBase, dataFimBase, recTipo, diasParaGerar, recFim);
+                } else {
+                    ocorrencias = [{inicio: dataInicioBase, fim: dataFimBase}];
+                }
+
+                if (ocorrencias.length === 0) {
+                    sl_showMsg('error', 'Nenhuma ocorrência gerada. Verifica os dias e a data de fim.');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+                    return;
+                }
+
+                // Gerar recorrencia_id partilhado para a série
+                var recId = ocorrencias.length > 1 ? sl_genUUID() : null;
+
+                // Construir array de inserções
+                var insertData = ocorrencias.map(function(o) {
+                    return Object.assign({}, dados, {
+                        data_inicio:    o.inicio.toISOString(),
+                        data_fim:       o.fim.toISOString(),
+                        recorrencia_id: recId,
+                    });
+                });
+
+                // PostgREST aceita array para bulk insert
+                await sb('sala_agendamentos', {
+                    method: 'POST',
+                    headers: { Prefer: 'return=minimal' },
+                    body: JSON.stringify(insertData.length === 1 ? insertData[0] : insertData),
+                });
+            }
+
+            // Reload e voltar à agenda
+            sl_ags = await sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function() { return sl_ags; });
+            sl_updateBadge();
+            sl_recDiasSelected = new Set();
+            sl_renderAgenda();
+
+        } catch(e) {
+            sl_showMsg('error', 'Erro: ' + (e?.message || JSON.stringify(e)));
+            if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+        }
+    };
+
+
+    // ── GERAÇÃO DE OCORRÊNCIAS  [NEW] ─────────────────────────────────────────
+    function sl_gerarOcorrencias(dataInicio, dataFim, tipo, diasSemana, dataFimRec) {
+        var duracao = dataFim.getTime() - dataInicio.getTime();
+        var endTime = dataFimRec.getTime();
+        var result  = [];
+
+        // Helper: cria uma ocorrência para um dado Date (com horas de dataInicio)
+        function addOcc(d) {
+            var ini = new Date(d);
+            ini.setHours(dataInicio.getHours(), dataInicio.getMinutes(), 0, 0);
+            if (ini.getTime() > endTime) return false;
+            result.push({inicio: ini, fim: new Date(ini.getTime() + duracao)});
+            return true;
+        }
+
+        if (tipo === 'diaria') {
+            var cur = new Date(dataInicio);
+            for (var i = 0; i <= 730; i++) {  // limite: 2 anos
+                if (!addOcc(cur)) break;
+                cur = new Date(cur);
+                cur.setDate(cur.getDate() + 1);
+            }
+
+        } else if (tipo === 'semanal') {
+            var cur = new Date(dataInicio);
+            for (var i = 0; i <= 104; i++) {  // limite: 2 anos
+                if (!addOcc(cur)) break;
+                cur = new Date(cur);
+                cur.setDate(cur.getDate() + 7);
+            }
+
+        } else if (tipo === 'mensal') {
+            var weekN  = Math.floor((dataInicio.getDate() - 1) / 7);
+            var dow    = diasSemana.length ? diasSemana[0] : dataInicio.getDay();
+            var cur    = new Date(dataInicio);
+            for (var i = 0; i <= 24; i++) {   // limite: 2 anos
+                if (i > 0) {
+                    cur = new Date(cur);
+                    cur.setMonth(cur.getMonth() + 1);
+                    var target = sl_nthWeekdayOfMonth(cur.getFullYear(), cur.getMonth(), dow, weekN);
+                    if (!target) continue;
+                    cur = target;
+                }
+                if (!addOcc(cur)) break;
+            }
+
+        } else if (tipo === 'personalizada') {
+            var diasSet = new Set(diasSemana.map(Number));
+            var cur = new Date(dataInicio);
+            cur.setHours(0, 0, 0, 0);
+            for (var i = 0; i <= 730; i++) {
+                if (cur.getTime() > endTime) break;
+                if (diasSet.has(cur.getDay())) {
+                    var occ = new Date(cur);
+                    occ.setHours(dataInicio.getHours(), dataInicio.getMinutes(), 0, 0);
+                    if (occ.getTime() >= dataInicio.getTime()) {
+                        if (!addOcc(occ)) break;
+                    }
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+
+        return result;
+    }
+
+    // N-ésima ocorrência de um dia da semana num dado mês (weekN base-0)
+    function sl_nthWeekdayOfMonth(year, month, weekday, weekN) {
+        var first    = new Date(year, month, 1);
+        var firstDow = first.getDay();
+        var diff     = (weekday - firstDow + 7) % 7;
+        var date     = 1 + diff + weekN * 7;
+        var daysInM  = new Date(year, month + 1, 0).getDate();
+        if (date > daysInM) return null;
+        return new Date(year, month, date);
+    }
+
+    // UUID v4 simples
+    function sl_genUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
+
+    // Pad zero helper (usado nas horas)
+    function _pad2(n) { return String(n).padStart(2, '0'); }
+
 
     window.sl_closeEvPopup = function() {
         var p=document.getElementById('sl-ev-popup'); if (p) p.remove(); sl_cal.popupEl=null;
@@ -1830,6 +2413,13 @@
     window.sl_addEspaco     = sl_addEspaco;
     window.sl_removeEspaco  = sl_removeEspaco;
     window.sl_resetEspacos  = sl_resetEspacos;
+    window.sl_novoAgendamento   = sl_novoAgendamento;
+    window.sl_editarAg          = sl_editarAg;
+    window.sl_cancelarAg        = sl_cancelarAg;
+    window.sl_guardarAgendamento = sl_guardarAgendamento;
+    window.sl_toggleRecDia      = sl_toggleRecDia;
+    window.sl_onRecTipoChange   = sl_onRecTipoChange;
+    window.sl_atualizarContadorRec = sl_atualizarContadorRec;
 
     sl_init();
 </script>

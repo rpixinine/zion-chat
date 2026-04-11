@@ -537,6 +537,25 @@
             gap: 12px;
         }
 
+        @media (max-width: 540px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .hora-row {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .hora-row .form-select {
+                flex: 1 1 100%;
+            }
+
+            .hora-sep {
+                display: none;
+            }
+        }
+
         .form-label {
             display: block;
             font-family: var(--font-title);
@@ -1341,6 +1360,91 @@
                 transform: translateY(0)
             }
         }
+
+        .rec-section {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            margin-bottom: 13px;
+            display: none; /* controlado por JS */
+        }
+
+        .rec-section.open {
+            display: block;
+        }
+
+        .rec-section-title {
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin-bottom: 10px;
+        }
+
+        .rec-days-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            margin-bottom: 10px;
+        }
+
+        .rec-day-chip {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: var(--bg-card);
+            font-family: var(--font-title);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-faint);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .rec-day-chip:hover {
+            border-color: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .rec-day-chip.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 144, 152, 0.35);
+        }
+
+        .rec-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--primary-faint);
+            border: 1px solid var(--primary-light);
+            color: var(--primary-dark);
+            font-family: var(--font-title);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin-top: 6px;
+        }
+
+        .rec-hint {
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+
     </style>
 </head>
 <body>
@@ -1435,7 +1539,11 @@
             <!-- Form fields -->
             <div class="modal-form">
                 <div class="msg-box" id="m-msg"></div>
-                <div class="conflito-box" id="conflito-box">Já existe um agendamento neste horário. Escolhe outro.</div>
+                <div class="conflito-box" id="conflito-box">
+                    Já existe um agendamento neste horário. Escolhe outro.
+                </div>
+
+                <!-- Dados do solicitante -->
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Nome completo</label>
@@ -1450,6 +1558,8 @@
                     <label class="form-label">Email de contacto</label>
                     <input class="form-input" id="f-email" type="email" placeholder="o.teu@email.com">
                 </div>
+
+                <!-- Data e hora -->
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Data</label>
@@ -1464,19 +1574,63 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Evento e responsável (NOVO) -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Evento</label>
+                        <input class="form-input" id="f-nome-evento" type="text" placeholder="Ex: Culto de jovens">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nome do Responsável</label>
+                        <input class="form-input" id="f-nome-responsavel" type="text"
+                               placeholder="Responsável pelo evento">
+                    </div>
+                </div>
+
+                <!-- Motivo -->
                 <div class="form-group">
-                    <label class="form-label">Motivo do agendamento</label>
+                    <label class="form-label">Motivo / Descrição</label>
                     <textarea class="form-textarea" id="f-motivo" placeholder="Descreve o motivo..."></textarea>
                 </div>
+
+                <!-- Recorrência (NOVO) -->
+                <div class="form-group">
+                    <label class="form-label">Repetição</label>
+                    <select class="form-select" id="f-rec-tipo" onchange="onRecTipoChange(this)">
+                        <option value="">Sem repetição</option>
+                        <option value="diaria">Diária (todos os dias)</option>
+                        <option value="semanal">Semanal (mesmo dia da semana)</option>
+                        <option value="mensal">Mensal (mesmo dia da semana do mês)</option>
+                        <option value="personalizada">Personalizada (escolher dias)</option>
+                    </select>
+                </div>
+
+                <div class="rec-section" id="rec-section">
+                    <div class="rec-section-title">Configurar repetição</div>
+                    <div class="form-group" style="margin-bottom:10px">
+                        <label class="form-label">Repetir até</label>
+                        <input class="form-input" id="f-rec-fim" type="date"
+                               oninput="atualizarContadorRec()">
+                    </div>
+                    <div id="rec-days-outer" style="display:none">
+                        <label class="form-label">Dias da semana</label>
+                        <div class="rec-days-row" id="rec-days-row"></div>
+                    </div>
+                    <div id="rec-hint-txt" class="rec-hint"></div>
+                    <div id="rec-counter"></div>
+                </div>
+
+                <!-- Aviso de entrega -->
                 <div class="aviso-box">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                         <polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
                     <div>
-                        <div class="aviso-txt">Entregue a sala <strong>limpa e organizada</strong>, tal como a
-                            encontrou.
+                        <div class="aviso-txt">
+                            Entregue a sala <strong>limpa e organizada</strong>, tal como a encontrou.
                         </div>
                         <label class="aviso-check">
                             <input type="checkbox" id="f-aviso">
@@ -1484,7 +1638,10 @@
                         </label>
                     </div>
                 </div>
-                <button class="submit-btn" id="submit-btn" onclick="submeter()">Enviar Pedido de Agendamento</button>
+
+                <button class="submit-btn" id="submit-btn" onclick="submeter()">
+                    Enviar Pedido de Agendamento
+                </button>
             </div>
         </div>
     </div>
@@ -1506,6 +1663,7 @@
     let salas = [];
     let salaAtiva = null;
     let abaAtiva = 'salas';
+    let recDiasSelected = new Set();
 
     // ── SUPABASE ───────────────────────────────────────────────
     async function sb(path, opts = {}) {
@@ -1523,14 +1681,15 @@
         }
         return r.json();
     }
+
     // ── FIM SUPABASE ───────────────────────────────────────────────
 
     async function verificarPermissao(flags = []) {
-        const tipo    = currentUser.tipo    || '';
+        const tipo = currentUser.tipo || '';
         const isAdmin = currentUser.e_admin === true || tipo === 'admin';
         if (isAdmin) return true;
         if (flags.includes('e_presbitero') && tipo === 'presbitero') return true;
-        if (flags.includes('e_lider')      && tipo === 'lider')      return true;
+        if (flags.includes('e_lider') && tipo === 'lider') return true;
 
         if (currentUser.membro_id) {
             try {
@@ -1539,7 +1698,9 @@
                 const m = rows?.[0];
                 if (!m) return false;
                 return !!m.e_admin || flags.some(f => !!m[f]);
-            } catch(e) { return false; }
+            } catch (e) {
+                return false;
+            }
         }
 
         return false;
@@ -1776,13 +1937,13 @@
 
     function calAgsVisiveis() {
         let ags = calAgs.filter(a => {
-            if (a.status === 'recusado') {
-                if (perms.canAprovar) return true;
+            if (a.status === 'aprovado') return true;           // todos vêem aprovados
+            if (a.status === 'recusado')                        // só os meus rejeitados
                 return a.solicitante_id === currentUser.id;
-            }
-            return true;
+            if (a.status === 'pendente')                        // só os meus pendentes (ou admin)
+                return perms.canAprovar || a.solicitante_id === currentUser.id;
+            return false;
         });
-        ags = ags.filter(a => a.status !== 'recusado');
         if (calState.filterSalas) {
             ags = ags.filter(a => calState.filterSalas.has(a.sala_id));
         }
@@ -2226,6 +2387,15 @@
         document.getElementById('submit-btn').disabled = false;
         document.getElementById('submit-btn').textContent = 'Enviar Pedido de Agendamento';
 
+        document.getElementById('f-nome-evento').value = '';
+        document.getElementById('f-nome-responsavel').value = '';
+        document.getElementById('f-rec-tipo').value = '';
+        document.getElementById('f-rec-fim').value = '';
+        document.getElementById('rec-section').classList.remove('open');
+        document.getElementById('rec-days-row').innerHTML = '';
+        document.getElementById('rec-counter').innerHTML = '';
+        recDiasSelected = new Set();
+
         document.getElementById('overlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
@@ -2273,6 +2443,170 @@
         }
     }
 
+    function onRecTipoChange(sel) {
+        const val = sel.value;
+        const sec = document.getElementById('rec-section');
+        const daysOuter = document.getElementById('rec-days-outer');
+        const hintEl = document.getElementById('rec-hint-txt');
+        const hints = {
+            diaria: 'Repete todos os dias à mesma hora até à data de fim.',
+            semanal: 'Repete todas as semanas no mesmo dia da semana.',
+            mensal: 'Repete todos os meses no mesmo dia da semana (ex: 2.ª terça).',
+            personalizada: 'Escolhe os dias da semana em que o pedido se repete.'
+        };
+
+        if (!val) {
+            sec.classList.remove('open');
+            recDiasSelected = new Set();
+            return;
+        }
+        sec.classList.add('open');
+
+        const showDays = val === 'personalizada' || val === 'semanal' || val === 'mensal';
+        daysOuter.style.display = showDays ? 'block' : 'none';
+        if (hintEl) hintEl.textContent = hints[val] || '';
+
+        // Auto-selecionar o dia da data escolhida para semanal/mensal
+        if ((val === 'semanal' || val === 'mensal') && recDiasSelected.size === 0) {
+            const dataInput = document.getElementById('f-data');
+            if (dataInput && dataInput.value) {
+                recDiasSelected = new Set([new Date(dataInput.value + 'T12:00:00').getDay()]);
+            }
+        }
+        // Semanal/mensal → forçar single-select
+        if ((val === 'semanal' || val === 'mensal') && recDiasSelected.size > 1) {
+            recDiasSelected = new Set([recDiasSelected.values().next().value]);
+        }
+        renderDayChips();
+        atualizarContadorRec();
+    }
+
+    function renderDayChips() {
+        const row = document.getElementById('rec-days-row');
+        if (!row) return;
+        const DIAS = [
+            {n: 'Seg', v: 1}, {n: 'Ter', v: 2}, {n: 'Qua', v: 3}, {n: 'Qui', v: 4},
+            {n: 'Sex', v: 5}, {n: 'Sáb', v: 6}, {n: 'Dom', v: 0}
+        ];
+        row.innerHTML = DIAS.map(d =>
+            `<button type="button" class="rec-day-chip${recDiasSelected.has(d.v) ? ' active' : ''}"
+                 data-day="${d.v}" onclick="toggleRecDia(${d.v})">${d.n}</button>`
+        ).join('');
+    }
+
+    function toggleRecDia(dayNum) {
+        const tipo = document.getElementById('f-rec-tipo')?.value;
+        if (tipo === 'semanal' || tipo === 'mensal') {
+            recDiasSelected = new Set([dayNum]);         // single-select
+        } else {
+            if (recDiasSelected.has(dayNum)) recDiasSelected.delete(dayNum);
+            else recDiasSelected.add(dayNum);
+        }
+        renderDayChips();
+        atualizarContadorRec();
+    }
+
+    function atualizarContadorRec() {
+        const counter = document.getElementById('rec-counter');
+        if (!counter) return;
+        const tipo = document.getElementById('f-rec-tipo')?.value;
+        const dataStr = document.getElementById('f-data')?.value;
+        const horaIni = document.getElementById('f-ini')?.value;
+        const horaFim = document.getElementById('f-fim')?.value;
+        const recFim = document.getElementById('f-rec-fim')?.value;
+
+        if (!tipo || !dataStr || !horaIni || !horaFim || !recFim) {
+            counter.innerHTML = '';
+            return;
+        }
+        const ini = new Date(dataStr + 'T' + horaIni + ':00');
+        const fim = new Date(dataStr + 'T' + horaFim + ':00');
+        const rfim = new Date(recFim + 'T23:59:59');
+        if (rfim <= ini) {
+            counter.innerHTML = '';
+            return;
+        }
+
+        const dias = Array.from(recDiasSelected);
+        const ocorrs = gerarOcorrencias(ini, fim, tipo, dias, rfim);
+        counter.innerHTML = ocorrs.length
+            ? `<span class="rec-count-badge">📅 ${ocorrs.length} ocorrência${ocorrs.length !== 1 ? 's' : ''}</span>`
+            : '';
+    }
+
+    function gerarOcorrencias(dataInicio, dataFim, tipo, diasSemana, dataFimRec) {
+        const duracao = dataFim.getTime() - dataInicio.getTime();
+        const endTime = dataFimRec.getTime();
+        const result = [];
+
+        function addOcc(d) {
+            const ini = new Date(d);
+            ini.setHours(dataInicio.getHours(), dataInicio.getMinutes(), 0, 0);
+            if (ini.getTime() > endTime) return false;
+            result.push({inicio: ini, fim: new Date(ini.getTime() + duracao)});
+            return true;
+        }
+
+        if (tipo === 'diaria') {
+            let cur = new Date(dataInicio);
+            for (let i = 0; i <= 365; i++) {
+                if (!addOcc(cur)) break;
+                cur = new Date(cur);
+                cur.setDate(cur.getDate() + 1);
+            }
+        } else if (tipo === 'semanal') {
+            let cur = new Date(dataInicio);
+            for (let i = 0; i <= 104; i++) {
+                if (!addOcc(cur)) break;
+                cur = new Date(cur);
+                cur.setDate(cur.getDate() + 7);
+            }
+        } else if (tipo === 'mensal') {
+            const weekN = Math.floor((dataInicio.getDate() - 1) / 7);
+            const dow = diasSemana.length ? diasSemana[0] : dataInicio.getDay();
+            let cur = new Date(dataInicio);
+            for (let i = 0; i <= 24; i++) {
+                if (i > 0) {
+                    cur = new Date(cur);
+                    cur.setMonth(cur.getMonth() + 1);
+                    const tgt = nthWeekdayOfMonth(cur.getFullYear(), cur.getMonth(), dow, weekN);
+                    if (!tgt) continue;
+                    cur = tgt;
+                }
+                if (!addOcc(cur)) break;
+            }
+        } else if (tipo === 'personalizada') {
+            const diasSet = new Set(diasSemana.map(Number));
+            let cur = new Date(dataInicio);
+            cur.setHours(0, 0, 0, 0);
+            for (let i = 0; i <= 730; i++) {
+                if (cur.getTime() > endTime) break;
+                if (diasSet.has(cur.getDay())) {
+                    const occ = new Date(cur);
+                    occ.setHours(dataInicio.getHours(), dataInicio.getMinutes(), 0, 0);
+                    if (occ.getTime() >= dataInicio.getTime()) if (!addOcc(occ)) break;
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+        return result;
+    }
+
+    function nthWeekdayOfMonth(year, month, weekday, n) {
+        const first = new Date(year, month, 1);
+        const diff = (weekday - first.getDay() + 7) % 7;
+        const date = 1 + diff + n * 7;
+        if (date > new Date(year, month + 1, 0).getDate()) return null;
+        return new Date(year, month, date);
+    }
+
+    function genUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
+
     // ── SUBMETER ───────────────────────────────────────────────
     async function submeter() {
         const nome = document.getElementById('f-nome').value.trim();
@@ -2284,6 +2618,13 @@
         const mot = document.getElementById('f-motivo').value.trim();
         const aviso = document.getElementById('f-aviso').checked;
 
+        const nomeEvento = document.getElementById('f-nome-evento')?.value?.trim() || null;
+        const nomeResp = document.getElementById('f-nome-responsavel')?.value?.trim() || null;
+        const recTipo = document.getElementById('f-rec-tipo')?.value || null;
+        const recFimStr = document.getElementById('f-rec-fim')?.value || null;
+        const diasArr = Array.from(recDiasSelected);
+
+        // ── Validações ─────────────────────────────────────────────
         if (!nome) return msg('Nome obrigatório.', 'error');
         if (!email) return msg('Email obrigatório.', 'error');
         if (!data) return msg('Data obrigatória.', 'error');
@@ -2293,36 +2634,87 @@
         if (document.getElementById('conflito-box').style.display === 'block')
             return msg('Existe conflito de horário. Escolhe outro.', 'error');
 
+        // ── Gerar ocorrências ──────────────────────────────────────
+        let ocorrencias = [{
+            inicio: `${data}T${ini}:00`,
+            fim: `${data}T${fim}:00`
+        }];
+
+        if (recTipo && recFimStr) {
+            const dataIni = new Date(`${data}T${ini}:00`);
+            const dataFim = new Date(`${data}T${fim}:00`);
+            const dataRfim = new Date(recFimStr + 'T23:59:59');
+
+            if (dataRfim <= dataIni) return msg('A data de fim da repetição deve ser após o início.', 'error');
+
+            const diasGerados = (recTipo === 'semanal' || recTipo === 'mensal')
+                ? (diasArr.length ? [diasArr[0]] : [dataIni.getDay()])
+                : (diasArr.length ? diasArr : [dataIni.getDay()]);
+
+            const geradas = gerarOcorrencias(dataIni, dataFim, recTipo, diasGerados, dataRfim);
+            if (!geradas.length) return msg('Nenhuma ocorrência gerada. Verifica os dias e a data de fim.', 'error');
+
+            ocorrencias = geradas.map(o => ({
+                inicio: o.inicio.toISOString(),
+                fim: o.fim.toISOString()
+            }));
+        }
+
         const btn = document.getElementById('submit-btn');
         btn.disabled = true;
-        btn.textContent = 'A enviar...';
+        btn.textContent = ocorrencias.length > 1
+            ? `A enviar ${ocorrencias.length} pedidos...`
+            : 'A enviar...';
+
+        const recId = ocorrencias.length > 1 ? genUUID() : null;
 
         try {
-            await sb('sala_agendamentos', {
-                method: 'POST',
-                body: JSON.stringify({
-                    sala_id: salaAtiva.id,
-                    solicitante_id: currentUser.id,
-                    solicitante_nome: nome,
-                    solicitante_tel: tel,
-                    solicitante_email: email,
-                    titulo: mot || `Pedido de ${nome}`,
-                    descricao: mot,
-                    data_inicio: `${data}T${ini}:00`,
-                    data_fim: `${data}T${fim}:00`,
-                    status: 'pendente',
-                    aviso_lido: true,
-                })
-            });
-            msg('Pedido enviado! Aguarda aprovação.', 'success');
+            let primeiroId = null;
+
+            // Inserir todas as ocorrências
+            for (const occ of ocorrencias) {
+                const res = await sb('sala_agendamentos', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        sala_id: salaAtiva.id,
+                        solicitante_id: currentUser.id,
+                        solicitante_nome: nome,
+                        solicitante_tel: tel,
+                        solicitante_email: email,
+                        titulo: mot || `Pedido de ${nome}`,
+                        nome_evento: nomeEvento,
+                        nome_responsavel: nomeResp,
+                        descricao: mot,
+                        data_inicio: occ.inicio,
+                        data_fim: occ.fim,
+                        status: 'pendente',
+                        aviso_lido: true,
+                        recorrencia_tipo: recTipo || null,
+                        recorrencia_dias: diasArr.length ? diasArr : null,
+                        recorrencia_fim: recFimStr || null,
+                        recorrencia_id: recId,
+                    })
+                });
+                if (!primeiroId && res?.[0]?.id) primeiroId = res[0].id;
+            }
+
+            const plural = ocorrencias.length > 1
+                ? `${ocorrencias.length} pedidos enviados!`
+                : 'Pedido enviado!';
+            msg(`${plural} Aguarda aprovação.`, 'success');
             btn.textContent = 'Pedido Enviado';
+
+            // Email de confirmação para o primeiro
+            if (primeiroId) enviarEmailConfirmacao(primeiroId);
+
             setTimeout(() => {
                 closeModal();
                 renderSalas();
             }, 2500);
+
         } catch (e) {
-            const detalhe = e.message || e.details || e.hint || JSON.stringify(e);
-            msg(`Erro ao enviar: ${detalhe}`, 'error');
+            const det = e.message || e.details || e.hint || JSON.stringify(e);
+            msg(`Erro ao enviar: ${det}`, 'error');
             btn.disabled = false;
             btn.textContent = 'Enviar Pedido de Agendamento';
         }
@@ -2341,6 +2733,24 @@
             calClosePopup();
         }
     });
+
+    /* ── EMAIL ───────────────────────────────────────────────────────── */
+    async function enviarEmailConfirmacao(agendamentoId) {
+        try {
+            const apiBase = window.API_URL || window.location.origin;
+            const res = await fetch(`${apiBase}/api/auth/sala-agendamento`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({agendamento_id: agendamentoId})
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                console.warn('[email confirmacao] Falhou:', err?.error || res.status);
+            }
+        } catch (e) {
+            console.warn('[email confirmacao] Erro de rede:', e?.message);
+        }
+    }
 
     init();
 </script>

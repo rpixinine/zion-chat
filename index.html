@@ -282,9 +282,14 @@
                     <span class="label">Localização Zion</span>
                 </a>
 
-                <a href="salas" class="btn-icon">
+                <a href="salas" class="btn-icon" data-role="lider" style="display:none">
                     <div class="icon-wrap ic-red"></div>
                     <span class="label">Agendar Salas</span>
+                </a>
+
+                <a href="agenda" class="btn-icon">
+                    <div class="icon-wrap ic-green"></div>
+                    <span class="label">Agenda</span>
                 </a>
 
                 <a href="keola" class="btn-icon">
@@ -297,6 +302,11 @@
                     <span class="label">Cursos ZAO</span>
                 </a>
 
+                <a href="gestao-checking" class="btn-icon" data-role="gerenciamento" style="display:none">
+                    <div class="icon-wrap ic-purple"></div>
+                    <span class="label">Fazer Checking</span>
+                </a>
+
                 <a href="https://portal.zionlisboa.pt/relogio-oracao" class="btn-icon">
                     <div class="icon-wrap ic-green"></div>
                     <span class="label">Relógio de Oração</span>
@@ -307,10 +317,7 @@
                     <span class="label">Sala de Oração</span>
                 </a>
 
-                <a href="agenda" class="btn-icon">
-                    <div class="icon-wrap ic-green"></div>
-                    <span class="label">Agenda</span>
-                </a>
+
 
                 <a href="https://portal.zionlisboa.pt/novo-nascimento" class="btn-icon">
                     <div class="icon-wrap ic-green"></div>
@@ -437,6 +444,51 @@
     }
 
     renderAuth();
+
+    // ── PERMISSÕES DE MEMBRO ──────────────────────────────────
+    async function carregarPermissoes() {
+        const user = ZionAuth.getUser();
+        if (!user) return; // não logado, tudo escondido
+
+        try {
+            // Busca o registo do membro pelo id ou email — ajusta o filtro ao teu schema
+            const res = await fetch(
+                `${SUPABASE_URL}/rest/v1/membros?id=eq.${user.id}&select=e_gerenciamento,e_lider`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${ZionAuth.getToken()}`,
+                        'Accept': 'application/json'
+                    }
+                }
+            );
+
+            if (!res.ok) return;
+            const [membro] = await res.json();
+            if (!membro) return;
+
+            // Mapa: data-role → campo na tabela
+            const regras = {
+                gerenciamento: membro.e_gerenciamento,
+                lider:         membro.e_lider,
+                // adiciona aqui futuras regras facilmente:
+                // admin:      membro.e_admin,
+            };
+
+            document.querySelectorAll('[data-role]').forEach(btn => {
+                const role = btn.dataset.role;
+                if (regras[role] === true) {
+                    btn.style.display = '';  // mostra
+                }
+            });
+
+        } catch (e) {
+            console.warn('Erro ao carregar permissões:', e);
+        }
+    }
+
+    carregarPermissoes();
+
 </script>
 <!-- ═══ BANNERS PWA ══════════════════════════════════════════ -->
 

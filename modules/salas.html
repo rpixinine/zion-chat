@@ -1841,15 +1841,53 @@
     async function sl_init() {
         try {
             var res = await Promise.all([
-                sb('salas?select=*&order=nome').catch(function () {
-                    return [];
-                }),
-                sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () {
-                    return [];
-                }),
+                sb('salas?select=*&order=nome').catch(function () { return []; }),
+                sb('sala_agendamentos?select=*&order=data_inicio.desc').catch(function () { return []; }),
+                sb('eventos?select=id,titulo,data_inicio,data_fim,sala_id,ag_sala_id,status,ativo&sala_id=not.is.null&ativo=eq.true').catch(function () { return []; }),
             ]);
+
             sl_salas = res[0] || [];
-            sl_ags = res[1] || [];
+            sl_ags   = res[1] || [];
+
+            // IDs dos agendamentos já criados pelos triggers dos eventos
+            var agIdsExistentes = new Set(
+                sl_ags.map(function(a) { return a.id; })
+            );
+
+            // Adiciona eventos que NÃO têm ag_sala_id em sl_ags (ou seja, trigger falhou / sala_id era null)
+            var eventosMissing = (res[2] || []).filter(function(e) {
+                // Se ag_sala_id existe e já está nos agendamentos, ignorar (evita duplicado)
+                if (e.ag_sala_id && agIdsExistentes.has(e.ag_sala_id)) return false;
+                return true;
+            }).map(function(e) {
+                return {
+                    id:              'ev_' + e.id,   // prefixo para não colidir
+                    _evento_id:      e.id,
+                    sala_id:         e.sala_id,
+                    titulo:          e.titulo,
+                    data_inicio:     e.data_inicio,
+                    data_fim:        e.data_fim || e.data_inicio,
+                    status:          'aprovado',     // evento ativo = aprovado no calendário
+                    solicitante_nome: 'Evento',
+                    _tipo:           'evento',
+                };
+            });
+
+            // Corrigir sala_id nos agendamentos criados pelos triggers
+            // (o trigger pode ter ficado sem sala_id — vamos injetar pelo ag_sala_id do evento)
+            var agSalaIdMap = {};
+            (res[2] || []).forEach(function(e) {
+                if (e.ag_sala_id) agSalaIdMap[e.ag_sala_id] = e.sala_id;
+            });
+            sl_ags = sl_ags.map(function(a) {
+                if (!a.sala_id && agSalaIdMap[a.id]) {
+                    return Object.assign({}, a, { sala_id: agSalaIdMap[a.id], _tipo: 'evento' });
+                }
+                return a;
+            });
+
+            sl_ags = sl_ags.concat(eventosMissing);
+
             sl_renderList();
             sl_updateBadge();
         } catch (e) {

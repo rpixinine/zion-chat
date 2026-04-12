@@ -776,10 +776,28 @@
         color: rgba(255, 255, 255, 0.35);
     }
 
+    /* ── colapsar lateral ── */
+    .cu-side.collapsed {
+        width: 0 !important;
+        border-right: none;
+        overflow: hidden;
+    }
+    .cu-side { transition: width 0.25s ease; }
+    .cu-toggle-btn {
+        position: absolute; top: 10px; left: 10px; z-index: 10;
+        width: 28px; height: 28px; border-radius: 6px;
+        border: 1px solid var(--border); background: var(--bg-card);
+        color: var(--primary); font-size: 14px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s;
+    }
+    .cu-toggle-btn:hover { background: rgba(0,144,152,0.2); }
+
 </style>
 
-<div class="cu-wrap">
-
+<!--<div class="cu-wrap">-->
+<div class="cu-wrap" style="position:relative">
+    <button class="cu-toggle-btn" id="cu-toggle-btn" onclick="cu_toggleSide()" title="Mostrar/ocultar lista">☰</button>
     <!-- SIDEBAR CAMPUS -->
     <div class="cu-side cu-campus-side">
         <div class="cu-side-head">
@@ -856,6 +874,16 @@
         var idx = CU_DIAS_MAP[dia];
         return idx !== undefined ? idx : 0;
     }
+
+    window.cu_toggleSide = function() {
+        const s1   = document.getElementById('cu-campus-list').closest('.cu-side');
+        const s2   = document.getElementById('cu-culto-list').closest('.cu-side');
+        const btn  = document.getElementById('cu-toggle-btn');
+        const collapsed = s1.classList.toggle('collapsed');
+        s2.classList.toggle('collapsed', collapsed);
+        btn.textContent = collapsed ? '▶' : '☰';
+        btn.style.left  = collapsed ? '10px' : '455px'; // 210 + 235 + 10
+    };
 
     // ── INIT ──────────────────────────────────────────────────────────────────────
     async function cu_init() {

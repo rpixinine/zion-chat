@@ -821,7 +821,7 @@
             if(m.office)       bs.push('<span class="badge badge-gray">Office</span>');
             document.getElementById('perfil-badges').innerHTML=bs.join('');
             const prev=document.getElementById('foto-preview-edit');
-            if(m.foto_url){prev.src=m.foto_url;prev.style.display='';document.getElementById('foto-placeholder-edit').style.display='none';}
+            if(m.foto_url){prev.src=m.foto_url;prev.style.display='block';document.getElementById('foto-placeholder-edit').style.display='none';}
             else{prev.style.display='none';document.getElementById('foto-placeholder-edit').style.display='';}
             document.getElementById('foto-url-edit').value=m.foto_url||'';
             const sv=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
@@ -943,20 +943,29 @@
             const file = input.files?.[0];
             if (!file) return;
 
-            // Guarda o ficheiro original para upload depois
             if (ctx === 'edit') _editFotoBlob = file;
             else _cadFotoBlob = file;
 
-            // Preview imediato sem esperar resize
             const url = URL.createObjectURL(file);
             const prev = document.getElementById(`foto-preview-${ctx}`);
             const placeholder = document.getElementById(`foto-placeholder-${ctx}`);
             prev.src = url;
-            prev.style.display = '';
+            prev.style.display = 'block';  // ← 'block' em vez de ''
             if (placeholder) placeholder.style.display = 'none';
         };
 
-        window.pPreviewURL=function(url,ctx){if(!url)return;document.getElementById(`foto-preview-${ctx}`).src=url;document.getElementById(`foto-preview-${ctx}`).style.display='';document.getElementById(`foto-placeholder-${ctx}`).style.display='none';};
+        //window.pPreviewURL=function(url,ctx){if(!url)return;document.getElementById(`foto-preview-${ctx}`).src=url;document.getElementById(`foto-preview-${ctx}`).style.display='';document.getElementById(`foto-placeholder-${ctx}`).style.display='none';};
+
+        window.pPreviewURL = function(url, ctx) {
+            if (!url) return;
+            const prev = document.getElementById(`foto-preview-${ctx}`);
+            const placeholder = document.getElementById(`foto-placeholder-${ctx}`);
+            prev.src = url;
+            prev.style.display = 'block';  // ← 'block' em vez de ''
+            if (placeholder) placeholder.style.display = 'none';
+        };
+
+
         function resizeFoto(file){return new Promise(res=>{const img=new Image();img.onload=()=>{const s=Math.min(800,img.width,img.height);const ratio=s/Math.min(img.width,img.height);const c=document.createElement('canvas');c.width=Math.round(img.width*ratio);c.height=Math.round(img.height*ratio);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(b=>res(b),'image/jpeg',.82);};img.src=URL.createObjectURL(file);});}
         //async function uploadFoto(ctx,membroId){const blob=ctx==='edit'?_editFotoBlob:_cadFotoBlob;const urlManual=(document.getElementById(`foto-url-${ctx}`)?.value||'').trim();const fotoAtual=ctx==='edit'?(_membroSel?.foto_url||null):null;if(!blob&&!urlManual)return fotoAtual;if(urlManual&&!blob)return urlManual;if(!blob)return fotoAtual;try{const fname=`membros/${membroId}_${Date.now()}.jpg`;const r=await fetch(`${SUPA_URL}/storage/v1/object/imagens/${fname}`,{method:'POST',headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'image/jpeg','Cache-Control':'3600',Upsert:'true'},body:blob});if(!r.ok)throw await r.json();return`${SUPA_URL}/storage/v1/object/public/imagens/${fname}`;}catch(e){console.error('Upload foto falhou',e);return fotoAtual;}}
 

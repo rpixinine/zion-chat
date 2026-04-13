@@ -937,10 +937,60 @@
 
         // FOTO
         window.toggleUrlBox=function(ctx){const el=document.getElementById(`foto-url-box-${ctx}`);if(el)el.style.display=el.style.display==='none'?'':'none';};
-        window.pHandleFoto=async function(input,ctx){const file=input.files?.[0];if(!file)return;const blob=await resizeFoto(file);if(ctx==='edit')_editFotoBlob=blob;else _cadFotoBlob=blob;const url=URL.createObjectURL(blob);document.getElementById(`foto-preview-${ctx}`).src=url;document.getElementById(`foto-preview-${ctx}`).style.display='';document.getElementById(`foto-placeholder-${ctx}`).style.display='none';};
+        //window.pHandleFoto=async function(input,ctx){const file=input.files?.[0];if(!file)return;const blob=await resizeFoto(file);if(ctx==='edit')_editFotoBlob=blob;else _cadFotoBlob=blob;const url=URL.createObjectURL(blob);document.getElementById(`foto-preview-${ctx}`).src=url;document.getElementById(`foto-preview-${ctx}`).style.display='';document.getElementById(`foto-placeholder-${ctx}`).style.display='none';};
+
+        window.pHandleFoto = function(input, ctx) {
+            const file = input.files?.[0];
+            if (!file) return;
+
+            // Guarda o ficheiro original para upload depois
+            if (ctx === 'edit') _editFotoBlob = file;
+            else _cadFotoBlob = file;
+
+            // Preview imediato sem esperar resize
+            const url = URL.createObjectURL(file);
+            const prev = document.getElementById(`foto-preview-${ctx}`);
+            const placeholder = document.getElementById(`foto-placeholder-${ctx}`);
+            prev.src = url;
+            prev.style.display = '';
+            if (placeholder) placeholder.style.display = 'none';
+        };
+
         window.pPreviewURL=function(url,ctx){if(!url)return;document.getElementById(`foto-preview-${ctx}`).src=url;document.getElementById(`foto-preview-${ctx}`).style.display='';document.getElementById(`foto-placeholder-${ctx}`).style.display='none';};
         function resizeFoto(file){return new Promise(res=>{const img=new Image();img.onload=()=>{const s=Math.min(800,img.width,img.height);const ratio=s/Math.min(img.width,img.height);const c=document.createElement('canvas');c.width=Math.round(img.width*ratio);c.height=Math.round(img.height*ratio);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(b=>res(b),'image/jpeg',.82);};img.src=URL.createObjectURL(file);});}
-        async function uploadFoto(ctx,membroId){const blob=ctx==='edit'?_editFotoBlob:_cadFotoBlob;const urlManual=(document.getElementById(`foto-url-${ctx}`)?.value||'').trim();const fotoAtual=ctx==='edit'?(_membroSel?.foto_url||null):null;if(!blob&&!urlManual)return fotoAtual;if(urlManual&&!blob)return urlManual;if(!blob)return fotoAtual;try{const fname=`membros/${membroId}_${Date.now()}.jpg`;const r=await fetch(`${SUPA_URL}/storage/v1/object/imagens/${fname}`,{method:'POST',headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'image/jpeg','Cache-Control':'3600',Upsert:'true'},body:blob});if(!r.ok)throw await r.json();return`${SUPA_URL}/storage/v1/object/public/imagens/${fname}`;}catch(e){console.error('Upload foto falhou',e);return fotoAtual;}}
+        //async function uploadFoto(ctx,membroId){const blob=ctx==='edit'?_editFotoBlob:_cadFotoBlob;const urlManual=(document.getElementById(`foto-url-${ctx}`)?.value||'').trim();const fotoAtual=ctx==='edit'?(_membroSel?.foto_url||null):null;if(!blob&&!urlManual)return fotoAtual;if(urlManual&&!blob)return urlManual;if(!blob)return fotoAtual;try{const fname=`membros/${membroId}_${Date.now()}.jpg`;const r=await fetch(`${SUPA_URL}/storage/v1/object/imagens/${fname}`,{method:'POST',headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'image/jpeg','Cache-Control':'3600',Upsert:'true'},body:blob});if(!r.ok)throw await r.json();return`${SUPA_URL}/storage/v1/object/public/imagens/${fname}`;}catch(e){console.error('Upload foto falhou',e);return fotoAtual;}}
+
+        async function uploadFoto(ctx, membroId) {
+            let blob = ctx === 'edit' ? _editFotoBlob : _cadFotoBlob;
+            const urlManual = (document.getElementById(`foto-url-${ctx}`)?.value || '').trim();
+            const fotoAtual = ctx === 'edit' ? (_membroSel?.foto_url || null) : null;
+
+            if (!blob && !urlManual) return fotoAtual;
+            if (urlManual && !blob) return urlManual;
+            if (!blob) return fotoAtual;
+
+            try {
+                // Faz resize só aqui, antes de enviar
+                if (blob instanceof File) blob = await resizeFoto(blob);
+                const fname = `membros/${membroId}_${Date.now()}.jpg`;
+                const r = await fetch(`${SUPA_URL}/storage/v1/object/imagens/${fname}`, {
+                    method: 'POST',
+                    headers: {
+                        apikey: SUPA_KEY,
+                        Authorization: `Bearer ${SUPA_KEY}`,
+                        'Content-Type': 'image/jpeg',
+                        'Cache-Control': '3600',
+                        Upsert: 'true'
+                    },
+                    body: blob
+                });
+                if (!r.ok) throw await r.json();
+                return `${SUPA_URL}/storage/v1/object/public/imagens/${fname}`;
+            } catch(e) {
+                console.error('Upload foto falhou', e);
+                return fotoAtual;
+            }
+        }
 
         // VALIDACAO
         const OBRIG_EDIT=[{id:'p_nome',label:'Nome'},{id:'p_email',label:'Email'},{id:'p_telefone',label:'Telemovel'},{id:'p_data_nascimento',label:'Data Nascimento'},{id:'p_genero',label:'Genero'}];

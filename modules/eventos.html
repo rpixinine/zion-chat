@@ -720,6 +720,32 @@
     /* painel scroll horizontal em mobile */
     .ev-panel-inner { overflow-x: auto; }
 
+    /* Avatar relatório tabela */
+    .ev-rel-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--primary-faint);
+        color: var(--primary-dark);
+        vertical-align: middle;
+        margin-right: 6px;
+        overflow: hidden;
+    }
+
+    .ev-rel-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
 </style>
 
 <!--<div class="ev-wrap" id="ev-wrap">-->
@@ -786,6 +812,9 @@
         let evFiltroSt = new Set();
         let evFiltroTipo = '';
         let evPresSearchQ = '';
+        let evAddFiltroQ    = '';
+        let evAddFiltroTipo = '';   // '' | 'lider' | 'voluntario' | 'outro'
+        let evAddFiltroArea = '';
         let _motivoId = null;
         let evTipoIdx = null;
         let evRelSel      = new Set();   // IDs de eventos selecionados
@@ -819,7 +848,8 @@
             try {
                 const s = localStorage.getItem('zion_tipos_evento');
                 return s ? JSON.parse(s) : [
-                    'Reuniao de Lideres', 'Culto Especial', 'Conferencia', 'Retiro',
+                    'Reuniao de Lideres', 'Reunião de Voluntários', 'Prestação de Contas',
+                    'Culto Especial', 'Conferencia', 'Retiro',
                     'Treinamento', 'Workshop', 'Conferencia de Jovens', 'Encontro de Casais',
                     'Culto de Oracao', 'Seminario', 'Outro'
                 ];
@@ -853,6 +883,31 @@
 
         function _isVisitante(p) {
             return !p.membro_id;
+        }
+
+        function _getPapel(m) {
+            if (!m) return '';
+            if (m.e_lider)      return 'Líder';
+            if (m.e_voluntario) return 'Voluntário';
+            return '';
+        }
+
+        function _papelBadge(m, extraStyle = '') {
+            const papel = _getPapel(m);
+            if (!papel) return '';
+            const isLider = papel === 'Líder';
+            const cor = isLider
+                ? 'background:rgba(25,118,210,.13);color:#1565c0;border:1px solid rgba(25,118,210,.35)'
+                : 'background:rgba(46,125,50,.11);color:#2e7d32;border:1px solid rgba(46,125,50,.35)';
+            return `<span style="font-size:8px;padding:1px 7px;border-radius:10px;font-weight:700;${cor};${extraStyle}">${papel}</span>`;
+        }
+
+        function _relAvatarHtml(pessoa) {
+            const ini = (pessoa.nome || '?')[0].toUpperCase();
+            if (pessoa.foto_url) {
+                return `<span class="ev-rel-avatar"><img src="${pessoa.foto_url}" alt="${ini}" onerror="this.parentElement.textContent='${ini}'"></span>`;
+            }
+            return `<span class="ev-rel-avatar">${ini}</span>`;
         }
 
         /* ── AUTO-FILL ────────────────────────────────────────────────────────── */
@@ -1498,16 +1553,54 @@
         async function evIniciar(id) {
             const ev = evEventos.find(e => e.id === id);
             if (!ev) return;
-            const isL = ev.tipo === 'Reuniao de Lideres' || ev.tipo === 'Reunião de Líderes';
-            if (!confirm(`Iniciar "${ev.titulo}"?${isL ? ' Todos os lideres serao adicionados automaticamente.' : ''}`)) return;
+
+            const isL  = ev.tipo === 'Reuniao de Lideres' || ev.tipo === 'Reunião de Líderes';
+            const isV  = ev.tipo === 'Reunião de Voluntários';
+            const isPC = ev.tipo === 'Prestação de Contas';
+            const isAuto = isL || isV || isPC;
+
+            const autoMsg = isL  ? ' Todos os líderes serão adicionados automaticamente.'
+                : isV  ? ' Todos os voluntários serão adicionados automaticamente.'
+                    : isPC ? ' Todos os dizimistas serão adicionados automaticamente.'
+                        : '';
+
+            if (!confirm(`Iniciar "${ev.titulo}"?${autoMsg}`)) return;
+
             await _sb(`eventos?id=eq.${id}`, {method: 'PATCH', body: JSON.stringify({status: 'em_curso'})});
+
+            let membros = [];
+
             if (isL) {
-                const l = await _sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true').catch(() => []);
-                if (l?.length) await _sb('evento_presencas', {
-                    method: 'POST',
-                    body: JSON.stringify(l.map(x => ({evento_id: id, membro_id: x.id, status: 'pendente'})))
-                });
+                membros = await _sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true').catch(() => []) || [];
+            } else if (isV) {
+                membros = await _sb('membros?select=id,nome&e_voluntario=eq.true&ativo=eq.true').catch(() => []) || [];
+            } else if (isPC) {
+                membros = await _sb('membros?select=id,nome&e_dizimista=eq.true&ativo=eq.true').catch(() => []) || [];
             }
+
+            if (membros.length) {
+                /* Evita duplicados — busca quem já está na lista */
+                const jaExistem = await _sb(
+                    `evento_presencas?evento_id=eq.${id}&select=membro_id`
+                ).catch(() => []) || [];
+                const jaIds = new Set(jaExistem.map(p => p.membro_id));
+
+                const novos = membros
+                    .filter(m => !jaIds.has(m.id))
+                    .map(m => ({evento_id: id, membro_id: m.id, status: 'pendente'}));
+
+                if (novos.length) {
+                    await _sb('evento_presencas', {
+                        method: 'POST',
+                        body: JSON.stringify(novos)
+                    }).catch(err => alert('Aviso: alguns membros podem não ter sido adicionados. ' + (err?.message || '')));
+                }
+
+                if (window.toast) {
+                    toast(`${membros.length} ${isL ? 'líderes' : isV ? 'voluntários' : 'dizimistas'} adicionados`, 'ok');
+                }
+            }
+
             await evRecarregar();
             evSelEvento(id);
         }
@@ -1692,10 +1785,10 @@
         async function evVerPresencas(id) {
             evView = 'presencas';
             evAtivo = evEventos.find(e => e.id === id) || evAtivo;
-            evPresencas = await _sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url)&evento_id=eq.${id}&order=created_at`) || [];
+            evPresencas = await _sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url,e_lider,e_voluntario)&evento_id=eq.${id}&order=created_at`) || [];
 
             if (!window.membros?.length) {
-                window.membros = await _sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(() => []) || [];
+                window.membros = await _sb('membros?select=id,nome,foto_url,e_lider,e_voluntario&ativo=eq.true&order=nome').catch(() => []) || [];
             }
 
             const mIds = evPresencas.map(p => p.membro_id).filter(Boolean);
@@ -1756,25 +1849,56 @@
                 <span class="badge badge-gray">Total: ${tot}</span>
             </div>
         </div>
-        ${emC ? `<div class="ev-pres-add">
-            <div class="ev-pres-add-title">Adicionar manualmente</div>
-            <div class="ev-pres-add-row">
-                <select class="form-select" id="ev-add-mb" style="flex:1;font-size:12px;
-                    background:var(--bg-input,#fff);
-                    color:var(--text-main,#111);
-                    border:1px solid var(--border,#ccc);
-                    color-scheme: light dark;">
-                        <option value="">Seleciona membro...</option>
-                    ${mDisp.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
-                </select>
-                <button class="ev-btn primary" onclick="evAddParticipante()">Adicionar</button>
-            </div>
-        </div>` : ''}
+        ${emC ? `<div class="ev-pres-add" style="padding:12px">
+    <div class="ev-pres-add-title">Adicionar manualmente</div>
+
+    <!-- Filtros -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <input
+            style="flex:2;min-width:120px;padding:6px 10px;border-radius:8px;
+                   border:1px solid var(--border);background:var(--bg-input);
+                   font-size:12px;outline:none;color:var(--text-main)"
+            placeholder="Pesquisar nome..."
+            value="${evAddFiltroQ}"
+            oninput="evAddSetFiltro('q',this.value)">
+
+        <select class="ev-filtro-select" style="flex:1;min-width:110px"
+                onchange="evAddSetFiltro('tipo',this.value)">
+            <option value="">Todos os tipos</option>
+            <option value="lider"     ${evAddFiltroTipo==='lider'     ?'selected':''}>Líderes</option>
+            <option value="voluntario"${evAddFiltroTipo==='voluntario'?'selected':''}>Voluntários</option>
+            <option value="outro"     ${evAddFiltroTipo==='outro'     ?'selected':''}>Outros</option>
+        </select>
+
+        <select class="ev-filtro-select" style="flex:1;min-width:110px" id="ev-add-filtro-area"
+                onchange="evAddSetFiltro('area',this.value)">
+            <option value="">Todas as áreas</option>
+            ${[...new Set((window.membros||[]).flatMap(m => {
+                try { return m._areas || []; } catch { return []; }
+            }))].sort().map(a => `<option value="${a}" ${evAddFiltroArea===a?'selected':''}>${a}</option>`).join('')}
+        </select>
+    </div>
+
+    <!-- Lista filtrada -->
+    <div id="ev-add-lista" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);
+         border-radius:8px;background:var(--bg-input)">
+        <!-- preenchido por evRenderAddLista() -->
+    </div>
+
+    <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span id="ev-add-sel-nome" style="flex:1;font-size:11px;color:var(--primary-dark);font-weight:600"></span>
+        <button class="ev-btn primary" id="ev-add-btn" onclick="evAddParticipante()" disabled>Adicionar</button>
+    </div>
+</div>` : ''}
         <div id="ev-pres-body"></div>
         </div>`;
 
             document.getElementById('ev-panel-inner').innerHTML = html;
             evRenderPresBody();
+            /* Inicializa lista de adicionar se estiver em curso */
+            if (evAtivo?.status === 'em_curso') {
+                setTimeout(() => evRenderAddLista(), 0);
+            }
         }
 
         /* Render PARCIAL — só atualiza #ev-pres-body (preserva foco do input) */
@@ -1797,19 +1921,29 @@
                 html = `<div style="text-align:center;padding:30px;font-size:13px;color:var(--text-faint)">
                 ${q ? `Nenhum resultado para "${q}"` : 'Nenhum participante.'}</div>`;
             } else {
+                const _sortAlfa = arr => [...arr].sort((a, b) => _presNome(a).localeCompare(_presNome(b), 'pt'));
+
                 const gs = [
-                    {key: 'presente', label: 'Presentes', items: lista.filter(p => p.status === 'presente')},
-                    {key: 'pendente', label: 'Pendentes', items: lista.filter(p => p.status === 'pendente')},
-                    {
-                        key: 'faltou_motivo',
-                        label: 'Faltaram com Motivo',
-                        items: lista.filter(p => p.status === 'faltou_motivo')
-                    },
-                    {key: 'faltou', label: 'Faltaram', items: lista.filter(p => p.status === 'faltou')}
+                    {key: 'presente',     label: 'Presentes',          items: _sortAlfa(lista.filter(p => p.status === 'presente'))},
+                    {key: 'pendente',     label: 'Pendentes',           items: _sortAlfa(lista.filter(p => p.status === 'pendente'))},
+                    {key: 'faltou_motivo',label: 'Faltaram com Motivo', items: _sortAlfa(lista.filter(p => p.status === 'faltou_motivo'))},
+                    {key: 'faltou',       label: 'Faltaram',            items: _sortAlfa(lista.filter(p => p.status === 'faltou'))}
                 ].filter(g => g.items.length);
 
                 gs.forEach((g, gi) => {
-                    html += `<div class="ev-grupo-label" style="${gi === 0 ? 'margin-top:0;border-top:none' : ''}">${g.label} (${g.items.length})</div>`;
+                    const nLid = g.items.filter(p => p.membros?.e_lider).length;
+                    const nVol = g.items.filter(p => p.membros?.e_voluntario).length;
+                    const nOut = g.items.length - nLid - nVol;
+                    const subInfo = [
+                        nLid ? `<span style="color:#1565c0;font-weight:700">${nLid} Líder${nLid>1?'es':''}</span>` : '',
+                        nVol ? `<span style="color:#2e7d32;font-weight:700">${nVol} Voluntário${nVol>1?'s':''}</span>` : '',
+                        nOut ? `<span style="color:var(--text-faint)">${nOut} Outros</span>` : ''
+                        ].filter(Boolean).join(' · ');
+                        html += `<div class="ev-grupo-label" style="${gi === 0 ? 'margin-top:0;border-top:none' : ''}">
+                        ${g.label} (${g.items.length})
+                        ${subInfo ? `<span style="font-size:9px;font-weight:400;margin-left:6px">${subInfo}</span>` : ''}
+                    </div>`;
+
                     g.items.forEach((p, pi) => {
                         const nome = _presNome(p);
                         const isVisit = _isVisitante(p);
@@ -1830,6 +1964,7 @@
                         const idBadge = isVisit
                             ? `<span class="badge badge-gray" style="font-size:8px;opacity:.8">Visitante</span>${obs.email ? `<span style="font-size:9px;color:var(--text-faint)">${obs.email}</span>` : ''}`
                             : '';
+                        const papelBadge = p.membros ? _papelBadge(p.membros) : '';
 
                         /* Botões de acção */
                         let btns = '';
@@ -1863,7 +1998,7 @@
                         <div class="ev-pres-foto" style="border:2px solid ${stC}">${fH}</div>
                         <div class="ev-pres-info">
                             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                                <span class="ev-pres-nome">${nome}</span>${zapBtn}
+                                <span class="ev-pres-nome">${nome}</span>${papelBadge}${zapBtn}
                                 ${idBadge}
                             </div>
                             <div class="ev-pres-areas">${mH || (isVisit ? '' : '<span style="font-size:10px;color:var(--text-faint)">Sem areas</span>')}</div>
@@ -1932,32 +2067,26 @@
 
         /* ── ADICIONAR PARTICIPANTE ───────────────────────────────────────────── */
         async function evAddParticipante() {
-            const sel = document.getElementById('ev-add-mb'), memId = sel?.value;
-            if (!memId) {
-                alert('Seleciona um membro.');
-                return;
-            }
-            if (evPresencas.find(p => p.membro_id === memId)) {
-                alert('Membro ja na lista.');
-                return;
-            }
-            const btn = sel.nextElementSibling;
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'A adicionar...';
-            }
+            const memId = document.getElementById('ev-add-mb-hidden')?.value;
+            if (!memId) { alert('Seleciona um membro.'); return; }
+            if (evPresencas.find(p => p.membro_id === memId)) { alert('Membro já na lista.'); return; }
+
+            const btn = document.getElementById('ev-add-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'A adicionar...'; }
+
             try {
                 await _sb('evento_presencas', {
                     method: 'POST',
                     body: JSON.stringify([{evento_id: evAtivo.id, membro_id: memId, status: 'pendente'}])
                 });
+                /* Limpa seleção e filtros */
+                evAddFiltroQ = ''; evAddFiltroTipo = ''; evAddFiltroArea = '';
+                const h = document.getElementById('ev-add-mb-hidden');
+                if (h) h.value = '';
                 await evVerPresencas(evAtivo.id);
             } catch (err) {
                 alert('Erro ao adicionar: ' + (err?.message || JSON.stringify(err)));
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'Adicionar';
-                }
+                if (btn) { btn.disabled = false; btn.textContent = 'Adicionar'; }
             }
         }
 
@@ -1973,6 +2102,121 @@
             });
             evRenderPresBody();
         }
+
+        function evAddSetFiltro(campo, valor) {
+            if (campo === 'q')    evAddFiltroQ    = valor;
+            if (campo === 'tipo') evAddFiltroTipo = valor;
+            if (campo === 'area') evAddFiltroArea = valor;
+            evRenderAddLista();
+        }
+
+        function evAddSelMembro(id, nome) {
+            /* Toggle: clica de novo para desselecionar */
+            const atual = document.getElementById('ev-add-mb-hidden')?.value;
+            const novoId = atual === id ? '' : id;
+
+            let hidden = document.getElementById('ev-add-mb-hidden');
+            if (!hidden) {
+                hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.id = 'ev-add-mb-hidden';
+                document.body.appendChild(hidden);
+            }
+            hidden.value = novoId;
+
+            const selNome = document.getElementById('ev-add-sel-nome');
+            if (selNome) selNome.textContent = novoId ? `✓ ${nome}` : '';
+
+            const btn = document.getElementById('ev-add-btn');
+            if (btn) btn.disabled = !novoId;
+
+            /* Realça linha selecionada */
+            document.querySelectorAll('.ev-add-linha').forEach(el => {
+                el.style.background = el.dataset.id === novoId
+                    ? 'var(--primary-faint)'
+                    : '';
+                el.style.borderColor = el.dataset.id === novoId
+                    ? 'var(--primary)'
+                    : 'transparent';
+            });
+        }
+
+        function evRenderAddLista() {
+            const container = document.getElementById('ev-add-lista');
+            if (!container) return;
+
+            const jaAdd  = new Set(evPresencas.map(p => p.membro_id).filter(Boolean));
+            let lista    = (window.membros || []).filter(m => !jaAdd.has(m.id));
+
+            /* Filtro nome */
+            if (evAddFiltroQ) {
+                const q = evAddFiltroQ.toLowerCase();
+                lista = lista.filter(m => m.nome.toLowerCase().includes(q));
+            }
+
+            /* Filtro tipo */
+            if (evAddFiltroTipo === 'lider')      lista = lista.filter(m => m.e_lider);
+            else if (evAddFiltroTipo === 'voluntario') lista = lista.filter(m => m.e_voluntario);
+            else if (evAddFiltroTipo === 'outro') lista = lista.filter(m => !m.e_lider && !m.e_voluntario);
+
+            /* Filtro área — usa minMap carregado */
+            if (evAddFiltroArea) {
+                lista = lista.filter(m => {
+                    const mins = evLidMin[m.id] || [];
+                    return mins.some(mn => mn.nome === evAddFiltroArea || mn.area === evAddFiltroArea);
+                });
+            }
+
+            if (!lista.length) {
+                container.innerHTML = `<div style="padding:14px;text-align:center;font-size:12px;color:var(--text-faint)">Nenhum membro encontrado.</div>`;
+                return;
+            }
+
+            const selId = document.getElementById('ev-add-mb-hidden')?.value || '';
+
+            container.innerHTML = lista.map(m => {
+                const papel = m.e_lider ? 'Líder' : m.e_voluntario ? 'Voluntário' : '';
+                const papelCor = m.e_lider
+                    ? 'color:#1565c0;background:rgba(25,118,210,.1)'
+                    : m.e_voluntario
+                        ? 'color:#2e7d32;background:rgba(46,125,50,.1)'
+                        : '';
+                const mins   = evLidMin[m.id] || [];
+                const areas  = [...new Set(mins.map(mn => mn.nome))].slice(0, 2).join(', ') || '—';
+                const ini    = (m.nome || '?')[0].toUpperCase();
+                const foto   = m.foto_url
+                    ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.textContent='${ini}'">`
+                    : ini;
+                const isSel  = selId === m.id;
+
+                return `<div class="ev-add-linha" data-id="${m.id}"
+            onclick="evAddSelMembro('${m.id}','${m.nome.replace(/'/g,"\\'")}')"
+            style="display:flex;align-items:center;gap:8px;padding:7px 10px;
+                   cursor:pointer;border:1px solid transparent;border-radius:6px;
+                   transition:background .1s;margin:2px;
+                   ${isSel ? 'background:var(--primary-faint);border-color:var(--primary)' : ''}">
+            <div style="width:30px;height:30px;border-radius:50%;flex-shrink:0;
+                        background:var(--primary-faint);color:var(--primary-dark);
+                        font-size:12px;font-weight:700;display:flex;align-items:center;
+                        justify-content:center;overflow:hidden">${foto}</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:600;color:var(--text-main);
+                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    ${m.nome}
+                    ${papel ? `<span style="font-size:8px;padding:1px 6px;border-radius:8px;
+                                font-weight:700;margin-left:5px;${papelCor}">${papel}</span>` : ''}
+                </div>
+                <div style="font-size:10px;color:var(--text-faint);
+                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    ${areas}
+                </div>
+            </div>
+            ${isSel ? `<span style="color:var(--primary);font-size:14px">✓</span>` : ''}
+        </div>`;
+            }).join('');
+        }
+
+
 
         function evAbrirMotivo(presId, nome) {
             _motivoId = presId;
@@ -2034,13 +2278,24 @@
             const tot = pres.length;
             const pct = tot > 0 ? Math.round(nP / tot * 100) : 0;
 
+            const nLidPres  = pres.filter(p => p.status === 'presente'     && p.membros?.e_lider).length;
+            const nVolPres  = pres.filter(p => p.status === 'presente'     && p.membros?.e_voluntario).length;
+            const nLidFalt  = pres.filter(p => (p.status === 'faltou' || p.status === 'faltou_motivo') && p.membros?.e_lider).length;
+            const nVolFalt  = pres.filter(p => (p.status === 'faltou' || p.status === 'faltou_motivo') && p.membros?.e_voluntario).length;
+
             let html = `<div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);margin-bottom:10px">RESUMO</div>
-        <div class="ev-stats-grid">
-            <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--green)">${nP}</div><div class="ev-stat-lbl">Presentes</div><div style="font-size:10px;font-weight:700;color:var(--green)">${pct}%</div></div>
-            <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--red)">${nF}</div><div class="ev-stat-lbl">Faltaram</div><div style="font-size:10px;color:var(--red)">${tot > 0 ? Math.round(nF / tot * 100) : 0}%</div></div>
-            <div class="ev-stat-box"><div class="ev-stat-num" style="color:#e65100">${nM}</div><div class="ev-stat-lbl">Com motivo</div><div style="font-size:10px;color:#e65100">${tot > 0 ? Math.round(nM / tot * 100) : 0}%</div></div>
-            <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--text-muted)">${tot}</div><div class="ev-stat-lbl">Total</div></div>
-        </div>`;
+    <div class="ev-stats-grid">
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--green)">${nP}</div><div class="ev-stat-lbl">Presentes</div><div style="font-size:10px;font-weight:700;color:var(--green)">${pct}%</div>
+            ${nLidPres||nVolPres ? `<div style="margin-top:4px;font-size:9px;line-height:1.6"><span style="color:#1565c0">L: ${nLidPres}</span> · <span style="color:#2e7d32">V: ${nVolPres}</span></div>` : ''}
+        </div>
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--red)">${nF}</div><div class="ev-stat-lbl">Faltaram</div><div style="font-size:10px;color:var(--red)">${tot > 0 ? Math.round(nF / tot * 100) : 0}%</div>
+            ${nLidFalt||nVolFalt ? `<div style="margin-top:4px;font-size:9px;line-height:1.6"><span style="color:#1565c0">L: ${nLidFalt}</span> · <span style="color:#2e7d32">V: ${nVolFalt}</span></div>` : ''}
+        </div>
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:#e65100">${nM}</div><div class="ev-stat-lbl">Com motivo</div><div style="font-size:10px;color:#e65100">${tot > 0 ? Math.round(nM / tot * 100) : 0}%</div></div>
+        <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--text-muted)">${tot}</div><div class="ev-stat-lbl">Total</div>
+            <div style="margin-top:4px;font-size:9px;line-height:1.6"><span style="color:#1565c0">L: ${pres.filter(p=>p.membros?.e_lider).length}</span> · <span style="color:#2e7d32">V: ${pres.filter(p=>p.membros?.e_voluntario).length}</span></div>
+        </div>
+    </div>`;
 
             if (tot > 0) {
                 const d = [{v: nP, c: '#2e7d32', l: 'Presentes'}, {v: nM, c: '#e65100', l: 'Com Motivo'}, {
@@ -2147,7 +2402,7 @@
         async function evGerarPDF(evId) {
             const ev = evEventos.find(e => e.id === evId);
             if (!ev) return;
-            const pres = await _sb(`evento_presencas?select=*,membros(id,nome)&evento_id=eq.${evId}&order=created_at`) || [];
+            const pres = await _sb(`evento_presencas?select=*,membros(id,nome,foto_url,e_lider,e_voluntario)&evento_id=eq.${evId}&order=created_at`) || [];
             const mIds = pres.map(p => p.membro_id).filter(Boolean);
             let mMap = {};
             if (mIds.length) {
@@ -2325,11 +2580,38 @@
             }
 
             const statsTipoBoxes = tipoValsAtivos.map(t => {
-                const tv = porTipo[t.key];
-                const pA = tv.total > 0 ? Math.round(tv.pres / tv.total * 100) : 0;
+                const tv  = porTipo[t.key];
+                const pA  = tv.total > 0 ? Math.round(tv.pres / tv.total * 100) : 0;
                 const cor = pA >= 80 ? '#2e7d32' : pA >= 50 ? '#e65100' : '#c62828';
-                return `<div style="border:1px solid #e0e0e0;border-top:4px solid ${t.cor};border-radius:8px;padding:14px 16px;min-width:140px;flex:1;background:${t.bg}33"><div style="font-size:9px;font-weight:700;color:${t.cor};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">${t.label}</div><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px"><span style="font-size:30px;font-weight:800;color:${t.cor};line-height:1">${tv.pres}</span><span style="font-size:11px;color:#888">de ${tv.total}</span></div><div style="height:6px;background:#e0e0e0;border-radius:3px;margin-bottom:7px;overflow:hidden"><div style="width:${pA}%;height:100%;background:${cor};border-radius:3px"></div></div><div style="font-size:15px;font-weight:700;color:${cor}">${pA}% presença</div><div style="font-size:10px;color:#aaa;margin-top:3px">${tv.falt} faltaram · ${tv.mot} com motivo</div></div>`;
+
+                /* contar líderes e voluntários dentro deste tipo */
+                const membrosDoTipo = pres.filter(p =>
+                    mMap[p.membro_id]?.some(m => _pdfClassificar(m.tipo) === t.key)
+                );
+                const nLidT     = membrosDoTipo.filter(p => p.membros?.e_lider).length;
+                const nVolT     = membrosDoTipo.filter(p => p.membros?.e_voluntario).length;
+                const nLidPresT = membrosDoTipo.filter(p => p.membros?.e_lider     && p.status === 'presente').length;
+                const nVolPresT = membrosDoTipo.filter(p => p.membros?.e_voluntario && p.status === 'presente').length;
+
+                return `<div style="border:1px solid #e0e0e0;border-top:4px solid ${t.cor};border-radius:8px;padding:14px 16px;min-width:140px;flex:1;background:${t.bg}33">
+        <div style="font-size:9px;font-weight:700;color:${t.cor};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">${t.label}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px">
+            <span style="font-size:30px;font-weight:800;color:${t.cor};line-height:1">${tv.pres}</span>
+            <span style="font-size:11px;color:#888">de ${tv.total}</span>
+        </div>
+        <div style="height:6px;background:#e0e0e0;border-radius:3px;margin-bottom:7px;overflow:hidden">
+            <div style="width:${pA}%;height:100%;background:${cor};border-radius:3px"></div>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:${cor}">${pA}% presença</div>
+        <div style="font-size:10px;color:#aaa;margin-top:3px">${tv.falt} faltaram · ${tv.mot} com motivo</div>
+        ${(nLidT || nVolT) ? `
+        <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e0e0e0;font-size:10px;line-height:1.8">
+            <div><span style="color:#1565c0;font-weight:700">Líderes:</span> ${nLidPresT} pres. / ${nLidT} total</div>
+            <div><span style="color:#2e7d32;font-weight:700">Voluntários:</span> ${nVolPresT} pres. / ${nVolT} total</div>
+        </div>` : ''}
+    </div>`;
             }).join('');
+
 
             const rowM = p => {
                 const nome = p.membros?.nome || (() => {
@@ -2340,7 +2622,19 @@
                     }
                 })();
                 const ms = (mMap[p.membro_id] || []).map(m => `[${m.tipoLabel}] ${m.nome}${m.papel ? ' · ' + m.papel : ''}`).join(' | ');
-                return `<tr><td>${nome}</td><td style="font-size:11px;color:#555">${ms || '—'}</td><td style="text-align:center;font-size:11px;color:#1565c0;font-weight:600">${_hora(p.registado_em)}</td><td style="font-size:11px;color:#e65100">${p.motivo || '—'}</td></tr>`;
+                const papel = _getPapel(p.membros);
+                const papelStr = papel
+                    ? `<span style="font-size:8px;padding:1px 6px;border-radius:8px;font-weight:700;margin-left:5px;${
+                        papel === 'Líder'
+                            ? 'background:#e3f2fd;color:#1565c0'
+                            : 'background:#e8f5e9;color:#2e7d32'
+                    }">${papel}</span>`
+                    : '';
+                const ini = (nome || '?')[0].toUpperCase();
+                const fotoCell = p.membros?.foto_url
+                    ? `<td style="width:34px;padding:3px 6px;text-align:center"><img src="${p.membros.foto_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'"></td>`
+                    : `<td style="width:34px;padding:3px 6px;text-align:center"><div style="width:28px;height:28px;border-radius:50%;background:#e0f7fa;color:#005f65;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:auto">${ini}</div></td>`;
+                return `<tr>${fotoCell}<td>${nome}${papelStr}</td><td style="font-size:11px;color:#555">${ms || '—'}</td><td style="text-align:center;font-size:11px;color:#1565c0;font-weight:600">${_hora(p.registado_em)}</td><td style="font-size:11px;color:#e65100">${p.motivo || '—'}</td></tr>`;
             };
 
             let secoesTipo = '';
@@ -2393,6 +2687,8 @@
                 })))}${_tabelaAgrupada(presArea, 'Chegada', '#2e7d32', '✓')}${_tabelaAgrupada(motArea, 'Registo', '#e65100', '⚠')}${_tabelaAgrupada(faltArea, '—', '#c62828', '✗')}</div></div>`;
             }
 
+
+
             const htm = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>Relatório — ${ev.titulo}</title><style>*{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;padding:36px 44px;max-width:960px;margin:0 auto;font-size:13px}h1{font-size:26px;color:#005f65;margin-bottom:3px;font-weight:800;letter-spacing:-.3px}h2{font-size:11px;margin:28px 0 12px;color:#005f65;border-bottom:2px solid #009098;padding-bottom:5px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}h3{font-size:11px;margin:16px 0 8px;color:#444;text-transform:uppercase;letter-spacing:1px;font-weight:700;border-bottom:1px solid #eee;padding-bottom:4px}.meta{font-size:12px;color:#666;line-height:2;margin-bottom:4px}.badges{display:flex;gap:8px;margin:14px 0 22px;flex-wrap:wrap}.badge{padding:5px 16px;border-radius:20px;font-size:12px;font-weight:700}.g{background:#e8f5e9;color:#2e7d32}.r{background:#ffebee;color:#c62828}.o{background:#fff8e1;color:#e65100}.gr{background:#f5f5f5;color:#555}.b{background:#e0f7fa;color:#006b70}table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}th{background:#f0f7f8;padding:8px 10px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#888;border-bottom:2px solid #c8e6e8;white-space:nowrap}td{padding:6px 10px;border-bottom:1px solid #f2f2f2;vertical-align:middle}tr:nth-child(even) td{background:#fafcfc}tr:last-child td{border-bottom:none}.grafico-row{display:flex;align-items:center;gap:32px;margin:14px 0 22px;flex-wrap:wrap}.legenda{display:flex;flex-direction:column;gap:7px}.legenda-bar{display:flex;gap:16px;font-size:11px;margin-bottom:8px;color:#666;align-items:center;flex-wrap:wrap}.legenda-bar span{display:flex;align-items:center;gap:5px}.legenda-bar i{display:inline-block;width:12px;height:12px;border-radius:3px}.scard{border:1px solid #e8e8e8;border-top:3px solid #009098;border-radius:7px;padding:10px 16px;text-align:center;min-width:80px}.sl{font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-top:3px}.cover{background:linear-gradient(135deg,#004c52 0%,#007d85 60%,#009098 100%);color:#fff;padding:44px 48px;border-radius:14px;margin-bottom:36px}.cover h1{color:#fff;font-size:30px;margin-bottom:6px}.cover .meta{color:rgba(255,255,255,.8);font-size:13px}.cover .brow{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}.cover .bc{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:7px 18px;border-radius:22px;font-size:12px;font-weight:700}.footer{margin-top:60px;padding-top:14px;border-top:1px solid #e8e8e8;font-size:10px;color:#bbb;text-align:center;line-height:2}@media print{body{padding:20px 28px}.cover{border-radius:6px;padding:28px 32px}h2{page-break-after:avoid}tr{page-break-inside:avoid}table{page-break-inside:auto}}</style></head><body>
         <div class="cover"><div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;opacity:.65;margin-bottom:8px">Relatório de Presenças · Zion Lisboa</div><h1>${ev.titulo}</h1><div class="meta">📅&nbsp; ${dE}${ev.local ? `<br>📍&nbsp; ${ev.local}` : ''}${ev.tipo ? `<br>🏷&nbsp; ${ev.tipo}` : ''}</div><div class="brow"><span class="bc">✓ ${nP.length} Presentes</span><span class="bc">✗ ${nF.length + nM.length} Faltaram</span><span class="bc">📊 ${tot > 0 ? Math.round(nP.length / tot * 100) : 0}% de presença</span><span class="bc">👥 ${tot} Total</span></div></div>
         <h2>Visão Geral</h2><div class="badges"><span class="badge g">✓ Presentes: ${nP.length}</span><span class="badge r">✗ Faltaram: ${nF.length}</span><span class="badge o">⚠ Com motivo: ${nM.length}</span><span class="badge gr">👥 Total: ${tot}</span><span class="badge b">📊 Taxa: ${tot > 0 ? Math.round(nP.length / tot * 100) : 0}%</span></div><div class="grafico-row">${pizzaGeral}<div class="legenda">${legendaGeral}</div>${tipoValsAtivos.length ? `<div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:4px">Resumo por Área</div>${tipoValsAtivos.map(t => {
@@ -2404,9 +2700,9 @@
         ${tipoValsAtivos.length ? `<h2>Presença por Área</h2><div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px">${statsTipoBoxes}</div>` : ''}
         ${tipoValsAtivos.length > 1 && totPresentes > 0 ? `<h2>Distribuição de Presentes por Área</h2>${pizzaTipo}` : ''}
         <h2>Taxa de Presença por Área</h2><div class="legenda-bar"><span><i style="background:#2e7d32"></i>Presentes</span><span><i style="background:#e65100"></i>Com Motivo</span><span><i style="background:#c62828"></i>Faltaram</span></div>${barrasTypes}
-        <h2>Lista Geral — Presentes (${nP.length})</h2><table><thead><tr><th>Nome</th><th>Áreas</th><th style="width:70px;text-align:center">Chegada</th><th>Obs.</th></tr></thead><tbody>${nP.map(rowM).join('')}</tbody></table>
-        ${nM.length ? `<h2>Lista Geral — Faltaram com Motivo (${nM.length})</h2><table><thead><tr><th>Nome</th><th>Áreas</th><th style="width:70px;text-align:center">Registo</th><th>Motivo</th></tr></thead><tbody>${nM.map(rowM).join('')}</tbody></table>` : ''}
-        ${nF.length ? `<h2>Lista Geral — Faltaram (${nF.length})</h2><table><thead><tr><th>Nome</th><th>Áreas</th><th style="width:70px">—</th><th>—</th></tr></thead><tbody>${nF.map(rowM).join('')}</tbody></table>` : ''}
+        <h2>Lista Geral — Presentes (${nP.length})</h2><table><thead><tr><th style="width:34px"></th><th>Nome</th><th>Áreas</th><th style="width:70px;text-align:center">Chegada</th><th>Obs.</th></tr></thead><tbody>${nP.map(rowM).join('')}</tbody></table>
+        ${nM.length ? `<h2>Lista Geral — Faltaram com Motivo (${nM.length})</h2><table><thead><tr><th style="width:34px"></th><th>Nome</th><th>Áreas</th><th style="width:70px;text-align:center">Registo</th><th>Motivo</th></tr></thead><tbody>${nM.map(rowM).join('')}</tbody></table>` : ''}
+        ${nF.length ? `<h2>Lista Geral — Faltaram (${nF.length})</h2><table><thead><tr><th style="width:34px"></th><th>Nome</th><th>Áreas</th><th style="width:70px">—</th><th>—</th></tr></thead><tbody>${nF.map(rowM).join('')}</tbody></table>` : ''}
         ${secoesTipo}
         <div class="footer">Gerado em ${new Date().toLocaleDateString('pt-PT', {
                 day: '2-digit',
@@ -2532,23 +2828,38 @@
                 lista.map((t, i) => `<div class="ev-list-item ${evTipoIdx === i ? 'active' : ''}" onclick="evSelTipo(${i})" id="evt-item-${i}">
                 <div class="ev-list-avatar" style="border-radius:6px;font-size:10px">${i + 1}</div>
                 <div class="ev-list-info"><div class="ev-list-nome">${t}</div>
-                ${t === 'Reuniao de Lideres' || t === 'Reunião de Líderes' ? '<div class="ev-list-sub">Auto-adiciona lideres</div>' : ''}</div>
+            ${(t === 'Reuniao de Lideres' || t === 'Reunião de Líderes')
+            ? '<div class="ev-list-sub" style="color:var(--primary-dark)">⚡ Auto-adiciona líderes</div>'
+            : t === 'Reunião de Voluntários'
+            ? '<div class="ev-list-sub" style="color:#2e7d32">⚡ Auto-adiciona voluntários</div>'
+            : t === 'Prestação de Contas'
+            ? '<div class="ev-list-sub" style="color:#e65100">⚡ Auto-adiciona dizimistas</div>'
+            : ''}
+                </div>
             </div>`).join('');
         }
 
         function evSelTipo(idx) {
             evTipoIdx = idx;
             document.querySelectorAll('[id^="evt-item-"]').forEach((el, i) => el.classList.toggle('active', i === idx));
-            const lista = getTipos(), t = lista[idx], isL = t === 'Reuniao de Lideres' || t === 'Reunião de Líderes';
+
+            const lista = getTipos(), t = lista[idx];
+const isL  = t === 'Reuniao de Lideres' || t === 'Reunião de Líderes';
+const isV  = t === 'Reunião de Voluntários';
+const isPC = t === 'Prestação de Contas';
+const isAuto = isL || isV || isPC;
+
             document.getElementById('ev-panel-inner').innerHTML = `<div style="animation:fadeIn .2s ease">
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
                 <div style="font-size:18px;font-weight:700;margin-bottom:6px">${t}</div>
-                ${isL ? `<div style="font-size:12px;color:var(--primary-dark);background:var(--primary-faint);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os lideres sao adicionados automaticamente.</div>` : ''}
+                    ${isL  ? `<div style="font-size:12px;color:var(--primary-dark);background:var(--primary-faint);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os <strong>líderes</strong> são adicionados automaticamente.</div>` : ''}
+                    ${isV  ? `<div style="font-size:12px;color:#2e7d32;background:rgba(46,125,50,.1);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os <strong>voluntários</strong> são adicionados automaticamente.</div>` : ''}
+                    ${isPC ? `<div style="font-size:12px;color:#e65100;background:rgba(230,81,0,.08);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os membros com <strong>e_dizimista = true</strong> são adicionados automaticamente.</div>` : ''}
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
-                    ${!isL ? `<button class="ev-btn" onclick="evAbrirFormTipo(${idx})">Editar Nome</button>` : ''}
+            ${!isAuto ? `<button class="ev-btn" onclick="evAbrirFormTipo(${idx})">Editar Nome</button>` : ''}
                     ${idx > 0 ? `<button class="ev-btn" onclick="evMoverTipo(${idx},-1)">Subir</button>` : ''}
                     ${idx < lista.length - 1 ? `<button class="ev-btn" onclick="evMoverTipo(${idx},1)">Descer</button>` : ''}
-                    ${!isL ? `<button class="ev-btn danger" onclick="evRemoverTipo(${idx})">Remover</button>` : ''}
+            ${!isAuto ? `<button class="ev-btn danger" onclick="evRemoverTipo(${idx})">Remover</button>` : ''}
                 </div>
             </div>
             <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;color:var(--text-faint)">Posicao: <strong>${idx + 1}</strong> de <strong>${lista.length}</strong></div>
@@ -2796,7 +3107,7 @@
                 .sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
 
             const presencas = await _sb(
-                `evento_presencas?select=*,membros(id,nome)&evento_id=in.(${ids.join(',')})&order=evento_id,created_at`
+                `evento_presencas?select=*,membros(id,nome,foto_url,e_lider,e_voluntario)&evento_id=in.(${ids.join(',')})&order=evento_id,created_at`
             ).catch(() => []) || [];
 
             const mIds = [...new Set(presencas.map(p => p.membro_id).filter(Boolean))];
@@ -2860,10 +3171,13 @@
             presencas.forEach(p => {
                 const key = p.membro_id || ('v_' + p.id);
                 if (!pessoas[key]) pessoas[key] = {
-                    nome:      _relNomePres(p),
-                    membro_id: p.membro_id || null,
-                    areas:     minMap[p.membro_id] || [],
-                    eventos:   {}
+                    nome:        _relNomePres(p),
+                    membro_id:   p.membro_id || null,
+                    areas:       minMap[p.membro_id] || [],
+                    eventos:     {},
+                    e_lider:      p.membros?.e_lider      || false,
+                    e_voluntario: p.membros?.e_voluntario || false,
+                    foto_url:     p.membros?.foto_url     || null
                 };
                 pessoas[key].eventos[p.evento_id] = { status: p.status, motivo: p.motivo || '' };
             });
@@ -3033,18 +3347,28 @@
             };
 
             const _subtotalRow = (members, colspan, label, cor) => {
+                const nLid = members.filter(p => p.e_lider).length;
+                const nVol = members.filter(p => p.e_voluntario).length;
+                const subLV = (nLid || nVol)
+                    ? ` <span style="font-size:8px;font-weight:400;opacity:.8">(<span style="color:#1565c0">L:${nLid}</span> · <span style="color:#2e7d32">V:${nVol}</span>)</span>`
+                    : '';
                 const cells = eventos.map(e => {
-                    const pres  = members.filter(p => p.eventos[e.id]?.status === 'presente').length;
-                    const total = members.filter(p => p.eventos[e.id]).length;
-                    if (!total) return `<td class="ev-rel-td-nd">—</td>`;
-                    const pct = Math.round(pres/total*100);
-                    const c = pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828';
-                    return `<td style="text-align:center;font-weight:700;font-size:10px;color:${c}">${pres}/${total}</td>`;
+                    const presAll  = members.filter(p => p.eventos[e.id]?.status === 'presente').length;
+                    const totalAll = members.filter(p => p.eventos[e.id]).length;
+                    const presLid  = members.filter(p => p.e_lider     && p.eventos[e.id]?.status === 'presente').length;
+                    const presVol  = members.filter(p => p.e_voluntario && p.eventos[e.id]?.status === 'presente').length;
+                    if (!totalAll) return `<td class="ev-rel-td-nd">—</td>`;
+                    const pct = Math.round(presAll / totalAll * 100);
+                    const c = pct >= 80 ? '#2e7d32' : pct >= 50 ? '#e65100' : '#c62828';
+                    return `<td style="text-align:center;font-weight:700;font-size:10px;color:${c}">
+            ${presAll}/${totalAll}
+            ${(presLid || presVol) ? `<div style="font-size:8px;font-weight:400;color:var(--text-faint)"><span style="color:#1565c0">L:${presLid}</span>·<span style="color:#2e7d32">V:${presVol}</span></div>` : ''}
+        </td>`;
                 }).join('');
                 return `<tr class="ev-rel-subtotal">
-            <td colspan="${colspan}" style="color:${cor};padding-left:16px;font-size:9px">
-                ${label} — ${members.length} pessoa(s)
-            </td>${cells}</tr>`;
+        <td colspan="${colspan}" style="color:${cor};padding-left:16px;font-size:9px">
+            ${label} — ${members.length} pessoa(s)${subLV}
+        </td>${cells}</tr>`;
             };
 
             const NCOLS = 2 + eventos.length;
@@ -3084,23 +3408,30 @@
                         .sort((a,b) => a.nome.localeCompare(b.nome))
                         .forEach((p, pi) => {
                             const bg = pi%2===0?'':'style="background:rgba(0,0,0,.015)"';
+                            const pBadge = _papelBadge({ e_lider: p.e_lider, e_voluntario: p.e_voluntario }, 'margin-left:5px');
                             tbody += `<tr ${bg}>
-                        <td style="font-weight:600;color:var(--text-main);white-space:nowrap;padding-left:28px">${p.nome}</td>
-                        <td>${_subAreaHtml(p.areas)}</td>
-                        ${eventos.map(e => _cell(e.id, p)).join('')}
-                    </tr>`;
+                                <td style="padding:4px 6px;text-align:center">${_relAvatarHtml(p)}</td>
+                                <td style="font-weight:600;color:var(--text-main);white-space:nowrap;padding-left:8px">${p.nome}${pBadge}</td>
+                                <td>${_subAreaHtml(p.areas)}</td>
+                                ${eventos.map(e => _cell(e.id, p)).join('')}
+                            </tr>`;
                         });
 
                     tbody += _subtotalRow(members, 2, areaLabel, 'var(--primary-dark)');
                 });
 
+                const nLidPilar = allPilarMembers.filter(p => p.e_lider).length;
+                const nVolPilar = allPilarMembers.filter(p => p.e_voluntario).length;
                 tbody += `<tr style="background:var(--primary-faint)">
-            <td colspan="${NCOLS}"
-                style="font-size:9px;font-weight:800;color:var(--primary-dark);
-                       padding:5px 12px;border-top:1px solid var(--primary)">
-                Total ${pilarLabel}: ${allPilarMembers.length} pessoa(s)
-            </td>
-        </tr>`;
+    <td colspan="${NCOLS}"
+        style="font-size:9px;font-weight:800;color:var(--primary-dark);
+               padding:5px 12px;border-top:1px solid var(--primary)">
+        Total ${pilarLabel}: ${allPilarMembers.length} pessoa(s)
+        <span style="font-size:8px;font-weight:400;margin-left:8px">
+            (<span style="color:#1565c0">Líderes: ${nLidPilar}</span> · <span style="color:#2e7d32">Voluntários: ${nVolPilar}</span>)
+        </span>
+    </td>
+</tr>`;
             });
 
             if (!tbody) {
@@ -3147,6 +3478,17 @@
         </span>
     </div>`;
 
+            const nLidTotal  = Object.values(pessoas).filter(p => p.e_lider).length;
+            const nVolTotal  = Object.values(pessoas).filter(p => p.e_voluntario).length;
+            const nLidPres   = presFilt.filter(p => {
+                const key = p.membro_id || ('v_' + p.id);
+                return p.status === 'presente' && pessoas[key]?.e_lider;
+            }).length;
+            const nVolPres   = presFilt.filter(p => {
+                const key = p.membro_id || ('v_' + p.id);
+                return p.status === 'presente' && pessoas[key]?.e_voluntario;
+            }).length;
+
             document.getElementById('ev-panel-inner').innerHTML = `
     <div style="animation:fadeIn .2s ease">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
@@ -3161,12 +3503,25 @@
 
         ${filtroBar}
 
-        <div class="ev-stats-grid" style="margin-bottom:14px">
-            <div class="ev-stat-box"><div class="ev-stat-num">${eventos.length}</div><div class="ev-stat-lbl">Eventos</div></div>
-            <div class="ev-stat-box"><div class="ev-stat-num">${totalPessoas}</div><div class="ev-stat-lbl">Pessoas${filtroActivo?'<br><span style="font-size:8px;color:var(--primary-dark)">filtrado</span>':''}</div></div>
-            <div class="ev-stat-box"><div class="ev-stat-num" style="color:var(--green)">${totalPres}</div><div class="ev-stat-lbl">Presenças</div></div>
-            <div class="ev-stat-box"><div class="ev-stat-num" style="color:${corTaxa}">${taxaMedia}%</div><div class="ev-stat-lbl">Taxa Média</div></div>
+<div class="ev-stats-grid" style="margin-bottom:14px">
+    <div class="ev-stat-box"><div class="ev-stat-num">${eventos.length}</div><div class="ev-stat-lbl">Eventos</div></div>
+    <div class="ev-stat-box">
+        <div class="ev-stat-num">${totalPessoas}</div>
+        <div class="ev-stat-lbl">Pessoas${filtroActivo?'<br><span style="font-size:8px;color:var(--primary-dark)">filtrado</span>':''}</div>
+        <div style="margin-top:4px;font-size:9px;line-height:1.7">
+            <span style="color:#1565c0;font-weight:700">L: ${nLidTotal}</span> · <span style="color:#2e7d32;font-weight:700">V: ${nVolTotal}</span>
         </div>
+    </div>
+    <div class="ev-stat-box">
+        <div class="ev-stat-num" style="color:var(--green)">${totalPres}</div>
+        <div class="ev-stat-lbl">Presenças</div>
+        <div style="margin-top:4px;font-size:9px;line-height:1.7">
+            <span style="color:#1565c0;font-weight:700">L: ${nLidPres}</span> · <span style="color:#2e7d32;font-weight:700">V: ${nVolPres}</span>
+        </div>
+    </div>
+    <div class="ev-stat-box"><div class="ev-stat-num" style="color:${corTaxa}">${taxaMedia}%</div><div class="ev-stat-lbl">Taxa Média</div></div>
+</div>
+
 
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:14px">
             <div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:var(--text-faint);margin-bottom:7px">EVENTOS INCLUÍDOS</div>
@@ -3186,8 +3541,9 @@
         <div style="overflow-x:auto;border:1px solid var(--border);border-radius:12px">
             <table class="ev-rel-table">
                 <thead><tr>
-                    <th style="min-width:150px">Nome</th>
-                    <th style="min-width:130px">Sub-área</th>
+                    <th style="width:34px"></th>
+                    <th style="min-width:130px">Nome</th>
+                    <th style="min-width:110px">Sub-área</th>
                     ${thEvs}
                 </tr></thead>
                 <tbody>${tbody}</tbody>
@@ -3259,7 +3615,7 @@
                     .map(a => a.nome+(a.papel?' · '+a.papel:'')).join(', ');
             };
 
-            const NCOLS = 2 + eventos.length;
+            const NCOLS = 3 + eventos.length;
             let rows = '';
 
             sortedPilares.forEach(pilarKey => {
@@ -3297,14 +3653,25 @@
                     /* Membros */
                     members.forEach((p, pi) => {
                         const bg = pi%2===0?'':'background:#fafafa';
+                        const pdfPapel = p.e_lider ? 'Líder' : p.e_voluntario ? 'Voluntário' : '';
+                        const pdfPapelSpan = pdfPapel
+                            ? `<span style="font-size:8px;padding:1px 6px;border-radius:8px;font-weight:700;margin-left:5px;${
+                                pdfPapel === 'Líder' ? 'background:#e3f2fd;color:#1565c0' : 'background:#e8f5e9;color:#2e7d32'
+                            }">${pdfPapel}</span>`
+                            : '';
+                        const pdfIni = (p.nome || '?')[0].toUpperCase();
+                        const pdfFotoCell = p.foto_url
+                            ? `<td style="width:34px;padding:3px 5px;text-align:center"><img src="${p.foto_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover"></td>`
+                            : `<td style="width:34px;padding:3px 5px;text-align:center"><div style="width:26px;height:26px;border-radius:50%;background:#e0f7fa;color:#005f65;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:auto">${pdfIni}</div></td>`;
                         rows += `<tr style="${bg}">
-                    <td style="padding:4px 8px 4px 28px;font-weight:600;font-size:11px;white-space:nowrap">${p.nome}</td>
-                    <td style="padding:4px 6px;font-size:10px;color:#555">${_subAreaStr(p.areas)}</td>
-                    ${eventos.map(e => _cell(e.id, p)).join('')}
-                </tr>`;
+    ${pdfFotoCell}
+    <td style="padding:4px 8px 4px 8px;font-weight:600;font-size:11px;white-space:nowrap">${p.nome}${pdfPapelSpan}</td>
+    <td style="padding:4px 6px;font-size:10px;color:#555">${_subAreaStr(p.areas)}</td>
+    ${eventos.map(e => _cell(e.id, p)).join('')}
+</tr>`;
                     });
 
-                    /* Subtotal Área */
+                    /* Subtotal Área — FORA do forEach */
                     const subCells = eventos.map(e => {
                         const pres  = members.filter(p => p.eventos[e.id]?.status==='presente').length;
                         const total = members.filter(p => p.eventos[e.id]).length;
@@ -3313,11 +3680,16 @@
                         const cor = pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828';
                         return `<td style="text-align:center;font-size:9px;font-weight:700;color:${cor};border-top:1px dashed #ddd">${pres}/${total}</td>`;
                     }).join('');
+                    const pdfNLidArea = members.filter(p => p.e_lider).length;
+                    const pdfNVolArea = members.filter(p => p.e_voluntario).length;
                     rows += `<tr style="background:#f9f9f9">
-                <td colspan="2" style="font-size:8px;font-weight:700;color:#006b70;padding:3px 8px 3px 28px;border-top:1px dashed #ddd">
-                    Subtotal ${areaLabel}
-                </td>${subCells}
-            </tr>`;
+    <td colspan="3" style="font-size:8px;font-weight:700;color:#006b70;padding:3px 8px 3px 28px;border-top:1px dashed #ddd">
+        Subtotal ${areaLabel} — ${members.length} pessoa(s)
+        <span style="font-weight:400;margin-left:6px">
+            (<span style="color:#1565c0">L:${pdfNLidArea}</span> · <span style="color:#2e7d32">V:${pdfNVolArea}</span>)
+        </span>
+    </td>${subCells}
+</tr>`;
                 });
 
                 /* Total Pilar */
@@ -3329,12 +3701,28 @@
                     const cor = pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828';
                     return `<td style="text-align:center;font-size:10px;font-weight:800;color:${cor};border-top:2px solid #009098">${pres}/${total}</td>`;
                 }).join('');
+                const pdfNLidPilar = allPilarMembers.filter(p => p.e_lider).length;
+                const pdfNVolPilar = allPilarMembers.filter(p => p.e_voluntario).length;
                 rows += `<tr style="background:#e0f7fa">
-            <td colspan="2" style="font-size:9px;font-weight:800;color:#004c52;padding:5px 12px;border-top:2px solid #009098">
-                TOTAL ${pilarLabel.toUpperCase()}
-            </td>${pilarCells}
-        </tr><tr><td colspan="${NCOLS}" style="padding:4px"></td></tr>`;
+    <td colspan="3" style="font-size:9px;font-weight:800;color:#004c52;padding:5px 12px;border-top:2px solid #009098">
+        TOTAL ${pilarLabel.toUpperCase()} — ${allPilarMembers.length} pessoa(s)
+        <span style="font-size:8px;font-weight:400;margin-left:8px">
+            (<span style="color:#1565c0">Líderes: ${pdfNLidPilar}</span> · <span style="color:#2e7d32">Voluntários: ${pdfNVolPilar}</span>)
+        </span>
+    </td>${pilarCells}
+</tr><tr><td colspan="${NCOLS}" style="padding:4px"></td></tr>`;
             });
+
+                const pdfNLid = Object.values(pessoas).filter(p => p.e_lider).length;
+                const pdfNVol = Object.values(pessoas).filter(p => p.e_voluntario).length;
+                const pdfNLidPres = presencas.filter(p => {
+                    const key = p.membro_id || ('v_' + p.id);
+                    return p.status === 'presente' && pessoas[key]?.e_lider;
+                }).length;
+                const pdfNVolPres = presencas.filter(p => {
+                    const key = p.membro_id || ('v_' + p.id);
+                    return p.status === 'presente' && pessoas[key]?.e_voluntario;
+                }).length;
 
             const htm = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
     <title>Relatório de Presenças — Zion Lisboa</title>
@@ -3363,13 +3751,21 @@
         ${filtroInfo ? `<div style="margin-top:6px;background:rgba(255,255,255,.15);border-radius:6px;padding:4px 12px;display:inline-block;font-size:11px">⚡ Filtro: ${filtroInfo}</div>` : ''}
         <div style="opacity:.8;font-size:11px;margin-top:4px">${eventos.length} evento(s) &nbsp;·&nbsp; ${geradoEm}</div>
     </div>
-    <div class="stats">
-        <div class="sc"><div class="sn">${eventos.length}</div><div class="sl">Eventos</div></div>
-        <div class="sc"><div class="sn">${totalPessoas}</div><div class="sl">Pessoas</div></div>
-        <div class="sc"><div class="sn" style="color:#2e7d32">${totalPres}</div><div class="sl">Presenças</div></div>
-        <div class="sc"><div class="sn" style="color:#c62828">${totalFalt}</div><div class="sl">Faltas</div></div>
-        <div class="sc"><div class="sn" style="color:${corTaxa}">${taxaMedia}%</div><div class="sl">Taxa</div></div>
+
+<div class="stats">
+    <div class="sc"><div class="sn">${eventos.length}</div><div class="sl">Eventos</div></div>
+    <div class="sc">
+        <div class="sn">${totalPessoas}</div><div class="sl">Pessoas</div>
+        <div style="font-size:9px;margin-top:3px"><span style="color:#1565c0">L:${pdfNLid}</span> · <span style="color:#2e7d32">V:${pdfNVol}</span></div>
     </div>
+    <div class="sc">
+        <div class="sn" style="color:#2e7d32">${totalPres}</div><div class="sl">Presenças</div>
+        <div style="font-size:9px;margin-top:3px"><span style="color:#1565c0">L:${pdfNLidPres}</span> · <span style="color:#2e7d32">V:${pdfNVolPres}</span></div>
+    </div>
+    <div class="sc"><div class="sn" style="color:#c62828">${totalFalt}</div><div class="sl">Faltas</div></div>
+    <div class="sc"><div class="sn" style="color:${corTaxa}">${taxaMedia}%</div><div class="sl">Taxa</div></div>
+</div>
+
     <div class="legend">
         <span><i style="background:#2e7d32"></i>✓ Presente</span>
         <span><i style="background:#c62828"></i>✗ Faltou</span>
@@ -3573,6 +3969,7 @@
             evVerPresencas, evRenderPresencas, evRenderPresBody, evSetPresSearch,
             evMarcarPres, evRemoverPresenca,
             evAddParticipante, evFinalizarEntradas,
+            evAddSetFiltro, evAddSelMembro, evRenderAddLista,
             evAbrirMotivo, evGuardarMotivo,
             evGerarPDF, _pdfTipoLabel,
             evRenderSideTipos, evSelTipo,
@@ -3589,6 +3986,7 @@
             evSilentRefresh,
             evRelSetFiltPilar, evRelSetFiltArea, evRelSetFiltSubArea,
             evRelLimparFiltros,
+
         });
 
         evInit();

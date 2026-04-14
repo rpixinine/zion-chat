@@ -6,7 +6,7 @@ import {createClient} from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import {emailBoasVindasApp} from "../../emails/templates.js";
+import {emailBoasVindasApp} from "./email-templates.js";
 
 const supabase = createClient(
     process.env.SUPABASE_URL,

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Envio em Massa — Zion Lisboa</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    body { background: var(--bg-page, #02161e); }
+
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .page-eyebrow {
+      font-family: var(--font-title);
+      font-size: 9px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--primary, #009098);
+      margin-bottom: 10px;
+    }
+
+    .page-title {
+      font-family: var(--font-title);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .page-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.6;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg-card, #071c26);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-family: var(--font-title);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--primary, #009098);
+      margin-bottom: 16px;
+    }
+
+    /* ── Toggle opções ── */
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .option-row:last-child { border-bottom: none; }
+
+    .option-label {
+      font-size: 13px;
+      color: rgba(255,255,255,0.80);
+      line-height: 1.4;
+    }
+    .option-desc {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 3px;
+    }
+
+    /* Toggle switch */
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--primary, #009098); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* ── Botões de ação ── */
+    .actions { display: flex; gap: 12px; margin-top: 8px; }
+
+    .btn-dry {
+      flex: 1;
+      padding: 13px;
+      background: none;
+      border: 1px solid rgba(0,144,152,0.40);
+      border-radius: 10px;
+      color: var(--primary, #009098);
+      font-family: var(--font-title);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .btn-dry:hover { border-color: var(--primary); background: rgba(0,144,152,0.08); }
+    .btn-dry:disabled { opacity: .4; cursor: default; }
+
+    .btn-send {
+      flex: 2;
+      padding: 13px;
+      background: var(--primary, #009098);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-family: var(--font-title);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-send:hover  { opacity: .85; }
+    .btn-send:disabled { opacity: .35; cursor: default; }
+
+    /* ── Resultado ── */
+    .result-box {
+      display: none;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .result-box.visible { display: block; }
+
+    .result-header {
+      padding: 12px 18px;
+      font-family: var(--font-title);
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .result-header.dry  { background: rgba(255,193,7,0.15); color: #ffc107; }
+    .result-header.ok   { background: rgba(0,144,152,0.18); color: var(--primary); }
+    .result-header.erro { background: rgba(252,138,138,0.15); color: #fc8a8a; }
+
+    .result-body {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      padding: 16px 18px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: rgba(255,255,255,0.45); }
+    .stat-val   { color: #fff; font-weight: 700; }
+    .stat-val.green { color: #6ddec0; }
+    .stat-val.red   { color: #fc8a8a; }
+    .stat-val.yellow { color: #ffc107; }
+
+    /* Lista dry run */
+    .dry-list {
+      margin-top: 12px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .dry-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 12px;
+    }
+    .dry-item-nome { color: rgba(255,255,255,0.70); }
+    .dry-item-email { color: rgba(255,255,255,0.35); font-size: 11px; }
+
+    /* Erros */
+    .erros-list { margin-top: 10px; }
+    .erro-item {
+      padding: 8px 10px;
+      background: rgba(252,138,138,0.08);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: #fc8a8a;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Auth guard */
+    .auth-guard {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .auth-guard-title {
+      font-family: var(--font-title);
+      font-size: 1.2rem;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .auth-guard-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+<div class="page" id="main-content" style="display:none">
+
+  <div class="page-header">
+    <div class="page-eyebrow">Administração</div>
+    <div class="page-title">Envio em Massa</div>
+    <div class="page-sub">
+      Cria contas e envia o email de boas-vindas<br>
+      para todos os membros com email registado.
+    </div>
+  </div>
+
+  <!-- Opções -->
+  <div class="card">
+    <div class="card-title">Configuração</div>
+
+    <div class="option-row">
+      <div>
+        <div class="option-label">Apenas membros novos</div>
+        <div class="option-desc">Ignora quem já tem conta criada</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="opt-apenas-novos" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="option-row">
+      <div>
+        <div class="option-label">Simulação (Dry Run)</div>
+        <div class="option-desc">Mostra a lista sem criar contas nem enviar emails</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="opt-dry-run">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Ações -->
+  <div class="card">
+    <div class="card-title">Acção</div>
+    <p style="font-size:13px;color:rgba(255,255,255,0.50);margin:0 0 18px;line-height:1.7;">
+      Primeiro faz uma <strong style="color:#ffc107">Simulação</strong> para ver quantos membros serão processados,
+      depois clica em <strong style="color:var(--primary)">Enviar Agora</strong> para disparar tudo.
+    </p>
+    <div class="actions">
+      <button class="btn-dry" id="btn-simular" onclick="correr(true)">
+        🔍 Simular
+      </button>
+      <button class="btn-send" id="btn-enviar" onclick="confirmarEnvio()">
+        📧 Enviar Agora
+      </button>
+    </div>
+  </div>
+
+  <!-- Resultado -->
+  <div class="result-box" id="result-box">
+    <div class="result-header" id="result-header"></div>
+    <div class="result-body" id="result-body"></div>
+  </div>
+
+  <p style="font-size:11px;color:rgba(255,255,255,0.20);text-align:center;margin-top:24px;">
+    Senha padrão enviada: <strong style="color:rgba(255,255,255,0.40)">Zion@Lisboa777</strong>
+  </p>
+</div>
+
+<!-- Auth guard -->
+<div class="auth-guard" id="auth-guard" style="display:none">
+  <div class="auth-guard-title">Acesso Restrito</div>
+  <div class="auth-guard-sub">Esta página é apenas para administradores.</div>
+  <a href="login" class="btn-send" style="display:inline-block;padding:12px 28px;text-decoration:none;border-radius:10px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;">
+    Fazer Login
+  </a>
+</div>
+
+<script>
+  // ── Guard: só admin ───────────────────────────────────────────────────────
+  (function() {
+    const user = ZionAuth.getUser();
+    if (!user || !user.e_admin) {
+      document.getElementById('auth-guard').style.display = 'block';
+    } else {
+      document.getElementById('main-content').style.display = 'block';
+    }
+  })();
+
+  // ── Obter token ───────────────────────────────────────────────────────────
+  function getToken() {
+    // adapta ao teu auth.js — tenta as formas mais comuns
+    if (ZionAuth.getToken) return ZionAuth.getToken();
+    const user = ZionAuth.getUser();
+    if (user?._token) return user._token;
+    return localStorage.getItem('zion_token') || sessionStorage.getItem('zion_token') || '';
+  }
+
+  // ── Correr (simulação ou real) ────────────────────────────────────────────
+  async function correr(forceDry = false) {
+    const dryRun     = forceDry || document.getElementById('opt-dry-run').checked;
+    const apenasNovos = document.getElementById('opt-apenas-novos').checked;
+
+    const btnSim = document.getElementById('btn-simular');
+    const btnEnv = document.getElementById('btn-enviar');
+    btnSim.disabled = true;
+    btnEnv.disabled = true;
+    btnSim.innerHTML = '<span class="spinner"></span>A processar...';
+
+    const resultBox  = document.getElementById('result-box');
+    const resultHdr  = document.getElementById('result-header');
+    const resultBody = document.getElementById('result-body');
+
+    resultBox.classList.remove('visible');
+
+    try {
+      const res = await fetch('/api/auth/bulk-send-welcome', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({
+          dry_run:      dryRun,
+          apenas_novos: apenasNovos
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        mostrarErroGeral(data.error || `Erro ${res.status}`);
+        return;
+      }
+
+      mostrarResultado(data, dryRun);
+
+    } catch (err) {
+      mostrarErroGeral('Erro de ligação: ' + err.message);
+    } finally {
+      btnSim.disabled = false;
+      btnEnv.disabled = false;
+      btnSim.innerHTML = '🔍 Simular';
+    }
+  }
+
+  function mostrarResultado(data, isDry) {
+    const resultBox  = document.getElementById('result-box');
+    const resultHdr  = document.getElementById('result-header');
+    const resultBody = document.getElementById('result-body');
+
+    if (isDry) {
+      resultHdr.className = 'result-header dry';
+      resultHdr.textContent = '📋 Resultado da Simulação';
+
+      let html = `
+                <div class="stat-row">
+                    <span class="stat-label">Total membros com email</span>
+                    <span class="stat-val">${data.total_membros ?? '—'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Já têm conta</span>
+                    <span class="stat-val yellow">${data.ja_tem_conta ?? '—'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Seriam criados/enviados</span>
+                    <span class="stat-val green">${data.a_criar ?? '—'}</span>
+                </div>`;
+
+      if (data.lista?.length) {
+        html += `<div class="dry-list">`;
+        data.lista.forEach(m => {
+          html += `<div class="dry-item">
+                        <span class="dry-item-nome">${m.nome}</span>
+                        <span class="dry-item-email">${m.email}</span>
+                    </div>`;
+        });
+        html += `</div>`;
+      }
+
+      resultBody.innerHTML = html;
+
+    } else {
+      resultHdr.className = 'result-header ok';
+      resultHdr.textContent = '✓ Envio concluído';
+
+      let html = `
+                <div class="stat-row">
+                    <span class="stat-label">Contas criadas</span>
+                    <span class="stat-val green">${data.criados ?? '—'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Emails enviados</span>
+                    <span class="stat-val green">${data.emails_enviados ?? '—'}</span>
+                </div>`;
+
+      if (data.erros?.length) {
+        html += `<div class="stat-row">
+                    <span class="stat-label">Erros</span>
+                    <span class="stat-val red">${data.erros.length}</span>
+                </div>
+                <div class="erros-list">`;
+        data.erros.forEach(e => {
+          html += `<div class="erro-item">${e.email} — ${e.etapa}: ${e.erro}</div>`;
+        });
+        html += `</div>`;
+      }
+
+      resultBody.innerHTML = html;
+    }
+
+    resultBox.classList.add('visible');
+    resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function mostrarErroGeral(msg) {
+    const resultBox  = document.getElementById('result-box');
+    const resultHdr  = document.getElementById('result-header');
+    const resultBody = document.getElementById('result-body');
+    resultHdr.className = 'result-header erro';
+    resultHdr.textContent = '✕ Erro';
+    resultBody.innerHTML = `<div style="font-size:13px;color:#fc8a8a;">${msg}</div>`;
+    resultBox.classList.add('visible');
+  }
+
+  // ── Confirmação antes de enviar de verdade ────────────────────────────────
+  function confirmarEnvio() {
+    const dryRun = document.getElementById('opt-dry-run').checked;
+    if (dryRun) {
+      correr(false); // se dry run está ligado, envia mesmo assim (o toggle estava ligado por erro)
+      return;
+    }
+    if (confirm('⚠️ Confirmas o envio dos emails para todos os membros?\n\nEsta acção não pode ser desfeita.')) {
+      correr(false);
+    }
+  }
+</script>
+</body>
+</html>

@@ -77,10 +77,11 @@ const ZionAuth = (() => {
             id:         data.user.id,
             nome:       data.user.nome,
             email:      data.user.email,
-            tipo:       data.user.tipo,        // visitante | membro | admin
+            tipo:       data.user.tipo,
             membro_id:  data.user.membro_id,
+            e_admin:    data.user.e_admin || false,
             token:      data.token,
-            expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 dias
+            expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000)
         });
 
         return data.user;
@@ -133,7 +134,11 @@ const ZionAuth = (() => {
     `;
     }
 
+    function getToken() {
+        return getUser()?.token || '';
+    }
+
     // ── Exposição pública ─────────────────────────────────────
-    return { protect, login, register, logout, getUser, isLoggedIn, renderUserBadge, saveSession };
+    return { protect, login, register, logout, getUser, isLoggedIn, renderUserBadge, saveSession, getToken };
 
 })();

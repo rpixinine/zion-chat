@@ -328,4 +328,162 @@ export function emailConfirmacaoInscricao({nome, evento, data, local, valor, pos
     };
 }
 
+// ── Email: Boas-vindas ao App — Acesso inicial ────────────────────────────────
+export function emailBoasVindasApp({ nome, email }) {
+    const primeiroNome = (nome || 'Irmão').split(' ')[0];
+    const appUrl = 'https://chat.zionlisboa.pt';
+    const senhaDefault = 'Zion@Lisboa777';
+
+    const corpo = `
+      <!-- Saudação -->
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:15px;color:#0a2020;">
+        Ol&aacute;, <strong>${primeiroNome}</strong> 👋
+      </p>
+      <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:14px;color:#4a6a6a;line-height:1.7;">
+        A plataforma digital da <strong style="color:#007078;">Zion Lisboa</strong> est&aacute; dispon&iacute;vel!
+        J&aacute; criámos o teu acesso — podes entrar hoje mesmo.
+      </p>
+ 
+      <!-- Card de acesso -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:24px;border-radius:10px;overflow:hidden;border:1px solid #d0e8e8;">
+        <tr>
+          <td bgcolor="#007078" style="background-color:#007078;padding:14px 20px;">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:14px;
+                      font-weight:700;color:#ffffff;letter-spacing:.5px;text-transform:uppercase;">
+              Os teus dados de acesso
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td bgcolor="#f5fafa" style="background-color:#f5fafa;padding:20px;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td style="padding:6px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;width:70px;vertical-align:top;">&#128231; Email</td>
+                <td style="padding:6px 0;font-family:'Courier New',monospace;font-size:13px;
+                           color:#007078;font-weight:700;word-break:break-all;">${email}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;vertical-align:top;">&#128274; Senha</td>
+                <td style="padding:6px 0;font-family:'Courier New',monospace;font-size:15px;
+                           color:#0a2020;font-weight:700;letter-spacing:1px;">${senhaDefault}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+ 
+      <!-- Aviso de trocar senha -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:24px;border-left:3px solid #e65100;background-color:#fff8f5;" bgcolor="#fff8f5">
+        <tr>
+          <td style="padding:12px 16px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#7a3a00;line-height:1.7;">
+              &#9888;&nbsp;<strong>Importante:</strong> ap&oacute;s o primeiro acesso, clica em
+              <strong>"Redefinir Senha"</strong> no menu para criares a tua senha pessoal.
+            </p>
+          </td>
+        </tr>
+      </table>
+ 
+      <!-- O que podes fazer -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:24px;border-left:3px solid #009098;background-color:#f5fafa;" bgcolor="#f5fafa">
+        <tr>
+          <td style="padding:14px 18px;">
+            <p style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:12px;
+                      letter-spacing:1.5px;text-transform:uppercase;color:#007078;">
+              O que podes fazer na plataforma
+            </p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#2a5a5a;line-height:2;">
+              &#128197;&nbsp;Consultar a agenda da Zion<br>
+              &#10067;&nbsp;Tirar d&uacute;vidas com o assistente virtual<br>
+              &#128218;&nbsp;Saber mais sobre os minist&eacute;rios e grupos<br>
+              &#128205;&nbsp;Ver a localiza&ccedil;&atilde;o e informa&ccedil;&otilde;es da igreja<br>
+              &#127979;&nbsp;Aceder aos cursos ZAO<br>
+              &#127981;&nbsp;Agendar salas e espa&ccedil;os
+            </p>
+          </td>
+        </tr>
+      </table>
+ 
+      <!-- CTA principal -->
+      <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 28px;">
+        <tr>
+          <td align="center" bgcolor="#007078"
+              style="background-color:#007078;border-radius:8px;padding:0;">
+            <a href="${appUrl}"
+               style="display:inline-block;padding:15px 40px;font-family:Georgia,'Times New Roman',serif;
+                      font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+                      color:#ffffff;text-decoration:none;border-radius:8px;background-color:#007078;">
+              Entrar na Plataforma
+            </a>
+          </td>
+        </tr>
+      </table>
+ 
+      <!-- Instalar como App — Android -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid #d0e8e8;">
+        <tr>
+          <td bgcolor="#e8f5e9" style="background-color:#e8f5e9;padding:14px 20px;">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:12px;
+                      letter-spacing:1px;text-transform:uppercase;color:#2e7d32;font-weight:700;">
+              &#129504; Instalar no Android
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td bgcolor="#f5fafa" style="background-color:#f5fafa;padding:14px 20px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#2a5a5a;line-height:1.8;">
+              Ao abrires o site no Chrome, aparecer&aacute; automaticamente um
+              bot&atilde;o <strong>"Instalar App Zion Lisboa"</strong> na parte inferior do ecr&atilde;.
+              Basta clicar para instalar como app nativa.
+            </p>
+          </td>
+        </tr>
+      </table>
+ 
+      <!-- Instalar como App — iOS -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:28px;border-radius:10px;overflow:hidden;border:1px solid #d0e8e8;">
+        <tr>
+          <td bgcolor="#e3f2fd" style="background-color:#e3f2fd;padding:14px 20px;">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:12px;
+                      letter-spacing:1px;text-transform:uppercase;color:#1565c0;font-weight:700;">
+               &#127822; Instalar no iPhone / iPad
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td bgcolor="#f5fafa" style="background-color:#f5fafa;padding:14px 20px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#2a5a5a;line-height:2;">
+              <strong>1.</strong>&nbsp;Abre o site no Safari<br>
+              <strong>2.</strong>&nbsp;Toca no &iacute;cone de partilha
+              <span style="font-size:15px;">&#11014;</span> (barra inferior)<br>
+              <strong>3.</strong>&nbsp;Selecciona <strong>"Adicionar ao Ecr&atilde; de In&iacute;cio"</strong><br>
+              <strong>4.</strong>&nbsp;Confirma — a app fica guardada como nativa!
+            </p>
+          </td>
+        </tr>
+      </table>
+ 
+      <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#7a9a9a;
+                line-height:1.6;text-align:center;">
+        Tens d&uacute;vidas? Fala connosco pelo WhatsApp ou no pr&oacute;ximo culto. &#128591;
+      </p>`;
+
+    return {
+        subject: `${primeiroNome}, o teu acesso à Zion Lisboa está pronto!`,
+        html: emailBase({
+            titulo: 'Acesso à Plataforma Zion Lisboa',
+            corpo,
+            rodape: `Este email foi enviado porque tens registo na Zion Lisboa.
+                     O teu email de acesso &eacute; <strong>${email}</strong>.`
+        })
+    };
+}
+
 export {APP_URL};

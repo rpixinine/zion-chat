@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Novo Registo — Zion Lisboa</title>
+    <title>Jornada — Zion Lisboa</title>
 
     <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
@@ -463,6 +463,47 @@
             .grid-2 { grid-template-columns: 1fr; }
             .tipo-grid { grid-template-columns: 1fr; }
         }
+
+        /* ── OPCAO CARDS (visitante) ── */
+        .opcao-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+        .opcao-card {
+            display: flex; align-items: center; gap: 14px;
+            padding: 16px 14px;
+            border-radius: var(--radius);
+            border: 2px solid var(--border);
+            background: var(--card);
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .opcao-card:hover { border-color: var(--teal); background: var(--teal-f); }
+        .opcao-card.selected {
+            border-color: var(--teal);
+            background: var(--teal-f);
+        }
+        .opcao-radio {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            flex-shrink: 0;
+            transition: all .2s;
+            position: relative;
+        }
+        .opcao-card.selected .opcao-radio {
+            border-color: var(--teal);
+            background: var(--teal);
+        }
+        .opcao-card.selected .opcao-radio::after {
+            content: '';
+            position: absolute;
+            width: 8px; height: 8px;
+            background: white;
+            border-radius: 50%;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .opcao-title { font-size: 14px; color: white; margin-bottom: 2px; }
+        .opcao-sub   { font-size: 11px; color: var(--muted); }
+
     </style>
 </head>
 <body>
@@ -476,8 +517,8 @@
              alt="Zion Lisboa"
              onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
         <span id="logo-fb" class="hd-logo-text">ZION LISBOA</span>
-        <div class="hd-title">Novo Nascimento</div>
-        <div class="hd-sub">Jornadas</div>
+        <div class="hd-title">Jornada</div>
+        <div class="hd-sub">Bem-vindo à Jornada</div>
     </div>
 
     <!-- PROGRESS -->
@@ -510,7 +551,7 @@
             <div class="step-intro">
                 <div class="step-intro-title">Bem-vindo a Zion Lisboa</div>
                 <div class="step-intro-sub">
-                    Qual foi o tipo de chegada desta pessoa?
+                    Conte um pouco sobre você
                 </div>
             </div>
 
@@ -520,8 +561,8 @@
 
                     </div>
                     <div>
-                        <div class="tipo-card-title">Conversão</div>
-                        <div class="tipo-card-desc">Aceitando a Cristo pela primeira vez</div>
+                        <div class="tipo-card-title">Novo Nascimento</div>
+                        <div class="tipo-card-desc">Aceitei Jesus Recentemente</div>
                     </div>
                 </div>
                 <div class="tipo-card" id="tipo-retorno" onclick="selecionarTipo('retorno')">
@@ -529,8 +570,17 @@
 
                     </div>
                     <div>
-                        <div class="tipo-card-title">Retorno</div>
-                        <div class="tipo-card-desc">Retornando a casa do Pai depois de um tempo afastado</div>
+                        <div class="tipo-card-title">Reconciliação</div>
+                        <div class="tipo-card-desc">Quero Voltar para Deus</div>
+                    </div>
+                </div>
+                <div class="tipo-card" id="tipo-visitante" onclick="selecionarTipo('visitante')">
+                    <div class="tipo-card-icon">
+
+                    </div>
+                    <div>
+                        <div class="tipo-card-title">Visitante</div>
+                        <div class="tipo-card-desc">Estou Conhecendo a Zion</div>
                     </div>
                 </div>
             </div>
@@ -547,7 +597,7 @@
 
             <div class="field">
                 <label class="req">Nome Completo</label>
-                <input type="text" id="p_nome" placeholder="Nome da pessoa"
+                <input type="text" id="p_nome" placeholder="Nome Completo"
                        autocomplete="given-name" autocapitalize="words">
             </div>
 
@@ -558,7 +608,7 @@
                            autocapitalize="none" autocomplete="email">
                 </div>
                 <div class="field">
-                    <label>Telefone</label>
+                    <label>Telemovél</label>
                     <input type="tel" id="p_telefone" placeholder="+351 900 000 000"
                            autocomplete="tel">
                 </div>
@@ -566,7 +616,7 @@
 
             <div class="grid-2">
                 <div class="field">
-                    <label class="req">Genero</label>
+                    <label class="req">Sexo</label>
                     <select id="p_genero">
                         <option value="">-- Seleciona --</option>
                         <option value="masculino">Masculino</option>
@@ -639,9 +689,48 @@
         ══════════════════════════════════ -->
         <div class="step" id="step-3">
 
+            <!-- Visitante -->
+            <div id="bloco-visitante" style="display:none">
+                <div class="section-lbl">Qual é a tua situação atual</div>
+
+                <div class="opcao-list">
+                    <div class="opcao-card" id="vopc-sem-igreja" onclick="selecionarVisitanteOpc('sem_igreja')">
+                        <div class="opcao-radio"></div>
+                        <div>
+                            <div class="opcao-title">Não tenho igreja no momento</div>
+                            <div class="opcao-sub">Estou à procura ou sem comunidade de fé</div>
+                        </div>
+                    </div>
+                    <div class="opcao-card" id="vopc-visitando" onclick="selecionarVisitanteOpc('visitando_zion')">
+                        <div class="opcao-radio"></div>
+                        <div>
+                            <div class="opcao-title">Estou a visitar a Zion há algum tempo</div>
+                            <div class="opcao-sub">Tenho vindo aos cultos mas ainda não sou membro</div>
+                        </div>
+                    </div>
+                    <div class="opcao-card" id="vopc-tem-igreja" onclick="selecionarVisitanteOpc('tem_igreja')">
+                        <div class="opcao-radio"></div>
+                        <div>
+                            <div class="opcao-title">Tenho uma igreja local</div>
+                            <div class="opcao-sub">Faço parte de outra comunidade</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bloco-igreja-local" style="display:none; margin-top:14px;">
+                    <div class="cond-box">
+                        <div class="cond-box-title">Igreja Local</div>
+                        <div class="field">
+                            <label>Qual é a tua igreja local</label>
+                            <input type="text" id="p_igreja_local" placeholder="Nome da igreja">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Conversao -->
             <div id="bloco-conversao" style="display:none">
-                <div class="section-lbl">Detalhes da Conversao</div>
+                <div class="section-lbl">Nos Conte um Pouco mais</div>
 
                 <div class="toggle-row" onclick="togglePrimeira()">
                     <div>
@@ -764,6 +853,8 @@
         let _idiomas       = [];
         let _nacs          = [];
         let _currentStep   = 1;
+        let _visitanteOpc = null; // 'sem_igreja' | 'visitando_zion' | 'tem_igreja'
+
 
         /* ═══════════════════════════════════════════════════
            LISTAS
@@ -850,6 +941,7 @@
             _tipo = tipo;
             document.getElementById('tipo-conversao').classList.toggle('selected', tipo === 'conversao');
             document.getElementById('tipo-retorno').classList.toggle('selected',   tipo === 'retorno');
+            document.getElementById('tipo-visitante').classList.toggle('selected',   tipo === 'visitante');
             clearMsg('msg-1');
         };
 
@@ -913,6 +1005,7 @@
             if (step === 3) {
                 document.getElementById('bloco-conversao').style.display = _tipo === 'conversao' ? 'block' : 'none';
                 document.getElementById('bloco-retorno').style.display   = _tipo === 'retorno'   ? 'block' : 'none';
+                document.getElementById('bloco-visitante').style.display   = _tipo === 'visitante'   ? 'block' : 'none';
             }
 
             // Esconder step atual, mostrar novo
@@ -922,6 +1015,32 @@
 
             atualizarProgress();
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+
+        /* ═══════════════════════════════════════════════════
+         OPCOES DO VISITANTE
+        ═══════════════════════════════════════════════════ */
+        window.selecionarVisitanteOpc = function(opc) {
+            _visitanteOpc = opc;
+
+            ['sem-igreja', 'visitando', 'tem-igreja'].forEach(id => {
+                const el = document.getElementById('vopc-' + id);
+                if (el) el.classList.remove('selected');
+            });
+
+            const mapaId = {
+                sem_igreja:     'vopc-sem-igreja',
+                visitando_zion: 'vopc-visitando',
+                tem_igreja:     'vopc-tem-igreja',
+            };
+            const card = document.getElementById(mapaId[opc]);
+            if (card) card.classList.add('selected');
+
+            const blocoIgreja = document.getElementById('bloco-igreja-local');
+            if (blocoIgreja) {
+                blocoIgreja.style.display = opc === 'tem_igreja' ? 'block' : 'none';
+            }
         };
 
         /* ═══════════════════════════════════════════════════
@@ -1051,6 +1170,9 @@
                     patch.local_retorno      = gv('p_local_retorno')   || null;
                     patch.igreja_anterior    = gv('p_igreja_anterior') || null;
                     patch.tempo_desviado     = gv('p_tempo_desviado')  || null;
+                } else if (_tipo === 'visitante') {
+                    patch.situacao_visitante = _visitanteOpc || null;
+                    patch.igreja_local       = gv('p_igreja_local') || null;
                 }
 
                 // Remover nulos para não sobrescrever defaults da BD
@@ -1086,6 +1208,7 @@
         ═══════════════════════════════════════════════════ */
         window.novoRegisto = function() {
             _tipo          = null;
+            _visitanteOpc = null;
             _primConversao = false;
             _idiomas       = [];
             _nacs          = [];
@@ -1117,6 +1240,14 @@
 
             // Limpar msgs
             ['msg-1','msg-2','msg-3'].forEach(id => clearMsg(id));
+
+            ['vopc-sem-igreja', 'vopc-visitando', 'vopc-tem-igreja'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('selected');
+            });
+
+            const blocoIgreja = document.getElementById('bloco-igreja-local');
+            if (blocoIgreja) blocoIgreja.style.display = 'none';
 
             // Voltar ao step 1
             document.getElementById('step-4').classList.remove('active');

@@ -664,14 +664,15 @@
 
         try {
             const token = ZionAuth.getToken ? ZionAuth.getToken() : (ZionAuth.getUser()?._token || localStorage.getItem('zion_token'));
+            const userId  = ZionAuth.getUser() || JSON.parse(localStorage.getItem('zion_user'));
 
-            const res = await fetch('/api/auth/change-password', {
+            const res = await fetch('/api/auth/update-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': 'Bearer ' + (token() || ''),
                 },
-                body: JSON.stringify({ senha_atual: senhaAtual, nova_senha: novaSenha })
+                body: JSON.stringify({ userId: userId, password: novaSenha })
             });
 
             const data = await res.json();

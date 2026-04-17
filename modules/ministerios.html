@@ -606,8 +606,7 @@
         min_minAtivo = null; min_indMes = ym(); min_escMes = ym();
         const [ms, mbs, cs] = await Promise.all([
             min_sb('ministerios?select=*&ativo=eq.true&order=nome').catch(()=>[]),
-            //min_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
-            min_sb('membros?select=id,nome,genero,funcao_voluntario&ativo=eq.true&order=nome').catch(()=>[]),
+            min_sb('membros?select=id,nome&ativo=eq.true&order=nome').catch(()=>[]),
             min_sb('cultos?select=*&ativo=eq.true&order=dia_semana,hora_inicio').catch(()=>[]),
         ]);
         min_mins = ms || []; min_memAll = mbs || []; min_cultsAll = cs || [];
@@ -628,37 +627,33 @@
         min_minCults = (cults || []).filter(mc => mc.cultos?.ativo !== false);
         min_memNoMin = new Set(min_minMems.map(m=>m.membro_id));
 
-        /* ── AUTO-ADD por tag do ministério ── */
-        if (min_minAtivo?.slug || min_minAtivo?.nome) {
-            const slugMin  = (min_minAtivo.slug  || '').toLowerCase().trim();
-            const nomeMin  = (min_minAtivo.nome  || '').toLowerCase().trim();
+        /* ── AUTO-ADD por membro_ministerios ── */
+        try {
+            const jaNoMin = await min_sb(
+                `membro_ministerios?ministerio_id=eq.${id}&ativo=eq.true&select=membro_id,membros(id,nome)`
+            ).catch(()=>[]);
 
-            const newTagged = min_memAll.filter(m => {
-                if (min_memNoMin.has(m.id)) return false;
-                if (!m.funcao_voluntario)   return false;
-                const fv = m.funcao_voluntario.toLowerCase().trim();
-                return fv === slugMin || fv === nomeMin;
-            });
+            const newTagged = (jaNoMin || []).filter(r => r.membro_id && !min_memNoMin.has(r.membro_id));
 
             if (newTagged.length) {
                 let adicionados = 0;
-                await Promise.all(newTagged.map(async t => {
+                await Promise.all(newTagged.map(async r => {
                     try {
                         await min_sb('ministerio_membros', {
                             method: 'POST',
                             body: JSON.stringify({
                                 ministerio_id: id,
-                                membro_id: t.id,
+                                membro_id: r.membro_id,
                                 papel: 'membro',
                                 ativo: true
                             })
                         });
                         adicionados++;
                     } catch(e) {
-                        // ignora duplicados (constraint 23505) silenciosamente
+                        // ignora duplicados silenciosamente
                         if (!String(e?.message||e).includes('23505') &&
                             !String(e?.message||e).includes('duplicate')) {
-                            console.warn('Auto-add funcao_voluntario erro:', t.nome, e);
+                            console.warn('Auto-add membro_ministerios erro:', r.membro_id, e);
                         }
                     }
                 }));
@@ -667,11 +662,13 @@
                     const memsUp = await min_sb(
                         `ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome,genero)&ativo=eq.true&order=papel,created_at`
                     ).catch(()=>[]);
-                    min_minMems   = memsUp || [];
-                    min_memNoMin  = new Set(min_minMems.map(m => m.membro_id));
-                    min_t(`${adicionados} voluntário(s) adicionado(s) por função "${min_minAtivo.nome}"`);
+                    min_minMems  = memsUp || [];
+                    min_memNoMin = new Set(min_minMems.map(m => m.membro_id));
+                    min_t(`${adicionados} voluntário(s) sincronizado(s) de membro_ministerios`);
                 }
             }
+        } catch(e) {
+            console.warn('Auto-add sync erro:', e);
         }
 
         const bc = min_breadcrumb(id);

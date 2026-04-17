@@ -600,9 +600,9 @@
         });
 
         vl_ativosCache.forEach(m => {
-    const f = m.funcao_voluntario || 'Sem funcao';
-    countFunc[f] = (countFunc[f] || 0) + 1;
-});
+            const f = m.funcao_voluntario || 'Voluntario';
+            countFunc[f] = (countFunc[f] || 0) + 1;
+        });
 
         /* Top 3 nacionalidades */
         const topNac = Object.entries(countNac).sort((a,b) => b[1]-a[1]).slice(0,4);
@@ -621,47 +621,50 @@
             const semFoto = vl_ativosCache.filter(m => !m._foto).length;
 
             statsEl.innerHTML = `
-                <div class="vl-stat-row">
+                    <!-- Linha 1: Totais principais -->
+                <div class="vl-stat-row" style="margin-bottom:8px">
                 <div class="vl-stat"><div class="vl-stat-num">${total}</div><div class="vl-stat-label">Total</div></div>
                 <div class="vl-stat"><div class="vl-stat-num">${lista.length}</div><div class="vl-stat-label">A mostrar</div></div>
                 <div class="vl-stat"><div class="vl-stat-num" style="color:${semMin>0?'#b45309':'var(--primary-dark)'}">${semMin}</div><div class="vl-stat-label">Sem ministerio</div></div>
+                <div class="vl-stat"><div class="vl-stat-num" style="color:${semTel>0?'#b45309':'var(--primary-dark)'}">${semTel}</div><div class="vl-stat-label">Sem Tel.</div></div>
+                <div class="vl-stat"><div class="vl-stat-num" style="color:${semEmail>0?'#b45309':'var(--primary-dark)'}">${semEmail}</div><div class="vl-stat-label">Sem Email</div></div>
+                <div class="vl-stat"><div class="vl-stat-num" style="color:${semIdi>0?'#b45309':'var(--primary-dark)'}">${semIdi}</div><div class="vl-stat-label">Sem Idioma</div></div>
+                <div class="vl-stat"><div class="vl-stat-num" style="color:${semNac>0?'#b45309':'var(--primary-dark)'}">${semNac}</div><div class="vl-stat-label">Sem Nac.</div></div>
+                <div class="vl-stat"><div class="vl-stat-num" style="color:${semFoto>0?'#b45309':'var(--primary-dark)'}">${semFoto}</div><div class="vl-stat-label">Sem Foto</div></div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
-                <div class="vl-stats-section">
+
+                    <!-- Linha 2: Nacionalidades, Idiomas e Funcoes numa só faixa -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+
+                <div class="vl-stats-section" style="margin:0">
                 <div class="vl-stats-section-title">Nacionalidades</div>
-                <div class="vl-stats-grid">
+                <div class="vl-stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(70px,1fr))">
                 ${topNac.map(([n,cnt]) => `<div class="vl-stat-mini"><div class="vl-stat-mini-num">${cnt}</div><div class="vl-stat-mini-label">${n}</div></div>`).join('')}
                 </div>
                 </div>
-                <div class="vl-stats-section">
+
+                <div class="vl-stats-section" style="margin:0">
                 <div class="vl-stats-section-title">Idiomas</div>
-                <div class="vl-stats-grid">
+                <div class="vl-stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(70px,1fr))">
                 ${topIdi.map(([i,cnt]) => `<div class="vl-stat-mini"><div class="vl-stat-mini-num">${cnt}</div><div class="vl-stat-mini-label">${i}</div></div>`).join('')}
                 ${!topIdi.length ? '<div style="font-size:11px;color:var(--text-faint)">Sem dados</div>' : ''}
                 </div>
                 </div>
-                <div class="vl-stats-section">
-                <div class="vl-stats-section-title">Dados em Falta</div>
-                <div class="vl-stats-grid">
-                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semTel>0?'#b45309':'var(--primary-dark)'}">${semTel}</div><div class="vl-stat-mini-label">Sem Telefone</div></div>
-                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semEmail>0?'#b45309':'var(--primary-dark)'}">${semEmail}</div><div class="vl-stat-mini-label">Sem Email</div></div>
-                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semIdi>0?'#b45309':'var(--primary-dark)'}">${semIdi}</div><div class="vl-stat-mini-label">Sem Idioma</div></div>
-                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semNac>0?'#b45309':'var(--primary-dark)'}">${semNac}</div><div class="vl-stat-mini-label">Sem Nac.</div></div>
-                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semFoto>0?'#b45309':'var(--primary-dark)'}">${semFoto}</div><div class="vl-stat-mini-label">Sem Foto</div></div>
+
+                <div class="vl-stats-section" style="margin:0">
+                <div class="vl-stats-section-title">Por Funcao / Tag</div>
+                <div class="vl-stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(70px,1fr))">
+                ${topFunc.map(([f,cnt]) => `
+            <div class="vl-stat-mini" style="cursor:pointer;transition:border-color 0.15s"
+                 onclick="document.getElementById('vl-filter-func').value='${f}';vl_renderAtivosFiltrado()"
+                 onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'"
+                 title="Filtrar por ${f}">
+                <div class="vl-stat-mini-num">${cnt}</div>
+                <div class="vl-stat-mini-label">${f}</div>
+            </div>`).join('')}
                 </div>
                 </div>
-                    <div class="vl-stats-section" style="margin-bottom:12px">
-  <div class="vl-stats-section-title">Por Funcao / Tag</div>
-  <div class="vl-stats-grid">
-    ${topFunc.map(([f, cnt]) => `
-      <div class="vl-stat-mini" style="cursor:pointer"
-           onclick="document.getElementById('vl-filter-func').value='${f === 'Sem funcao' ? '' : f}';vl_renderAtivosFiltrado()"
-           title="Filtrar por ${f}">
-        <div class="vl-stat-mini-num">${cnt}</div>
-        <div class="vl-stat-mini-label">${f}</div>
-      </div>`).join('')}
-  </div>
-</div>
+
                 </div>`;
         }
 

@@ -586,24 +586,40 @@
 
         const statsEl = document.getElementById('vl-stats-ativos');
         if (statsEl) {
+            const semTel  = vl_ativosCache.filter(m => !m.telefone).length;
+            const semEmail= vl_ativosCache.filter(m => !m.email).length;
+            const semIdi  = vl_ativosCache.filter(m => !m._idiomasArr.length).length;
+            const semNac  = vl_ativosCache.filter(m => !m._nac).length;
+            const semFoto = vl_ativosCache.filter(m => !m._foto).length;
+
             statsEl.innerHTML = `
                 <div class="vl-stat-row">
                 <div class="vl-stat"><div class="vl-stat-num">${total}</div><div class="vl-stat-label">Total</div></div>
                 <div class="vl-stat"><div class="vl-stat-num">${lista.length}</div><div class="vl-stat-label">A mostrar</div></div>
                 <div class="vl-stat"><div class="vl-stat-num" style="color:${semMin>0?'#b45309':'var(--primary-dark)'}">${semMin}</div><div class="vl-stat-label">Sem ministerio</div></div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
                 <div class="vl-stats-section">
                 <div class="vl-stats-section-title">Nacionalidades</div>
                 <div class="vl-stats-grid">
-                ${topNac.map(([n,c]) => `<div class="vl-stat-mini"><div class="vl-stat-mini-num">${c}</div><div class="vl-stat-mini-label">${n}</div></div>`).join('')}
+                ${topNac.map(([n,cnt]) => `<div class="vl-stat-mini"><div class="vl-stat-mini-num">${cnt}</div><div class="vl-stat-mini-label">${n}</div></div>`).join('')}
                 </div>
                 </div>
                 <div class="vl-stats-section">
                 <div class="vl-stats-section-title">Idiomas</div>
                 <div class="vl-stats-grid">
-                ${topIdi.map(([i,c]) => `<div class="vl-stat-mini"><div class="vl-stat-mini-num">${c}</div><div class="vl-stat-mini-label">${i}</div></div>`).join('')}
+                ${topIdi.map(([i,cnt]) => `<div class="vl-stat-mini"><div class="vl-stat-mini-num">${cnt}</div><div class="vl-stat-mini-label">${i}</div></div>`).join('')}
                 ${!topIdi.length ? '<div style="font-size:11px;color:var(--text-faint)">Sem dados</div>' : ''}
+                </div>
+                </div>
+                <div class="vl-stats-section">
+                <div class="vl-stats-section-title">Dados em Falta</div>
+                <div class="vl-stats-grid">
+                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semTel>0?'#b45309':'var(--primary-dark)'}">${semTel}</div><div class="vl-stat-mini-label">Sem Telefone</div></div>
+                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semEmail>0?'#b45309':'var(--primary-dark)'}">${semEmail}</div><div class="vl-stat-mini-label">Sem Email</div></div>
+                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semIdi>0?'#b45309':'var(--primary-dark)'}">${semIdi}</div><div class="vl-stat-mini-label">Sem Idioma</div></div>
+                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semNac>0?'#b45309':'var(--primary-dark)'}">${semNac}</div><div class="vl-stat-mini-label">Sem Nac.</div></div>
+                <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semFoto>0?'#b45309':'var(--primary-dark)'}">${semFoto}</div><div class="vl-stat-mini-label">Sem Foto</div></div>
                 </div>
                 </div>
                 </div>`;
@@ -676,14 +692,14 @@
                 ? `<img src="${v._foto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #ddd">`
                 : `<div style="width:36px;height:36px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#374151">${v.nome.split(' ').slice(0,2).map(p=>p[0]).join('')}</div>`;
             return `<tr>
-        <td style="text-align:center">${fotoHtml}</td>
-        <td>${v.nome}</td>
-        <td>${v._ministerios.map(m=>m.nome).join(', ') || '—'}</td>
-        <td>${v.telefone || '—'}</td>
-        <td>${v.email || '—'}</td>
-        <td>${v._idiomasArr.join(', ') || '—'}</td>
-        <td>${v._nac || '—'}</td>
-    </tr>`;
+                <td style="text-align:center">${fotoHtml}</td>
+                <td>${v.nome}</td>
+                <td>${v._ministerios.map(m=>m.nome).join(', ') || '—'}</td>
+                <td>${v.telefone || '—'}</td>
+                <td>${v.email || '—'}</td>
+                <td>${v._idiomasArr.join(', ') || '—'}</td>
+                <td>${v._nac || '—'}</td>
+                </tr>`;
         }).join('');
 
         abrirJanelaPrint(`
@@ -716,15 +732,19 @@
 
     /* ── Remover voluntário ── */
     async function vl_removerVoluntario(membroId, nome) {
-        if (!confirm(`Remover ${nome} da lista de voluntarios?\nO perfil do membro nao sera alterado.`)) return;
-        try {
-            await sb(`membros?id=eq.${membroId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: false }) });
-            vl_ativosCache = vl_ativosCache.filter(m => m.id !== membroId);
-            const idx = vl_membrosCache.findIndex(m => m.id === membroId);
-            if (idx >= 0) vl_membrosCache[idx].e_voluntario = false;
-            vl_renderAtivosFiltrado();
-        } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
-    }
+    if (!confirm(`Remover ${nome} da lista de voluntarios?\n\nA pessoa perdera o status de voluntario e sera removida de todos os ministerios associados.`)) return;
+    try {
+        // Remove tag de voluntário
+        await sb(`membros?id=eq.${membroId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: false }) });
+        // Desativa todos os vínculos de ministério
+        await sb(`membro_ministerios?membro_id=eq.${membroId}`, { method: 'PATCH', body: JSON.stringify({ ativo: false }) }).catch(() => {});
+        // Atualiza cache local
+        vl_ativosCache = vl_ativosCache.filter(m => m.id !== membroId);
+        const idx = vl_membrosCache.findIndex(m => m.id === membroId);
+        if (idx >= 0) vl_membrosCache[idx].e_voluntario = false;
+        vl_renderAtivosFiltrado();
+    } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
+}
 
     /* ══════════════════════════════════════════
        MODAL PERFIL
@@ -766,18 +786,22 @@
         ov.className = 'vl-modal-overlay';
         ov.id = 'vl-perfil-modal';
         ov.innerHTML = `
-                <div class="vl-modal" style="max-width:520px">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-                ${vl_fotoHtml(vol._foto, vol.nome, 56)}
-                <div>
+                <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+                ${vl_fotoHtml(vol._foto, vol.nome, 80)}
+                <div style="flex:1;min-width:0">
                 <div style="font-family:var(--font-title);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--primary-dark)">${vol.nome}</div>
                 <div style="font-size:10px;color:var(--text-faint);margin-top:2px">${vol.funcao_voluntario || 'Voluntario'}</div>
+                <a href="/membros.html?id=${membroId}" target="_blank"
+                style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:9px;
+              font-family:var(--font-title);letter-spacing:1px;text-transform:uppercase;
+              color:var(--primary-dark);text-decoration:none;
+              border:1px solid var(--border);border-radius:6px;padding:3px 9px;
+              background:var(--bg-input);transition:border-color 0.15s"
+                onmouseover="this.style.borderColor='var(--primary)'"
+                onmouseout="this.style.borderColor='var(--border)'">
+                ↗ Ver em Membros
+                </a>
                 </div>
-                </div>
-                <div class="vl-modal-tabs">
-                <button class="vl-modal-tab active" id="vl-pt-perfil"      onclick="vl_mostrarTabPerfil('perfil','${membroId}')">Perfil</button>
-                <button class="vl-modal-tab"        id="vl-pt-ministerios" onclick="vl_mostrarTabPerfil('ministerios','${membroId}')">Ministerios</button>
-                <button class="vl-modal-tab"        id="vl-pt-anotacoes"   onclick="vl_mostrarTabPerfil('anotacoes','${membroId}')">Anotacoes</button>
                 </div>
 
                     <!-- TAB: PERFIL -->
@@ -949,95 +973,156 @@
         } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
     }
 
-    async function vl_abrirRegistarVoluntario() {
-        const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
-        const opts = naoVols.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
-        const ov = document.createElement('div');
-        ov.className = 'vl-modal-overlay';
-        ov.innerHTML = `
-                <div class="vl-modal">
+            async function vl_abrirRegistarVoluntario() {
+                // Filtra quem já é voluntário ativo
+                const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
+
+                const ov = document.createElement('div');
+                ov.className = 'vl-modal-overlay';
+                ov.innerHTML = `
+                <div class="vl-modal" style="max-width:440px">
                 <div class="vl-modal-title">Registar Voluntario</div>
                 <p style="font-size:11px;color:var(--text-faint);margin-bottom:14px">
-                Seleciona um membro para marcar como voluntario sem passar pelo processo de inscricao.
+                Pesquisa pelo nome do membro. Apenas membros que ainda nao sao voluntarios aparecem.
                 </p>
                 <div class="vl-field">
-                <label class="vl-label">Membro</label>
-                <select class="vl-select" id="vl-reg-mem"><option value="">Selecionar membro...</option>${opts}</select>
+                <label class="vl-label">Pesquisar membro</label>
+                <input type="text" class="vl-input" id="vl-reg-search" placeholder="Escreve o nome..." autocomplete="off">
                 </div>
+                <div id="vl-reg-resultados" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:-4px;display:none"></div>
+                <input type="hidden" id="vl-reg-mem-id">
+                <div id="vl-reg-selecionado" style="display:none;margin-top:8px;padding:8px 12px;background:var(--primary-faint);border:1px solid var(--border);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between"></div>
                 <div id="vl-reg-alert"></div>
                 <div class="vl-modal-footer">
                 <button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
-                <button class="vl-btn vl-btn-p" onclick="vl_confirmarRegistar(this)">Registar</button>
+                <button class="vl-btn vl-btn-p" id="vl-reg-confirmar" disabled onclick="vl_confirmarRegistar(this)">Registar</button>
                 </div>
                 </div>`;
-        document.body.appendChild(ov);
-    }
+                document.body.appendChild(ov);
 
-    async function vl_confirmarRegistar(btn) {
-        const memId = document.getElementById('vl-reg-mem')?.value;
-        const alEl  = document.getElementById('vl-reg-alert');
-        if (!memId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>'; return; }
-        btn.disabled = true; btn.textContent = 'A guardar...';
-        try {
-            await sb(`membros?id=eq.${memId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
-            const idx = vl_membrosCache.findIndex(m => m.id === memId);
-            if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
-            btn.closest('.vl-modal-overlay').remove();
-            vl_renderAtivos();
-        } catch (e) {
-            if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
-            btn.disabled = false; btn.textContent = 'Registar';
-        }
-    }
+                const searchEl  = document.getElementById('vl-reg-search');
+                const listaEl   = document.getElementById('vl-reg-resultados');
+                const selEl     = document.getElementById('vl-reg-selecionado');
+                const idEl      = document.getElementById('vl-reg-mem-id');
+                const btnConf   = document.getElementById('vl-reg-confirmar');
 
-    /* ══════════════════════════════════════════
-       ABA 2 — NOVAS INSCRICOES
-    ══════════════════════════════════════════ */
-    let _ins_cache = [], _ins_todos_ministerios = [];
-    let _ins_q = '', _ins_status = '', _ins_escolha = '', _ins_min = '';
+                searchEl.addEventListener('input', () => {
+                const q = searchEl.value.trim().toLowerCase();
+                idEl.value = '';
+                btnConf.disabled = true;
+                selEl.style.display = 'none';
+                selEl.innerHTML = '';
 
-    async function vl_renderInscricoes() {
-        c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
-        let campanhas = [], inscricoes = [];
-        try {
-            campanhas  = await sb('voluntarios_campanhas?select=id,nome,status&order=created_at.desc') || [];
-            let path   = 'voluntarios_inscricoes?select=id,status,created_at,campanha_id,membro_id,motivo_rejeicao,' +
+                if (!q) { listaEl.style.display = 'none'; listaEl.innerHTML = ''; return; }
+
+                const filtrados = naoVols.filter(m => m.nome.toLowerCase().includes(q)).slice(0, 12);
+                if (!filtrados.length) {
+                listaEl.style.display = 'block';
+                listaEl.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:var(--text-faint)">Nenhum membro encontrado.</div>';
+                return;
+                }
+                listaEl.style.display = 'block';
+                listaEl.innerHTML = filtrados.map(m => `
+            <div onclick="vl_selecionarMembroReg('${m.id}','${m.nome.replace(/'/g,"\\'")}')"
+                style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;
+                       transition:background 0.1s"
+                onmouseover="this.style.background='var(--primary-faint)'"
+                onmouseout="this.style.background=''">
+                ${m.nome}
+            </div>`).join('');
+                });
+
+                searchEl.focus();
+                }
+
+                window.vl_selecionarMembroReg = function(id, nome) {
+                const idEl    = document.getElementById('vl-reg-mem-id');
+                const selEl   = document.getElementById('vl-reg-selecionado');
+                const listaEl = document.getElementById('vl-reg-resultados');
+                const searchEl= document.getElementById('vl-reg-search');
+                const btnConf = document.getElementById('vl-reg-confirmar');
+
+                idEl.value        = id;
+                searchEl.value    = nome;
+                listaEl.style.display = 'none';
+                selEl.style.display   = 'flex';
+                selEl.innerHTML       = `<span>✓ <strong>${nome}</strong> selecionado</span><button class="vl-btn vl-btn-m" style="padding:2px 8px;font-size:8px" onclick="vl_limparSelecaoReg()">Limpar</button>`;
+                btnConf.disabled      = false;
+                };
+
+                window.vl_limparSelecaoReg = function() {
+                document.getElementById('vl-reg-mem-id').value = '';
+                document.getElementById('vl-reg-selecionado').style.display = 'none';
+                document.getElementById('vl-reg-search').value = '';
+                document.getElementById('vl-reg-confirmar').disabled = true;
+                document.getElementById('vl-reg-search').focus();
+                };
+
+                async function vl_confirmarRegistar(btn) {
+                const memId = document.getElementById('vl-reg-mem-id')?.value;
+                const alEl  = document.getElementById('vl-reg-alert');
+                if (!memId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>'; return; }
+                btn.disabled = true; btn.textContent = 'A guardar...';
+                try {
+                await sb(`membros?id=eq.${memId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
+                const idx = vl_membrosCache.findIndex(m => m.id === memId);
+                if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
+                btn.closest('.vl-modal-overlay').remove();
+                vl_renderAtivos();
+                } catch (e) {
+                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+                btn.disabled = false; btn.textContent = 'Registar';
+                }
+                }
+
+                /* ══════════════════════════════════════════
+                ABA 2 — NOVAS INSCRICOES
+                ══════════════════════════════════════════ */
+                let _ins_cache = [], _ins_todos_ministerios = [];
+                let _ins_q = '', _ins_status = '', _ins_escolha = '', _ins_min = '';
+
+                async function vl_renderInscricoes() {
+                c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
+                let campanhas = [], inscricoes = [];
+                try {
+                campanhas  = await sb('voluntarios_campanhas?select=id,nome,status&order=created_at.desc') || [];
+                let path   = 'voluntarios_inscricoes?select=id,status,created_at,campanha_id,membro_id,motivo_rejeicao,' +
                 'disponibilidade_sabado_manha,disponibilidade_sabado_tarde,' +
                 'disponibilidade_domingo_manha,disponibilidade_domingo_tarde&order=created_at.desc';
-            if (vl_campFiltro) path += `&campanha_id=eq.${vl_campFiltro}`;
-            inscricoes = await sb(path) || [];
-        } catch(e) { c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`; return; }
+                if (vl_campFiltro) path += `&campanha_id=eq.${vl_campFiltro}`;
+                inscricoes = await sb(path) || [];
+                } catch(e) { c().innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`; return; }
 
-        if (inscricoes.length) {
-            const insIds  = inscricoes.map(i => i.id).join(',');
-            const memIds  = [...new Set(inscricoes.map(i => i.membro_id))].join(',');
-            const campIds = [...new Set(inscricoes.map(i => i.campanha_id))].join(',');
-            const [membsD, campsD, areasD, atribD] = await Promise.all([
+                if (inscricoes.length) {
+                const insIds  = inscricoes.map(i => i.id).join(',');
+                const memIds  = [...new Set(inscricoes.map(i => i.membro_id))].join(',');
+                const campIds = [...new Set(inscricoes.map(i => i.campanha_id))].join(',');
+                const [membsD, campsD, areasD, atribD] = await Promise.all([
                 sb(`membros?id=in.(${memIds})&select=id,nome,email,telefone`).catch(()=>[]),
                 sb(`voluntarios_campanhas?id=in.(${campIds})&select=id,nome`).catch(()=>[]),
                 sb(`voluntarios_areas_interesse?inscricao_id=in.(${insIds})&select=inscricao_id,ordem,motivo,ministerio_id,ministerios(id,nome)&order=ordem`).catch(()=>[]),
                 sb(`voluntarios_atribuicoes?inscricao_id=in.(${insIds})&select=id,inscricao_id,ministerio_id,link_token,status,prazo_contato,data_contato,ministerios(id,nome)&order=created_at.desc`).catch(()=>[]),
-            ]);
-            const membMap  = Object.fromEntries((membsD||[]).map(m=>[m.id,m]));
-            const campMap  = Object.fromEntries((campsD||[]).map(c=>[c.id,c]));
-            const areasMap = {}, atribMap = {};
-            (areasD||[]).forEach(a => { if(!areasMap[a.inscricao_id]) areasMap[a.inscricao_id]=[]; areasMap[a.inscricao_id].push(a); });
-            (atribD||[]).forEach(a => { if(!atribMap[a.inscricao_id]) atribMap[a.inscricao_id]=[]; atribMap[a.inscricao_id].push(a); });
-            inscricoes = inscricoes.map(i => ({
+                ]);
+                const membMap  = Object.fromEntries((membsD||[]).map(m=>[m.id,m]));
+                const campMap  = Object.fromEntries((campsD||[]).map(c=>[c.id,c]));
+                const areasMap = {}, atribMap = {};
+                (areasD||[]).forEach(a => { if(!areasMap[a.inscricao_id]) areasMap[a.inscricao_id]=[]; areasMap[a.inscricao_id].push(a); });
+                (atribD||[]).forEach(a => { if(!atribMap[a.inscricao_id]) atribMap[a.inscricao_id]=[]; atribMap[a.inscricao_id].push(a); });
+                inscricoes = inscricoes.map(i => ({
                 ...i,
                 _membro:      membMap[i.membro_id] || null,
                 _campanha:    campMap[i.campanha_id] || null,
                 _areas:       (areasMap[i.id]||[]).sort((a,b)=>a.ordem-b.ordem),
                 _atribuicoes: atribMap[i.id] || [],
-            }));
-        }
-        _ins_cache = inscricoes;
+                }));
+                }
+                _ins_cache = inscricoes;
 
-        const minSet = new Map();
-        inscricoes.forEach(i => i._areas?.forEach(a => { if(a.ministerios?.id) minSet.set(a.ministerios.id, a.ministerios.nome); }));
-        _ins_todos_ministerios = [...minSet.entries()].map(([id,nome])=>({id,nome})).sort((a,b)=>a.nome.localeCompare(b.nome));
+                const minSet = new Map();
+                inscricoes.forEach(i => i._areas?.forEach(a => { if(a.ministerios?.id) minSet.set(a.ministerios.id, a.ministerios.nome); }));
+                _ins_todos_ministerios = [...minSet.entries()].map(([id,nome])=>({id,nome})).sort((a,b)=>a.nome.localeCompare(b.nome));
 
-        const campOpts = campanhas.map(c => `<option value="${c.id}" ${vl_campFiltro===c.id?'selected':''}>${c.nome} (${c.status})</option>`).join('');
+                const campOpts = campanhas.map(c => `<option value="${c.id}" ${vl_campFiltro===c.id?'selected':''}>${c.nome} (${c.status})</option>`).join('');
                 const pendentes = inscricoes.filter(i=>i.status==='pendente').length;
 
                 c().innerHTML = `
@@ -1078,9 +1163,9 @@
                 vl_filtrarInscricoes();
                 }
 
-            function vl_filtrarInscricoes() {
+                function vl_filtrarInscricoes() {
                 const elQ=document.getElementById('ins-q'),elSt=document.getElementById('ins-status'),
-                    elEs=document.getElementById('ins-escolha'),elMi=document.getElementById('ins-min');
+                elEs=document.getElementById('ins-escolha'),elMi=document.getElementById('ins-min');
                 if(elQ) _ins_q=elQ.value; if(elSt) _ins_status=elSt.value;
                 if(elEs) _ins_escolha=elEs.value; if(elMi) _ins_min=elMi.value;
 
@@ -1089,15 +1174,15 @@
                 if(q) lista=lista.filter(i=>(i._membro?.nome||'').toLowerCase().includes(q));
                 if(_ins_status) lista=lista.filter(i=>i.status===_ins_status);
                 if(_ins_escolha||_ins_min) {
-                    lista=lista.filter(i=>{
-                        const ordens=_ins_escolha?[parseInt(_ins_escolha)]:[1,2,3];
-                        return ordens.some(ord=>{
-                            const a=i._areas.find(x=>x.ordem===ord);
-                            if(!a) return false;
-                            if(_ins_min&&a.ministerio_id!==_ins_min) return false;
-                            return true;
-                        });
-                    });
+                lista=lista.filter(i=>{
+                const ordens=_ins_escolha?[parseInt(_ins_escolha)]:[1,2,3];
+                return ordens.some(ord=>{
+                const a=i._areas.find(x=>x.ordem===ord);
+                if(!a) return false;
+                if(_ins_min&&a.ministerio_id!==_ins_min) return false;
+                return true;
+                });
+                });
                 }
                 const limEl=document.getElementById('ins-limpar-btn');
                 if(limEl) limEl.style.display=(q||_ins_status||_ins_escolha||_ins_min)?'':'none';
@@ -1124,31 +1209,31 @@
     <tbody>${lista.map(i=>vl_renderRow(i)).join('')}</tbody>
   </table>
 </div>`;
-            }
+                }
 
-            function vl_limparFiltrosIns() {
+                function vl_limparFiltrosIns() {
                 _ins_q='';_ins_status='';_ins_escolha='';_ins_min='';
                 ['ins-q','ins-status','ins-escolha','ins-min'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
                 vl_filtrarInscricoes();
-            }
+                }
 
-            function vl_renderRow(ins) {
+                function vl_renderRow(ins) {
                 const m=ins._membro, a1=ins._areas.find(a=>a.ordem===1), a2=ins._areas.find(a=>a.ordem===2), a3=ins._areas.find(a=>a.ordem===3);
                 const disp=[
-                    ins.disponibilidade_sabado_manha&&'Sab M', ins.disponibilidade_sabado_tarde&&'Sab T',
-                    ins.disponibilidade_domingo_manha&&'Dom M', ins.disponibilidade_domingo_tarde&&'Dom T',
+                ins.disponibilidade_sabado_manha&&'Sab M', ins.disponibilidade_sabado_tarde&&'Sab T',
+                ins.disponibilidade_domingo_manha&&'Dom M', ins.disponibilidade_domingo_tarde&&'Dom T',
                 ].filter(Boolean);
                 const atribs=ins._atribuicoes||[], atribAtual=atribs[0]||null;
                 let atribCol='<span style="color:var(--text-faint);font-size:10px">—</span>';
                 if(atribAtual){
-                    const stLabel={aguardando:'Aguarda contacto',contatado:'Lider contactou',sem_retorno:'Sem retorno do lider'}[atribAtual.status]||atribAtual.status;
-                    atribCol=`<div style="font-size:11px;font-weight:600">${atribAtual.ministerios?.nome||'—'}</div>
+                const stLabel={aguardando:'Aguarda contacto',contatado:'Lider contactou',sem_retorno:'Sem retorno do lider'}[atribAtual.status]||atribAtual.status;
+                atribCol=`<div style="font-size:11px;font-weight:600">${atribAtual.ministerios?.nome||'—'}</div>
                       <div style="font-size:9px;color:var(--text-faint);margin-top:1px">${stLabel}</div>
                       ${atribAtual.prazo_contato?`<div style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(atribAtual.prazo_contato)}</div>`:''}`;
                 }
                 const historicoHtml=atribs.length>0?atribs.map(a=>{
-                    const st={aguardando:'Aguarda',contatado:'Lider contactou',sem_retorno:'Sem retorno'}[a.status]||a.status;
-                    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+                const st={aguardando:'Aguarda',contatado:'Lider contactou',sem_retorno:'Sem retorno'}[a.status]||a.status;
+                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
   <div style="flex:1"><span style="font-size:11px;font-weight:600">${a.ministerios?.nome||'—'}</span>
   <span style="font-size:9px;color:var(--text-faint);margin-left:6px">${st}</span></div>
   ${a.prazo_contato?`<span style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(a.prazo_contato)}</span>`:''}
@@ -1160,15 +1245,15 @@
                 const base=`${location.origin}/voluntarios-lider.html`, nomeEsc=(m?.nome||'').replace(/'/g,"\\'");
                 let botoes='';
                 if(ins.status==='pendente'){
-                    botoes=`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_abrirDistribuir('${ins.id}')">Distribuir</button>
+                botoes=`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_abrirDistribuir('${ins.id}')">Distribuir</button>
                     <button class="vl-btn vl-btn-d" style="font-size:8px" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>`;
                 } else if(ins.status==='em_atribuicao'){
-                    const token=atribAtual?.link_token||'', linkLider=token?`${base}?t=${token}`:'';
-                    botoes=`<button class="vl-btn vl-btn-p" style="font-size:8px" onclick="vl_aprovar('${ins.id}')">Aprovar</button>
+                const token=atribAtual?.link_token||'', linkLider=token?`${base}?t=${token}`:'';
+                botoes=`<button class="vl-btn vl-btn-p" style="font-size:8px" onclick="vl_aprovar('${ins.id}')">Aprovar</button>
                     ${linkLider?`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_mostrarLinkLider('${linkLider}','${(atribAtual?.ministerios?.nome||'').replace(/'/g,"\\'")}')">Link Lider</button>`:''}
                     <button class="vl-btn vl-btn-d" style="font-size:8px" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>`;
                 } else if(ins.status==='sem_retorno'){
-                    botoes=`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_abrirDistribuir('${ins.id}')">Redistribuir</button>
+                botoes=`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_abrirDistribuir('${ins.id}')">Redistribuir</button>
                     <button class="vl-btn vl-btn-d" style="font-size:8px" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>`;
                 }
                 return `
@@ -1199,10 +1284,10 @@
     ${historicoHtml}
   </td>
 </tr>`;
-            }
+                }
 
-            /* ── Rejeitar ── */
-            function vl_abrirRejeitar(inscricaoId, nome) {
+                /* ── Rejeitar ── */
+                function vl_abrirRejeitar(inscricaoId, nome) {
                 const ov=document.createElement('div'); ov.className='vl-modal-overlay'; ov.id='vl-rejeitar-modal';
                 ov.innerHTML=`
 <div class="vl-modal" style="max-width:440px">
@@ -1219,26 +1304,26 @@
 </div>`;
                 document.body.appendChild(ov);
                 setTimeout(()=>document.getElementById('vl-rej-motivo')?.focus(),80);
-            }
+                }
 
-            async function vl_confirmarRejeitar(inscricaoId, btn) {
+                async function vl_confirmarRejeitar(inscricaoId, btn) {
                 const motivo=document.getElementById('vl-rej-motivo')?.value?.trim();
                 const alEl=document.getElementById('vl-rej-alert');
                 if(!motivo){ if(alEl) alEl.innerHTML='<div class="vl-alert vl-alert-e">O motivo e obrigatorio.</div>'; return; }
                 btn.disabled=true; btn.textContent='A rejeitar...';
                 try {
-                    await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'recusado',motivo_rejeicao:motivo})});
-                    const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);
-                    if(idx>=0){_ins_cache[idx].status='recusado';_ins_cache[idx].motivo_rejeicao=motivo;}
-                    document.getElementById('vl-rejeitar-modal')?.remove();
-                    vl_filtrarInscricoes();
+                await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'recusado',motivo_rejeicao:motivo})});
+                const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);
+                if(idx>=0){_ins_cache[idx].status='recusado';_ins_cache[idx].motivo_rejeicao=motivo;}
+                document.getElementById('vl-rejeitar-modal')?.remove();
+                vl_filtrarInscricoes();
                 } catch(e){
-                    if(alEl) alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
-                    btn.disabled=false; btn.textContent='Confirmar Rejeicao';
+                if(alEl) alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+                btn.disabled=false; btn.textContent='Confirmar Rejeicao';
                 }
-            }
+                }
 
-            function vl_mostrarLinkLider(link, ministerioNome) {
+                function vl_mostrarLinkLider(link, ministerioNome) {
                 const ov=document.createElement('div'); ov.className='vl-modal-overlay';
                 ov.innerHTML=`
 <div class="vl-modal" style="max-width:480px">
@@ -1254,44 +1339,44 @@
   </div>
 </div>`;
                 document.body.appendChild(ov);
-            }
+                }
 
-            async function vl_aprovar(inscricaoId) {
+                async function vl_aprovar(inscricaoId) {
                 const ins=_ins_cache.find(i=>i.id===inscricaoId); if(!ins){vl_renderInscricoes();return;}
                 const atrib=(ins._atribuicoes||[]).find(a=>a.status==='contatado')||ins._atribuicoes?.[0];
                 const nomMin=atrib?.ministerios?.nome||ins._areas.find(a=>a.ordem===1)?.ministerios?.nome||'—';
                 if(!confirm(`Aprovar ${ins._membro?.nome||'este candidato'} como voluntario em "${nomMin}"?`)) return;
                 try {
-                    const ministerioId=atrib?.ministerio_id||ins._areas.find(a=>a.ordem===1)?.ministerio_id;
-                    await sb(`membros?id=eq.${ins.membro_id}`,{method:'PATCH',body:JSON.stringify({e_voluntario:true})});
-                    if(ministerioId){
-                        const jaAssoc=await sb(`membro_ministerios?membro_id=eq.${ins.membro_id}&ministerio_id=eq.${ministerioId}&ativo=eq.true&select=id&limit=1`).catch(()=>[]);
-                        if(!jaAssoc.length) await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:ins.membro_id,ministerio_id:ministerioId,papel:'Voluntario',ativo:true})}).catch(()=>{});
-                    }
-                    await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'aprovado'})});
-                    const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);
-                    if(idx>=0) _ins_cache[idx].status='aprovado';
-                    vl_filtrarInscricoes();
+                const ministerioId=atrib?.ministerio_id||ins._areas.find(a=>a.ordem===1)?.ministerio_id;
+                await sb(`membros?id=eq.${ins.membro_id}`,{method:'PATCH',body:JSON.stringify({e_voluntario:true})});
+                if(ministerioId){
+                const jaAssoc=await sb(`membro_ministerios?membro_id=eq.${ins.membro_id}&ministerio_id=eq.${ministerioId}&ativo=eq.true&select=id&limit=1`).catch(()=>[]);
+                if(!jaAssoc.length) await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:ins.membro_id,ministerio_id:ministerioId,papel:'Voluntario',ativo:true})}).catch(()=>{});
+                }
+                await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'aprovado'})});
+                const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);
+                if(idx>=0) _ins_cache[idx].status='aprovado';
+                vl_filtrarInscricoes();
                 } catch(e){alert('Erro: '+(e?.message||JSON.stringify(e)));}
-            }
+                }
 
-            async function vl_distribuirTodos(campanhaId) {
+                async function vl_distribuirTodos(campanhaId) {
                 const pendentes=await sb(`voluntarios_inscricoes?campanha_id=eq.${campanhaId}&status=eq.pendente&select=id`).catch(()=>[]);
                 if(!pendentes.length){alert('Nenhuma inscricao pendente.');return;}
                 if(!confirm(`Distribuir ${pendentes.length} inscricao(oes)?`)) return;
                 const prazo=new Date(Date.now()+7*24*60*60*1000).toISOString();
                 for(const ins of pendentes){
-                    const areas=await sb(`voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem&limit=1`).catch(()=>[]);
-                    const a1=areas?.[0]; if(!a1) continue;
-                    await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:ins.id,ministerio_id:a1.ministerio_id,prazo_contato:prazo})}).catch(()=>{});
-                    await sb(`voluntarios_inscricoes?id=eq.${ins.id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});
+                const areas=await sb(`voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem&limit=1`).catch(()=>[]);
+                const a1=areas?.[0]; if(!a1) continue;
+                await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:ins.id,ministerio_id:a1.ministerio_id,prazo_contato:prazo})}).catch(()=>{});
+                await sb(`voluntarios_inscricoes?id=eq.${ins.id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});
                 }
                 const el=document.getElementById('vl-alert-ins');
                 if(el){el.innerHTML='<div class="vl-alert vl-alert-s">Inscricoes distribuidas.</div>';setTimeout(()=>el.innerHTML='',4000);}
                 vl_renderInscricoes();
-            }
+                }
 
-            async function vl_abrirDistribuir(inscricaoId) {
+                async function vl_abrirDistribuir(inscricaoId) {
                 const areas=await sb(`voluntarios_areas_interesse?inscricao_id=eq.${inscricaoId}&select=ordem,ministerios(id,nome)&order=ordem`).catch(()=>[]);
                 const prazoDefault=new Date(Date.now()+7*24*60*60*1000).toISOString().slice(0,10);
                 const opts=(areas||[]).map(a=>`<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`).join('');
@@ -1308,28 +1393,28 @@
   </div>
 </div>`;
                 document.body.appendChild(ov);
-            }
+                }
 
-            async function vl_confirmarDistribuir(id, btn) {
+                async function vl_confirmarDistribuir(id, btn) {
                 const min=document.getElementById('vl-dist-min')?.value, prazo=document.getElementById('vl-dist-prazo')?.value;
                 const alEl=document.getElementById('vl-dist-alert');
                 if(!min||!prazo){if(alEl) alEl.innerHTML='<div class="vl-alert vl-alert-e">Preencha todos os campos.</div>';return;}
                 btn.disabled=true; btn.textContent='A guardar...';
                 try {
-                    await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:id,ministerio_id:min,prazo_contato:new Date(prazo).toISOString()})});
-                    await sb(`voluntarios_inscricoes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});
-                    btn.closest('.vl-modal-overlay').remove();
-                    vl_renderInscricoes();
+                await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:id,ministerio_id:min,prazo_contato:new Date(prazo).toISOString()})});
+                await sb(`voluntarios_inscricoes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});
+                btn.closest('.vl-modal-overlay').remove();
+                vl_renderInscricoes();
                 } catch(e){
-                    if(alEl) alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message||'Verifique se ja existe atribuicao.'}</div>`;
-                    btn.disabled=false; btn.textContent='Confirmar';
+                if(alEl) alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message||'Verifique se ja existe atribuicao.'}</div>`;
+                btn.disabled=false; btn.textContent='Confirmar';
                 }
-            }
+                }
 
-            /* ══════════════════════════════════════════
-               ABA 3 — CAMPANHAS
-            ══════════════════════════════════════════ */
-            async function vl_renderCampanhas() {
+                /* ══════════════════════════════════════════
+                ABA 3 — CAMPANHAS
+                ══════════════════════════════════════════ */
+                async function vl_renderCampanhas() {
                 c().innerHTML='<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
                 let rows=[];
                 try{rows=await sb('voluntarios_campanhas?select=*&order=created_at.desc')||[];}
@@ -1337,10 +1422,10 @@
 
                 const base=`${location.origin}/voluntarios-captacao.html`;
                 const cards=!rows.length
-                    ?'<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma campanha criada.</div>'
-                    :rows.map(camp=>{
-                        const link=`${base}?c=${camp.slug}`;
-                        return `
+                ?'<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma campanha criada.</div>'
+                :rows.map(camp=>{
+                const link=`${base}?c=${camp.slug}`;
+                return `
 <div class="vl-campanha-card">
   <div class="vl-campanha-header">
     <div>
@@ -1362,7 +1447,7 @@
     <button class="vl-btn vl-btn-m" onclick="vl_campFiltro='${camp.id}';vl_setTab('inscricoes')">Ver Inscricoes</button>
   </div>
 </div>`;
-                    }).join('');
+                }).join('');
 
                 c().innerHTML=`
 <div class="vl-toolbar">
@@ -1371,9 +1456,9 @@
 </div>
 <div id="vl-alert-camp"></div>
 ${cards}`;
-            }
+                }
 
-            function vl_novaCampanha() {
+                function vl_novaCampanha() {
                 const ov=document.createElement('div'); ov.className='vl-modal-overlay';
                 ov.innerHTML=`
 <div class="vl-modal">
@@ -1391,9 +1476,9 @@ ${cards}`;
   </div>
 </div>`;
                 document.body.appendChild(ov);
-            }
+                }
 
-            async function vl_guardarCampanha(btn) {
+                async function vl_guardarCampanha(btn) {
                 const nome=document.getElementById('nc-nome')?.value.trim(), desc=document.getElementById('nc-desc')?.value.trim();
                 const inicio=document.getElementById('nc-inicio')?.value, fim=document.getElementById('nc-fim')?.value;
                 const alEl=document.getElementById('nc-alert');
@@ -1402,25 +1487,25 @@ ${cards}`;
                 const slug=nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
                 btn.disabled=true; btn.textContent='A criar...';
                 try {
-                    await sb('voluntarios_campanhas',{method:'POST',body:JSON.stringify({nome,descricao:desc||null,data_inicio:inicio,data_fim:fim,slug,status:'rascunho'})});
-                    btn.closest('.vl-modal-overlay').remove();
-                    vl_renderCampanhas();
+                await sb('voluntarios_campanhas',{method:'POST',body:JSON.stringify({nome,descricao:desc||null,data_inicio:inicio,data_fim:fim,slug,status:'rascunho'})});
+                btn.closest('.vl-modal-overlay').remove();
+                vl_renderCampanhas();
                 } catch(e){
-                    if(alEl) alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message||JSON.stringify(e)}</div>`;
-                    btn.disabled=false; btn.textContent='Criar';
+                if(alEl) alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message||JSON.stringify(e)}</div>`;
+                btn.disabled=false; btn.textContent='Criar';
                 }
-            }
+                }
 
-            async function vl_statusCampanha(id, novoStatus) {
+                async function vl_statusCampanha(id, novoStatus) {
                 const msgs={ativo:'Ativar campanha?',encerrado:'Encerrar campanha?'};
                 if(!confirm(msgs[novoStatus])) return;
                 try {
-                    await sb(`voluntarios_campanhas?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:novoStatus})});
-                    vl_renderCampanhas();
+                await sb(`voluntarios_campanhas?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:novoStatus})});
+                vl_renderCampanhas();
                 } catch(e){alert('Erro: '+(e?.message||JSON.stringify(e)));}
-            }
+                }
 
-            async function vl_gerarLinks(campanhaId) {
+                async function vl_gerarLinks(campanhaId) {
                 const inscIds=await sb(`voluntarios_inscricoes?campanha_id=eq.${campanhaId}&select=id`).catch(()=>[]);
                 if(!inscIds.length){alert('Nenhuma inscricao nesta campanha.');return;}
                 const ids=inscIds.map(i=>i.id).join(',');
@@ -1444,17 +1529,17 @@ ${cards}`;
   <div class="vl-modal-footer"><button class="vl-btn vl-btn-p" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button></div>
 </div>`;
                 document.body.appendChild(ov);
-            }
+                }
 
-            /* ══════════════════════════════════════════
-               ABA 4 — PRESENCAS (CHECK-INS)
-            ══════════════════════════════════════════ */
-            let _pr_escalas = [], _pr_checkins = [];
-            let _pr_start = '', _pr_end = '', _pr_min = '', _pr_status = '', _pr_membro = '', _pr_culto = '';
-            let _pr_mins_list = [], _pr_cultos_list = [];
+                /* ══════════════════════════════════════════
+                ABA 4 — PRESENCAS (CHECK-INS)
+                ══════════════════════════════════════════ */
+                let _pr_escalas = [], _pr_checkins = [];
+                let _pr_start = '', _pr_end = '', _pr_min = '', _pr_status = '', _pr_membro = '', _pr_culto = '';
+                let _pr_mins_list = [], _pr_cultos_list = [];
 
-// Substituir a função vl_renderPresencas completa
-            async function vl_renderPresencas() {
+                // Substituir a função vl_renderPresencas completa
+                async function vl_renderPresencas() {
                 const { start, end } = mesAtualISO();
                 if (!_pr_start) _pr_start = start;
                 if (!_pr_end)   _pr_end   = end;
@@ -1506,34 +1591,34 @@ ${cards}`;
 <div id="pr-content"><div class="vl-empty"><div class="vl-empty-icon">—</div>Clica em Filtrar para carregar.</div></div>`;
 
                 try {
-                    _pr_mins_list = await sb('ministerios?ativo=eq.true&select=id,nome&order=nome') || [];
-                    const selMin = document.getElementById('pr-min');
-                    if (selMin) {
-                        _pr_mins_list.forEach(m => {
-                            const o = document.createElement('option');
-                            o.value = m.id; o.textContent = m.nome;
-                            if (m.id === _pr_min) o.selected = true;
-                            selMin.appendChild(o);
-                        });
-                    }
-                    _pr_cultos_list = await sb('cultos?ativo=eq.true&select=id,nome,hora_inicio&order=hora_inicio') || [];
-                    const selCulto = document.getElementById('pr-culto');
-                    if (selCulto) {
-                        _pr_cultos_list.forEach(cu => {
-                            const o = document.createElement('option');
-                            o.value = cu.id;
-                            o.textContent = cu.nome + (cu.hora_inicio ? ' · ' + cu.hora_inicio.slice(0,5) : '');
-                            if (cu.id === _pr_culto) o.selected = true;
-                            selCulto.appendChild(o);
-                        });
-                    }
+                _pr_mins_list = await sb('ministerios?ativo=eq.true&select=id,nome&order=nome') || [];
+                const selMin = document.getElementById('pr-min');
+                if (selMin) {
+                _pr_mins_list.forEach(m => {
+                const o = document.createElement('option');
+                o.value = m.id; o.textContent = m.nome;
+                if (m.id === _pr_min) o.selected = true;
+                selMin.appendChild(o);
+                });
+                }
+                _pr_cultos_list = await sb('cultos?ativo=eq.true&select=id,nome,hora_inicio&order=hora_inicio') || [];
+                const selCulto = document.getElementById('pr-culto');
+                if (selCulto) {
+                _pr_cultos_list.forEach(cu => {
+                const o = document.createElement('option');
+                o.value = cu.id;
+                o.textContent = cu.nome + (cu.hora_inicio ? ' · ' + cu.hora_inicio.slice(0,5) : '');
+                if (cu.id === _pr_culto) o.selected = true;
+                selCulto.appendChild(o);
+                });
+                }
                 } catch(_) {}
 
                 await vl_filtrarPresencas();
-            }
+                }
 
-// Substituir a função vl_filtrarPresencas completa
-            async function vl_filtrarPresencas() {
+                // Substituir a função vl_filtrarPresencas completa
+                async function vl_filtrarPresencas() {
                 const eS=document.getElementById('pr-start'), eE=document.getElementById('pr-end');
                 const eM=document.getElementById('pr-min'),   eT=document.getElementById('pr-status');
                 const eMb=document.getElementById('pr-membro'), eCu=document.getElementById('pr-culto');
@@ -1549,104 +1634,104 @@ ${cards}`;
                 if(!_pr_start || !_pr_end){ if(contentEl) contentEl.innerHTML='<div class="vl-alert vl-alert-e">Seleciona o periodo.</div>'; return; }
 
                 try {
-                    let escPath = `ministerio_escala?data=gte.${_pr_start}&data=lte.${_pr_end}` +
-                        `&select=id,membro_id,ministerio_id,culto_id,data,membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio)` +
-                        `&order=data,culto_id`;
-                    if(_pr_min)   escPath += `&ministerio_id=eq.${_pr_min}`;
-                    if(_pr_culto) escPath += `&culto_id=eq.${_pr_culto}`;
+                let escPath = `ministerio_escala?data=gte.${_pr_start}&data=lte.${_pr_end}` +
+                `&select=id,membro_id,ministerio_id,culto_id,data,membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio)` +
+                `&order=data,culto_id`;
+                if(_pr_min)   escPath += `&ministerio_id=eq.${_pr_min}`;
+                if(_pr_culto) escPath += `&culto_id=eq.${_pr_culto}`;
 
-                    let ciPath = `ministerio_checkin?data=gte.${_pr_start}&data=lte.${_pr_end}` +
-                        `&select=*,membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio)` +
-                        `&order=data,hora_checkin`;
-                    if(_pr_min)    ciPath += `&ministerio_id=eq.${_pr_min}`;
-                    if(_pr_status) ciPath += `&status=eq.${_pr_status}`;
-                    if(_pr_culto)  ciPath += `&culto_id=eq.${_pr_culto}`;
+                let ciPath = `ministerio_checkin?data=gte.${_pr_start}&data=lte.${_pr_end}` +
+                `&select=*,membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio)` +
+                `&order=data,hora_checkin`;
+                if(_pr_min)    ciPath += `&ministerio_id=eq.${_pr_min}`;
+                if(_pr_status) ciPath += `&status=eq.${_pr_status}`;
+                if(_pr_culto)  ciPath += `&culto_id=eq.${_pr_culto}`;
 
-                    const [esc, ci] = await Promise.all([
-                        sb(escPath).catch(()=>[]),
-                        sb(ciPath).catch(()=>[])
-                    ]);
-                    _pr_escalas  = esc || [];
-                    _pr_checkins = ci  || [];
-                    vl_renderPresencasConteudo();
+                const [esc, ci] = await Promise.all([
+                sb(escPath).catch(()=>[]),
+                sb(ciPath).catch(()=>[])
+                ]);
+                _pr_escalas  = esc || [];
+                _pr_checkins = ci  || [];
+                vl_renderPresencasConteudo();
                 } catch(e) {
-                    if(contentEl) contentEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+                if(contentEl) contentEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
                 }
-            }
+                }
 
-            function vl_limparFiltrosPr() {
+                function vl_limparFiltrosPr() {
                 const { start, end } = mesAtualISO();
                 _pr_start=start; _pr_end=end; _pr_min=''; _pr_status=''; _pr_membro='';
                 ['pr-start','pr-end','pr-min','pr-status','pr-membro'].forEach(id=>{
-                    const el=document.getElementById(id); if(!el) return;
-                    if(id==='pr-start') el.value=start;
-                    else if(id==='pr-end') el.value=end;
-                    else el.value='';
+                const el=document.getElementById(id); if(!el) return;
+                if(id==='pr-start') el.value=start;
+                else if(id==='pr-end') el.value=end;
+                else el.value='';
                 });
                 vl_filtrarPresencas();
-            }
+                }
 
 
-            // Substituir a função vl_renderPresencasConteudo completa
-            function vl_renderPresencasConteudo() {
+                // Substituir a função vl_renderPresencasConteudo completa
+                function vl_renderPresencasConteudo() {
                 const contentEl = document.getElementById('pr-content');
                 const statsEl   = document.getElementById('pr-stats');
                 if(!contentEl) return;
 
                 const ciMap = {};
                 _pr_checkins.forEach(ci => {
-                    const k = `${ci.membro_id}_${ci.ministerio_id}_${ci.culto_id}_${ci.data}`;
-                    ciMap[k] = ci;
+                const k = `${ci.membro_id}_${ci.ministerio_id}_${ci.culto_id}_${ci.data}`;
+                ciMap[k] = ci;
                 });
 
                 let linhas = _pr_escalas.map(e => {
-                    const k  = `${e.membro_id}_${e.ministerio_id}_${e.culto_id}_${e.data}`;
-                    const ci = ciMap[k];
-                    return {
-                        membro_id:       e.membro_id,
-                        membro_nome:     e.membros?.nome || '—',
-                        ministerio_id:   e.ministerio_id,
-                        ministerio_nome: e.ministerios?.nome || '—',
-                        culto_id:        e.culto_id,
-                        culto_nome:      e.cultos?.nome || '—',
-                        culto_hora:      e.cultos?.hora_inicio?.slice(0,5) || '',
-                        data:            e.data,
-                        status:          ci?.status || 'sem_registo',
-                        hora_checkin:    ci?.hora_checkin || null,
-                        minutos_atraso:  ci?.minutos_atraso || 0,
-                    };
+                const k  = `${e.membro_id}_${e.ministerio_id}_${e.culto_id}_${e.data}`;
+                const ci = ciMap[k];
+                return {
+                membro_id:       e.membro_id,
+                membro_nome:     e.membros?.nome || '—',
+                ministerio_id:   e.ministerio_id,
+                ministerio_nome: e.ministerios?.nome || '—',
+                culto_id:        e.culto_id,
+                culto_nome:      e.cultos?.nome || '—',
+                culto_hora:      e.cultos?.hora_inicio?.slice(0,5) || '',
+                data:            e.data,
+                status:          ci?.status || 'sem_registo',
+                hora_checkin:    ci?.hora_checkin || null,
+                minutos_atraso:  ci?.minutos_atraso || 0,
+                };
                 });
 
                 const escalasKeys = new Set(_pr_escalas.map(e => `${e.membro_id}_${e.ministerio_id}_${e.culto_id}_${e.data}`));
                 _pr_checkins.forEach(ci => {
-                    const k = `${ci.membro_id}_${ci.ministerio_id}_${ci.culto_id}_${ci.data}`;
-                    if(!escalasKeys.has(k)) {
-                        linhas.push({
-                            membro_id:       ci.membro_id,
-                            membro_nome:     ci.membros?.nome || '—',
-                            ministerio_id:   ci.ministerio_id,
-                            ministerio_nome: ci.ministerios?.nome || '—',
-                            culto_id:        ci.culto_id,
-                            culto_nome:      ci.cultos?.nome || '—',
-                            culto_hora:      ci.cultos?.hora_inicio?.slice(0,5) || '',
-                            data:            ci.data,
-                            status:          ci.status,
-                            hora_checkin:    ci.hora_checkin || null,
-                            minutos_atraso:  ci.minutos_atraso || 0,
-                        });
-                    }
+                const k = `${ci.membro_id}_${ci.ministerio_id}_${ci.culto_id}_${ci.data}`;
+                if(!escalasKeys.has(k)) {
+                linhas.push({
+                membro_id:       ci.membro_id,
+                membro_nome:     ci.membros?.nome || '—',
+                ministerio_id:   ci.ministerio_id,
+                ministerio_nome: ci.ministerios?.nome || '—',
+                culto_id:        ci.culto_id,
+                culto_nome:      ci.cultos?.nome || '—',
+                culto_hora:      ci.cultos?.hora_inicio?.slice(0,5) || '',
+                data:            ci.data,
+                status:          ci.status,
+                hora_checkin:    ci.hora_checkin || null,
+                minutos_atraso:  ci.minutos_atraso || 0,
+                });
+                }
                 });
 
                 if(_pr_membro) linhas = linhas.filter(l => l.membro_nome.toLowerCase().includes(_pr_membro));
                 if(_pr_status) linhas = linhas.filter(l => l.status === _pr_status);
 
                 if(!linhas.length) {
-                    if(statsEl) statsEl.innerHTML='';
-                    contentEl.innerHTML='<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum registo encontrado.</div>';
-                    return;
+                if(statsEl) statsEl.innerHTML='';
+                contentEl.innerHTML='<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhum registo encontrado.</div>';
+                return;
                 }
 
-                /* Stats globais */
+                    /* Stats globais */
                 const totPresente = linhas.filter(l=>l.status==='presente').length;
                 const totAtrasado = linhas.filter(l=>l.status==='atrasado').length;
                 const totFaltou   = linhas.filter(l=>l.status==='faltou').length;
@@ -1663,78 +1748,78 @@ ${cards}`;
   <div class="vl-stat"><div class="vl-stat-num">${totSemReg}</div><div class="vl-stat-label">Sem Registo</div></div>
 </div>`;
 
-                /* Pré-computar: vezes servidas por membro por mês */
+                    /* Pré-computar: vezes servidas por membro por mês */
                 const contagemMensal = {};
                 linhas.forEach(l => {
-                    if(l.status !== 'presente' && l.status !== 'atrasado') return;
-                    const k = `${l.membro_id}_${l.data.slice(0,7)}`;
-                    contagemMensal[k] = (contagemMensal[k] || 0) + 1;
+                if(l.status !== 'presente' && l.status !== 'atrasado') return;
+                const k = `${l.membro_id}_${l.data.slice(0,7)}`;
+                contagemMensal[k] = (contagemMensal[k] || 0) + 1;
                 });
 
                 const membroAreas = {};
                 linhas.forEach(l => {
-                    if(!membroAreas[l.membro_id]) membroAreas[l.membro_id] = new Set();
-                    membroAreas[l.membro_id].add(l.ministerio_id);
+                if(!membroAreas[l.membro_id]) membroAreas[l.membro_id] = new Set();
+                membroAreas[l.membro_id].add(l.ministerio_id);
                 });
 
-                /* Agrupar: mês > dia > culto > área */
+                    /* Agrupar: mês > dia > culto > área */
                 const porMes = {};
                 linhas.forEach(l => {
-                    const mes = l.data.slice(0,7);
-                    if(!porMes[mes]) porMes[mes] = {};
-                    const diaKey = l.data;
-                    if(!porMes[mes][diaKey]) porMes[mes][diaKey] = {};
-                    const cultoKey = `${l.culto_id}__${l.culto_nome}__${l.culto_hora}`;
-                    if(!porMes[mes][diaKey][cultoKey]) porMes[mes][diaKey][cultoKey] = { culto_nome: l.culto_nome, culto_hora: l.culto_hora, areas: {} };
-                    const areaKey = l.ministerio_id;
-                    if(!porMes[mes][diaKey][cultoKey].areas[areaKey]) porMes[mes][diaKey][cultoKey].areas[areaKey] = { area_nome: l.ministerio_nome, linhas: [] };
-                    porMes[mes][diaKey][cultoKey].areas[areaKey].linhas.push(l);
+                const mes = l.data.slice(0,7);
+                if(!porMes[mes]) porMes[mes] = {};
+                const diaKey = l.data;
+                if(!porMes[mes][diaKey]) porMes[mes][diaKey] = {};
+                const cultoKey = `${l.culto_id}__${l.culto_nome}__${l.culto_hora}`;
+                if(!porMes[mes][diaKey][cultoKey]) porMes[mes][diaKey][cultoKey] = { culto_nome: l.culto_nome, culto_hora: l.culto_hora, areas: {} };
+                const areaKey = l.ministerio_id;
+                if(!porMes[mes][diaKey][cultoKey].areas[areaKey]) porMes[mes][diaKey][cultoKey].areas[areaKey] = { area_nome: l.ministerio_nome, linhas: [] };
+                porMes[mes][diaKey][cultoKey].areas[areaKey].linhas.push(l);
                 });
 
                 let html = '';
                 Object.keys(porMes).sort().forEach(mes => {
-                    const diasObj = porMes[mes];
-                    const mesLinhas = linhas.filter(l => l.data.slice(0,7) === mes);
-                    const mP = mesLinhas.filter(l=>l.status==='presente').length;
-                    const mA = mesLinhas.filter(l=>l.status==='atrasado').length;
-                    const mF = mesLinhas.filter(l=>l.status==='faltou').length;
-                    const mS = mesLinhas.filter(l=>l.status==='sem_registo').length;
+                const diasObj = porMes[mes];
+                const mesLinhas = linhas.filter(l => l.data.slice(0,7) === mes);
+                const mP = mesLinhas.filter(l=>l.status==='presente').length;
+                const mA = mesLinhas.filter(l=>l.status==='atrasado').length;
+                const mF = mesLinhas.filter(l=>l.status==='faltou').length;
+                const mS = mesLinhas.filter(l=>l.status==='sem_registo').length;
 
-                    let diasHtml = '';
-                    Object.keys(diasObj).sort().forEach(dia => {
-                        const cultosObj = diasObj[dia];
-                        let cultosHtml = '';
+                let diasHtml = '';
+                Object.keys(diasObj).sort().forEach(dia => {
+                const cultosObj = diasObj[dia];
+                let cultosHtml = '';
 
-                        Object.keys(cultosObj).sort().forEach(cultoKey => {
-                            const cultoBlk = cultosObj[cultoKey];
-                            const cultoLinhas = Object.values(cultoBlk.areas).flatMap(a => a.linhas);
-                            const cP = cultoLinhas.filter(l=>l.status==='presente').length;
-                            const cA = cultoLinhas.filter(l=>l.status==='atrasado').length;
-                            const cF = cultoLinhas.filter(l=>l.status==='faltou').length;
-                            const cS = cultoLinhas.filter(l=>l.status==='sem_registo').length;
-                            const cTotal = cultoLinhas.length;
+                Object.keys(cultosObj).sort().forEach(cultoKey => {
+                const cultoBlk = cultosObj[cultoKey];
+                const cultoLinhas = Object.values(cultoBlk.areas).flatMap(a => a.linhas);
+                const cP = cultoLinhas.filter(l=>l.status==='presente').length;
+                const cA = cultoLinhas.filter(l=>l.status==='atrasado').length;
+                const cF = cultoLinhas.filter(l=>l.status==='faltou').length;
+                const cS = cultoLinhas.filter(l=>l.status==='sem_registo').length;
+                const cTotal = cultoLinhas.length;
 
-                            let areasHtml = '';
-                            Object.keys(cultoBlk.areas).sort((a,b) => cultoBlk.areas[a].area_nome.localeCompare(cultoBlk.areas[b].area_nome)).forEach(areaKey => {
-                                const area = cultoBlk.areas[areaKey];
-                                const rows = area.linhas.map(l => {
-                                    const vezes    = contagemMensal[`${l.membro_id}_${l.data.slice(0,7)}`] || 0;
-                                    const multiArea = (membroAreas[l.membro_id]?.size || 0) > 1;
-                                    const horaLabel = l.hora_checkin ? l.hora_checkin.slice(0,5) : '—';
-                                    const tardLabel = l.status === 'atrasado' && l.minutos_atraso > 0 ? ` +${l.minutos_atraso}min` : '';
-                                    return `<tr>
+                let areasHtml = '';
+                Object.keys(cultoBlk.areas).sort((a,b) => cultoBlk.areas[a].area_nome.localeCompare(cultoBlk.areas[b].area_nome)).forEach(areaKey => {
+                const area = cultoBlk.areas[areaKey];
+                const rows = area.linhas.map(l => {
+                const vezes    = contagemMensal[`${l.membro_id}_${l.data.slice(0,7)}`] || 0;
+                const multiArea = (membroAreas[l.membro_id]?.size || 0) > 1;
+                const horaLabel = l.hora_checkin ? l.hora_checkin.slice(0,5) : '—';
+                const tardLabel = l.status === 'atrasado' && l.minutos_atraso > 0 ? ` +${l.minutos_atraso}min` : '';
+                return `<tr>
   <td style="font-size:12px;font-weight:600">${l.membro_nome}</td>
   <td><span class="vl-badge vl-b-${l.status}">${st_label(l.status)}${tardLabel}</span></td>
   <td style="font-size:11px">${horaLabel}</td>
   <td style="font-size:11px;text-align:center">${vezes > 0 ? vezes + 'x' : '—'}</td>
   <td>${multiArea ? '<span class="pr-multi-tag">+1 area</span>' : ''}</td>
 </tr>`;
-                                }).join('');
+                }).join('');
 
-                                const aP = area.linhas.filter(l=>l.status==='presente'||l.status==='atrasado').length;
-                                const aF = area.linhas.filter(l=>l.status==='faltou').length;
+                const aP = area.linhas.filter(l=>l.status==='presente'||l.status==='atrasado').length;
+                const aF = area.linhas.filter(l=>l.status==='faltou').length;
 
-                                areasHtml += `
+                areasHtml += `
 <div style="margin:0;border-top:1px solid var(--border)">
   <div style="display:flex;align-items:center;gap:10px;padding:7px 14px;background:var(--bg-page)">
     <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--primary-dark)">${area.area_nome}</div>
@@ -1747,9 +1832,9 @@ ${cards}`;
     <tbody>${rows}</tbody>
   </table>
 </div>`;
-                            });
+                });
 
-                            cultosHtml += `
+                cultosHtml += `
 <div style="border-top:2px solid var(--primary-faint)">
   <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--bg-input)">
     <div style="font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-main)">
@@ -1763,18 +1848,18 @@ ${cards}`;
   </div>
   ${areasHtml}
 </div>`;
-                        });
+                });
 
-                        diasHtml += `
+                diasHtml += `
 <div style="border-top:1px solid var(--border)">
   <div style="padding:8px 14px;background:var(--bg-card)">
     <span style="font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--primary-dark)">${fmtDataExtensa(dia)}</span>
   </div>
   ${cultosHtml}
 </div>`;
-                    });
+                });
 
-                    html += `
+                html += `
 <div class="pr-month-block">
   <div class="pr-month-hd">
     <div class="pr-month-nome">${fmtMes(mes)}</div>
@@ -1790,15 +1875,15 @@ ${cards}`;
                 });
 
                 contentEl.innerHTML = html;
-            }
+                }
 
-            function st_label(status) {
+                function st_label(status) {
                 return { presente:'Presente', atrasado:'Atrasado', faltou:'Falta',
-                    pre_confirmado:'Confirmado', sem_registo:'Sem registo' }[status] || status;
-            }
+                pre_confirmado:'Confirmado', sem_registo:'Sem registo' }[status] || status;
+                }
 
-            /* ── Imprimir Presenças ── */
-            function vl_imprimirPresencas() {
+                /* ── Imprimir Presenças ── */
+                function vl_imprimirPresencas() {
                 const statsEl   = document.getElementById('pr-stats');
                 const contentEl = document.getElementById('pr-content');
                 if(!contentEl) return;
@@ -1806,88 +1891,88 @@ ${cards}`;
                 const minNome = _pr_min ? (_pr_mins_list.find(m=>m.id===_pr_min)?.nome || '') : 'Todos os ministerios';
                 const periodoLabel = `${fmtD(_pr_start)} a ${fmtD(_pr_end)}`;
 
-                /* Recolher dados das linhas renderizadas */
+                    /* Recolher dados das linhas renderizadas */
                 const rows = [];
                 document.querySelectorAll('#pr-content tbody tr').forEach(tr => {
-                    const tds = tr.querySelectorAll('td');
-                    if(tds.length < 5) return;
-                    rows.push([
-                        tds[0]?.textContent?.trim() || '',
-                        tds[1]?.textContent?.trim() || '',
-                        tds[2]?.textContent?.trim() || '',
-                        tds[3]?.textContent?.trim() || '',
-                        tds[4]?.textContent?.trim() || '',
-                        tds[5]?.textContent?.trim() || '',
-                    ]);
+                const tds = tr.querySelectorAll('td');
+                if(tds.length < 5) return;
+                rows.push([
+                tds[0]?.textContent?.trim() || '',
+                tds[1]?.textContent?.trim() || '',
+                tds[2]?.textContent?.trim() || '',
+                tds[3]?.textContent?.trim() || '',
+                tds[4]?.textContent?.trim() || '',
+                tds[5]?.textContent?.trim() || '',
+                ]);
                 });
 
-                /* Agrupar por bloco de mês/dia para preservar estrutura */
+                    /* Agrupar por bloco de mês/dia para preservar estrutura */
                 let bodyHtml = `
 <h2>Relatorio de Presencas</h2>
 <p style="font-size:10px;color:#555;margin-bottom:4px">Periodo: <strong>${periodoLabel}</strong> &nbsp;|&nbsp; Area: <strong>${minNome}</strong></p>
 <p style="font-size:10px;color:#555;margin-bottom:14px">Exportado em ${new Date().toLocaleString('pt-PT')}</p>`;
 
                 document.querySelectorAll('#pr-content .pr-month-block').forEach(monthEl => {
-                    const mNome  = monthEl.querySelector('.pr-month-nome')?.textContent || '';
-                    const mStats = monthEl.querySelector('.pr-month-stats')?.textContent?.replace(/\s+/g,' ').trim() || '';
-                    bodyHtml += `<h3 style="font-size:12px;margin:14px 0 4px;border-bottom:1px solid #ccc;padding-bottom:4px">${mNome} — ${mStats}</h3>`;
+                const mNome  = monthEl.querySelector('.pr-month-nome')?.textContent || '';
+                const mStats = monthEl.querySelector('.pr-month-stats')?.textContent?.replace(/\s+/g,' ').trim() || '';
+                bodyHtml += `<h3 style="font-size:12px;margin:14px 0 4px;border-bottom:1px solid #ccc;padding-bottom:4px">${mNome} — ${mStats}</h3>`;
 
-                    monthEl.querySelectorAll('.pr-day-block').forEach(dayEl => {
-                        const dDate  = dayEl.querySelector('.pr-day-date')?.textContent || '';
-                        const dCulto = dayEl.querySelector('.pr-day-culto')?.textContent || '';
-                        bodyHtml += `<p style="font-size:10px;color:#555;margin:8px 0 3px"><strong>${dDate}</strong> · ${dCulto}</p>`;
-                        bodyHtml += '<table><thead><tr><th>Voluntario</th><th>Area</th><th>Estado</th><th>Chegada</th><th>Vezes/Mes</th><th>Multi-area</th></tr></thead><tbody>';
-                        dayEl.querySelectorAll('tbody tr').forEach(tr => {
-                            const tds = tr.querySelectorAll('td');
-                            bodyHtml += `<tr>${[...tds].map(td => `<td>${td.textContent?.trim() || ''}</td>`).join('')}</tr>`;
-                        });
-                        bodyHtml += '</tbody></table>';
-                    });
+                monthEl.querySelectorAll('.pr-day-block').forEach(dayEl => {
+                const dDate  = dayEl.querySelector('.pr-day-date')?.textContent || '';
+                const dCulto = dayEl.querySelector('.pr-day-culto')?.textContent || '';
+                bodyHtml += `<p style="font-size:10px;color:#555;margin:8px 0 3px"><strong>${dDate}</strong> · ${dCulto}</p>`;
+                bodyHtml += '<table><thead><tr><th>Voluntario</th><th>Area</th><th>Estado</th><th>Chegada</th><th>Vezes/Mes</th><th>Multi-area</th></tr></thead><tbody>';
+                dayEl.querySelectorAll('tbody tr').forEach(tr => {
+                const tds = tr.querySelectorAll('td');
+                bodyHtml += `<tr>${[...tds].map(td => `<td>${td.textContent?.trim() || ''}</td>`).join('')}</tr>`;
+                });
+                bodyHtml += '</tbody></table>';
+                });
                 });
 
                 abrirJanelaPrint(bodyHtml);
-            }
+                }
 
-            /* ══════════════════════════════════════════
-               MISC
-            ══════════════════════════════════════════ */
-            function vl_toggle(id) {
+                /* ══════════════════════════════════════════
+                MISC
+                ══════════════════════════════════════════ */
+                function vl_toggle(id) {
                 const row=document.getElementById(`vl-det-${id}`);
                 if(!row) return;
                 row.classList.toggle('vl-hidden');
                 const btn=document.querySelector(`#vl-row-${id} button`);
                 if(btn) btn.textContent=row.classList.contains('vl-hidden')?'+':'−';
-            }
+                }
 
-            function vl_filtrarCampanha(id) { vl_campFiltro=id||null; vl_renderInscricoes(); }
+                function vl_filtrarCampanha(id) { vl_campFiltro=id||null; vl_renderInscricoes(); }
 
-            async function vl_verificarPrazos() {
+                async function vl_verificarPrazos() {
                 try {
-                    const agora=new Date().toISOString();
-                    const exp=await sb(`voluntarios_atribuicoes?status=eq.aguardando&prazo_contato=lt.${agora}&select=id,inscricao_id`).catch(()=>[]);
-                    for(const a of exp){
-                        await sb(`voluntarios_atribuicoes?id=eq.${a.id}`,{method:'PATCH',body:JSON.stringify({status:'sem_retorno'})});
-                        await sb(`voluntarios_inscricoes?id=eq.${a.inscricao_id}`,{method:'PATCH',body:JSON.stringify({status:'sem_retorno'})});
-                    }
+                const agora=new Date().toISOString();
+                const exp=await sb(`voluntarios_atribuicoes?status=eq.aguardando&prazo_contato=lt.${agora}&select=id,inscricao_id`).catch(()=>[]);
+                for(const a of exp){
+                await sb(`voluntarios_atribuicoes?id=eq.${a.id}`,{method:'PATCH',body:JSON.stringify({status:'sem_retorno'})});
+                await sb(`voluntarios_inscricoes?id=eq.${a.inscricao_id}`,{method:'PATCH',body:JSON.stringify({status:'sem_retorno'})});
+                }
                 } catch(_) {}
-            }
+                }
 
-            /* ══════════════════════════════════════════
-   ABA 5 — RELATÓRIO DE CULTO
-══════════════════════════════════════════ */
-            let _rel_cultos_list = [], _rel_data = '', _rel_culto_id = '';
+                /* ══════════════════════════════════════════
+                ABA 5 — RELATÓRIO DE CULTO
+                ══════════════════════════════════════════ */
+                let _rel_cultos_list = [], _rel_data = '', _rel_culto_id = '';
 
-            async function vl_renderRelatorio() {
+                async function vl_renderRelatorio() {
                 c().innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar cultos...</div>';
                 try {
-                    _rel_cultos_list = await sb('cultos?ativo=eq.true&select=id,nome,hora_inicio&order=hora_inicio') || [];
+                _rel_cultos_list = await sb('cultos?ativo=eq.true&select=id,nome,hora_inicio&order=hora_inicio') || [];
                 } catch(_) {}
 
                 const hoje = new Date().toISOString().slice(0,10);
                 if (!_rel_data) _rel_data = hoje;
 
                 const cultoOpts = _rel_cultos_list.map(cu =>
-                    `<option value="${cu.id}" ${cu.id === _rel_culto_id ? 'selected' : ''}>
+                `<option value="${cu.id}" ${cu.id === _rel_culto_id ? 'selected' : ''}>
             ${cu.nome}${cu.hora_inicio ? ' · ' + cu.hora_inicio.slice(0,5) : ''}
         </option>`
                 ).join('');
@@ -1920,9 +2005,9 @@ ${cards}`;
 <div id="rel-content"></div>`;
 
                 if (_rel_data && _rel_culto_id) await vl_carregarRelatorio(true);
-            }
+                }
 
-            async function vl_carregarRelatorio(silente) {
+                async function vl_carregarRelatorio(silente) {
                 const eD = document.getElementById('rel-data');
                 const eCu = document.getElementById('rel-culto');
                 if(eD)  _rel_data     = eD.value;
@@ -1931,59 +2016,59 @@ ${cards}`;
                 const el = document.getElementById('rel-content');
                 if(!el) return;
                 if(!_rel_data || !_rel_culto_id) {
-                    el.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona data e culto.</div>';
-                    return;
+                el.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona data e culto.</div>';
+                return;
                 }
                 if(!silente) el.innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>A carregar...</div>';
 
                 const culto = _rel_cultos_list.find(cu => cu.id === _rel_culto_id);
                 const cultoLabel = culto ? `${culto.nome}${culto.hora_inicio ? ' · ' + culto.hora_inicio.slice(0,5) : ''}` : '—';
 
-                /* Carregar dados guardados + contagem automática de voluntários */
+                    /* Carregar dados guardados + contagem automática de voluntários */
                 let dadosGuardados = null, volCount = 0, volPresentes = [], relId = null;
                 try {
-                    const [relRows, escRows, ciRows] = await Promise.all([
-                        sb(`cultos_relatorio_geral?data=eq.${_rel_data}&culto_id=eq.${_rel_culto_id}&select=*&limit=1`).catch(()=>[]),
-                        sb(`ministerio_escala?data=eq.${_rel_data}&culto_id=eq.${_rel_culto_id}&select=membro_id,ministerio_id,membros(id,nome,foto_url),ministerios(nome)&order=ministerios(nome),membros(nome)`).catch(()=>[]),
-                        sb(`ministerio_checkin?data=eq.${_rel_data}&culto_id=eq.${_rel_culto_id}&select=membro_id,ministerio_id,status,hora_checkin,minutos_atraso,membros(nome),ministerios(nome)`).catch(()=>[]),
-                    ]);
-                    dadosGuardados = relRows?.[0] || null;
-                    relId = dadosGuardados?.id || null;
-                    volCount = escRows.length;
+                const [relRows, escRows, ciRows] = await Promise.all([
+                sb(`cultos_relatorio_geral?data=eq.${_rel_data}&culto_id=eq.${_rel_culto_id}&select=*&limit=1`).catch(()=>[]),
+                sb(`ministerio_escala?data=eq.${_rel_data}&culto_id=eq.${_rel_culto_id}&select=membro_id,ministerio_id,membros(id,nome,foto_url),ministerios(nome)&order=ministerios(nome),membros(nome)`).catch(()=>[]),
+                sb(`ministerio_checkin?data=eq.${_rel_data}&culto_id=eq.${_rel_culto_id}&select=membro_id,ministerio_id,status,hora_checkin,minutos_atraso,membros(nome),ministerios(nome)`).catch(()=>[]),
+                ]);
+                dadosGuardados = relRows?.[0] || null;
+                relId = dadosGuardados?.id || null;
+                volCount = escRows.length;
 
                     /* Juntar escala + checkin para lista de presenças */
-                    const ciByMembro = {};
-                    (ciRows||[]).forEach(ci => { ciByMembro[`${ci.membro_id}_${ci.ministerio_id}`] = ci; });
-                    volPresentes = (escRows||[]).map(e => {
-                        const ci = ciByMembro[`${e.membro_id}_${e.ministerio_id}`];
-                        return {
-                            nome:           e.membros?.nome || '—',
-                            foto:           e.membros?.foto_url || null,
-                            area:           e.ministerios?.nome || '—',
-                            status:         ci?.status || 'sem_registo',
-                            hora_checkin:   ci?.hora_checkin?.slice(0,5) || '—',
-                            minutos_atraso: ci?.minutos_atraso || 0,
-                        };
-                    });
+                const ciByMembro = {};
+                (ciRows||[]).forEach(ci => { ciByMembro[`${ci.membro_id}_${ci.ministerio_id}`] = ci; });
+                volPresentes = (escRows||[]).map(e => {
+                const ci = ciByMembro[`${e.membro_id}_${e.ministerio_id}`];
+                return {
+                nome:           e.membros?.nome || '—',
+                foto:           e.membros?.foto_url || null,
+                area:           e.ministerios?.nome || '—',
+                status:         ci?.status || 'sem_registo',
+                hora_checkin:   ci?.hora_checkin?.slice(0,5) || '—',
+                minutos_atraso: ci?.minutos_atraso || 0,
+                };
+                });
                 } catch(_) {}
 
                 const d = dadosGuardados || {};
                 const val = (f, def='') => d[f] != null ? d[f] : def;
 
-                /* ── Campos manuais ── */
+                    /* ── Campos manuais ── */
                 const camposManual = [
-                    { id:'total_participantes', label:'Total de Participantes' },
-                    { id:'total_templo',        label:'Total no Templo' },
-                    { id:'total_overflow',      label:'Total no Overflow' },
-                    { id:'bercario',            label:'Bercario' },
-                    { id:'keola',               label:'Keola' },
-                    { id:'traducao',            label:'Traducao' },
-                    { id:'streaming',           label:'Streaming (PT)' },
-                    { id:'streaming_en',        label:'Streaming (EN)' },
-                    { id:'salvacoes',           label:'Salvacoes' },
-                    { id:'curas',               label:'Curas' },
-                    { id:'visitantes',          label:'Visitantes' },
-                    { id:'tempo_oferta',        label:'Tempo Oferta', tipo:'text', placeholder:'Ex: 2:46' },
+                { id:'total_participantes', label:'Total de Participantes' },
+                { id:'total_templo',        label:'Total no Templo' },
+                { id:'total_overflow',      label:'Total no Overflow' },
+                { id:'bercario',            label:'Bercario' },
+                { id:'keola',               label:'Keola' },
+                { id:'traducao',            label:'Traducao' },
+                { id:'streaming',           label:'Streaming (PT)' },
+                { id:'streaming_en',        label:'Streaming (EN)' },
+                { id:'salvacoes',           label:'Salvacoes' },
+                { id:'curas',               label:'Curas' },
+                { id:'visitantes',          label:'Visitantes' },
+                { id:'tempo_oferta',        label:'Tempo Oferta', tipo:'text', placeholder:'Ex: 2:46' },
                 ];
 
                 const camposHtml = camposManual.map(f => `
@@ -1993,10 +2078,10 @@ ${cards}`;
     value="${val(f.id)}" placeholder="${f.placeholder||'0'}">
 </div>`).join('');
 
-                /* ── Tabela de voluntários ── */
+                    /* ── Tabela de voluntários ── */
                 const volRows = volPresentes.map(v => {
-                    const tard = v.status === 'atrasado' && v.minutos_atraso > 0 ? ` +${v.minutos_atraso}min` : '';
-                    return `<tr>
+                const tard = v.status === 'atrasado' && v.minutos_atraso > 0 ? ` +${v.minutos_atraso}min` : '';
+                return `<tr>
   <td style="font-size:12px">${v.nome}</td>
   <td style="font-size:11px;color:var(--text-faint)">${v.area}</td>
   <td><span class="vl-badge vl-b-${v.status}">${st_label(v.status)}${tard}</span></td>
@@ -2035,103 +2120,103 @@ ${cards}`;
     <tbody>${volRows}</tbody>
   </table>` : '<div class="vl-empty" style="padding:24px">Nenhum voluntario escalado para este culto.</div>'}
 </div>`;
-            }
+                }
 
-            async function vl_relGuardar(relId, volCount) {
+                async function vl_relGuardar(relId, volCount) {
                 const alEl = document.getElementById('rel-alert');
                 const campos = ['total_participantes','total_templo','total_overflow','bercario','keola',
-                    'traducao','streaming','streaming_en','salvacoes','curas','visitantes','tempo_oferta'];
+                'traducao','streaming','streaming_en','salvacoes','curas','visitantes','tempo_oferta'];
 
                 const payload = { data: _rel_data, culto_id: _rel_culto_id, voluntarios: volCount };
                 campos.forEach(f => {
-                    const el = document.getElementById(`rel-${f}`);
-                    if(!el) return;
-                    const v = el.value.trim();
-                    payload[f] = f === 'tempo_oferta' ? (v || null) : (v !== '' ? Number(v) : null);
+                const el = document.getElementById(`rel-${f}`);
+                if(!el) return;
+                const v = el.value.trim();
+                payload[f] = f === 'tempo_oferta' ? (v || null) : (v !== '' ? Number(v) : null);
                 });
 
                 try {
-                    if (relId) {
-                        await sb(`cultos_relatorio_geral?id=eq.${relId}`, { method: 'PATCH', body: JSON.stringify(payload) });
-                    } else {
-                        await sb('cultos_relatorio_geral', { method: 'POST', body: JSON.stringify(payload) });
-                    }
-                    if(alEl) {
-                        alEl.innerHTML = '<div class="vl-alert vl-alert-s">Guardado com sucesso.</div>';
-                        setTimeout(() => alEl.innerHTML = '', 3000);
-                    }
-                    // Recarregar para obter o id gerado
-                    await vl_carregarRelatorio(true);
-                } catch(e) {
-                    if(alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+                if (relId) {
+                await sb(`cultos_relatorio_geral?id=eq.${relId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+                } else {
+                await sb('cultos_relatorio_geral', { method: 'POST', body: JSON.stringify(payload) });
                 }
-            }
+                if(alEl) {
+                alEl.innerHTML = '<div class="vl-alert vl-alert-s">Guardado com sucesso.</div>';
+                setTimeout(() => alEl.innerHTML = '', 3000);
+                }
+                    // Recarregar para obter o id gerado
+                await vl_carregarRelatorio(true);
+                } catch(e) {
+                if(alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+                }
+                }
 
-            function vl_relGerarPDF(volPresentes) {
+                function vl_relGerarPDF(volPresentes) {
                 const culto = _rel_cultos_list.find(cu => cu.id === _rel_culto_id);
                 const cultoLabel = culto ? `${culto.nome}${culto.hora_inicio ? ' · ' + culto.hora_inicio.slice(0,5) : ''}` : '—';
 
                 const campos = [
-                    { id:'total_participantes', label:'Total de Participantes' },
-                    { id:'total_templo',        label:'Total no Templo' },
-                    { id:'total_overflow',      label:'Total no Overflow' },
-                    { id:'bercario',            label:'Bercario' },
-                    { id:'keola',               label:'Keola' },
-                    { id:'voluntarios',         label:'Voluntarios', auto: true },
-                    { id:'traducao',            label:'Traducao' },
-                    { id:'streaming',           label:'Streaming (PT)' },
-                    { id:'streaming_en',        label:'Streaming (EN)' },
-                    { id:'salvacoes',           label:'Salvacoes' },
-                    { id:'curas',               label:'Curas' },
-                    { id:'visitantes',          label:'Visitantes' },
-                    { id:'tempo_oferta',        label:'Tempo Oferta' },
+                { id:'total_participantes', label:'Total de Participantes' },
+                { id:'total_templo',        label:'Total no Templo' },
+                { id:'total_overflow',      label:'Total no Overflow' },
+                { id:'bercario',            label:'Bercario' },
+                { id:'keola',               label:'Keola' },
+                { id:'voluntarios',         label:'Voluntarios', auto: true },
+                { id:'traducao',            label:'Traducao' },
+                { id:'streaming',           label:'Streaming (PT)' },
+                { id:'streaming_en',        label:'Streaming (EN)' },
+                { id:'salvacoes',           label:'Salvacoes' },
+                { id:'curas',               label:'Curas' },
+                { id:'visitantes',          label:'Visitantes' },
+                { id:'tempo_oferta',        label:'Tempo Oferta' },
                 ];
 
-                /* Colher valores */
+                    /* Colher valores */
                 const valores = {};
                 campos.forEach(f => {
-                    if(f.auto) {
-                        valores[f.id] = document.querySelector('.vl-stat-num, [style*="font-size:20px"]')?.textContent?.trim() || '—';
-                        // fallback: pegar do campo auto
-                        const autoEl = document.querySelector('[style*="font-size:20px"]');
-                        valores[f.id] = autoEl ? autoEl.textContent.trim() : '—';
-                    } else {
-                        const el = document.getElementById(`rel-${f.id}`);
-                        valores[f.id] = el ? (el.value || '—') : '—';
-                    }
+                if(f.auto) {
+                valores[f.id] = document.querySelector('.vl-stat-num, [style*="font-size:20px"]')?.textContent?.trim() || '—';
+                    // fallback: pegar do campo auto
+                const autoEl = document.querySelector('[style*="font-size:20px"]');
+                valores[f.id] = autoEl ? autoEl.textContent.trim() : '—';
+                } else {
+                const el = document.getElementById(`rel-${f.id}`);
+                valores[f.id] = el ? (el.value || '—') : '—';
+                }
                 });
 
-                /* Gráfico de barras simples (SVG inline) */
+                    /* Gráfico de barras simples (SVG inline) */
                 const barDados = [
-                    { label:'Particip.', val: parseInt(valores.total_participantes)||0, cor:'#0e7490' },
-                    { label:'Templo',    val: parseInt(valores.total_templo)||0,        cor:'#0891b2' },
-                    { label:'Overflow',  val: parseInt(valores.total_overflow)||0,      cor:'#06b6d4' },
-                    { label:'Salvacoes', val: parseInt(valores.salvacoes)||0,           cor:'#15803d' },
-                    { label:'Visitantes',val: parseInt(valores.visitantes)||0,          cor:'#b45309' },
-                    { label:'Vols.',     val: parseInt(valores.voluntarios)||0,         cor:'#7c3aed' },
+                { label:'Particip.', val: parseInt(valores.total_participantes)||0, cor:'#0e7490' },
+                { label:'Templo',    val: parseInt(valores.total_templo)||0,        cor:'#0891b2' },
+                { label:'Overflow',  val: parseInt(valores.total_overflow)||0,      cor:'#06b6d4' },
+                { label:'Salvacoes', val: parseInt(valores.salvacoes)||0,           cor:'#15803d' },
+                { label:'Visitantes',val: parseInt(valores.visitantes)||0,          cor:'#b45309' },
+                { label:'Vols.',     val: parseInt(valores.voluntarios)||0,         cor:'#7c3aed' },
                 ];
                 const maxVal = Math.max(...barDados.map(d=>d.val), 1);
                 const barW = 60, barGap = 18, svgW = barDados.length*(barW+barGap)+barGap, svgH = 180;
                 const barsSvg = barDados.map((d, i) => {
-                    const h   = Math.round((d.val / maxVal) * 120);
-                    const x   = barGap + i*(barW+barGap);
-                    const y   = 130 - h;
-                    return `
+                const h   = Math.round((d.val / maxVal) * 120);
+                const x   = barGap + i*(barW+barGap);
+                const y   = 130 - h;
+                return `
 <rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${d.cor}" rx="4"/>
 <text x="${x+barW/2}" y="${y-5}"  text-anchor="middle" font-size="11" font-weight="bold" fill="#000">${d.val||'—'}</text>
 <text x="${x+barW/2}" y="155"     text-anchor="middle" font-size="10" fill="#444">${d.label}</text>`;
                 }).join('');
 
-                /* Tabela de voluntários */
+                    /* Tabela de voluntários */
                 const volRows = (volPresentes||[]).map(v => {
-                    const tard = v.status === 'atrasado' && v.minutos_atraso > 0 ? ` +${v.minutos_atraso}min` : '';
-                    const statusColors = { presente:'#15803d', atrasado:'#b45309', faltou:'#b91c1c', pre_confirmado:'#0e7490', sem_registo:'#6b7280' };
-                    const cor = statusColors[v.status] || '#6b7280';
-                    const ini = v.nome.split(' ').slice(0,2).map(p => p[0]||'').join('').toUpperCase();
-                    const fotoHtml = v.foto
-                        ? `<img src="${v.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #ddd;display:block;margin:auto">`
-                        : `<div style="width:32px;height:32px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#374151;margin:auto">${ini}</div>`;
-                    return `<tr>
+                const tard = v.status === 'atrasado' && v.minutos_atraso > 0 ? ` +${v.minutos_atraso}min` : '';
+                const statusColors = { presente:'#15803d', atrasado:'#b45309', faltou:'#b91c1c', pre_confirmado:'#0e7490', sem_registo:'#6b7280' };
+                const cor = statusColors[v.status] || '#6b7280';
+                const ini = v.nome.split(' ').slice(0,2).map(p => p[0]||'').join('').toUpperCase();
+                const fotoHtml = v.foto
+                ? `<img src="${v.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #ddd;display:block;margin:auto">`
+                : `<div style="width:32px;height:32px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#374151;margin:auto">${ini}</div>`;
+                return `<tr>
   <td style="text-align:center">${fotoHtml}</td>
   <td>${v.nome}</td>
   <td>${v.area}</td>
@@ -2166,52 +2251,53 @@ ${cards}`;
 </table>`;
 
                 abrirJanelaPrint(bodyHtml);
-            }
+                }
 
-            /* ══════════════════════════════════════════
-               EXPOR NO WINDOW
-            ══════════════════════════════════════════ */
-            window.vl_init                     = vl_init;
-            window.vl_setTab                   = vl_setTab;
-            window.vl_toggle                   = vl_toggle;
-            window.vl_filtrarCampanha          = vl_filtrarCampanha;
-            window.vl_aprovar                  = vl_aprovar;
-            window.vl_distribuirTodos          = vl_distribuirTodos;
-            window.vl_filtrarInscricoes        = vl_filtrarInscricoes;
-            window.vl_limparFiltrosIns         = vl_limparFiltrosIns;
-            window.vl_mostrarLinkLider         = vl_mostrarLinkLider;
-            window.vl_abrirDistribuir          = vl_abrirDistribuir;
-            window.vl_confirmarDistribuir      = vl_confirmarDistribuir;
-            window.vl_abrirRegistarVoluntario  = vl_abrirRegistarVoluntario;
-            window.vl_confirmarRegistar        = vl_confirmarRegistar;
-            window.vl_novaCampanha             = vl_novaCampanha;
-            window.vl_guardarCampanha          = vl_guardarCampanha;
-            window.vl_statusCampanha           = vl_statusCampanha;
-            window.vl_gerarLinks               = vl_gerarLinks;
-            window.vl_renderAtivosFiltrado     = vl_renderAtivosFiltrado;
-            window.vl_limparFiltros            = vl_limparFiltros;
-            window.vl_removerVoluntario        = vl_removerVoluntario;
-            window.vl_abrirPerfil              = vl_abrirPerfil;
-            window.vl_mostrarTabPerfil         = vl_mostrarTabPerfil;
-            window.vl_carregarAnotacoes        = vl_carregarAnotacoes;
-            window.vl_salvarAnotacao           = vl_salvarAnotacao;
-            window.vl_removerMinisterioModal   = vl_removerMinisterioModal;
-            window.vl_adicionarMinisterioModal = vl_adicionarMinisterioModal;
-            window.vl_removerVoluntarioModal   = vl_removerVoluntarioModal;
-            window.vl_guardarFuncao            = vl_guardarFuncao;
-            window.vl_abrirRejeitar            = vl_abrirRejeitar;
-            window.vl_confirmarRejeitar        = vl_confirmarRejeitar;
-            window.vl_filtrarPresencas         = vl_filtrarPresencas;
-            window.vl_limparFiltrosPr          = vl_limparFiltrosPr;
-            window.vl_imprimirAtivos           = vl_imprimirAtivos;
-            window.vl_imprimirPresencas        = vl_imprimirPresencas;
-            window.vl_renderRelatorio    = vl_renderRelatorio;
-            window.vl_carregarRelatorio  = vl_carregarRelatorio;
-            window.vl_relGuardar         = vl_relGuardar;
-            window.vl_relGerarPDF        = vl_relGerarPDF;
-            window.vl_filtrarPresencas   = vl_filtrarPresencas;
-            window.vl_limparFiltrosPr    = vl_limparFiltrosPr;
-
-            vl_init();
-        })();
+                /* ══════════════════════════════════════════
+                EXPOR NO WINDOW
+                ══════════════════════════════════════════ */
+                window.vl_init                     = vl_init;
+                window.vl_setTab                   = vl_setTab;
+                window.vl_toggle                   = vl_toggle;
+                window.vl_filtrarCampanha          = vl_filtrarCampanha;
+                window.vl_aprovar                  = vl_aprovar;
+                window.vl_distribuirTodos          = vl_distribuirTodos;
+                window.vl_filtrarInscricoes        = vl_filtrarInscricoes;
+                window.vl_limparFiltrosIns         = vl_limparFiltrosIns;
+                window.vl_mostrarLinkLider         = vl_mostrarLinkLider;
+                window.vl_abrirDistribuir          = vl_abrirDistribuir;
+                window.vl_confirmarDistribuir      = vl_confirmarDistribuir;
+                window.vl_abrirRegistarVoluntario  = vl_abrirRegistarVoluntario;
+                window.vl_confirmarRegistar        = vl_confirmarRegistar;
+                window.vl_novaCampanha             = vl_novaCampanha;
+                window.vl_guardarCampanha          = vl_guardarCampanha;
+                window.vl_statusCampanha           = vl_statusCampanha;
+                window.vl_gerarLinks               = vl_gerarLinks;
+                window.vl_renderAtivosFiltrado     = vl_renderAtivosFiltrado;
+                window.vl_limparFiltros            = vl_limparFiltros;
+                window.vl_removerVoluntario        = vl_removerVoluntario;
+                window.vl_abrirPerfil              = vl_abrirPerfil;
+                window.vl_mostrarTabPerfil         = vl_mostrarTabPerfil;
+                window.vl_carregarAnotacoes        = vl_carregarAnotacoes;
+                window.vl_salvarAnotacao           = vl_salvarAnotacao;
+                window.vl_removerMinisterioModal   = vl_removerMinisterioModal;
+                window.vl_adicionarMinisterioModal = vl_adicionarMinisterioModal;
+                window.vl_removerVoluntarioModal   = vl_removerVoluntarioModal;
+                window.vl_guardarFuncao            = vl_guardarFuncao;
+                window.vl_abrirRejeitar            = vl_abrirRejeitar;
+                window.vl_confirmarRejeitar        = vl_confirmarRejeitar;
+                window.vl_filtrarPresencas         = vl_filtrarPresencas;
+                window.vl_limparFiltrosPr          = vl_limparFiltrosPr;
+                window.vl_imprimirAtivos           = vl_imprimirAtivos;
+                window.vl_imprimirPresencas        = vl_imprimirPresencas;
+                window.vl_renderRelatorio    = vl_renderRelatorio;
+                window.vl_carregarRelatorio  = vl_carregarRelatorio;
+                window.vl_relGuardar         = vl_relGuardar;
+                window.vl_relGerarPDF        = vl_relGerarPDF;
+                window.vl_filtrarPresencas   = vl_filtrarPresencas;
+                window.vl_limparFiltrosPr    = vl_limparFiltrosPr;
+                window.vl_selecionarMembroReg = vl_selecionarMembroReg;
+                window.vl_limparSelecaoReg    = vl_limparSelecaoReg;
+                vl_init();
+                })();
 </script>

@@ -1032,6 +1032,31 @@
         } catch (e) { alert('Erro: ' + (e?.message || JSON.stringify(e))); }
     }
 
+                async function vl_confirmarRegistar(btn) {
+                    const memId  = document.getElementById('vl-reg-mem-id')?.value;
+                    const funcao = document.getElementById('vl-reg-funcao')?.value || null;
+                    const alEl   = document.getElementById('vl-reg-alert');
+                    if (!memId) {
+                        if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>';
+                        return;
+                    }
+                    btn.disabled = true; btn.textContent = 'A guardar...';
+                    try {
+                        await sb(`membros?id=eq.${memId}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ e_voluntario: true, funcao_voluntario: funcao || null })
+                        });
+                        const idx = vl_membrosCache.findIndex(m => m.id === memId);
+                        if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
+                        btn.closest('.vl-modal-overlay').remove();
+                        vl_renderAtivos();
+                    } catch (e) {
+                        if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
+                        btn.disabled = false; btn.textContent = 'Registar';
+                    }
+                }
+
+
             async function vl_abrirRegistarVoluntario() {
     const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
 
@@ -1138,49 +1163,7 @@
                 document.getElementById('vl-reg-search').focus();
                 };
 
-                window.vl_selecionarMembroReg = function(id, nome) {
-                const idEl    = document.getElementById('vl-reg-mem-id');
-                const selEl   = document.getElementById('vl-reg-selecionado');
-                const listaEl = document.getElementById('vl-reg-resultados');
-                const searchEl= document.getElementById('vl-reg-search');
-                const btnConf = document.getElementById('vl-reg-confirmar');
 
-                idEl.value        = id;
-                searchEl.value    = nome;
-                listaEl.style.display = 'none';
-                selEl.style.display   = 'flex';
-                selEl.innerHTML       = `<span>✓ <strong>${nome}</strong> selecionado</span><button class="vl-btn vl-btn-m" style="padding:2px 8px;font-size:8px" onclick="vl_limparSelecaoReg()">Limpar</button>`;
-                btnConf.disabled      = false;
-                };
-
-                window.vl_limparSelecaoReg = function() {
-                document.getElementById('vl-reg-mem-id').value = '';
-                document.getElementById('vl-reg-selecionado').style.display = 'none';
-                document.getElementById('vl-reg-search').value = '';
-                document.getElementById('vl-reg-confirmar').disabled = true;
-                document.getElementById('vl-reg-search').focus();
-                };
-
-                async function vl_confirmarRegistar(btn) {
-                const memId  = document.getElementById('vl-reg-mem-id')?.value;
-                const funcao = document.getElementById('vl-reg-funcao')?.value || null;
-                const alEl   = document.getElementById('vl-reg-alert');
-                if (!memId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>'; return; }
-                btn.disabled = true; btn.textContent = 'A guardar...';
-                try {
-                await sb(`membros?id=eq.${memId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ e_voluntario: true, funcao_voluntario: funcao || null })
-                });
-                const idx = vl_membrosCache.findIndex(m => m.id === memId);
-                if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
-                btn.closest('.vl-modal-overlay').remove();
-                vl_renderAtivos();
-                } catch (e) {
-                if (alEl) alEl.innerHTML = `<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;
-                btn.disabled = false; btn.textContent = 'Registar';
-                }
-                }
 
                 /* ══════════════════════════════════════════
                 ABA 2 — NOVAS INSCRICOES

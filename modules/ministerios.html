@@ -426,6 +426,8 @@ var min_dispMap = {}, min_indisps = [], min_escala = [];
 var min_indMes = '', min_escMes = '', min_indMemSel = null;
 var min_eaCtx = null, min_formEditId = null;
 var min_papeis = [];
+var min_dividirEquipe = false;
+
 
 const MESES_PT  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MESES_ABV = ['','JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
@@ -508,6 +510,18 @@ function min_salvarPapel() {
 }
 
 /* ── HELPERS ── */
+function min_campusTag(culto) {
+    if (!culto?.campus?.nome) return '';
+    return `<span style="font-size:9px;background:rgba(21,101,192,0.1);color:#1565c0;padding:1px 7px;border-radius:20px;font-family:var(--font-title);margin-left:4px">${culto.campus.nome}</span>`;
+}
+function min_isHomem(mm) {
+    const g = (mm.membros?.genero||'').toLowerCase();
+    return g==='m'||g==='masculino';
+}
+function min_isMulher(mm) {
+    const g = (mm.membros?.genero||'').toLowerCase();
+    return g==='f'||g==='feminino';
+}
 function min_sb(p, o) { return window.sb ? window.sb(p, o) : Promise.reject('no sb'); }
 function min_t(m, t) { if (window.toast) window.toast(m, t || 'ok'); }
 function smsg(id, msg, t) { const e = document.getElementById(id); if (!e) return; e.textContent = msg; e.className = 'form-msg ' + t; }
@@ -606,15 +620,33 @@ async function min_sel(id) {
     min_minAtivo = min_mins.find(m=>m.id===id);
     min_renderSide();
     const [mems, cults] = await Promise.all([
-        min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome)&ativo=eq.true&order=papel,created_at`).catch(()=>[]),
-        min_sb(`ministerio_cultos?ministerio_id=eq.${id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo)`).catch(()=>[]),
+        min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome,genero)&ativo=eq.true&order=papel,created_at`).catch(()=>[]),
+        min_sb(`ministerio_cultos?ministerio_id=eq.${id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo,campus:campus(id,nome))`).catch(()=>[]),
     ]);
     min_minMems = mems || [];
-    // Só cultos activos no join
     min_minCults = (cults || []).filter(mc => mc.cultos?.ativo !== false);
     min_memNoMin = new Set(min_minMems.map(m=>m.membro_id));
-    const bc = min_breadcrumb(id);
 
+    /* ── AUTO-ADD por tag do ministério ── */
+    if (min_minAtivo?.slug) {
+        try {
+            const tagged = await min_sb(`membros?select=id,nome&ativo=eq.true&tags=cs.{${min_minAtivo.slug}}`).catch(()=>[]);
+            const newTagged = (tagged||[]).filter(t => !min_memNoMin.has(t.id));
+            if (newTagged.length) {
+                await Promise.all(newTagged.map(t =>
+                    min_sb('ministerio_membros',{method:'POST',body:JSON.stringify({
+                            ministerio_id:id, membro_id:t.id, papel:'membro', ativo:true
+                        })}).catch(()=>null)
+                ));
+                const memsUp = await min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome,genero)&ativo=eq.true&order=papel,created_at`).catch(()=>[]);
+                min_minMems = memsUp || [];
+                min_memNoMin = new Set(min_minMems.map(m=>m.membro_id));
+                min_t(`${newTagged.length} voluntário(s) adicionado(s) automaticamente por tag`);
+            }
+        } catch(e) { /* coluna tags inexistente — silencia */ }
+    }
+
+    const bc = min_breadcrumb(id);
     document.getElementById('min-content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px 0;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;flex-wrap:wrap">
         <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:8px">
@@ -630,7 +662,6 @@ async function min_sel(id) {
             <button class="mod-tab"        id="mint-disp"     onclick="min_tab('disp')">Disponibilidade</button>
             <button class="mod-tab"        id="mint-indisp"   onclick="min_tab('indisp')">Indisponibilidades</button>
             <button class="mod-tab"        id="mint-escala"   onclick="min_tab('escala')">Escala</button>
-            <button class="mod-tab"        id="mint-partilha" onclick="min_tab('partilha')">Partilhar</button>
             <button class="mod-tab"        id="mint-checkin"  onclick="min_tab('checkin')">Check-in</button>
         </div>
         <div style="display:flex;gap:6px;padding-bottom:8px;flex-shrink:0">
@@ -643,7 +674,6 @@ async function min_sel(id) {
     <div class="mod-tab-body"        id="mintb-disp"></div>
     <div class="mod-tab-body"        id="mintb-indisp"></div>
     <div class="mod-tab-body"        id="mintb-escala"></div>
-    <div class="mod-tab-body"        id="mintb-partilha"></div>
     <div class="mod-tab-body"        id="mintb-checkin"></div>`;
     min_renderMems();
 }
@@ -651,16 +681,15 @@ async function min_sel(id) {
 /* ── TROCA DE TABS ── */
 function min_tab(t) {
     if (!min_minAtivo) return;
-    ['membros','cultos','disp','indisp','escala','partilha','checkin'].forEach(x => {
+    ['membros','cultos','disp','indisp','escala','checkin'].forEach(x => {
         document.getElementById(`mint-${x}`)?.classList.toggle('active', x===t);
         document.getElementById(`mintb-${x}`)?.classList.toggle('active', x===t);
     });
-    if (t==='cultos')   min_renderCults();
-    if (t==='disp')     min_renderDisp();
-    if (t==='indisp')   min_renderIndisp();
-    if (t==='escala')   min_renderEscala();
-    if (t==='partilha') min_renderPartilha();
-    if (t==='checkin')  min_renderCheckin();
+    if (t==='cultos')  min_renderCults();
+    if (t==='disp')    min_renderDisp();
+    if (t==='indisp')  min_renderIndisp();
+    if (t==='escala')  min_renderEscala();
+    if (t==='checkin') min_renderCheckin();
 }
 
 /* ── ORGANOGRAMA ── */
@@ -848,24 +877,34 @@ async function min_inativarMin(id) {
 function min_renderMems() {
     if (!min_minAtivo) return;
     const el = document.getElementById('mintb-membros'); if (!el) return;
-    el.innerHTML = `<div class="sec-hd">
-        <div style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark)">${min_minAtivo.nome}</div>
+    el.innerHTML = `
+    <div class="sec-hd">
+        <div>
+            <div style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark)">${min_minAtivo.nome}</div>
+            <div style="font-size:10px;color:var(--text-faint);margin-top:3px">Membros com a tag <code style="background:var(--bg-panel);padding:1px 5px;border-radius:4px">${min_minAtivo.slug||min_minAtivo.nome}</code> são adicionados automaticamente.</div>
+        </div>
         <button class="btn-add" onclick="min_abrirMem()">+ Adicionar Voluntário</button>
     </div>
     ${min_minMems.length ? `<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"><table class="t">
-        <thead><tr><th>Nome</th><th>Papel</th><th>PIN Check-in</th><th></th></tr></thead>
-        <tbody>${min_minMems.map(m=>`<tr>
-            <td style="font-weight:600">${m.membros?.nome||'—'}</td>
-            <td><select style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:11px;color:var(--text-main);font-family:var(--font-body)" onchange="min_alterPapel('${m.id}',this.value)">
-                ${min_papeis_options(m.papel)}
-            </select></td>
-            <td id="pin-cell-${m.membro_id}">
-                <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_editarPin('${m.membro_id}')">PIN</button>
-            </td>
-            <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
-        </tr>`).join('')}</tbody></table></div>`
-    : `<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum voluntário neste ministério</div></div>`}`;
+        <thead><tr><th>Nome</th><th>Género</th><th>Papel</th><th>PIN Check-in</th><th></th></tr></thead>
+        <tbody>${min_minMems.map(m=>{
+            const genero = m.membros?.genero||'';
+            const genBadge = genero ? `<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:${min_isHomem(m)?'rgba(21,101,192,0.1)':'rgba(156,39,176,0.1)'};color:${min_isHomem(m)?'#1565c0':'#6a1b9a'};font-family:var(--font-title)">${min_isHomem(m)?'H':'M'}</span>` : '<span style="font-size:10px;color:var(--text-faint)">—</span>';
+            return `<tr>
+                <td style="font-weight:600">${m.membros?.nome||'—'}</td>
+                <td>${genBadge}</td>
+                <td><select style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);font-size:11px;color:var(--text-main);font-family:var(--font-body)" onchange="min_alterPapel('${m.id}',this.value)">
+                    ${min_papeis_options(m.papel)}
+                </select></td>
+                <td id="pin-cell-${m.membro_id}">
+                    <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_editarPin('${m.membro_id}')">PIN</button>
+                </td>
+                <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
+            </tr>`;
+        }).join('')}</tbody></table></div>`
+        : `<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum voluntário neste ministério</div></div>`}`;
 }
+
 async function min_editarPin(membroId) {
     const cell=document.getElementById('pin-cell-'+membroId); if (!cell) return;
     cell.innerHTML='<span style="font-size:10px;color:var(--text-faint)">…</span>';
@@ -934,16 +973,23 @@ async function min_remMem(id) {
 /* ── CULTOS ── */
 function min_renderCults() {
     const el=document.getElementById('mintb-cultos'); if (!el) return;
-    // Só cultos activos
     const activeCultos = min_cultsAll.filter(c=>c.ativo!==false);
     const atMap=new Map(min_minCults.map(mc=>[mc.culto_id,mc]));
     el.innerHTML=`<div class="sec-hd"><div class="sec-lbl">Cultos activos que este ministério serve</div></div>
     <div style="display:flex;flex-direction:column;gap:8px">
     ${activeCultos.map(c=>{
         const mc=atMap.get(c.id), ok=!!mc;
+        // campus: vem do join em min_minCults ou do cultsAll (sem campus aqui)
+        const mcFull = min_minCults.find(x=>x.culto_id===c.id);
+        const campusNome = mcFull?.cultos?.campus?.nome || '';
         return `<div style="display:flex;align-items:center;padding:12px 14px;background:${ok?'var(--primary-faint)':'var(--bg-card)'};border:1px solid ${ok?'var(--primary)':'var(--border)'};border-radius:var(--radius);gap:12px">
-            <div style="flex:1"><div style="font-weight:600;font-size:13px">${c.nome}</div>
-            <div style="font-size:11px;color:var(--text-faint);margin-top:2px">${c.dia_semana} · ${c.hora_inicio?.slice(0,5)}–${c.hora_fim?.slice(0,5)}</div></div>
+            <div style="flex:1">
+                <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">
+                    ${c.nome}
+                    ${campusNome?`<span style="font-size:9px;background:rgba(21,101,192,0.1);color:#1565c0;padding:1px 7px;border-radius:20px;font-family:var(--font-title)">${campusNome}</span>`:''}
+                </div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">${c.dia_semana} · ${c.hora_inicio?.slice(0,5)}–${c.hora_fim?.slice(0,5)}</div>
+            </div>
             ${ok?`<div style="display:flex;align-items:center;gap:8px">
                 <label style="font-size:11px;color:var(--text-faint)">Vagas:</label>
                 <input type="number" min="1" max="20" value="${mc.vagas||1}" style="width:52px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;text-align:center" onchange="min_salvarVagas('${mc.id}',this.value)">
@@ -952,6 +998,7 @@ function min_renderCults() {
         </div>`;
     }).join('')}</div>`;
 }
+
 async function min_addCult(cId) {
     if (!min_minAtivo) return;
     // Previne clique duplo
@@ -959,7 +1006,8 @@ async function min_addCult(cId) {
     if (btn) { btn.disabled=true; btn.textContent='A adicionar…'; }
     try {
         await min_sb('ministerio_cultos',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,culto_id:cId,vagas:1})});
-        min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo)`).catch(()=>[]);
+        //min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo)`).catch(()=>[]);
+        min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo,campus:campus(id,nome))`).catch(()=>[]);
         min_minCults=(min_minCults||[]).filter(mc=>mc.cultos?.ativo!==false);
         min_renderCults(); min_t('Culto adicionado');
     } catch(e) { min_t('Erro ao adicionar culto: '+e.message,'err'); if(btn){btn.disabled=false;btn.textContent='Adicionar';} }
@@ -993,7 +1041,11 @@ async function min_renderDisp() {
     <table class="disp-table">
         <thead><tr>
             <th>Voluntário</th><th>Papel</th>
-            ${cults.map(c=>`<th>${c.nome}<br><span style="font-weight:400;font-size:8px">${c.dia_semana} ${c.hora_inicio?.slice(0,5)}</span></th>`).join('')}
+            ${cults.map(c=>{
+        const mc = min_minCults.find(x=>x.culto_id===c.id)||min_minCults.find(x=>x.cultos?.id===c.id);
+        const campusNome = mc?.cultos?.campus?.nome||'';
+        return `<th>${c.nome}${campusNome?`<br><span style="font-weight:400;font-size:8px;color:#1565c0">${campusNome}</span>`:''}<br><span style="font-weight:400;font-size:8px">${c.dia_semana} ${c.hora_inicio?.slice(0,5)}</span></th>`;
+    }).join('')}
             <th>Ação</th>
         </tr></thead>
         <tbody>${min_minMems.map(m=>`<tr>
@@ -1138,22 +1190,35 @@ async function min_renderEscala() {
     const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
     min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
     if (!min_minAtivo || min_minAtivo.id !== minId) return;
-    el.innerHTML=`<div class="escala-nav">
+    el.innerHTML=`
+    <div class="escala-nav">
         <button class="btn-sm" onclick="min_navEsc(-1)">Ant.</button>
         <div class="escala-titulo">${mesLbl(min_escMes)}</div>
         <button class="btn-sm" onclick="min_navEsc(1)">Prox.</button>
-        <button class="btn-sm" style="margin-left:auto" onclick="min_limparEsc()">Limpar</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto;background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer" onclick="min_dividirEquipe=!min_dividirEquipe;this.querySelector('.de-toggle').classList.toggle('on',min_dividirEquipe);this.style.borderColor=min_dividirEquipe?'var(--primary)':'var(--border)'" title="Quando activo, a geração automática tenta equilibrar 1 homem + 1 mulher por vaga (para 2 vagas: 1H+1M; para 4 vagas: 2H+2M; vagas ímpares: os H+M completos + 1 sem distinção de género).">
+            <div style="display:flex;flex-direction:column;gap:1px">
+                <span style="font-family:var(--font-title);font-size:9px;letter-spacing:1px;color:var(--text-faint)">DIVIDIR EQUIPE</span>
+                <span style="font-size:10px;color:var(--text-muted)">Equilibrar H + M na escala</span>
+            </div>
+            <div class="disp-toggle de-toggle ${min_dividirEquipe?'on':''}" style="pointer-events:none;margin-left:8px"></div>
+        </div>
+        <button class="btn-sm" onclick="min_limparEsc()">Limpar</button>
         <button class="btn-sm primary" onclick="min_gerarEsc()">Gerar Escala</button>
     </div>
+    ${min_dividirEquipe?`<div style="margin-bottom:10px;padding:8px 14px;background:rgba(0,144,152,0.06);border:1px solid var(--primary);border-radius:8px;font-size:11px;color:var(--primary-dark)">
+        <strong>Dividir equipe activo</strong> — a geração tentará colocar 1 Homem + 1 Mulher por culto (para 2 vagas), 2H+2M (para 4 vagas), etc. Em vagas ímpares, a posição extra não tem restrição de género. Requer o campo <code>genero</code> preenchido nos membros.
+    </div>`:''}
     <div id="min-esc-corpo"></div>`;
     min_renderEscCorpo();
 }
+
+
 function min_navEsc(n) { min_escMes=addM(min_escMes,n); min_renderEscala(); }
+
 function min_renderEscCorpo() {
     const el=document.getElementById('min-esc-corpo'); if (!el) return;
     const [a,m]=min_escMes.split('-').map(Number);
     const dias=todosDiasMes(a,m);
-    // Ordenar cultos por hora_inicio: Manhã (10:00) → Tarde (17:00) → outros
     const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1,mc_id:mc.id})).filter(Boolean)
         .sort((a,b)=>(a.hora_inicio||'').localeCompare(b.hora_inicio||''));
     if (!dias.length||!cults.length){el.innerHTML=`<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto configurado</div>`;return;}
@@ -1166,7 +1231,12 @@ function min_renderEscCorpo() {
     </tr></thead><tbody>`;
     cultDatas.forEach(({c,datas})=>{
         const datasSet=new Set(datas.map(d=>d.iso));
-        html+=`<tr><td class="td-culto"><div style="font-weight:700;font-size:12px">${c.nome}</div><div style="font-size:10px;color:var(--text-faint)">${c.hora_inicio?.slice(0,5)}</div></td>
+        const campusNome = c.campus?.nome||'';
+        html+=`<tr><td class="td-culto">
+            <div style="font-weight:700;font-size:12px">${c.nome}</div>
+            ${campusNome?`<div style="font-size:9px;color:#1565c0;font-family:var(--font-title);margin-top:1px">${campusNome}</div>`:''}
+            <div style="font-size:10px;color:var(--text-faint)">${c.hora_inicio?.slice(0,5)}</div>
+        </td>
         ${todasDatas.map(iso=>{
             if (!datasSet.has(iso)) return`<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
             const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
@@ -1187,14 +1257,15 @@ function min_renderEscCorpo() {
     html+=`</tbody></table></div>`;
     el.innerHTML=html;
 }
+
+
 async function min_gerarEsc() {
-    if (!confirm(`Gerar escala para ${mesLbl(min_escMes)}? As entradas automáticas existentes serão substituídas.`)) return;
+    if (!confirm(`Gerar escala para ${mesLbl(min_escMes)}?${min_dividirEquipe?' (modo Dividir Equipe: 1H+1M activo)':''} As entradas automáticas existentes serão substituídas.`)) return;
     if (!min_minAtivo) return;
     const minId = min_minAtivo.id;
     const [a,m] = min_escMes.split('-').map(Number);
     const ini  = `${min_escMes}-01`;
     const fim2 = `${min_escMes}-${new Date(a,m,0).getDate()}`;
-    // 3 meses de histórico para gap e rotação correctos
     const lookback = `${addM(min_escMes,-3)}-01`;
     const [dsAll, indAll, escAnt] = await Promise.all([
         min_sb(`ministerio_disponibilidade?ministerio_id=eq.${minId}&select=*`).catch(()=>[]),
@@ -1204,13 +1275,10 @@ async function min_gerarEsc() {
     if (!min_minAtivo || min_minAtivo.id !== minId) return;
     await min_sb(`ministerio_escala?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&gerado_auto=eq.true`,{method:'DELETE'}).catch(()=>{});
 
-    // Contadores de serviços (equilíbrio de carga)
     const srvRec = {};
     min_minMems.forEach(mm => { srvRec[mm.membro_id] = 0; });
     escAnt.forEach(e  => { srvRec[e.membro_id] = (srvRec[e.membro_id]||0) + 1; });
 
-    // Última data e último culto servido (gap + rotação)
-    // escAnt ordenado asc → última entrada por membro é a mais recente
     const ultimaData  = {};
     const ultimaCulto = {};
     escAnt.forEach(e => {
@@ -1220,7 +1288,6 @@ async function min_gerarEsc() {
         }
     });
 
-    // Número de semana ISO (segunda = início da semana)
     function weekKey(iso) {
         const d = new Date(iso + 'T12:00:00');
         const dow = (d.getDay() + 6) % 7;
@@ -1230,11 +1297,9 @@ async function min_gerarEsc() {
         return thu.getFullYear() * 100 + wk;
     }
 
-    // Disponibilidade base
     const dMap = {};
     dsAll.forEach(d => { dMap[d.membro_id+'_'+d.culto_id] = d.disponivel; });
 
-    // Cultos ordenados por hora_inicio: Manhã → Tarde → outros
     const cults = min_minCults
         .map(mc => ({...mc.cultos, vagas: mc.vagas||1}))
         .filter(Boolean)
@@ -1242,7 +1307,7 @@ async function min_gerarEsc() {
 
     const dias      = todosDiasMes(a, m);
     const novas     = [];
-    const jaEscDia  = {}; // "membro_id_iso" — evita mesmo voluntário em 2 cultos no mesmo dia
+    const jaEscDia  = {};
 
     dias.forEach(({dw, iso}) => {
         cults.forEach(c => {
@@ -1250,31 +1315,28 @@ async function min_gerarEsc() {
 
             const indSet = new Set(
                 indAll.filter(i => i.data === iso && (!i.culto_id || i.culto_id === c.id))
-                      .map(i => i.membro_id)
+                    .map(i => i.membro_id)
             );
 
             const memsEscalaveis = min_minMems.filter(mm => mm.papel !== 'lider');
 
+            // Filtragem base (indisponibilidade, gap, disponibilidade base)
             const dispMems = memsEscalaveis.filter(mm => {
-                if (indSet.has(mm.membro_id))        return false; // indisposto
-                if (jaEscDia[mm.membro_id+'_'+iso])  return false; // já está hoje
+                if (indSet.has(mm.membro_id))        return false;
+                if (jaEscDia[mm.membro_id+'_'+iso])  return false;
                 const v = dMap[mm.membro_id+'_'+c.id];
-                if (v === false) return false;                       // marcado indisponível
-                // Regra de gap: exige pelo menos 2 semanas de diferença
-                // Serviu semana N → só volta semana N+2 ou mais tarde
+                if (v === false) return false;
                 const last = ultimaData[mm.membro_id];
                 if (last && weekKey(iso) - weekKey(last) < 2) return false;
                 return true;
             });
 
-            // Activos: ordena por (1) rotação de culto — prefere culto diferente do último
-            //                      (2) menor número de serviços totais
             const ativos = dispMems
                 .filter(mm => mm.papel !== 'aprendiz')
                 .sort((x, y) => {
-                    const xSameCult = ultimaCulto[x.membro_id] === c.id ? 1 : 0;
-                    const ySameCult = ultimaCulto[y.membro_id] === c.id ? 1 : 0;
-                    if (xSameCult !== ySameCult) return xSameCult - ySameCult;
+                    const xSame = ultimaCulto[x.membro_id] === c.id ? 1 : 0;
+                    const ySame = ultimaCulto[y.membro_id] === c.id ? 1 : 0;
+                    if (xSame !== ySame) return xSame - ySame;
                     return (srvRec[x.membro_id]||0) - (srvRec[y.membro_id]||0);
                 });
 
@@ -1282,17 +1344,77 @@ async function min_gerarEsc() {
                 .filter(mm => mm.papel === 'aprendiz')
                 .sort((x,y) => (srvRec[x.membro_id]||0) - (srvRec[y.membro_id]||0));
 
-            let escalados = 0;
-            for (const mm of ativos) {
-                if (escalados >= c.vagas) break;
+            /* ── Selecção com ou sem divisão de género ── */
+            function escalarMembro(mm) {
                 novas.push({ministerio_id:minId, membro_id:mm.membro_id,
                     culto_id:c.id, data:iso, papel_escala:'servindo', gerado_auto:true});
                 jaEscDia[mm.membro_id+'_'+iso] = true;
                 ultimaData[mm.membro_id]  = iso;
                 ultimaCulto[mm.membro_id] = c.id;
                 srvRec[mm.membro_id] = (srvRec[mm.membro_id]||0) + 1;
-                escalados++;
             }
+
+            let escalados = 0;
+
+            if (min_dividirEquipe && c.vagas >= 2) {
+                // Vagas pares: metade H, metade M
+                // Vagas ímpares: floor(n/2) H + floor(n/2) M + 1 sem distinção
+                const vagasH = Math.floor(c.vagas / 2);
+                const vagasM = Math.floor(c.vagas / 2);
+                const vagasExtra = c.vagas % 2; // 0 ou 1
+
+                const homens  = ativos.filter(mm => min_isHomem(mm));
+                const mulheres= ativos.filter(mm => min_isMulher(mm));
+
+                // Escalar homens
+                let hEsc = 0;
+                for (const mm of homens) {
+                    if (hEsc >= vagasH) break;
+                    if (jaEscDia[mm.membro_id+'_'+iso]) continue;
+                    escalarMembro(mm); hEsc++; escalados++;
+                }
+                // Completar vagas H com qualquer um se faltarem homens
+                if (hEsc < vagasH) {
+                    for (const mm of ativos) {
+                        if (hEsc >= vagasH) break;
+                        if (jaEscDia[mm.membro_id+'_'+iso]) continue;
+                        escalarMembro(mm); hEsc++; escalados++;
+                    }
+                }
+
+                // Escalar mulheres
+                let mEsc = 0;
+                for (const mm of mulheres) {
+                    if (mEsc >= vagasM) break;
+                    if (jaEscDia[mm.membro_id+'_'+iso]) continue;
+                    escalarMembro(mm); mEsc++; escalados++;
+                }
+                // Completar vagas M com qualquer um se faltarem mulheres
+                if (mEsc < vagasM) {
+                    for (const mm of ativos) {
+                        if (mEsc >= vagasM) break;
+                        if (jaEscDia[mm.membro_id+'_'+iso]) continue;
+                        escalarMembro(mm); mEsc++; escalados++;
+                    }
+                }
+
+                // Vaga extra (ímpar) — sem restrição de género
+                if (vagasExtra > 0) {
+                    for (const mm of ativos) {
+                        if (escalados >= c.vagas) break;
+                        if (jaEscDia[mm.membro_id+'_'+iso]) continue;
+                        escalarMembro(mm); escalados++;
+                    }
+                }
+            } else {
+                // Modo normal
+                for (const mm of ativos) {
+                    if (escalados >= c.vagas) break;
+                    escalarMembro(mm); escalados++;
+                }
+            }
+
+            // Aprendiz (independente do modo)
             if (escalados > 0 && aprs.length) {
                 const apr = aprs.find(mm => !jaEscDia[mm.membro_id+'_'+iso]);
                 if (apr) {
@@ -1310,9 +1432,10 @@ async function min_gerarEsc() {
     for (let i = 0; i < novas.length; i += 10) {
         await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify(novas.slice(i,i+10))}).catch(console.error);
     }
-    min_t(`Escala gerada — ${novas.length} entradas`);
+    min_t(`Escala gerada — ${novas.length} entradas${min_dividirEquipe?' (H+M)':''}`);
     await min_renderEscala();
 }
+
 async function min_remEsc(id) {
     await min_sb(`ministerio_escala?id=eq.${id}`,{method:'DELETE'});
     min_escala=min_escala.filter(e=>e.id!==id); min_renderEscCorpo();
@@ -1347,105 +1470,6 @@ async function min_salvarEscalaManual() {
         min_renderEscCorpo();
     } catch(e){smsg('min-ea-msg',e.message,'err');}
 }
-
-/* ── PARTILHAR ── */
-async function min_renderPartilha() {
-    const snapId=min_minAtivo?.id;
-    const el=document.getElementById('mintb-partilha'); if (!el) return;
-    const [a,m]=min_escMes.split('-').map(Number);
-    const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
-    const esc=await min_sb(`ministerio_escala?ministerio_id=eq.${snapId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome)&order=data,culto_id`).catch(()=>[]);
-    if (min_minAtivo?.id!==snapId) return;
-    const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1})).filter(Boolean);
-    const dias=todosDiasMes(a,m);
-    const tabelaHtml=min_gerarTabelaHtml(esc,cults,dias,a,m,false);
-    const tabelaHtmlPrint=min_gerarTabelaHtml(esc,cults,dias,a,m,true);
-    window._minHtml=min_htmlPdf(tabelaHtmlPrint,a,m);
-    window._minTxt=min_textoWhatsApp(esc,cults,dias,a,m);
-    el.innerHTML=`<div class="sec-hd">
-        <div><div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${min_minAtivo.nome} — ${mesLbl(min_escMes)}</div></div>
-        <div style="display:flex;gap:6px">
-            <button class="btn-sm" onclick="min_copiar()">Copiar WhatsApp</button>
-            <button class="btn-sm primary" onclick="min_imprimir()">PDF / Imprimir</button>
-        </div>
-    </div>
-    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto">
-        ${tabelaHtml||`<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhuma escala para este mês</div>`}
-    </div>`;
-}
-function min_gerarTabelaHtml(esc,cults,dias,a,m,forPrint=false){
-    if(!esc.length&&!cults.length)return'';
-    const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
-    const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
-    const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
-    if(!todasDatas.length)return'';
-    const thBg=forPrint?'#009098':'var(--primary)',thBd=forPrint?'rgba(255,255,255,0.2)':'rgba(255,255,255,0.15)';
-    const tdCBg=forPrint?'#e0f7fa':'var(--primary-faint)',tdCBd=forPrint?'#b2dfdb':'var(--border)',tdCCl=forPrint?'#009098':'var(--primary-dark)';
-    const tdGBg=forPrint?'#f5f5f5':'var(--bg-panel)',tdBd=forPrint?'#e0e0e0':'var(--border)',tdGCl=forPrint?'#ccc':'var(--text-faint)';
-    const tdTx=forPrint?'inherit':'var(--text-main)',tdPl=forPrint?'#e65100':'var(--orange)',tdNt=forPrint?'#999':'var(--text-faint)';
-    let html=`<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit"><thead><tr>
-        <th style="background:${thBg};color:white;padding:10px 14px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid ${thBd};min-width:130px">Culto</th>
-        ${todasDatas.map(iso=>{const{d,dw}=dataMap[iso]||{d:'?',dw:0};return`<th style="background:${thBg};color:white;padding:10px 12px;text-align:center;font-size:10px;border:1px solid ${thBd};white-space:nowrap">${String(d).padStart(2,'0')} ${MESES_ABV[m]}<br><span style="font-size:9px;opacity:0.8">${DIAS_PT[dw].toUpperCase()}</span></th>`;}).join('')}
-    </tr></thead><tbody>`;
-    cultDatas.forEach(({c,datas},ri)=>{
-        const datasSet=new Set(datas.map(d=>d.iso));
-        const bg=forPrint?(ri%2===0?'#ffffff':'#f8fffe'):(ri%2===0?'var(--bg-card)':'var(--bg-panel)');
-        html+=`<tr>
-            <td style="background:${tdCBg};padding:10px 14px;font-weight:700;font-size:12px;border:1px solid ${tdCBd};vertical-align:middle;color:${tdTx}"><div>${c.nome}</div><div style="font-size:10px;color:${tdCCl};font-weight:400">${c.hora_inicio?.slice(0,5)||''}</div></td>
-            ${todasDatas.map(iso=>{
-                if(!datasSet.has(iso))return`<td style="background:${tdGBg};border:1px solid ${tdBd};text-align:center;color:${tdGCl}">—</td>`;
-                const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id);
-                if(!ps.length)return`<td style="background:${bg};border:1px solid ${tdBd};text-align:center;color:${tdGCl};font-size:11px">—</td>`;
-                return`<td style="background:${bg};border:1px solid ${tdBd};text-align:center;vertical-align:middle;padding:8px 10px;color:${tdTx}">${ps.map(p=>`<div style="padding:2px 0">${p.membros?.nome||'—'}${p.papel_escala!=='servindo'?` <span style="font-size:9px;color:${tdPl};font-style:italic">(${p.papel_escala})</span>`:''}${p.notas?`<br><span style="font-size:10px;color:${tdNt}">${p.notas}</span>`:''}</div>`).join('')}</td>`;
-            }).join('')}
-        </tr>`;
-    });
-    return html+`</tbody></table>`;
-}
-function min_htmlPdf(tabelaHtml,a,m){
-    return`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala ${min_minAtivo.nome} — ${mesLbl(min_escMes)}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Lato',sans-serif;padding:14mm;color:#111;font-size:13px}@media print{body{padding:8mm}@page{size:A4 landscape;margin:10mm}}</style>
-    </head><body>
-    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #009098;padding-bottom:12px;margin-bottom:20px">
-        <div><div style="font-size:11px;color:#999;letter-spacing:1px">Igreja Zion Lisboa</div></div>
-        <div style="text-align:right">
-            <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#009098">${min_minAtivo.nome}</div>
-            <div style="font-size:16px;font-weight:700;color:#333;margin-top:3px">Escala de Serviço</div>
-            <div style="font-size:13px;color:#009098;font-weight:600">${mesLbl(min_escMes).toUpperCase()}</div>
-        </div>
-    </div>
-    ${tabelaHtml||'<p style="color:#bbb;text-align:center;padding:20px">Nenhuma escala para este mês.</p>'}
-    <div style="margin-top:20px;border-top:1px solid #e0e0e0;padding-top:8px;font-size:10px;color:#ccc">AVISOS: VOX - CHEGAR ÀS 17:00h · CULTOS: MANHÃ &gt; 8:00h | TARDE &gt; 15:00h</div>
-    <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:10px;color:#ccc">
-        <div>Gerado em ${new Date().toLocaleDateString('pt-PT')} · Sistema Zion Lisboa</div>
-        <div>Ministério de ${min_minAtivo.nome}</div>
-    </div>
-    <script>window.onload=function(){window.print();}<\/script></body></html>`;
-}
-function min_textoWhatsApp(esc,cults,dias,a,m){
-    if(!esc.length)return'';
-    let s=`*ESCALA DA ÁREA*\n*${min_minAtivo.nome.toUpperCase()}*\n*${mesLbl(min_escMes).toUpperCase()}*\n${'─'.repeat(30)}\n\n`;
-    const cultDatas=cults.map(c=>{const dw=DIA_DW[c.dia_semana]??-1;return{c,datas:dw>=0?dias.filter(d=>d.dw===dw):[]};});
-    const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
-    const dataMap=Object.fromEntries(dias.map(d=>[d.iso,d]));
-    todasDatas.forEach(iso=>{
-        const{d,dw}=dataMap[iso]||{d:'?',dw:0};
-        s+=`*${DIAS_PT[dw].toUpperCase()}, ${String(d).padStart(2,'0')} ${MESES_ABV[m]}*\n`;
-        cults.forEach(c=>{
-            const cd=cultDatas.find(x=>x.c.id===c.id), datasSet=new Set((cd?.datas||[]).map(d=>d.iso));
-            if(!datasSet.has(iso))return;
-            const ps=esc.filter(e=>e.data===iso&&e.culto_id===c.id);
-            s+=`  _${c.nome}_ (${c.hora_inicio?.slice(0,5)})\n`;
-            if(!ps.length){s+=`    — sem escala\n`;return;}
-            ps.forEach(p=>{s+=`    • ${p.membros?.nome||'—'}${p.papel_escala!=='servindo'?' ['+p.papel_escala+']':''}${p.notas?' ('+p.notas+')':''}\n`;});
-        });
-        s+='\n';
-    });
-    return s.trim();
-}
-function min_copiar(){if(!window._minTxt){min_t('Sem escala','err');return;}navigator.clipboard.writeText(window._minTxt).then(()=>min_t('Copiado!')).catch(()=>min_t('Erro','err'));}
-function min_imprimir(){if(!window._minHtml){min_t('Sem escala','err');return;}const w=window.open('','_blank');w.document.write(window._minHtml);w.document.close();}
 
 /* ── CHECK-IN ── */
 async function min_renderCheckin() {

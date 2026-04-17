@@ -785,7 +785,10 @@
         const ov = document.createElement('div');
         ov.className = 'vl-modal-overlay';
         ov.id = 'vl-perfil-modal';
-        ov.innerHTML = `
+        ov.innerHTML = ov.innerHTML = `
+                <div class="vl-modal" style="max-width:520px">
+
+                <!-- Cabeçalho com foto 80px + link membros -->
                 <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
                 ${vl_fotoHtml(vol._foto, vol.nome, 80)}
                 <div style="flex:1;min-width:0">
@@ -793,10 +796,10 @@
                 <div style="font-size:10px;color:var(--text-faint);margin-top:2px">${vol.funcao_voluntario || 'Voluntario'}</div>
                 <a href="/membros.html?id=${membroId}" target="_blank"
                 style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:9px;
-              font-family:var(--font-title);letter-spacing:1px;text-transform:uppercase;
-              color:var(--primary-dark);text-decoration:none;
-              border:1px solid var(--border);border-radius:6px;padding:3px 9px;
-              background:var(--bg-input);transition:border-color 0.15s"
+                font-family:var(--font-title);letter-spacing:1px;text-transform:uppercase;
+                color:var(--primary-dark);text-decoration:none;
+                border:1px solid var(--border);border-radius:6px;padding:3px 9px;
+                background:var(--bg-input)"
                 onmouseover="this.style.borderColor='var(--primary)'"
                 onmouseout="this.style.borderColor='var(--border)'">
                 ↗ Ver em Membros
@@ -804,13 +807,22 @@
                 </div>
                 </div>
 
+                    <!-- Tabs de navegação -->
+                <div class="vl-modal-tabs">
+                <button class="vl-modal-tab active" id="vl-pt-perfil"      onclick="vl_mostrarTabPerfil('perfil','${membroId}')">Perfil</button>
+                <button class="vl-modal-tab"        id="vl-pt-ministerios" onclick="vl_mostrarTabPerfil('ministerios','${membroId}')">Ministerios</button>
+                <button class="vl-modal-tab"        id="vl-pt-anotacoes"   onclick="vl_mostrarTabPerfil('anotacoes','${membroId}')">Anotacoes</button>
+                </div>
+
                     <!-- TAB: PERFIL -->
                 <div class="vl-modal-tab-content active" id="vl-tc-perfil">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:14px">
-                <div><div class="vl-label">Telefone</div><div style="font-size:12px;display:flex;align-items:center;gap:6px">
+                <div><div class="vl-label">Telefone</div>
+                <div style="font-size:12px;display:flex;align-items:center;gap:6px">
                 ${vol.telefone || '—'}
                 ${vol.telefone ? `<a href="https://wa.me/${vol.telefone.replace(/\D/g,'')}" target="_blank" title="WhatsApp" style="display:inline-flex;align-items:center;text-decoration:none"><svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366" style="vertical-align:middle;margin-left:4px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></a>` : ''}
-                </div></div>
+                </div>
+                </div>
                 <div><div class="vl-label">E-mail</div><div style="font-size:12px">${vol.email || '—'}</div></div>
                 <div><div class="vl-label">Idiomas</div><div style="font-size:12px">${vol._idiomasArr.join(', ') || '—'}</div></div>
                 <div><div class="vl-label">Nacionalidade</div><div style="font-size:12px">${vol._nac || '—'}</div></div>
@@ -839,9 +851,12 @@
                 </select>
                 <select class="vl-select" id="vl-perfil-add-papel" style="flex:1;min-width:120px">
                 <option value="">— Papel —</option>
-                <option value="Voluntario">Voluntario</option><option value="Auxiliar">Auxiliar</option>
-                <option value="Core">Core</option><option value="Lider">Lider</option>
-                <option value="Co-lider">Co-lider</option><option value="Office">Office</option>
+                <option value="Voluntario">Voluntario</option>
+                <option value="Auxiliar">Auxiliar</option>
+                <option value="Core">Core</option>
+                <option value="Lider">Lider</option>
+                <option value="Co-lider">Co-lider</option>
+                <option value="Office">Office</option>
                 </select>
                 <button class="vl-btn vl-btn-p" onclick="vl_adicionarMinisterioModal('${membroId}')">Adicionar</button>
                 </div>
@@ -865,13 +880,17 @@
                 <button class="vl-btn vl-btn-p" onclick="vl_salvarAnotacao('${membroId}',this)">Guardar</button>
                 </div>
                 </div>
-                <div id="vl-anot-lista"><div class="vl-empty" style="padding:20px"><div class="vl-empty-icon">—</div>A carregar...</div></div>
+                <div id="vl-anot-lista">
+                <div class="vl-empty" style="padding:20px"><div class="vl-empty-icon">—</div>A carregar...</div>
+                </div>
                 </div>
 
+                    <!-- Rodapé -->
                 <div class="vl-modal-footer">
                 <button class="vl-btn vl-btn-d" onclick="vl_removerVoluntarioModal('${membroId}','${vol.nome.replace(/'/g,"\\'")}')">Remover Voluntario</button>
                 <button class="vl-btn vl-btn-p" onclick="document.getElementById('vl-perfil-modal').remove()">Fechar</button>
                 </div>
+
                 </div>`;
         document.body.appendChild(ov);
     }

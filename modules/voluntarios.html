@@ -387,6 +387,8 @@
         let vl_tabAtiva     = 'ativos';
         let vl_campFiltro   = null;
         let vl_membrosCache = [];
+        let vl_funcoesList = [];
+        let _vl_func = '';
 
         /* ══════════════════════════════════════════
            INIT
@@ -465,6 +467,12 @@
                 vl_idiomasList = [...idSet].sort();
                 vl_nacList     = [...nacSet].sort();
 
+                const funcSet = new Set();
+                vl_ativosCache.forEach(m => {
+                    if (m.funcao_voluntario) funcSet.add(m.funcao_voluntario);
+                });
+                vl_funcoesList = [...funcSet].sort();
+
             } catch (e) {
                 c().innerHTML = `<div class="vl-alert vl-alert-e">Erro ao carregar: ${e?.message || JSON.stringify(e)}</div>`;
                 return;
@@ -511,10 +519,13 @@
             const eMin  = document.getElementById('vl-filter-min');
             const eIdi  = document.getElementById('vl-filter-idi');
             const eNac  = document.getElementById('vl-filter-nac');
+            const eFunc = document.getElementById('vl-filter-func');
             if (eNome) _vl_q   = eNome.value;
             if (eMin)  _vl_min = eMin.value;
             if (eIdi)  _vl_idi = eIdi.value;
             if (eNac)  _vl_nac = eNac.value;
+            if (eFunc) _vl_func = eFunc.value;
+
 
             const q = _vl_q.toLowerCase();
             let lista = [...vl_ativosCache];
@@ -528,12 +539,16 @@
 
             if (_vl_idi) lista = lista.filter(m => m._idiomasArr.includes(_vl_idi));
             if (_vl_nac) lista = lista.filter(m => m._nac.split(',').map(n=>n.trim()).includes(_vl_nac));
+            if (_vl_func) lista = lista.filter(m => m.funcao_voluntario === _vl_func);
+
 
             /* ── Build UI shell se ainda não existe ── */
             if (!document.getElementById('vl-ativos-wrap')) {
                 const minOpts = vl_ministeriosList.map(mn => `<option value="${mn.id}">${mn.nome}</option>`).join('');
                 const idiOpts = vl_idiomasList.map(i => `<option value="${i}">${i}</option>`).join('');
                 const nacOpts = vl_nacList.map(n => `<option value="${n}">${n}</option>`).join('');
+                const funcOpts = vl_funcoesList.map(f => `<option value="${f}">${f}</option>`).join('');
+
 
                 c().innerHTML = `
 <div class="vl-toolbar">
@@ -558,6 +573,9 @@
                 <select class="vl-select" id="vl-filter-nac" onchange="vl_renderAtivosFiltrado()" style="flex:1;min-width:130px">
                 <option value="">Todas as nacionalidades</option>${nacOpts}
                 </select>
+                <select class="vl-select" id="vl-filter-func" onchange="vl_renderAtivosFiltrado()" style="flex:1;min-width:130px">
+                <option value="">Todas as funcoes</option>${funcOpts}
+                </select>
                 <button class="vl-btn vl-btn-m" id="vl-btn-limpar" onclick="vl_limparFiltros()" style="display:none">Limpar</button>
                 </div>
 
@@ -573,16 +591,26 @@
         const semMin     = vl_ativosCache.filter(m => !m._ministerios.length).length;
         const countNac   = {};
         const countIdi   = {};
+        const countFunc = {};
+
         vl_ativosCache.forEach(m => {
             const nacs = m._nac ? m._nac.split(',').map(n=>n.trim()).filter(Boolean) : ['N/D'];
             nacs.forEach(nac => { countNac[nac] = (countNac[nac] || 0) + 1; });
             m._idiomasArr.forEach(i => { countIdi[i] = (countIdi[i] || 0) + 1; });
         });
 
+        vl_ativosCache.forEach(m => {
+    const f = m.funcao_voluntario || 'Sem funcao';
+    countFunc[f] = (countFunc[f] || 0) + 1;
+});
+
         /* Top 3 nacionalidades */
         const topNac = Object.entries(countNac).sort((a,b) => b[1]-a[1]).slice(0,4);
         /* Top 3 idiomas */
         const topIdi = Object.entries(countIdi).sort((a,b) => b[1]-a[1]).slice(0,4);
+
+        const topFunc = Object.entries(countFunc).sort((a,b) => b[1]-a[1]);
+
 
         const statsEl = document.getElementById('vl-stats-ativos');
         if (statsEl) {
@@ -622,6 +650,18 @@
                 <div class="vl-stat-mini"><div class="vl-stat-mini-num" style="color:${semFoto>0?'#b45309':'var(--primary-dark)'}">${semFoto}</div><div class="vl-stat-mini-label">Sem Foto</div></div>
                 </div>
                 </div>
+                    <div class="vl-stats-section" style="margin-bottom:12px">
+  <div class="vl-stats-section-title">Por Funcao / Tag</div>
+  <div class="vl-stats-grid">
+    ${topFunc.map(([f, cnt]) => `
+      <div class="vl-stat-mini" style="cursor:pointer"
+           onclick="document.getElementById('vl-filter-func').value='${f === 'Sem funcao' ? '' : f}';vl_renderAtivosFiltrado()"
+           title="Filtrar por ${f}">
+        <div class="vl-stat-mini-num">${cnt}</div>
+        <div class="vl-stat-mini-label">${f}</div>
+      </div>`).join('')}
+  </div>
+</div>
                 </div>`;
         }
 
@@ -671,8 +711,8 @@
     }
 
     function vl_limparFiltros() {
-        _vl_q = ''; _vl_min = ''; _vl_idi = ''; _vl_nac = '';
-        ['vl-search-nome','vl-filter-min','vl-filter-idi','vl-filter-nac'].forEach(id => {
+        _vl_q = ''; _vl_min = ''; _vl_idi = ''; _vl_nac = '';_vl_func = '';
+        ['vl-search-nome','vl-filter-min','vl-filter-idi','vl-filter-nac','vl-filter-func'].forEach(id => {
             const el = document.getElementById(id); if (el) el.value = '';
         });
         vl_renderAtivosFiltrado();
@@ -993,12 +1033,11 @@
     }
 
             async function vl_abrirRegistarVoluntario() {
-                // Filtra quem já é voluntário ativo
-                const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
+    const naoVols = vl_membrosCache.filter(m => !m.e_voluntario);
 
-                const ov = document.createElement('div');
-                ov.className = 'vl-modal-overlay';
-                ov.innerHTML = `
+    const ov = document.createElement('div');
+    ov.className = 'vl-modal-overlay';
+    ov.innerHTML = `
                 <div class="vl-modal" style="max-width:440px">
                 <div class="vl-modal-title">Registar Voluntario</div>
                 <p style="font-size:11px;color:var(--text-faint);margin-bottom:14px">
@@ -1008,9 +1047,26 @@
                 <label class="vl-label">Pesquisar membro</label>
                 <input type="text" class="vl-input" id="vl-reg-search" placeholder="Escreve o nome..." autocomplete="off">
                 </div>
-                <div id="vl-reg-resultados" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:-4px;display:none"></div>
+                <div id="vl-reg-resultados" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:-4px;display:none"></div>
                 <input type="hidden" id="vl-reg-mem-id">
-                <div id="vl-reg-selecionado" style="display:none;margin-top:8px;padding:8px 12px;background:var(--primary-faint);border:1px solid var(--border);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between"></div>
+                <div id="vl-reg-selecionado" style="display:none;margin-top:8px;padding:8px 12px;background:var(--primary-faint);border:1px solid var(--border);border-radius:8px;font-size:12px;align-items:center;justify-content:space-between"></div>
+
+                    <!-- Campo de função — aparece só após selecionar -->
+                <div id="vl-reg-funcao-wrap" style="display:none;margin-top:10px">
+                <div class="vl-field" style="margin:0">
+                <label class="vl-label">Funcao / Tag</label>
+                <select class="vl-select" id="vl-reg-funcao">
+                <option value="Voluntario">Voluntario</option>
+                <option value="Lider">Lider</option>
+                <option value="Co-lider">Co-lider</option>
+                <option value="Coordenador">Coordenador</option>
+                <option value="Auxiliar">Auxiliar</option>
+                <option value="Professor">Professor</option>
+                <option value="">— Sem funcao definida —</option>
+                </select>
+                </div>
+                </div>
+
                 <div id="vl-reg-alert"></div>
                 <div class="vl-modal-footer">
                 <button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
@@ -1019,17 +1075,19 @@
                 </div>`;
                 document.body.appendChild(ov);
 
-                const searchEl  = document.getElementById('vl-reg-search');
-                const listaEl   = document.getElementById('vl-reg-resultados');
-                const selEl     = document.getElementById('vl-reg-selecionado');
-                const idEl      = document.getElementById('vl-reg-mem-id');
-                const btnConf   = document.getElementById('vl-reg-confirmar');
+                const searchEl = document.getElementById('vl-reg-search');
+                const listaEl  = document.getElementById('vl-reg-resultados');
+                const selEl    = document.getElementById('vl-reg-selecionado');
+                const idEl     = document.getElementById('vl-reg-mem-id');
+                const btnConf  = document.getElementById('vl-reg-confirmar');
+                const funcWrap = document.getElementById('vl-reg-funcao-wrap');
 
                 searchEl.addEventListener('input', () => {
                 const q = searchEl.value.trim().toLowerCase();
                 idEl.value = '';
                 btnConf.disabled = true;
                 selEl.style.display = 'none';
+                funcWrap.style.display = 'none';
                 selEl.innerHTML = '';
 
                 if (!q) { listaEl.style.display = 'none'; listaEl.innerHTML = ''; return; }
@@ -1043,8 +1101,7 @@
                 listaEl.style.display = 'block';
                 listaEl.innerHTML = filtrados.map(m => `
             <div onclick="vl_selecionarMembroReg('${m.id}','${m.nome.replace(/'/g,"\\'")}')"
-                style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;
-                       transition:background 0.1s"
+                style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;transition:background 0.1s"
                 onmouseover="this.style.background='var(--primary-faint)'"
                 onmouseout="this.style.background=''">
                 ${m.nome}
@@ -1053,6 +1110,33 @@
 
                 searchEl.focus();
                 }
+
+                window.vl_selecionarMembroReg = function(id, nome) {
+                const idEl     = document.getElementById('vl-reg-mem-id');
+                const selEl    = document.getElementById('vl-reg-selecionado');
+                const listaEl  = document.getElementById('vl-reg-resultados');
+                const searchEl = document.getElementById('vl-reg-search');
+                const btnConf  = document.getElementById('vl-reg-confirmar');
+                const funcWrap = document.getElementById('vl-reg-funcao-wrap');
+
+                idEl.value            = id;
+                searchEl.value        = nome;
+                listaEl.style.display = 'none';
+                selEl.style.display   = 'flex';
+                funcWrap.style.display = 'block';   // ← mostra o campo de função
+                selEl.innerHTML = `<span>✓ <strong>${nome}</strong> selecionado</span>
+        <button class="vl-btn vl-btn-m" style="padding:2px 8px;font-size:8px" onclick="vl_limparSelecaoReg()">Limpar</button>`;
+                btnConf.disabled = false;
+                };
+
+                window.vl_limparSelecaoReg = function() {
+                document.getElementById('vl-reg-mem-id').value = '';
+                document.getElementById('vl-reg-selecionado').style.display  = 'none';
+                document.getElementById('vl-reg-funcao-wrap').style.display  = 'none';
+                document.getElementById('vl-reg-search').value = '';
+                document.getElementById('vl-reg-confirmar').disabled = true;
+                document.getElementById('vl-reg-search').focus();
+                };
 
                 window.vl_selecionarMembroReg = function(id, nome) {
                 const idEl    = document.getElementById('vl-reg-mem-id');
@@ -1078,12 +1162,16 @@
                 };
 
                 async function vl_confirmarRegistar(btn) {
-                const memId = document.getElementById('vl-reg-mem-id')?.value;
-                const alEl  = document.getElementById('vl-reg-alert');
+                const memId  = document.getElementById('vl-reg-mem-id')?.value;
+                const funcao = document.getElementById('vl-reg-funcao')?.value || null;
+                const alEl   = document.getElementById('vl-reg-alert');
                 if (!memId) { if (alEl) alEl.innerHTML = '<div class="vl-alert vl-alert-e">Seleciona um membro.</div>'; return; }
                 btn.disabled = true; btn.textContent = 'A guardar...';
                 try {
-                await sb(`membros?id=eq.${memId}`, { method: 'PATCH', body: JSON.stringify({ e_voluntario: true }) });
+                await sb(`membros?id=eq.${memId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ e_voluntario: true, funcao_voluntario: funcao || null })
+                });
                 const idx = vl_membrosCache.findIndex(m => m.id === memId);
                 if (idx >= 0) vl_membrosCache[idx].e_voluntario = true;
                 btn.closest('.vl-modal-overlay').remove();

@@ -195,6 +195,24 @@
         .conf-sub { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
 
         .footer { text-align: center; padding: 16px; font-size: 11px; color: var(--text-faint); border-top: 1px solid var(--navy-border); width: 100%; }
+
+        /* SEARCHABLE SELECT */
+        .ss-wrap { position: relative; flex: 1; }
+        .ss-dropdown {
+            display: none;
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: var(--navy-card); border: 1px solid var(--teal);
+            border-radius: 10px; z-index: 999;
+            max-height: 220px; overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,.4);
+        }
+        .ss-item {
+            padding: 11px 14px; font-size: 13px; color: var(--text-main);
+            cursor: pointer; transition: background .12s;
+        }
+        .ss-item:hover, .ss-item.active { background: var(--teal-glow); color: var(--teal); }
+        .ss-empty { padding: 11px 14px; font-size: 12px; color: var(--text-faint); font-style: italic; }
+
     </style>
 </head>
 <body>
@@ -375,13 +393,14 @@
             </div>
         </div>
 
-        <div class="form-section">Conjuge</div>
-        <div class="form-group">
-            <div class="chip-row" id="conjuge-chip-row-edit"></div>
-            <div class="add-row" id="conjuge-add-row-edit">
-                <select class="form-select" id="conjuge-sel-edit" style="font-size:13px;flex:1"><option value="">Seleciona conjuge...</option></select>
-                <button class="btn-inline" onclick="pSetConjuge('edit')">Associar</button>
+        <div class="add-row" id="conjuge-add-row-edit">
+            <div class="ss-wrap">
+                <input type="text" class="form-input" id="conjuge-input-edit"
+                       placeholder="Pesquisar cônjuge pelo nome..."
+                       autocomplete="off" oninput="ssFilter('conjuge','edit')">
+                <div class="ss-dropdown" id="conjuge-dd-edit"></div>
             </div>
+            <button class="btn-inline" onclick="pSetConjuge('edit')">Associar</button>
         </div>
 
         <div class="form-section">Filhos</div>
@@ -580,13 +599,14 @@
             </div>
         </div>
 
-        <div class="form-section">Conjuge</div>
-        <div class="form-group">
-            <div class="chip-row" id="conjuge-chip-row-cad"></div>
-            <div class="add-row" id="conjuge-add-row-cad">
-                <select class="form-select" id="conjuge-sel-cad" style="font-size:13px;flex:1"><option value="">Seleciona conjuge...</option></select>
-                <button class="btn-inline" onclick="pSetConjuge('cad')">Associar</button>
+        <div class="add-row" id="conjuge-add-row-cad">
+            <div class="ss-wrap">
+                <input type="text" class="form-input" id="conjuge-input-cad"
+                       placeholder="Pesquisar cônjuge pelo nome..."
+                       autocomplete="off" oninput="ssFilter('conjuge','cad')">
+                <div class="ss-dropdown" id="conjuge-dd-cad"></div>
             </div>
+            <button class="btn-inline" onclick="pSetConjuge('cad')">Associar</button>
         </div>
 
         <div class="form-section">Link / Celula</div>
@@ -905,21 +925,106 @@
         window.pRemNac=function(ctx,idx){getNacs(ctx).splice(idx,1);renderNacChips(ctx);};
 
         // CONJUGE
-        function getConjugePending(ctx)   { return ctx==='edit'?_editConjugePending:_cadConjugePending; }
-        function setConjugePending(ctx,v) { if(ctx==='edit')_editConjugePending=v; else _cadConjugePending=v; }
-        function getConjugeActual(ctx)    { const p=getConjugePending(ctx); if(p===undefined)return ctx==='edit'?(_membroSel?.conjuge_id||null):null; if(p===false)return null; return p; }
+        // ── SEARCHABLE SELECT GENÉRICO ─────────────────────────────────────
+        const _ssSel = {};
+
+        window.ssFilter = function(field, ctx) {
+            const input = document.getElementById(`${field}-input-${ctx}`);
+            const dd    = document.getElementById(`${field}-dd-${ctx}`);
+            if (!input || !dd) return;
+
+            const q = input.value.trim().toLowerCase();
+            const myId = ctx === 'edit' ? _membroSel?.id : null;
+
+            // Para cônjuge: só mostra quem ainda não é cônjuge
+            let items = _membros.filter(m => m.id !== myId);
+
+            const filtered = q
+                ? items.filter(m => (m.nome || '').toLowerCase().includes(q))
+                : items.slice(0, 40); // sem texto mostra os primeiros 40
+
+            if (!filtered.length) {
+                dd.innerHTML = '<div class="ss-empty">Nenhum resultado encontrado.</div>';
+            } else {
+                dd.innerHTML = filtered.map(m =>
+                    `<div class="ss-item" data-id="${m.id}" onclick="ssPick('${field}','${ctx}','${m.id}',this)">
+                ${m.nome}
+             </div>`
+                ).join('');
+            }
+            dd.style.display = 'block';
+        };
+
+        window.ssPick = function(field, ctx, id, el) {
+            // Marca visualmente
+            el.closest('.ss-dropdown').querySelectorAll('.ss-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+
+            // Guarda seleção temporária
+            if (!_ssSel[field]) _ssSel[field] = {};
+            _ssSel[field][ctx] = id;
+
+            // Mostra o nome no input
+            const m = _membros.find(x => x.id === id);
+            const input = document.getElementById(`${field}-input-${ctx}`);
+            if (input && m) input.value = m.nome;
+
+            // Fecha dropdown
+            document.getElementById(`${field}-dd-${ctx}`).style.display = 'none';
+        };
+
+// Fecha dropdown ao clicar fora
+        document.addEventListener('click', function(e) {
+            document.querySelectorAll('.ss-dropdown').forEach(dd => {
+                if (!dd.parentElement.contains(e.target)) dd.style.display = 'none';
+            });
+        });
+
+// ── CÔNJUGE ────────────────────────────────────────────────────────
+        function getConjugePending(ctx)   { return ctx === 'edit' ? _editConjugePending : _cadConjugePending; }
+        function setConjugePending(ctx,v) { if (ctx === 'edit') _editConjugePending = v; else _cadConjugePending = v; }
+        function getConjugeActual(ctx) {
+            const p = getConjugePending(ctx);
+            if (p === undefined) return ctx === 'edit' ? (_membroSel?.conjuge_id || null) : null;
+            if (p === false) return null;
+            return p;
+        }
+
         function renderConjuge(ctx) {
-            const cjId=getConjugeActual(ctx); const row=document.getElementById(`conjuge-chip-row-${ctx}`); const addRow=document.getElementById(`conjuge-add-row-${ctx}`);
-            if(cjId){const m=_membros.find(x=>x.id===cjId); row.innerHTML=`<span class="chip">${m?.nome||'...'}<button class="chip-remove" onclick="pRemoveConjuge('${ctx}')">x</button></span>`; addRow.style.display='none';}
-            else{row.innerHTML='<span class="info-empty">Nenhum conjuge associado.</span>';addRow.style.display='flex';}
+            const cjId  = getConjugeActual(ctx);
+            const row   = document.getElementById(`conjuge-chip-row-${ctx}`);
+            const addRow = document.getElementById(`conjuge-add-row-${ctx}`);
+            if (cjId) {
+                const m = _membros.find(x => x.id === cjId);
+                row.innerHTML = `<span class="chip">${m?.nome || '...'}
+            <button class="chip-remove" onclick="pRemoveConjuge('${ctx}')">x</button></span>`;
+                addRow.style.display = 'none';
+            } else {
+                row.innerHTML = '<span class="info-empty">Nenhum cônjuge associado.</span>';
+                addRow.style.display = 'flex';
+            }
         }
+
         function renderConjugeSel(ctx) {
-            const sel=document.getElementById(`conjuge-sel-${ctx}`); if(!sel)return;
-            const myId=ctx==='edit'?_membroSel?.id:null;
-            sel.innerHTML='<option value="">Seleciona conjuge...</option>'+_membros.filter(m=>m.id!==myId).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+            // Limpa a seleção pendente no input
+            const input = document.getElementById(`conjuge-input-${ctx}`);
+            if (input) input.value = '';
+            if (_ssSel.conjuge) _ssSel.conjuge[ctx] = null;
         }
-        window.pSetConjuge=function(ctx){const v=document.getElementById(`conjuge-sel-${ctx}`)?.value;if(!v)return;setConjugePending(ctx,v);renderConjuge(ctx);};
-        window.pRemoveConjuge=function(ctx){setConjugePending(ctx,false);renderConjuge(ctx);};
+
+        window.pSetConjuge = function(ctx) {
+            const id = _ssSel.conjuge?.[ctx];
+            if (!id) return;
+            setConjugePending(ctx, id);
+            renderConjuge(ctx);
+        };
+
+        window.pRemoveConjuge = function(ctx) {
+            setConjugePending(ctx, false);
+            renderConjuge(ctx);
+        };
+
+
 
         // LINK
         function getLinkPending(ctx)   { return ctx==='edit'?_editLinkPending:_cadLinkPending; }

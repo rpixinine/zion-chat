@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -412,7 +411,12 @@
         <div class="form-group">
             <div class="chip-row" id="filhos-chips-edit"></div>
             <div class="add-row">
-                <select class="form-select" id="filho-sel-edit" style="font-size:13px;flex:1"><option value="">Seleciona filho/a...</option></select>
+                <div class="ss-wrap">
+                    <input type="text" class="form-input" id="filho-input-edit"
+                           placeholder="Pesquisar filho/a pelo nome..."
+                           autocomplete="off" oninput="ssFilter('filho','edit')">
+                    <div class="ss-dropdown" id="filho-dd-edit"></div>
+                </div>
                 <button class="btn-inline" onclick="pAddFilho('edit')">Adicionar</button>
             </div>
         </div>
@@ -1053,8 +1057,33 @@
 
         // FILHOS
         function renderFilhos(ctx){const el=document.getElementById(`filhos-chips-${ctx}`);if(!el)return;if(!_editFilhos.length){el.innerHTML='<span class="info-empty">Sem filhos associados.</span>';return;}el.innerHTML=_editFilhos.map((f,i)=>`<span class="chip">${f.nome}<button class="chip-remove" onclick="pRemFilho(${i})">x</button></span>`).join('');}
-        function renderFilhoSel(ctx){const sel=document.getElementById(`filho-sel-${ctx}`);if(!sel)return;const ja=new Set(_editFilhos.map(f=>f.memId));sel.innerHTML='<option value="">Seleciona filho/a...</option>'+_membros.filter(m=>m.id!==_membroSel?.id&&!ja.has(m.id)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');}
-        window.pAddFilho=async function(ctx){const sel=document.getElementById(`filho-sel-${ctx}`);const filhoId=sel?.value;if(!filhoId)return;const m=_membros.find(x=>x.id===filhoId);if(!m)return;if(_editFilhos.find(f=>f.memId===filhoId))return;try{const res=await sb('membros_filhos',{method:'POST',body:JSON.stringify({pai_id:_membroSel.id,filho_id:filhoId})});const nr=Array.isArray(res)?res[0]:res;_editFilhos.push({relId:nr?.id||null,memId:filhoId,nome:m.nome});renderFilhos(ctx);renderFilhoSel(ctx);sel.value='';}catch{setMsg('perfil','error','Erro ao adicionar filho.');}};
+
+        function renderFilhoSel(ctx) {
+            const input = document.getElementById(`filho-input-${ctx}`);
+            if (input) input.value = '';
+            if (_ssSel.filho) _ssSel.filho[ctx] = null;
+        }
+
+        window.pAddFilho = async function(ctx) {
+            const filhoId = _ssSel.filho?.[ctx];
+            if (!filhoId) return;
+            const m = _membros.find(x => x.id === filhoId);
+            if (!m) return;
+            if (_editFilhos.find(f => f.memId === filhoId)) return;
+            try {
+                const res = await sb('membros_filhos', {
+                    method: 'POST',
+                    body: JSON.stringify({ pai_id: _membroSel.id, filho_id: filhoId })
+                });
+                const nr = Array.isArray(res) ? res[0] : res;
+                _editFilhos.push({ relId: nr?.id || null, memId: filhoId, nome: m.nome });
+                renderFilhos(ctx);
+                renderFilhoSel(ctx);
+            } catch {
+                setMsg('perfil', 'error', 'Erro ao adicionar filho.');
+            }
+        };
+
         window.pRemFilho=async function(idx){const item=_editFilhos[idx];if(!item)return;if(item.relId){try{await sb(`membros_filhos?id=eq.${item.relId}`,{method:'DELETE'});}catch{}} _editFilhos.splice(idx,1);renderFilhos('edit');renderFilhoSel('edit');};
 
         // MINISTERIOS

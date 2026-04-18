@@ -894,6 +894,22 @@
     /* painel scroll horizontal em mobile */
     .mb-panel-inner { overflow-x: auto; }
 
+    .mb-lightbox {
+        position: fixed; inset: 0; z-index: 9999;
+        background: rgba(0,0,0,0.88);
+        display: flex; align-items: center; justify-content: center;
+        cursor: zoom-out;
+        animation: mbFadeIn .15s ease;
+    }
+    @keyframes mbFadeIn { from { opacity:0 } to { opacity:1 } }
+    .mb-lightbox img {
+        max-width: 90vw; max-height: 90vh;
+        border-radius: 12px;
+        box-shadow: 0 8px 60px rgba(0,0,0,0.8);
+        object-fit: contain;
+    }
+    .mb-profile-foto { cursor: pointer; }
+
 </style>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -1105,6 +1121,15 @@
             btn.style.left  = collapsed ? '10px' : '390px'; // 380px sidebar + 10px margin
         };
 
+        window.mb_openLightbox = function(src) {
+            if (!src) return;
+            const lb = document.createElement('div');
+            lb.className = 'mb-lightbox';
+            lb.innerHTML = `<img src="${src}" alt="Foto">`;
+            lb.onclick = () => lb.remove();
+            document.body.appendChild(lb);
+        };
+
         /* ── INIT ────────────────────────────────────────── */
         async function mb_init() {
             try {
@@ -1284,7 +1309,9 @@
             ].filter(Boolean).join('');
 
             const fotoHtml = m.foto_url
-                ? `<div class="mb-profile-foto"><img src="${m.foto_url}" onerror="this.parentElement.innerHTML='${(m.nome||'M')[0]}'"></div>`
+                ? `<div class="mb-profile-foto" onclick="mb_openLightbox('${m.foto_url}')" title="Ver foto">
+           <img src="${m.foto_url}" onerror="this.parentElement.innerHTML='${(m.nome||'M')[0]}'">
+       </div>`
                 : `<div class="mb-profile-foto">${(m.nome||'M')[0]}</div>`;
 
             const sub = [m.tipo, m.zona, m.genero].filter(Boolean).join(' · ');
@@ -1499,11 +1526,19 @@
                     : '<div style="font-size:12px;color:var(--text-faint)">Sem ministérios associados.</div>';
 
                 const papeis = [
-                    ['Auxiliar','Auxiliar'],['Co-liderArea','Co-líder de Área'],
-                    ['Co-liderMinisterio','Co-líder de Ministério'],['Coordenação','Coordenação'],
-                    ['Core','Core'],['LiderArea','Líder de Área'],['LiderEquipa','Líder de Equipa'],
-                    ['LiderLink','Líder de Link'],['Lider','Líder de Ministério'],
-                    ['LiderPilar','Líder de Pilar'],['Office','Office'],['Presbitério','Presbitério'],
+                    ['Auxiliar','Auxiliar'],
+                    ['Co-liderArea','Co-líder de Área'],
+                    ['Co-liderMinisterio','Co-líder de Ministério'],
+                    ['Coordenação','Coordenação'],
+                    ['Core','Core'],
+                    ['LiderArea','Líder de Área'],
+                    ['LiderEquipa','Líder de Equipa'],
+                    ['LiderLink','Líder de Link'],
+                    ['Lider','Líder de Ministério'],
+                    ['LiderPilar','Líder de Pilar'],
+                    ['Office','Office'],
+                    ['Presbitério','Presbitério'],
+                    ['Voluntario','Voluntario'],
                 ];
 
                 return `<div><div class="mb-data-card">

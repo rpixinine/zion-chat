@@ -24,6 +24,8 @@
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <style>
@@ -627,13 +629,12 @@
 
     function abrirModalSenha() {
         document.getElementById('modal-senha').classList.add('open');
-        document.getElementById('pw-atual').value = '';
         document.getElementById('pw-nova').value = '';
         document.getElementById('pw-conf').value = '';
         document.getElementById('modal-senha-msg').textContent = '';
         document.getElementById('modal-senha-msg').className = 'modal-msg';
         document.getElementById('btn-salvar-senha').disabled = false;
-        setTimeout(() => document.getElementById('pw-atual').focus(), 250);
+        setTimeout(() => document.getElementById('pw-nova').focus(), 250);
     }
 
     function fecharModalSenha() {
@@ -645,42 +646,33 @@
     });
 
     async function salvarSenha() {
-        const senhaAtual = document.getElementById('pw-atual').value.trim();
-        const novaSenha  = document.getElementById('pw-nova').value.trim();
-        const confirmar  = document.getElementById('pw-conf').value.trim();
-        const msgEl      = document.getElementById('modal-senha-msg');
-        const btnEl      = document.getElementById('btn-salvar-senha');
+        const novaSenha = document.getElementById('pw-nova').value.trim();
+        const confirmar = document.getElementById('pw-conf').value.trim();
+        const msgEl     = document.getElementById('modal-senha-msg');
+        const btnEl     = document.getElementById('btn-salvar-senha');
 
         const mostrarErro = t => { msgEl.textContent = t; msgEl.className = 'modal-msg erro'; };
         const mostrarOk   = t => { msgEl.textContent = t; msgEl.className = 'modal-msg ok'; };
 
-        if (!senhaAtual) return mostrarErro('Introduz a senha actual.');
         if (!novaSenha || novaSenha.length < 8) return mostrarErro('A nova senha deve ter pelo menos 8 caracteres.');
         if (novaSenha !== confirmar) return mostrarErro('As senhas não coincidem.');
-        if (novaSenha === senhaAtual) return mostrarErro('A nova senha deve ser diferente da actual.');
 
         btnEl.disabled = true;
-        msgEl.textContent = '';
 
         try {
-            const token = ZionAuth.getToken ? ZionAuth.getToken() : (ZionAuth.getUser()?._token || localStorage.getItem('zion_token'));
+            const token = await ZionAuth.getToken();
 
             const res = await fetch('/api/auth/change-password', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type':  'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ senha_atual: senhaAtual, nova_senha: novaSenha })
+                body: JSON.stringify({ nova_senha: novaSenha })
             });
 
             const data = await res.json();
-
-            if (!res.ok) {
-                mostrarErro(data.error || 'Erro ao actualizar a senha.');
-                btnEl.disabled = false;
-                return;
-            }
+            if (!res.ok) { mostrarErro(data.error || 'Erro ao actualizar a senha.'); btnEl.disabled = false; return; }
 
             mostrarOk('✓ Senha actualizada com sucesso!');
             setTimeout(() => fecharModalSenha(), 1800);
@@ -692,137 +684,78 @@
     }
 
     // ── AUTH ──────────────────────────────────────────────────
-    function renderAuthOld() {
-        const user = ZionAuth.getUser();
-        const authBar = document.getElementById('auth-bar');
-        const drawerAuth = document.getElementById('drawer-auth');
-        const tipoLabel = {visitante: 'Visitante', membro: 'Membro', admin: 'Administrador'};
-
-        if (user) {
-            const initials = (user.nome || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-            const firstName = (user.nome || 'Utilizador').split(' ')[0];
-
-            authBar.innerHTML = `
-                <div class="auth-user">
-                    <div class="auth-avatar">${initials}</div>
-                    <span class="auth-name">${firstName}</span>
-                </div>
-                <button class="auth-logout" onclick="ZionAuth.logout()">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16 17 21 12 16 7"/>
-                        <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                    Sair
-                </button>`;
-
-            drawerAuth.innerHTML = `
-                <div class="drawer-auth-logado">
-                    <div class="drawer-auth-avatar">${initials}</div>
-                    <div class="drawer-auth-info">
-                        <div class="drawer-auth-nome">${user.nome}</div>
-                        <div class="drawer-auth-tipo">${tipoLabel[user.tipo] || user.tipo}</div>
-                    </div>
-                    <button class="drawer-auth-sair" onclick="ZionAuth.logout()">Sair</button>
-                </div>`;
-        } else {
-            authBar.innerHTML = `
-                <a href="login" class="auth-login">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                        <polyline points="10 17 15 12 10 7"/>
-                        <line x1="15" y1="12" x2="3" y2="12"/>
-                    </svg>
-                    Entrar
-                </a>`;
-
-            drawerAuth.innerHTML = `
-                <a href="login" class="drawer-auth-login" onclick="closeDrawer()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                        <polyline points="10 17 15 12 10 7"/>
-                        <line x1="15" y1="12" x2="3" y2="12"/>
-                    </svg>
-                    Entrar / Registar
-                </a>`;
-        }
-    }
-
-    function renderAuth() {
-        const user = ZionAuth.getUser();
+    async function renderAuth() {
+        const user = await ZionAuth.getUser();  // ← era síncrono
         const authBar    = document.getElementById('auth-bar');
         const drawerAuth = document.getElementById('drawer-auth');
         const tipoLabel  = { visitante:'Visitante', membro:'Membro', admin:'Administrador', lider:'Líder' };
 
         if (user) {
-            const initials   = (user.nome || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-            const firstName  = (user.nome || 'Utilizador').split(' ')[0];
+            const initials  = (user.nome || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+            const firstName = (user.nome || 'Utilizador').split(' ')[0];
 
-            // ── Auth bar (canto superior direito) ────────────────────────────────
             authBar.innerHTML = `
-            <div class="auth-user">
-                <div class="auth-avatar">${initials}</div>
-                <span class="auth-name">${firstName}</span>
-            </div>
-            <button class="auth-change-pw" onclick="abrirModalSenha()" title="Redefinir Senha">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                Senha
-            </button>
-            <button class="auth-logout" onclick="ZionAuth.logout()">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                Sair
-            </button>`;
+        <div class="auth-user">
+            <div class="auth-avatar">${initials}</div>
+            <span class="auth-name">${firstName}</span>
+        </div>
+        <button class="auth-change-pw" onclick="abrirModalSenha()" title="Redefinir Senha">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Senha
+        </button>
+        <button class="auth-logout" onclick="ZionAuth.logout()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sair
+        </button>`;
 
-            // ── Drawer auth ──────────────────────────────────────────────────────
             drawerAuth.innerHTML = `
-            <div class="drawer-auth-logado">
-                <div class="drawer-auth-avatar">${initials}</div>
-                <div class="drawer-auth-info">
-                    <div class="drawer-auth-nome">${user.nome}</div>
-                    <div class="drawer-auth-tipo">${tipoLabel[user.tipo] || user.tipo}</div>
-                </div>
-                <button class="drawer-auth-sair" onclick="ZionAuth.logout()">Sair</button>
+        <div class="drawer-auth-logado">
+            <div class="drawer-auth-avatar">${initials}</div>
+            <div class="drawer-auth-info">
+                <div class="drawer-auth-nome">${user.nome}</div>
+                <div class="drawer-auth-tipo">${tipoLabel[user.tipo] || user.tipo}</div>
             </div>
-            <button class="drawer-item-pw" onclick="closeDrawer(); abrirModalSenha();">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                Redefinir Senha
-            </button>`;
-
+            <button class="drawer-auth-sair" onclick="ZionAuth.logout()">Sair</button>
+        </div>
+        <button class="drawer-item-pw" onclick="closeDrawer(); abrirModalSenha();">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Redefinir Senha
+        </button>`;
         } else {
             authBar.innerHTML = `
-            <a href="login" class="auth-login">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                    <polyline points="10 17 15 12 10 7"/>
-                    <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
-                Entrar
-            </a>`;
+        <a href="login" class="auth-login">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Entrar
+        </a>`;
 
             drawerAuth.innerHTML = `
-            <a href="login" class="drawer-auth-login" onclick="closeDrawer()">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                    <polyline points="10 17 15 12 10 7"/>
-                    <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
-                Entrar / Registar
-            </a>`;
+        <a href="login" class="drawer-auth-login" onclick="closeDrawer()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Entrar / Registar
+        </a>`;
         }
     }
 
@@ -830,19 +763,20 @@
 
     // ── PERMISSÕES DE MEMBRO ──────────────────────────────────
     async function carregarPermissoes() {
-        const user = ZionAuth.getUser();
-        if (!user) return;
+        const session = await ZionAuth.getSession();
+        if (!session) return;
 
-        const membroId = user.membro_id || user.id;
-        if (!membroId) return;
+        const token    = session.access_token;
+        const email    = session.user.email;
 
         try {
             const res = await fetch(
-                `${SUPABASE_URL}/rest/v1/membros?id=eq.${membroId}&select=e_gerenciamento,e_lider,e_jornada,e_escala,e_hub,e_dizimista`,
+                `${SUPABASE_URL}/rest/v1/membros?email=eq.${encodeURIComponent(email)}&select=id,e_gerenciamento,e_lider,e_jornada,e_escala,e_hub,e_dizimista&ativo=eq.true`,
                 {
                     headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Accept': 'application/json'
+                        'apikey':        SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${token}`,  // ← JWT real
+                        'Accept':        'application/json'
                     }
                 }
             );
@@ -853,18 +787,15 @@
 
             const regras = {
                 gerenciamento: membro.e_gerenciamento,
-                lider: membro.e_lider,
-                jornada: membro.e_jornada,
-                escala: membro.e_escala,
-                hub: membro.e_hub,
-                dizimista: membro.e_dizimista
+                lider:         membro.e_lider,
+                jornada:       membro.e_jornada,
+                escala:        membro.e_escala,
+                hub:           membro.e_hub,
+                dizimista:     membro.e_dizimista
             };
 
             document.querySelectorAll('[data-role]').forEach(btn => {
-                const role = btn.dataset.role;
-                if (regras[role] === true) {
-                    btn.style.display = '';
-                }
+                if (regras[btn.dataset.role] === true) btn.style.display = '';
             });
 
         } catch (e) {
@@ -955,8 +886,9 @@
     }
 
     // ── TIMEOUT DE INATIVIDADE ────────────────────────────────────────────────
-    (function initIdleTimeout() {
-        if (!ZionAuth.getUser()) return; // só corre se logado
+    (async function initIdleTimeout() {
+        const session = await ZionAuth.getSession();  // ← era ZionAuth.getUser()
+        if (!session) return;
 
         const IDLE_MINUTES = 3;
         const WARN_SECONDS = 30;
@@ -1041,13 +973,7 @@
 <div id="modal-senha">
     <div class="modal-card">
         <div class="modal-title">Redefinir Senha</div>
-        <div class="modal-sub">Define a tua senha pessoal de acesso à plataforma.</div>
-
-        <div class="modal-field">
-            <label class="modal-label" for="pw-atual">Senha Actual</label>
-            <input id="pw-atual" type="password" class="modal-input"
-                   placeholder="••••••••" autocomplete="current-password">
-        </div>
+        <div class="modal-sub">Define a tua nova senha pessoal de acesso.</div>
 
         <div class="modal-field">
             <label class="modal-label" for="pw-nova">Nova Senha</label>

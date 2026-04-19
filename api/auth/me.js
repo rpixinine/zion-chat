@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import jwt from "jsonwebtoken";
 
-const supabase = createClient(
+const sbAdmin = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY
 );
@@ -13,23 +12,23 @@ export default async function handler(req, res) {
     if (req.method === "OPTIONS") return res.status(200).end();
 
     try {
-        const auth = req.headers.authorization;
-        if (!auth || !auth.startsWith("Bearer "))
-            return res.status(401).json({ error: "Não autenticado." });
+        const token = (req.headers.authorization || "").replace("Bearer ", "").trim();
+        if (!token) return res.status(401).json({ error: "Não autenticado." });
 
-        const token = auth.split(" ")[1];
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        // Troca jwt.verify por Supabase Auth
+        const { data: { user: authUser }, error } = await sbAdmin.auth.getUser(token);
+        if (error || !authUser) return res.status(401).json({ error: "Sessão inválida." });
 
-        const { data: user, error } = await supabase
-            .from("usuarios")
-            .select("id, nome, email, tipo, membro_id, visitante_id, ativo")
-            .eq("id", payload.id)
+        const { data: membro } = await sbAdmin
+            .from("membros")
+            .select("id, nome, email, tipo, e_admin, e_lider, ativo")
+            .eq("email", authUser.email)
+            .eq("ativo", true)
             .single();
 
-        if (error || !user || !user.ativo)
-            return res.status(401).json({ error: "Sessão inválida." });
+        if (!membro) return res.status(401).json({ error: "Sessão inválida." });
 
-        return res.status(200).json({ user });
+        return res.status(200).json({ user: { ...membro, membro_id: membro.id } });
 
     } catch (err) {
         return res.status(401).json({ error: "Token inválido ou expirado." });

@@ -964,7 +964,7 @@
             document.getElementById('ci-min-nome').textContent = CI.ministerioNome;
 
             const lidRaw = await sb(`ministerio_membros?ministerio_id=eq.${CI.ministerioId}&papel=eq.lider&select=*,membros_publico(id,nome,telefone)`).catch(() => []);
-            CI.lideres = (lidRaw || []).map(l => l.membros).filter(Boolean);
+            CI.lideres = (lidRaw || []).map(l => l.membros_publico).filter(Boolean);
             ciRenderLider();
 
             /* ── Fetch paralelo principal ── */
@@ -1117,7 +1117,7 @@
 
         todos.forEach(p => {
             const tags = p.escalados.map(e => {
-                const nome = e.membros?.nome || '—';
+                const nome = e.membros_publico?.nome || '—';
                 const ci   = CI.checkins.find(c =>
                     c.membro_id === e.membro_id && c.culto_id === p.culto?.id && c.data === p.data
                 );
@@ -1199,7 +1199,7 @@
             else if (e.papel)                 {                 badge = `<span class="escala-member-role">${e.papel}</span>`; }
             return `<div class="escala-member">
             <div class="escala-member-dot ${dot}"></div>
-            <span>${e.membros?.nome || '—'}</span>${badge}
+            <span>${e.membros_publico?.nome || '—'}</span>${badge}
         </div>`;
         }).join('');
 
@@ -1247,7 +1247,7 @@
                 <select id="ci-sel-membro" onchange="ciSelMembro(this.value, this.options[this.selectedIndex].text)">
                     <option value="">— Seleciona o teu nome —</option>
                     ${escalados.map(e =>
-                    `<option value="${e.membro_id}">${e.membros?.nome || '—'}</option>`
+                    `<option value="${e.membro_id}">${e.membros_publico?.nome || '—'}</option>`
                 ).join('')}
                 </select>
             </div>
@@ -1349,7 +1349,7 @@
                 : (e.papel ? `<span class="escala-member-role">${e.papel}</span>` : '');
             return `<div class="escala-member">
             <div class="escala-member-dot ${conf ? 'green' : ''}"></div>
-            <span>${e.membros?.nome || '—'}</span>${badge}
+            <span>${e.membros_publico?.nome || '—'}</span>${badge}
         </div>`;
         }).join('');
 
@@ -1382,7 +1382,7 @@
             <label>O teu nome</label>
             <select id="ci-pre-sel" onchange="ciPreSelMembro(this.value)">
                 <option value="">— Seleciona o teu nome —</option>
-                ${pendentes.map(e => `<option value="${e.membro_id}">${e.membros?.nome || '—'}</option>`).join('')}
+                ${pendentes.map(e => `<option value="${e.membro_id}">${e.membros_publico?.nome || '—'}</option>`).join('')}
             </select>
         </div>
         <div class="msg" id="ci-pre-msg"></div>
@@ -1445,7 +1445,7 @@
 
             return `<tr>
                 <td>
-                    <div>${m.membros?.nome || '—'}</div>
+                    <div>${m.membros_publico?.nome || '—'}</div>
                     <span class="disp-role-badge ${papelCls}">${papelNome}</span>
                 </td>
                 ${cells}
@@ -1506,7 +1506,7 @@
         const porData = {};
         CI.indisps.forEach(i => {
             if (!porData[i.data]) porData[i.data] = [];
-            porData[i.data].push(i.membros?.nome || '?');
+            porData[i.data].push(i.membros_publico?.nome || '?');
         });
 
         /* Calendário */
@@ -1554,7 +1554,7 @@
         /* Resumo por voluntário */
         const porMembro = {};
         CI.indisps.forEach(i => {
-            const nome = i.membros?.nome || '?';
+            const nome = i.membros_publico?.nome || '?';
             if (!porMembro[nome]) porMembro[nome] = 0;
             porMembro[nome]++;
         });
@@ -1642,7 +1642,7 @@
         btn.disabled = true; btn.textContent = 'A registar...';
 
         try {
-            const memRes = await sb(`membros?id=eq.${CI.preMembroSel}&select=id,nome`);
+            const memRes = await sb(`membros_publico?id=eq.${CI.preMembroSel}&select=id,nome`);
             const mem = memRes?.[0];
             if (!mem) throw new Error('Membro não encontrado.');
 

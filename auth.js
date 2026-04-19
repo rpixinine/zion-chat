@@ -1,144 +1,122 @@
-
 const ZionAuth = (() => {
 
-    const SUPABASE_URL = window.SUPABASE_URL || '';
-    const SUPABASE_KEY = window.SUPABASE_ANON_KEY || '';
-    const SESSION_KEY  = 'zion_session';
+    const _sb = supabase.createClient(
+        window.SUPABASE_URL,
+        window.SUPABASE_ANON_KEY
+    );
 
-    // ── Helpers ──────────────────────────────────────────────
-
-    function saveSession(data) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+    // ── Sessão activa ─────────────────────────────────────────
+    async function getSession() {
+        const { data } = await _sb.auth.getSession();
+        return data?.session || null;
     }
 
-    function clearSession() {
-        localStorage.removeItem(SESSION_KEY);
+    // ── User com dados extra da tabela membros ────────────────
+    async function getUser() {
+        const session = await getSession();
+        if (!session) return null;
+
+        const { data: membro } = await _sb
+            .from('membros')
+            .select('id,nome,email,tipo,e_admin,e_lider,e_gerenciamento,e_escala,e_hub,e_jornada,e_dizimista,foto_url')
+            .eq('email', session.user.email)
+            .eq('ativo', true)
+            .single();
+
+        if (!membro) return null;
+
+        return {
+            ...membro,
+            membro_id: membro.id,
+            _session:  session
+        };
     }
 
-    function getUser() {
-        try {
-            const raw = localStorage.getItem(SESSION_KEY);
-            return raw ? JSON.parse(raw) : null;
-        } catch {
-            return null;
-        }
-    }
-
-    function isLoggedIn() {
-        const user = getUser();
-        if (!user || !user.token) return false;
-        // Verifica expiração
-        if (user.expires_at && Date.now() > user.expires_at) {
-            clearSession();
-            return false;
-        }
-        return true;
-    }
-
-    // ── Proteger página ───────────────────────────────────────
-    // Chama no topo da página protegida.
-    // opts.tipo: 'visitante' | 'membro' | 'admin' (opcional)
-    function protect(opts = {}) {
-        if (!isLoggedIn()) {
-            // Guarda a página atual para redirecionar depois do login
-            sessionStorage.setItem('zion_redirect', window.location.href);
-            window.location.href = 'login';
-            return;
-        }
-
-        if (opts.tipo) {
-            const user = getUser();
-            const hierarquia = { visitante: 1, membro: 2, admin: 3 };
-            const nivelUser  = hierarquia[user.tipo] || 0;
-            const nivelReq   = hierarquia[opts.tipo] || 0;
-
-            if (nivelUser < nivelReq) {
-                window.location.href = 'acesso-negado';
-                return;
-            }
-        }
-    }
-
-    // ── Login via API ─────────────────────────────────────────
+    // ── Login ─────────────────────────────────────────────────
     async function login(email, password) {
-        const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+        const { data, error } = await _sb.auth.signInWithPassword({
+            email: email.toLowerCase().trim(),
+            password
         });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data.error || 'Erro ao fazer login');
-        }
-
-        saveSession({
-            id:         data.user.id,
-            nome:       data.user.nome,
-            email:      data.user.email,
-            tipo:       data.user.tipo,
-            membro_id:  data.user.membro_id,
-            e_admin:    data.user.e_admin || false,
-            token:      data.token,
-            expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000)
-        });
-
+        if (error) throw new Error(
+            error.message === 'Invalid login credentials'
+                ? 'Email ou password incorretos.'
+                : error.message
+        );
         return data.user;
     }
 
-    // ── Registar visitante via API ────────────────────────────
+    // ── Registo de novo membro ────────────────────────────────
     async function register(formData) {
-        const res = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
+        // 1. Cria conta no Supabase Auth
+        const { data, error } = await _sb.auth.signUp({
+            email:    formData.email.toLowerCase().trim(),
+            password: formData.password,
+            options:  { data: { nome: formData.nome } }
         });
+        if (error) throw new Error(error.message);
 
-        const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data.error || 'Erro ao registar');
-        }
-
-        saveSession({
-            id:         data.user.id,
-            nome:       data.user.nome,
-            email:      data.user.email,
-            tipo:       data.user.tipo,
-            membro_id:  data.user.membro_id,
-            token:      data.token,
-            expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000)
+        // 2. Cria registo na tabela membros
+        const { error: dbError } = await _sb.from('membros').insert({
+            nome:           formData.nome,
+            email:          formData.email.toLowerCase().trim(),
+            nif:            formData.nif || null,
+            telefone:       formData.telefone || null,
+            onde_conheceu:  formData.onde_conheceu || null,
+            foto_url:       formData.foto_url || null,
+            tipo:           'visitante',
+            ativo:          true
         });
+        if (dbError) throw new Error(dbError.message);
 
         return data.user;
     }
 
     // ── Logout ────────────────────────────────────────────────
-    function logout() {
-        clearSession();
-        window.location.href = 'login';
+    async function logout() {
+        await _sb.auth.signOut();
+        window.location.href = '/login';
     }
 
-    // ── Render user info num elemento ────────────────────────
-    // Coloca nome e tipo do utilizador num elemento HTML
-    function renderUserBadge(selector) {
-        const user = getUser();
-        const el = document.querySelector(selector);
-        if (!el || !user) return;
-
-        const tipoLabel = { visitante: 'Visitante', membro: 'Membro', admin: 'Admin' };
-        el.innerHTML = `
-      <span class="user-name">${user.nome?.split(' ')[0] || 'Utilizador'}</span>
-      <span class="user-tipo">${tipoLabel[user.tipo] || user.tipo}</span>
-    `;
+    // ── Proteger página ───────────────────────────────────────
+    async function protect(opts = {}) {
+        const session = await getSession();
+        if (!session) {
+            sessionStorage.setItem('zion_redirect', window.location.href);
+            window.location.href = '/login';
+            return null;
+        }
+        return session;
     }
 
-    function getToken() {
-        return getUser()?.token || '';
+    // ── Token para o sb() das páginas ────────────────────────
+    async function getToken() {
+        const session = await getSession();
+        return session?.access_token || null;
     }
 
-    // ── Exposição pública ─────────────────────────────────────
-    return { protect, login, register, logout, getUser, isLoggedIn, renderUserBadge, saveSession, getToken };
+    // ── Compatibilidade com o sistema antigo ─────────────────
+    function isLoggedIn() {
+        // Versão síncrona para compatibilidade — usa getSession() async onde possível
+        return !!localStorage.getItem(
+            `sb-${window.SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`
+        );
+    }
+
+    // ── Escuta mudanças de sessão ─────────────────────────────
+    function onAuthChange(callback) {
+        _sb.auth.onAuthStateChange(callback);
+    }
+
+    // ── Expõe o cliente Supabase para quem precisar ───────────
+    function getClient() {
+        return _sb;
+    }
+
+    return {
+        login, register, logout, protect,
+        getUser, getSession, getToken, isLoggedIn,
+        onAuthChange, getClient
+    };
 
 })();

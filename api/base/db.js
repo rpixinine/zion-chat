@@ -24,5 +24,4 @@ window.ZionDB = {
     }
 };
 
-// Atalho global — todos os módulos usam sb() directamente
 window.sb = window.ZionDB.query;

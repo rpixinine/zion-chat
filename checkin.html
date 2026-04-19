@@ -963,7 +963,7 @@
             CI.ministerioNome = mins[0].nome;
             document.getElementById('ci-min-nome').textContent = CI.ministerioNome;
 
-            const lidRaw = await sb(`ministerio_membros?ministerio_id=eq.${CI.ministerioId}&papel=eq.lider&select=*,membros(id,nome,telefone)`).catch(() => []);
+            const lidRaw = await sb(`ministerio_membros?ministerio_id=eq.${CI.ministerioId}&papel=eq.lider&select=*,membros_publico(id,nome,telefone)`).catch(() => []);
             CI.lideres = (lidRaw || []).map(l => l.membros).filter(Boolean);
             ciRenderLider();
 
@@ -973,7 +973,7 @@
                     `ministerio_escala?ministerio_id=eq.${CI.ministerioId}` +
                     `&data=gte.${hoje}&data=lte.${addDias(hoje,30)}` +
                     /* ▼ campus adicionado */
-                    `&select=*,membros(id,nome),cultos(id,nome,hora_inicio,campus:campus(id,nome))&order=data&order=culto_id`
+                    `&select=*,membros_publico(id,nome),cultos(id,nome,hora_inicio,campus:campus(id,nome))&order=data&order=culto_id`
                 ),
                 sb(
                     `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}` +
@@ -982,7 +982,7 @@
                 /* membros do ministério */
                 sb(
                     `ministerio_membros?ministerio_id=eq.${CI.ministerioId}&ativo=eq.true` +
-                    `&select=*,membros(id,nome)&order=papel,created_at`
+                    `&select=*,membros_publico(id,nome)&order=papel,created_at`
                 ).catch(() => []),
                 /* cultos do ministério com campus */
                 sb(
@@ -1430,11 +1430,11 @@
         /* Linhas */
         const rows = CI.membros.map(m => {
             const papelCls = m.papel === 'lider' ? 'disp-role-lider'
-                           : m.papel === 'aprendiz' ? 'disp-role-aprendiz'
-                           : 'disp-role-voluntario';
+                : m.papel === 'aprendiz' ? 'disp-role-aprendiz'
+                    : 'disp-role-voluntario';
             const papelNome = m.papel === 'lider' ? 'Líder'
-                            : m.papel === 'aprendiz' ? 'Aprendiz'
-                            : 'Voluntário';
+                : m.papel === 'aprendiz' ? 'Aprendiz'
+                    : 'Voluntário';
 
             const cells = cults.map(c => {
                 const v = CI.dispMap[m.membro_id + '_' + c.id];
@@ -1488,7 +1488,7 @@
 
             CI.indisps = await sb(
                 `ministerio_indisponibilidade?ministerio_id=eq.${CI.ministerioId}` +
-                `&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome)&order=data`
+                `&data=gte.${ini}&data=lte.${fim2}&select=*,membros_publico(nome)&order=data`
             ).catch(() => []);
 
             el.innerHTML = buildIndispLayout();
@@ -1564,10 +1564,10 @@
                 <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Por Voluntário</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px">
                     ${Object.entries(porMembro).sort((a,b) => b[1]-a[1]).map(([nome, cnt]) =>
-                        `<span style="padding:3px 10px;border-radius:20px;background:rgba(229,57,53,0.10);border:1px solid rgba(229,57,53,0.2);color:#ef9a9a;font-size:11px">
+                `<span style="padding:3px 10px;border-radius:20px;background:rgba(229,57,53,0.10);border:1px solid rgba(229,57,53,0.2);color:#ef9a9a;font-size:11px">
                             ${nome} <strong>(${cnt})</strong>
                         </span>`
-                    ).join('')}
+            ).join('')}
                 </div>
                </div>`
             : '';

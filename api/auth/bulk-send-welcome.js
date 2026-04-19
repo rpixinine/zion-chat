@@ -1,21 +1,27 @@
 // api/auth/bulk-send-welcome.js
 
-import {createClient} from "@supabase/supabase-js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
-import {emailBoasVindasApp} from "./email-templates.js";
+import { emailBoasVindasApp } from "./email-templates.js";
 
-const supabase = createClient(
+// ── MUDANÇA 1: dois clientes Supabase ────────────────────────────────────────
+// sbAdmin usa a service_role — só no servidor, nunca no frontend
+const sbAdmin = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
+    process.env.SUPABASE_SERVICE_KEY   // service_role key
+);
+
+// sbAnon para verificar o token do utilizador
+const sbAnon = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
 );
 
 const SENHA_DEFAULT = "Zion@Lisboa777";
-const BATCH_SIZE = 10;
-const DELAY_MS = 300;
+const BATCH_SIZE    = 10;
+const DELAY_MS      = 300;
 
-// ── Mailer (igual ao forgot-password) ────────────────────────────────────────
+// ── Mailer (igual ao que tens) ────────────────────────────────────────────────
 const mailer = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -24,7 +30,7 @@ const mailer = nodemailer.createTransport({
     },
 });
 
-async function enviarEmail({to, subject, html}) {
+async function enviarEmail({ to, subject, html }) {
     return mailer.sendMail({
         from: `"Zion Lisboa" <${process.env.GMAIL_USER}>`,
         to,
@@ -43,36 +49,38 @@ export default async function handler(req, res) {
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     if (req.method === "OPTIONS") return res.status(200).end();
-    if (req.method !== "POST") return res.status(405).json({error: "Método não permitido"});
+    if (req.method !== "POST")   return res.status(405).json({ error: "Método não permitido" });
 
-    // ── 1. Auth — só admin ────────────────────────────────────────────────────
+    // ── MUDANÇA 2: verificar token via Supabase Auth ──────────────────────────
     const token = (req.headers.authorization || "").replace("Bearer ", "").trim();
-    if (!token) return res.status(401).json({error: "Não autenticado."});
+    if (!token) return res.status(401).json({ error: "Não autenticado." });
 
-    let payload;
-    try {
-        payload = jwt.verify(token, process.env.JWT_SECRET);
-    } catch {
-        return res.status(401).json({error: "Token inválido ou expirado."});
+    // Valida o JWT do Supabase Auth
+    const { data: { user: authUser }, error: authError } = await sbAdmin.auth.getUser(token);
+    if (authError || !authUser) {
+        return res.status(401).json({ error: "Token inválido ou expirado." });
     }
 
-    const {data: adminUser} = await supabase
-        .from("usuarios")
+    // Verifica se é admin na tabela membros
+    const { data: adminMembro } = await sbAdmin
+        .from("membros")
         .select("id, e_admin, ativo")
-        .eq("id", payload.id)
+        .eq("email", authUser.email)
+        .eq("ativo", true)
         .single();
 
-    if (!adminUser?.ativo || !adminUser?.e_admin) {
-        return res.status(403).json({error: "Sem permissão — não és admin."});
+    if (!adminMembro?.e_admin) {
+        return res.status(403).json({ error: "Sem permissão — não és admin." });
     }
+    // ── FIM DAS MUDANÇAS NA AUTH ──────────────────────────────────────────────
 
-    // ── 2. Parâmetros ─────────────────────────────────────────────────────────
-    const dry_run = req.body?.dry_run === true;
-    const apenas_novos = req.body?.apenas_novos !== false;
+    // ── Parâmetros (igual ao que tens) ────────────────────────────────────────
+    const dry_run        = req.body?.dry_run === true;
+    const apenas_novos   = req.body?.apenas_novos !== false;
     const ids_especificos = req.body?.membro_ids || null;
 
-    // ── 3. Buscar membros ─────────────────────────────────────────────────────
-    let query = supabase
+    // ── Buscar membros (igual ao que tens) ────────────────────────────────────
+    let query = sbAdmin
         .from("membros")
         .select("id, nome, email, tipo")
         .not("email", "is", null)
@@ -83,24 +91,27 @@ export default async function handler(req, res) {
         query = query.in("id", ids_especificos);
     }
 
-    const {data: membros, error: erroMembros} = await query;
+    const { data: membros, error: erroMembros } = await query;
 
     if (erroMembros) {
-        return res.status(500).json({error: "Erro ao buscar membros: " + erroMembros.message});
+        return res.status(500).json({ error: "Erro ao buscar membros: " + erroMembros.message });
     }
     if (!membros?.length) {
-        return res.status(200).json({ok: true, processados: 0, mensagem: "Nenhum membro com email encontrado."});
+        return res.status(200).json({ ok: true, processados: 0, mensagem: "Nenhum membro com email encontrado." });
     }
 
-    // ── 4. Verificar quais já têm conta ───────────────────────────────────────
+    // ── Verificar quais já têm conta ──────────────────────────────────────────
+    // Verifica nas duas fontes: tabela usuarios E Supabase Auth
     const emails = membros.map(m => m.email.toLowerCase().trim());
 
-    const {data: usuariosExistentes} = await supabase
+    const { data: usuariosExistentes } = await sbAdmin
         .from("usuarios")
         .select("email")
         .in("email", emails);
 
-    const emailsComConta = new Set((usuariosExistentes || []).map(u => u.email.toLowerCase()));
+    const emailsComConta = new Set(
+        (usuariosExistentes || []).map(u => u.email.toLowerCase())
+    );
 
     const alvo = apenas_novos
         ? membros.filter(m => !emailsComConta.has(m.email.toLowerCase().trim()))
@@ -116,7 +127,7 @@ export default async function handler(req, res) {
         });
     }
 
-    // ── 5. Dry run ────────────────────────────────────────────────────────────
+    // ── Dry run (igual ao que tens) ───────────────────────────────────────────
     if (dry_run) {
         return res.status(200).json({
             ok: true,
@@ -124,20 +135,17 @@ export default async function handler(req, res) {
             total_membros: membros.length,
             ja_tem_conta: emailsComConta.size,
             a_criar: alvo.length,
-            lista: alvo.map(m => ({id: m.id, nome: m.nome, email: m.email})),
+            lista: alvo.map(m => ({ id: m.id, nome: m.nome, email: m.email })),
         });
     }
 
-    // ── 6. Hash da senha padrão ───────────────────────────────────────────────
-    const password_hash = await bcrypt.hash(SENHA_DEFAULT, 12);
-
-    // ── 7. Processar em lotes ─────────────────────────────────────────────────
+    // ── Processar em lotes ────────────────────────────────────────────────────
     const resultado = {
         ok: true,
-        total_alvo: alvo.length,
-        criados: 0,
+        total_alvo:     alvo.length,
+        criados:        0,
         emails_enviados: 0,
-        erros: [],
+        erros:          [],
     };
 
     for (let i = 0; i < alvo.length; i += BATCH_SIZE) {
@@ -146,48 +154,60 @@ export default async function handler(req, res) {
         for (const membro of lote) {
             const emailNorm = membro.email.toLowerCase().trim();
 
-            // 7a. Criar usuario
+            // ── MUDANÇA 3: criar no Supabase Auth + tabela usuarios ───────────
             try {
-                const {error: insertErr} = await supabase
+                // 1. Criar no Supabase Auth
+                const { error: authCreateError } = await sbAdmin.auth.admin.createUser({
+                    email:          emailNorm,
+                    password:       SENHA_DEFAULT,
+                    email_confirm:  true,   // confirma logo, sem email de verificação extra
+                    user_metadata:  { nome: membro.nome }
+                });
+
+                // Ignora se já existe no Supabase Auth
+                if (authCreateError && !authCreateError.message.includes("already been registered")) {
+                    throw new Error("Supabase Auth: " + authCreateError.message);
+                }
+
+                // 2. Criar na tabela usuarios (o teu sistema de permissões)
+                const { error: insertErr } = await sbAdmin
                     .from("usuarios")
                     .upsert(
                         {
-                            email: emailNorm,
-                            nome: membro.nome,
-                            password_hash,
-                            tipo: "membro",
-                            e_admin: false,
-                            ativo: true,
-                            membro_id: membro.id,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
+                            email:        emailNorm,
+                            nome:         membro.nome,
+                            tipo:         "membro",
+                            e_admin:      false,
+                            ativo:        true,
+                            membro_id:    membro.id,
+                            created_at:   new Date().toISOString(),
+                            updated_at:   new Date().toISOString(),
                         },
-                        {onConflict: "email", ignoreDuplicates: apenas_novos}
+                        { onConflict: "email", ignoreDuplicates: apenas_novos }
                     );
 
                 if (insertErr && !insertErr.message.includes("duplicate")) {
-                    throw new Error(insertErr.message);
+                    throw new Error("Tabela usuarios: " + insertErr.message);
                 }
 
                 resultado.criados++;
 
             } catch (err) {
-                resultado.erros.push({email: emailNorm, etapa: "criar_usuario", erro: err.message});
+                resultado.erros.push({ email: emailNorm, etapa: "criar_conta", erro: err.message });
                 continue; // não envia email se falhou a criar
             }
+            // ── FIM DA MUDANÇA 3 ─────────────────────────────────────────────
 
-            // 7b. Enviar email
+            // ── Enviar email (igual ao que tens) ──────────────────────────────
             try {
-                const {subject, html} = emailBoasVindasApp({
-                    nome: membro.nome,
+                const { subject, html } = emailBoasVindasApp({
+                    nome:  membro.nome,
                     email: emailNorm,
                 });
-
-                await enviarEmail({to: emailNorm, subject, html});
+                await enviarEmail({ to: emailNorm, subject, html });
                 resultado.emails_enviados++;
-
             } catch (err) {
-                resultado.erros.push({email: emailNorm, etapa: "enviar_email", erro: err.message});
+                resultado.erros.push({ email: emailNorm, etapa: "enviar_email", erro: err.message });
             }
 
             await sleep(DELAY_MS);

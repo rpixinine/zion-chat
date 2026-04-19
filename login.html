@@ -19,6 +19,8 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
           rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <style>
@@ -1198,24 +1200,30 @@
         const email = document.getElementById('forgot-email').value.trim();
         const msgEl = document.getElementById('forgot-msg');
         msgEl.className = 'msg-box';
+
         if (!email) {
             msgEl.textContent = 'Introduz o teu email.';
             msgEl.className = 'msg-box error';
             return;
         }
+
         const btn = document.getElementById('forgot-btn');
         btn.disabled = true;
         btn.textContent = 'A enviar...';
+
         try {
-            await fetch('/api/auth/forgot-password', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email})
+            const _sb = ZionAuth.getClient();
+            const { error } = await _sb.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/login?reset=1'
             });
+
+            if (error) throw error;
+
             msgEl.textContent = 'Se este email tiver conta, receberás instruções em breve.';
             msgEl.className = 'msg-box success';
             btn.textContent = 'Email enviado';
             setTimeout(() => fecharForgot(), 4000);
+
         } catch (e) {
             msgEl.textContent = 'Erro ao enviar. Tenta novamente.';
             msgEl.className = 'msg-box error';
@@ -1223,21 +1231,17 @@
             btn.textContent = 'Enviar Link de Recuperação';
         }
     }
-
-    if (typeof ZionAuth !== 'undefined' && ZionAuth.isLoggedIn()) {
-        const redirect = sessionStorage.getItem('zion_redirect');
-        sessionStorage.removeItem('zion_redirect');
-        window.location.href = redirect || getDefaultRedirect();
-    }
+    
 </script>
 <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('SW registado:', reg.scope))
-                .catch(err => console.error('SW erro:', err));
-        });
-    }
+    (async () => {
+        const session = await ZionAuth.getSession();
+        if (session) {
+            const redirect = sessionStorage.getItem('zion_redirect');
+            sessionStorage.removeItem('zion_redirect');
+            window.location.href = redirect || getDefaultRedirect();
+        }
+    })();
 </script>
 </body>
 </html>

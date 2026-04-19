@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="api/base/db.js"></script>
@@ -499,17 +500,19 @@
 
     // ── SUPABASE ──────────────────────────────────────────────────────────────
     async function sb(path, opts = {}) {
+        const token = await ZionAuth.getToken();
         const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
             ...opts,
             headers: {
-                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
-                'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                'apikey':        SUPA_KEY,
+                'Authorization': `Bearer ${token}`,  // ← JWT real
+                'Content-Type':  'application/json',
+                'Prefer':        'return=representation',
                 ...opts.headers,
             },
         });
         if (!r.ok) {
-            const e = await r.json().catch(() => {
-            });
+            const e = await r.json().catch(() => {});
             throw e;
         }
         const txt = await r.text();
@@ -642,6 +645,21 @@
 
     // ── INIT ──────────────────────────────────────────────────────────────────
     async function init() {
+
+        const session = await ZionAuth.protect();
+        if (!session) return;
+
+        const currentUser = await ZionAuth.getUser();
+        if (!currentUser) {
+            window.location.href = '/login';
+            return;
+        }
+
+        // Escuta expiração automática
+        ZionAuth.onAuthChange((event) => {
+            if (event === 'SIGNED_OUT') window.location.href = '/login';
+        });
+
         document.getElementById('top-user').textContent =
             currentUser.nome?.split(' ')[0] || '';
         const hoje = new Date().toLocaleDateString('pt-PT',

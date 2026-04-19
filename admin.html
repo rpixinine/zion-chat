@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
@@ -645,7 +645,7 @@
     }
 
     // ── INIT ──────────────────────────────────────────────────────────────────
-    async function init() {
+    async function initOld() {
 
         const session = await ZionAuth.protect();
         if (!session) return;
@@ -742,6 +742,88 @@
 
         await loadModule(primeiraVisivel);
 
+        iniciarAutoRefresh();
+    }
+
+    async function init() {
+        const session = await ZionAuth.protect();
+        if (!session) return;
+
+        const currentUser = await ZionAuth.getUser();
+        if (!currentUser) {
+            window.location.href = '/login';
+            return;
+        }
+
+        ZionAuth.onAuthChange((event) => {
+            if (event === 'SIGNED_OUT') window.location.href = '/login';
+        });
+
+        document.getElementById('top-user').textContent =
+            currentUser.nome?.split(' ')[0] || '';
+        const hoje = new Date().toLocaleDateString('pt-PT',
+            {weekday: 'long', day: 'numeric', month: 'long'});
+        const dataEl = document.getElementById('data-hoje');
+        if (dataEl) dataEl.textContent = hoje.charAt(0).toUpperCase() + hoje.slice(1);
+
+        const darAcessoTotal = () => {
+            userPerms = {e_admin: true};
+            REGISTRO_MODULOS.forEach(mod => {
+                mod.acoes.forEach(acao => {
+                    userPerms[`${acao}_${mod.secao}`] = true;
+                });
+            });
+            userPerms.ver_utilizadores = true;
+        };
+
+        // ← Usa directamente o currentUser — sem queries extra
+        if (currentUser.e_admin) {
+            darAcessoTotal();
+        } else {
+            const userRow = await sb(
+                `usuarios?select=*&email=eq.${encodeURIComponent(currentUser.email)}`
+            ).catch(() => []);
+            const u = userRow?.[0];
+
+            if (u?.e_admin) {
+                darAcessoTotal();
+            } else if (currentUser.e_presbitero) {
+                userPerms = {
+                    e_admin: false,
+                    ver_dashboard: true, ver_membros: true, ver_eventos: true,
+                    ver_ministerios: true, ver_links: true, ver_cultos: true,
+                    criar_eventos: true, editar_eventos: true, editar_membros: true,
+                    ...(u || {}),
+                };
+            } else if (u && Object.keys(u).some(k => k.startsWith('ver_') && u[k])) {
+                userPerms = {e_admin: false, ...u};
+            } else if (u) {
+                userPerms = {e_admin: false, ver_dashboard: true, ...(u || {})};
+            } else {
+                document.getElementById('nav-bar').style.display = 'none';
+                document.getElementById('main-content').innerHTML = `
+            <div class="acesso-negado">
+                <div class="acesso-negado-icon">✕</div>
+                <div class="acesso-negado-title">Acesso Restrito</div>
+                <div class="acesso-negado-txt">Não tens permissões de acesso ao painel.<br>
+                <small style="opacity:0.6">${currentUser.email}</small></div>
+            </div>`;
+                return;
+            }
+        }
+
+        aplicarPermissoesNav();
+        membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
+
+        const primeiraVisivel = [
+            'dashboard', 'membros', 'novos', 'pastores', 'links',
+            'cultos', 'ministerios', 'salas', 'cursos', 'keola',
+            'loja', 'eventos', 'fornecedores', 'financeiro-receber',
+            'financeiro-invoices', 'financeiro-pagar', 'financeiro-faturas',
+            'financeiro-relatorios', 'configuracoes'
+        ].find(s => perm(s, 'ver')) || 'dashboard';
+
+        await loadModule(primeiraVisivel);
         iniciarAutoRefresh();
     }
 

@@ -1231,7 +1231,57 @@
             btn.textContent = 'Enviar Link de Recuperação';
         }
     }
-    
+
+    // ── Detecta evento de recuperação de password ──────────────────
+    ZionAuth.getClient().auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+            // Supabase detectou o token de reset na URL — mostra o modal
+            document.getElementById('reset-overlay').style.display = 'flex';
+        }
+    });
+
+    async function submeterReset() {
+        const password  = document.getElementById('reset-password').value;
+        const password2 = document.getElementById('reset-password2').value;
+        const msgEl     = document.getElementById('reset-msg');
+        const btn       = document.getElementById('reset-btn');
+
+        msgEl.className = 'msg-box';
+
+        if (!password || password.length < 8) {
+            msgEl.textContent = 'A password deve ter pelo menos 8 caracteres.';
+            msgEl.className = 'msg-box error';
+            return;
+        }
+        if (password !== password2) {
+            msgEl.textContent = 'As passwords não coincidem.';
+            msgEl.className = 'msg-box error';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'A guardar...';
+
+        try {
+            const { error } = await ZionAuth.getClient().auth.updateUser({ password });
+
+            if (error) throw error;
+
+            msgEl.textContent = 'Password actualizada! A redirecionar...';
+            msgEl.className = 'msg-box success';
+
+            setTimeout(() => {
+                window.location.href = getDefaultRedirect();
+            }, 1500);
+
+        } catch (e) {
+            msgEl.textContent = e.message || 'Erro ao actualizar. Tenta novamente.';
+            msgEl.className = 'msg-box error';
+            btn.disabled = false;
+            btn.textContent = 'Guardar nova password';
+        }
+    }
+
 </script>
 <script>
     (async () => {
@@ -1243,5 +1293,68 @@
         }
     })();
 </script>
+<!-- Modal nova password (reset) -->
+<div id="reset-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:400;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
+    <div style="width:100%;max-width:400px;background:#0a2030;border:1px solid rgba(255,255,255,0.12);
+                border-radius:14px;overflow:hidden;animation:scaleIn 0.2s ease">
+        <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.12);
+                    display:flex;align-items:center;justify-content:space-between">
+            <span style="font-family:var(--font);font-size:12px;font-weight:600;
+                         letter-spacing:1px;color:var(--cta-light)">Nova Password</span>
+        </div>
+        <div style="padding:24px">
+            <p style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;margin-bottom:18px">
+                Define a tua nova password de acesso.
+            </p>
+            <div class="msg-box" id="reset-msg"></div>
+            <div class="form-group">
+                <label class="form-label">Nova password</label>
+                <div class="input-password-wrap">
+                    <input class="form-input" id="reset-password" type="password"
+                           placeholder="Mínimo 8 caracteres" autocomplete="new-password"
+                           onkeydown="if(event.key==='Enter') submeterReset()">
+                    <button type="button" class="password-toggle"
+                            onclick="togglePassword('reset-password', this)" tabindex="-1">
+                        <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Confirmar password</label>
+                <div class="input-password-wrap">
+                    <input class="form-input" id="reset-password2" type="password"
+                           placeholder="Repete a password" autocomplete="new-password"
+                           onkeydown="if(event.key==='Enter') submeterReset()">
+                    <button type="button" class="password-toggle"
+                            onclick="togglePassword('reset-password2', this)" tabindex="-1">
+                        <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <button class="submit-btn" id="reset-btn" onclick="submeterReset()">
+                Guardar nova password
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

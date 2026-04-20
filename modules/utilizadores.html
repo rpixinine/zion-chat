@@ -483,22 +483,21 @@
         };
         function ut_cor(tipo) { return UT_COR[tipo] || UT_COR.outro; }
 
-        /* ── Token da sessão ── */
-        function ut_getToken() {
+        /* ── Token da sessão (novo sistema ZionAuth) ── */
+        async function ut_getToken() {
             try {
-                var raw = localStorage.getItem('zion_session');
-                if (!raw) return null;
-                return JSON.parse(raw).token || null;
+                return await ZionAuth.getToken();
             } catch(e) { return null; }
         }
 
         /* ── Fetch para endpoints Vercel ── */
         async function ut_api(path, body) {
+            var token = await ut_getToken();  // ← agora é async
             var res = await fetch(path, {
                 method: 'POST',
                 headers: {
                     'Content-Type':  'application/json',
-                    'Authorization': 'Bearer ' + (ut_getToken() || ''),
+                    'Authorization': 'Bearer ' + (token || ''),
                 },
                 body: JSON.stringify(body),
             });

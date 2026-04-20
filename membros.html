@@ -13,8 +13,11 @@
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
@@ -326,8 +329,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-    ZionAuth.protect();
-    const currentUser = ZionAuth.getUser();
+
     const SUPA_URL    = window.SUPABASE_URL      || '';
     const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
 
@@ -401,6 +403,7 @@
        ESTADO
     ═══════════════════════════════════════════════════ */
     let todosMembros   = [];
+    let currentUser  = null;
     let ministeriosMap = {};
     let linksMap       = {};
     let membroMinMap   = {};
@@ -412,16 +415,19 @@
     let _editBatizado  = false;
 
     async function sb(path) {
+        const token = await ZionAuth.getToken();
         const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-            headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' }
+            headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
         return r.json();
     }
+
     async function sbPatch(table, id, data) {
+        const token = await ZionAuth.getToken();
         const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
             method: 'PATCH',
             headers: {
-                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+                'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json', 'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -430,6 +436,10 @@
     }
 
     async function init() {
+        const session = await ZionAuth.protect();
+        if (!session) return;
+        currentUser = await ZionAuth.getUser();
+
         try {
             const [membros, minsData, linksData, memMinAll] = await Promise.all([
                 sb('membros?select=*&ativo=eq.true&order=nome.asc'),
@@ -437,14 +447,7 @@
                 sb('links?select=id,nome,responsavel&ativo=eq.true'),
                 sb('membro_ministerios?select=membro_id,ministerio_id&ativo=eq.true'),
             ]);
-            todosMembros = (Array.isArray(membros) ? membros : [])
-                .sort((a, b) => (a.nome||'').localeCompare(b.nome||'', 'pt'));
-            if (Array.isArray(minsData))   minsData.forEach(m => ministeriosMap[m.id] = m);
-            if (Array.isArray(linksData))  linksData.forEach(l => linksMap[l.id] = l);
-            if (Array.isArray(memMinAll))  memMinAll.forEach(r => {
-                if (!membroMinMap[r.membro_id]) membroMinMap[r.membro_id] = [];
-                membroMinMap[r.membro_id].push(r.ministerio_id);
-            });
+            
             renderUserBar();
             renderMembros(todosMembros);
         } catch(e) {

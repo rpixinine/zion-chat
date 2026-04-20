@@ -11,7 +11,11 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
     
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
+    <script src="auth.js"></script>
+
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -708,23 +712,26 @@
             btn.disabled = true; btn.textContent = 'A registar...';
 
             try {
-                const rows = await sbPost('voluntarios_inscricoes', {
-                    campanha_id:                   campanha.id,
-                    membro_id:                     membro.id,
-                    disponibilidade_sabado_manha:  document.getElementById('disp_sabado_manha').checked,
-                    disponibilidade_sabado_tarde:  document.getElementById('disp_sabado_tarde').checked,
-                    disponibilidade_domingo_manha: document.getElementById('disp_domingo_manha').checked,
-                    disponibilidade_domingo_tarde: document.getElementById('disp_domingo_tarde').checked,
+                // ← USA RPC em vez de POST directo
+                const r = await fetch(`${_URL}/rest/v1/rpc/registar_inscricao_voluntario`, {
+                    method: 'POST',
+                    headers: { 'apikey': _KEY, 'Authorization': `Bearer ${_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        p_campanha_id: campanha.id,
+                        p_membro_id:   membro.id,
+                        p_disp_sab_m:  document.getElementById('disp_sabado_manha').checked,
+                        p_disp_sab_t:  document.getElementById('disp_sabado_tarde').checked,
+                        p_disp_dom_m:  document.getElementById('disp_domingo_manha').checked,
+                        p_disp_dom_t:  document.getElementById('disp_domingo_tarde').checked,
+                        p_areas: [
+                            { ministerio_id: v1, ordem: 1, motivo: m1 },
+                            { ministerio_id: v2, ordem: 2, motivo: m2 },
+                            { ministerio_id: v3, ordem: 3, motivo: m3 },
+                        ]
+                    })
                 });
-
-                const inscricaoId = rows[0]?.id;
-                if (!inscricaoId) throw new Error('Sem ID retornado.');
-
-                await sbPost('voluntarios_areas_interesse', [
-                    { inscricao_id: inscricaoId, ministerio_id: v1, ordem: 1, motivo: m1 },
-                    { inscricao_id: inscricaoId, ministerio_id: v2, ordem: 2, motivo: m2 },
-                    { inscricao_id: inscricaoId, ministerio_id: v3, ordem: 3, motivo: m3 },
-                ]);
+                const data = await r.json();
+                if (!r.ok) throw new Error(data?.message || data?.hint || 'Erro ao registar');
 
                 setStep(3);
                 document.getElementById('screen-form').classList.add('hidden');
@@ -732,7 +739,7 @@
 
             } catch (e) {
                 console.error(e);
-                showAlert('alert-form','error','Erro ao registar. Tente novamente.');
+                showAlert('alert-form','error', e.message || 'Erro ao registar. Tente novamente.');
                 btn.disabled = false; btn.textContent = 'Enviar Inscrição';
             }
         }

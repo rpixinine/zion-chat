@@ -12,7 +12,11 @@
     
     <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
+    <script src="auth.js"></script>
+
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -646,39 +650,40 @@
         btn.disabled = true;
         btn.textContent = 'A guardar...';
 
-        const agora = new Date().toISOString();
+        // token vem do URL
+        const token = new URLSearchParams(location.search).get('t');
 
         try {
-            await sbPatch(`voluntarios_atribuicoes?id=eq.${atribId}`, {
-                status: 'contatado',
-                data_contato: agora
+            // ← USA RPC com validação de token
+            const r = await fetch(`${_URL}/rest/v1/rpc/marcar_voluntario_contactado`, {
+                method: 'POST',
+                headers: { 'apikey': _KEY, 'Authorization': `Bearer ${_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ p_atrib_id: atribId, p_token: token })
             });
+            if (!r.ok) { const e = await r.json(); throw new Error(e?.message || 'Erro'); }
 
-            // Actualizar estado local
+            const agora = new Date().toISOString();
             const c = candidatos.find(x => x.id === atribId);
             if (c) { c.status = 'contatado'; c.data_contato = agora; }
 
-            // Actualizar UI do card sem re-render completo
             const badgeEl = document.getElementById(`badge-${atribId}`);
             const btnsEl  = document.getElementById(`btns-${atribId}`);
             const card    = document.getElementById(`card-${atribId}`);
 
             if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-ok">Contactado</span>';
-            if (btnsEl)  {
-                // Guardar o whatsapp link se existia
+            if (btnsEl) {
                 const wapLink = btnsEl.querySelector('a.btn-whats');
                 btnsEl.innerHTML = (wapLink ? wapLink.outerHTML + ' ' : '') +
                     `<span style="font-size:0.82rem;color:var(--ok)">Contactado em ${new Date(agora).toLocaleDateString('pt-PT')}</span>`;
             }
             if (card) card.classList.add('contacted');
-
             renderContadores();
 
         } catch(e) {
             console.error(e);
             btn.disabled = false;
             btn.textContent = 'Marcar Contactado';
-            alert('Erro ao guardar. Tente novamente.');
+            alert('Erro ao guardar: ' + e.message);
         }
     }
 

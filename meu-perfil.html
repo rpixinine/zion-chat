@@ -12,7 +12,10 @@
     <meta name="theme-color" content="#009098">
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
+    <script src="auth.js"></script>
+
 
     <style>
         :root {
@@ -813,10 +816,17 @@
         let _cadMins=[], _cadIdiomas=[], _cadNacs=[];
         let _cadConjugePending=undefined, _cadLinkPending=undefined, _cadFotoBlob=null;
 
+        // Em vez de usar anon key:
         async function sb(path, opts={}) {
             const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
                 ...opts,
-                headers: { apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}`, 'Content-Type':'application/json', Prefer:'return=representation', ...opts.headers }
+                headers: {
+                    apikey: SUPA_KEY,
+                    Authorization: `Bearer ${SUPA_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation',
+                    ...opts.headers
+                }
             });
             if (!r.ok) { const e = await r.json().catch(()=>{}); throw e; }
             const t = await r.text(); return t ? JSON.parse(t) : [];
@@ -832,6 +842,7 @@
         }
 
         async function init() {
+
             try {
                 [_membros, _ministerios, _links, _zaoCursos] = await Promise.all([
                     sb('membros?select=id,nome,foto_url,genero,e_lider,e_presbitero,e_voluntario,professor,pastor,office,telefone,email,nif&ativo=eq.true&order=nome'),
@@ -1428,7 +1439,7 @@
             const fotoUrl=await uploadFoto('edit',_membroSel.id);
             if(fotoUrl!==null)body.foto_url=fotoUrl;
             if(_editConjugePending!==undefined)body.conjuge_id=_editConjugePending===false?null:_editConjugePending;
-            if(_editLinkPending   !==undefined)body.link_id   =_editLinkPending   ===false?null:_editLinkPending;
+            if(_editLinkPending!==undefined)body.link_id=_editLinkPending===false?null:_editLinkPending;
             const cursosManual=_editCursos.filter(c=>!c.readonly).map(c=>({id:c.id,nome:c.nome}));
             body.cursos_concluidos=JSON.stringify(cursosManual);
             body.foi_batizado        = document.getElementById('p_foi_batizado')?.checked        || false;
@@ -1436,13 +1447,18 @@
             body.fez_workshop_raizes = document.getElementById('p_fez_workshop_raizes')?.checked || false;
             body.fez_retiro_raizes   = document.getElementById('p_fez_retiro_raizes')?.checked   || false;
             PROIBIDOS.forEach(c=>delete body[c]);
-            console.log('=== BODY ENVIADO ===', JSON.stringify(body, null, 2));
-            await sb(`membros?id=eq.${_membroSel.id}`,{method:'PATCH',body:JSON.stringify(body)});
+
+            // ← USA RPC em vez de PATCH directo
+            await sb('rpc/atualizar_perfil', {
+                method: 'POST',
+                body: JSON.stringify({ p_id: _membroSel.id, p_dados: body })
+            });
+
             Object.assign(_membroSel,body);
             const idx=_membros.findIndex(m=>m.id===_membroSel.id);
             if(idx>=0)Object.assign(_membros[idx],{nome:body.nome||_membros[idx].nome,foto_url:body.foto_url||_membros[idx].foto_url});
             const ct=document.getElementById('conf-title'); if(ct)ct.textContent='Perfil Atualizado';
-            const ci=document.getElementById('conf-icon');  if(ci)ci.textContent='+';
+            const ci=document.getElementById('conf-icon');  if(ci)ci.textContent='✓';
             const cm=document.getElementById('conf-msg');   if(cm)cm.innerHTML=`Os dados de <strong>${_membroSel.nome}</strong> foram guardados com sucesso.`;
             mostrar('confirmado');
         }
@@ -1459,23 +1475,50 @@
                 if(cNif.length>=8&&mNif&&mNif===cNif)return true;
                 return false;
             });
-            if(jaExiste){setMsg('cadastro','error','Ja existe um membro com este email, telemovel ou NIF.');document.getElementById('btn-guardar-cad').disabled=false;document.getElementById('btn-guardar-cad').textContent='Criar o Meu Registo';return;}
-            const body={nome:gv('c_nome'),email,telefone:tel,nif,genero:gv('c_genero'),data_nascimento:gv('c_data_nascimento'),estado_civil:gv('c_estado_civil'),onde_conheceu:gv('c_onde_conheceu'),escolaridade:gv('c_escolaridade'),profissao:gv('c_profissao'),rua:gv('c_rua'),numero:gv('c_numero'),complemento:gv('c_complemento'),bairro:gv('c_bairro'),cidade:gv('c_cidade'),codigo_postal:gv('c_codigo_postal'),pais:gv('c_pais')||'Portugal',zona:gv('c_zona'),historia:gv('c_historia'),'Idiomas':JSON.stringify(_cadIdiomas),nacionalidade:JSON.stringify(_cadNacs),ativo:true, foi_batizado:        document.getElementById('c_foi_batizado')?.checked        || false,
+            if(jaExiste){
+                setMsg('cadastro','error','Ja existe um membro com este email, telemovel ou NIF.');
+                document.getElementById('btn-guardar-cad').disabled=false;
+                document.getElementById('btn-guardar-cad').textContent='Criar o Meu Registo';
+                return;
+            }
+            const body={
+                nome:gv('c_nome'), email, telefone:tel, nif,
+                genero:gv('c_genero'), data_nascimento:gv('c_data_nascimento'),
+                estado_civil:gv('c_estado_civil'), onde_conheceu:gv('c_onde_conheceu'),
+                escolaridade:gv('c_escolaridade'), profissao:gv('c_profissao'),
+                rua:gv('c_rua'), numero:gv('c_numero'), complemento:gv('c_complemento'),
+                bairro:gv('c_bairro'), cidade:gv('c_cidade'), codigo_postal:gv('c_codigo_postal'),
+                pais:gv('c_pais')||'Portugal', zona:gv('c_zona'), historia:gv('c_historia'),
+                'Idiomas':JSON.stringify(_cadIdiomas), nacionalidade:JSON.stringify(_cadNacs), ativo:true,
+                foi_batizado:        document.getElementById('c_foi_batizado')?.checked        || false,
                 fez_processo_raizes: document.getElementById('c_fez_processo_raizes')?.checked || false,
                 fez_workshop_raizes: document.getElementById('c_fez_workshop_raizes')?.checked || false,
-                fez_retiro_raizes:   document.getElementById('c_fez_retiro_raizes')?.checked   || false};
+                fez_retiro_raizes:   document.getElementById('c_fez_retiro_raizes')?.checked   || false
+            };
             if(_cadConjugePending&&_cadConjugePending!==false)body.conjuge_id=_cadConjugePending;
             if(_cadLinkPending&&_cadLinkPending!==false)body.link_id=_cadLinkPending;
-            const criado=await sb('membros',{method:'POST',body:JSON.stringify(body)});
-            const novoMembro=Array.isArray(criado)?criado[0]:criado;
-            if(!novoMembro?.id)throw new Error('Erro ao criar membro');
-            const fotoUrl=await uploadFoto('cad',novoMembro.id);
-            if(fotoUrl){await sb(`membros?id=eq.${novoMembro.id}`,{method:'PATCH',body:JSON.stringify({foto_url:fotoUrl})});novoMembro.foto_url=fotoUrl;}
-            for(const min of _cadMins){try{await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:novoMembro.id,ministerio_id:min.ministerio_id,papel:min.papel||null,ativo:true})});}catch{}}
-            _membros.push(novoMembro);
+
+            // ← USA RPC em vez de POST directo
+            const novoId = await sb('rpc/criar_membro', {
+                method: 'POST',
+                body: JSON.stringify({ p_dados: body })
+            });
+            if(!novoId) throw new Error('Erro ao criar membro');
+
+            const fotoUrl=await uploadFoto('cad', novoId);
+            if(fotoUrl){
+                await sb('rpc/atualizar_perfil', {
+                    method: 'POST',
+                    body: JSON.stringify({ p_id: novoId, p_dados: { foto_url: fotoUrl } })
+                });
+            }
+            for(const min of _cadMins){
+                try{ await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:novoId,ministerio_id:min.ministerio_id,papel:min.papel||null,ativo:true})}); }catch{}
+            }
+            _membros.push({id:novoId,...body,foto_url:fotoUrl||null});
             const ct=document.getElementById('conf-title'); if(ct)ct.textContent='Registo Criado';
-            const ci=document.getElementById('conf-icon');  if(ci)ci.textContent='+';
-            const cm=document.getElementById('conf-msg');   if(cm)cm.innerHTML=`Bem-vindo/a, <strong>${novoMembro.nome}</strong>!<br>O teu registo foi criado com sucesso.`;
+            const ci=document.getElementById('conf-icon');  if(ci)ci.textContent='✓';
+            const cm=document.getElementById('conf-msg');   if(cm)cm.innerHTML=`Bem-vindo/a, <strong>${body.nome}</strong>!<br>O teu registo foi criado com sucesso.`;
             mostrar('confirmado');
         }
 

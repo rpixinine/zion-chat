@@ -11,8 +11,11 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
@@ -423,20 +426,42 @@
     var MES_NOME    = ['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     var FORMA_LABEL = { mbway:'MBWay', cartao:'Cartao', applepay:'Apple Pay', transferencia:'Transferencia', multibanco:'Multibanco' };
 
-    ZionAuth.protect();
-    var authUser = ZionAuth.getUser();
+    var authUser = null;
     var SB_URL   = window.SUPABASE_URL      || '';
     var SB_KEY   = window.SUPABASE_ANON_KEY || '';
 
+    (async function() {
+        const session = await ZionAuth.protect();
+        if (!session) return;
+        authUser = await ZionAuth.getUser();
+        // Inicializar depois do login
+        buildOfertaTable();
+        populateYears();
+        if (SB_URL && SB_KEY) {
+            sbReq('usuarios?select=membro_id&id=eq.' + authUser.id, 'GET')
+                .then(function(urows) {
+                    if (urows && urows.length && urows[0].membro_id) {
+                        membroId = urows[0].membro_id;
+                    }
+                }).catch(function() {});
+        }
+    })();
+
     function sbReq(path, method, body) {
-        var headers = { 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY, 'Content-Type':'application/json' };
-        if (method==='POST') headers['Prefer']='return=representation';
-        var opts = { method:method||'GET', headers:headers };
-        if (body) opts.body = JSON.stringify(body);
-        return fetch(SB_URL+'/rest/v1/'+path, opts).then(function(r){
-            if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+' — '+t); });
-            var ct = r.headers.get('content-type')||'';
-            return ct.includes('json') ? r.json() : null;
+        return ZionAuth.getToken().then(function(token) {
+            var headers = {
+                'apikey': SB_KEY,
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            };
+            if (method === 'POST') headers['Prefer'] = 'return=representation';
+            var opts = { method: method || 'GET', headers: headers };
+            if (body) opts.body = JSON.stringify(body);
+            return fetch(SB_URL + '/rest/v1/' + path, opts).then(function(r) {
+                if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ' — ' + t); });
+                var ct = r.headers.get('content-type') || '';
+                return ct.includes('json') ? r.json() : null;
+            });
         });
     }
 
@@ -723,9 +748,9 @@
     function populateYears(){ var sel=document.getElementById('filter-ano'); var opt0=document.createElement('option'); opt0.value=''; opt0.textContent='Todos os anos'; sel.appendChild(opt0); var now=new Date().getFullYear(); for(var y=now;y>=2020;y--){ var opt=document.createElement('option'); opt.value=y; opt.textContent=y; sel.appendChild(opt); } sel.value=now; }
 
     // ─── INIT ─────────────────────────────────────────────────────
-    buildOfertaTable(); populateYears();
-    if(SB_URL&&SB_KEY){ sbReq('usuarios?select=membro_id&id=eq.'+authUser.id,'GET').then(function(urows){ if(urows&&urows.length&&urows[0].membro_id){ membroId=urows[0].membro_id; } }).catch(function(){}); }
-
+    
+    
+    
     // ─── MBWAY ────────────────────────────────────────────────────
     var mbwayTimer=null; var mbwayPollTimer=null; var mbwaySegsLeft=240;
     var mbwayTransacao=null; var mbwayReferencia=null; var mbwayDizimoIds=[]; var mbwayCrIds=[];

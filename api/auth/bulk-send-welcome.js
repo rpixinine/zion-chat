@@ -55,8 +55,15 @@ export default async function handler(req, res) {
     const token = (req.headers.authorization || "").replace("Bearer ", "").trim();
     if (!token) return res.status(401).json({ error: "Não autenticado." });
 
+    console.log('Token length:', token.length);
+    console.log('Token prefix:', token.substring(0, 30));
+
     // Valida o JWT do Supabase Auth
     const { data: { user: authUser }, error: authError } = await sbAdmin.auth.getUser(token);
+
+    console.log('authUser:', authUser?.email);
+    console.log('authError:', authError?.message);
+    
     if (authError || !authUser) {
         return res.status(401).json({ error: "Token inválido ou expirado." });
     }

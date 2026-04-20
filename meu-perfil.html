@@ -465,7 +465,7 @@
 
         <div class="form-section">Ministerios e Areas de Servico</div>
         <div class="form-group">
-            <div class="notice">As tuas areas de servico. Funcoes (lider, presbitero, etc.) so podem ser alteradas pelo administrador.</div>
+            <div class="notice">As tuas areas de serviço. Funcoes (lider, presbitero, etc.) so podem ser alteradas pelo administrador.</div>
             <div class="chip-row" id="min-chips-edit"></div>
             <div class="add-row">
                 <select class="form-select" id="min-sel-edit" style="font-size:13px;flex:1"><option value="">Seleciona ministerio/area...</option></select>
@@ -846,7 +846,7 @@
             try {
                 [_membros, _ministerios, _links, _zaoCursos] = await Promise.all([
                     sb('membros?select=id,nome,foto_url,genero,e_lider,e_presbitero,e_voluntario,professor,pastor,office,telefone,email,nif&ativo=eq.true&order=nome'),
-                    sb('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome').catch(()=>[]),
+                    sb('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&order=nome').catch(()=>[]),
                     sb('links?select=id,nome,tipo,zona,dia&ativo=eq.true&order=nome').catch(()=>[]),
                     sb('zao_cursos?select=id,nome,nivel&ativo=eq.true&order=nome').catch(()=>[]),
                 ]);
@@ -1161,9 +1161,45 @@
 
         // MINISTERIOS
         function getMins(ctx)       { return ctx==='edit'?_editMins:_cadMins; }
+
         function renderMinChips(ctx){const el=document.getElementById(`min-chips-${ctx}`);if(!el)return;const mins=getMins(ctx);if(!mins.length){el.innerHTML='<span class="info-empty">Sem areas associadas.</span>';return;}el.innerHTML=mins.map((m,i)=>`<span class="chip">${m.nome}${m.papel?' · '+m.papel:''}<button class="chip-remove" onclick="pRemMin('${ctx}',${i})">x</button></span>`).join('');}
-        function renderMinSel(ctx)  {const sel=document.getElementById(`min-sel-${ctx}`);if(!sel)return;const ja=new Set(getMins(ctx).map(m=>m.ministerio_id));sel.innerHTML='<option value="">Seleciona ministerio/area...</option>'+_ministerios.filter(m=>!ja.has(m.id)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');}
+
+        function renderMinSel(ctx) {
+            const sel = document.getElementById(`min-sel-${ctx}`);
+            if (!sel) return;
+            const ja = new Set(getMins(ctx).map(m => m.ministerio_id));
+
+            // Construir hierarquia
+            const todos = _ministerios.filter(m => !ja.has(m.id));
+            const raizes = todos.filter(m => !m.parent_id);
+            const filhos = (parentId) => todos.filter(m => m.parent_id === parentId);
+            const netos  = (parentId) => todos.filter(m => {
+                const pai = _ministerios.find(x => x.id === m.parent_id);
+                return pai && pai.parent_id === parentId;
+            });
+
+            let html = '<option value="">Seleciona ministerio/area...</option>';
+
+            raizes.forEach(raiz => {
+                // Nível 1 — Pilar (sem parent_id)
+                html += `<option value="${raiz.id}" disabled style="font-weight:700;color:var(--teal)">▸ ${raiz.nome.toUpperCase()}</option>`;
+
+                // Nível 2 — Área geral (parent = pilar)
+                filhos(raiz.id).forEach(area => {
+                    html += `<option value="${area.id}">　${area.nome}</option>`;
+
+                    // Nível 3 — Sub-área (parent = área geral)
+                    filhos(area.id).forEach(sub => {
+                        html += `<option value="${sub.id}">　　↳ ${sub.nome}</option>`;
+                    });
+                });
+            });
+
+            sel.innerHTML = html;
+        }
+        
         window.pAddMin=async function(ctx){const sel=document.getElementById(`min-sel-${ctx}`);const minId=sel?.value;if(!minId)return;const papel=document.getElementById(`min-papel-${ctx}`)?.value||null;const min=_ministerios.find(m=>m.id===minId);if(!min)return;if(ctx==='edit'){try{await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:_membroSel.id,ministerio_id:minId,papel,ativo:true})});_editMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});}catch{setMsg('perfil','error','Erro ao adicionar area.');return;}}else{_cadMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});}renderMinChips(ctx);renderMinSel(ctx);const pe=document.getElementById(`min-papel-${ctx}`);if(pe)pe.value='';};
+
         window.pRemMin=async function(ctx,idx){const item=getMins(ctx)[idx];if(!item)return;if(ctx==='edit'&&item.id){try{await sb(`membro_ministerios?id=eq.${item.id}`,{method:'PATCH',body:JSON.stringify({ativo:false})});}catch{}}getMins(ctx).splice(idx,1);renderMinChips(ctx);renderMinSel(ctx);};
 
         // CURSOS

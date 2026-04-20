@@ -19,8 +19,11 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap"
           rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
@@ -1648,8 +1651,8 @@
 
 <script>
     // ── AUTH ───────────────────────────────────────────────────
-    ZionAuth.protect();
-    const currentUser = ZionAuth.getUser();
+    let currentUser = null;
+
 
     // ── CONFIG ─────────────────────────────────────────────────
     const SUPA_URL = window.SUPABASE_URL || '';
@@ -1666,11 +1669,14 @@
 
     // ── SUPABASE ───────────────────────────────────────────────
     async function sb(path, opts = {}) {
+        const token = await ZionAuth.getToken();
         const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
             ...opts,
             headers: {
-                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
-                'Content-Type': 'application/json', 'Prefer': 'return=representation',
+                'apikey': SUPA_KEY,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation',
                 ...opts.headers
             }
         });
@@ -1706,41 +1712,6 @@
     }
 
     // ── INIT ───────────────────────────────────────────────────
-    async function initOld() {
-
-        // ── Permissões a partir do tipo do utilizador (tabela usuarios) ──
-        const tipo = currentUser.tipo || 'visitante';
-        const isAdmin = currentUser.e_admin === true || tipo === 'admin';
-        const isLider = tipo === 'lider' || tipo === 'membro';  // ajusta conforme as tuas regras
-
-        perms.canAgendar = isAdmin || isLider;
-        perms.canAprovar = isAdmin;
-
-        if (currentUser.membro_id) {
-            try {
-                const rows = await sb(`membros?id=eq.${currentUser.membro_id}&select=e_lider,e_presbitero,e_admin`);
-                if (rows && rows.length) {
-                    const m = rows[0];
-                    perms.canAgendar = !!m.e_lider;
-                    perms.canAprovar = !!(m.e_presbitero || m.e_admin);
-                }
-            } catch (e) {
-                console.warn('Permissões:', e);
-            }
-        }
-
-        renderUserCard();
-
-        try {
-            salas = await sb('salas?select=*&ativo=eq.true&order=espaco,nome');
-            preencherHoras();
-            renderSalas();
-        } catch (e) {
-            document.getElementById('main-content').innerHTML =
-                '<div class="loading">Erro ao carregar. Verifica a configuração Supabase.</div>';
-        }
-    }
-
     async function init() {
         perms.canAgendar = await verificarPermissao(['e_lider', 'e_presbitero', 'e_admin']);
         perms.canAprovar = await verificarPermissao(['e_presbitero', 'e_admin']);
@@ -1939,7 +1910,7 @@
             fim = toDateStr(dom);
         } else {
             const first = new Date(d.getFullYear(), d.getMonth(), 1);
-            const last  = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
             ini = toDateStr(first);
             fim = toDateStr(last);
         }
@@ -1950,19 +1921,21 @@
         ]);
 
         const agsArr = Array.isArray(rawAgs) ? rawAgs : [];
-        const evArr  = Array.isArray(rawEv)  ? rawEv  : [];
+        const evArr = Array.isArray(rawEv) ? rawEv : [];
 
         // IDs já presentes nos agendamentos
         const agIds = new Set(agsArr.map(a => a.id));
 
         // Mapa ag_sala_id → sala_id para corrigir agendamentos sem sala_id
         const agSalaIdMap = {};
-        evArr.forEach(e => { if (e.ag_sala_id) agSalaIdMap[e.ag_sala_id] = e.sala_id; });
+        evArr.forEach(e => {
+            if (e.ag_sala_id) agSalaIdMap[e.ag_sala_id] = e.sala_id;
+        });
 
         // Corrigir sala_id nos agendamentos gerados por trigger que ficaram sem ela
         const agsCorrigidos = agsArr.map(a => {
             if (!a.sala_id && agSalaIdMap[a.id]) {
-                return { ...a, sala_id: agSalaIdMap[a.id], _tipo: 'evento' };
+                return {...a, sala_id: agSalaIdMap[a.id], _tipo: 'evento'};
             }
             return a;
         });
@@ -1971,16 +1944,16 @@
         const eventosMissing = evArr
             .filter(e => !(e.ag_sala_id && agIds.has(e.ag_sala_id)))
             .map(e => ({
-                id:               'ev_' + e.id,
-                _evento_id:       e.id,
-                sala_id:          e.sala_id,
-                titulo:           e.titulo,
-                data_inicio:      e.data_inicio,
-                data_fim:         e.data_fim || e.data_inicio,
-                status:           'aprovado',
-                solicitante_id:   null,
+                id: 'ev_' + e.id,
+                _evento_id: e.id,
+                sala_id: e.sala_id,
+                titulo: e.titulo,
+                data_inicio: e.data_inicio,
+                data_fim: e.data_fim || e.data_inicio,
+                status: 'aprovado',
+                solicitante_id: null,
                 solicitante_nome: 'Eventos',
-                _tipo:            'evento',
+                _tipo: 'evento',
             }));
 
         calAgs = [...agsCorrigidos, ...eventosMissing];
@@ -2000,7 +1973,7 @@
             fim = toDateStr(dom);
         } else {
             const first = new Date(d.getFullYear(), d.getMonth(), 1);
-            const last  = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
             ini = toDateStr(first);
             fim = toDateStr(last);
         }
@@ -2011,21 +1984,21 @@
         ]);
 
         const agsArr = Array.isArray(rawAgs) ? rawAgs : [];
-        const evArr  = Array.isArray(rawEv)  ? rawEv  : [];
+        const evArr = Array.isArray(rawEv) ? rawEv : [];
 
         // Eventos mapeados directamente — sem ligação a sala
         const eventosMapped = evArr.map(e => ({
-            id:               'ev_' + e.id,
-            _evento_id:       e.id,
-            sala_id:          null,
-            titulo:           e.titulo,
-            data_inicio:      e.data_inicio,
-            data_fim:         e.data_fim || e.data_inicio,
-            status:           'aprovado',
-            solicitante_id:   null,
+            id: 'ev_' + e.id,
+            _evento_id: e.id,
+            sala_id: null,
+            titulo: e.titulo,
+            data_inicio: e.data_inicio,
+            data_fim: e.data_fim || e.data_inicio,
+            status: 'aprovado',
+            solicitante_id: null,
             solicitante_nome: null,
-            descricao:        e.descricao || null,
-            _tipo:            'evento',
+            descricao: e.descricao || null,
+            _tipo: 'evento',
         }));
 
         calAgs = [...agsArr, ...eventosMapped];
@@ -2323,24 +2296,24 @@
         const gridEnd = new Date(dayRef);
         gridEnd.setHours(CAL_HOURS_END, 0, 0, 0);
         const evStart = new Date(a.data_inicio);
-        const evEnd   = new Date(a.data_fim);
+        const evEnd = new Date(a.data_fim);
         const totalMs = (CAL_HOURS_END - CAL_HOURS_START) * 3600000;
 
         const s = Math.max(evStart.getTime(), gridStart.getTime());
-        const e = Math.min(evEnd.getTime(),   gridEnd.getTime());
+        const e = Math.min(evEnd.getTime(), gridEnd.getTime());
         const topPct = (s - gridStart.getTime()) / totalMs * 100;
-        const htPct  = Math.max((e - s) / totalMs * 100, 1.5);
+        const htPct = Math.max((e - s) / totalMs * 100, 1.5);
 
-        const nCols  = a._calTotalCols || 1;
-        const colW   = 100 / nCols;
+        const nCols = a._calTotalCols || 1;
+        const colW = 100 / nCols;
         const leftPct = (a._calCol || 0) * colW;
-        const widPct  = colW - 0.5;
+        const widPct = colW - 0.5;
 
-        const sala  = salas.find(sx => sx.id === a.sala_id);
+        const sala = salas.find(sx => sx.id === a.sala_id);
         const cor = a._tipo === 'evento' ? '#9b59b6' : calSalaColor(a.sala_id);
         const title = a.titulo || (sala ? sala.nome : '—');
-        const hIni  = evStart.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
-        const hFim  = evEnd.toLocaleTimeString('pt-PT',   {hour: '2-digit', minute: '2-digit'});
+        const hIni = evStart.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+        const hFim = evEnd.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
 
         // USA ID em vez de índice — robusto a recarregamentos
         const safeId = JSON.stringify(a.id);
@@ -2410,7 +2383,7 @@
         if (!a) return;
 
         const sala = salas.find(s => s.id === a.sala_id);
-        const ini  = new Date(a.data_inicio).toLocaleDateString('pt-PT', {
+        const ini = new Date(a.data_inicio).toLocaleDateString('pt-PT', {
             day: '2-digit', month: 'short', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
         });
@@ -2437,10 +2410,10 @@
             ? `<div class="cal-ev-popup-row" style="margin-top:6px;color:var(--red)"><em>${a.motivo_recusa}</em></div>` : ''}`;
 
         document.body.appendChild(pop);
-        const x = Math.min(evt.clientX + 8, window.innerWidth  - 310);
+        const x = Math.min(evt.clientX + 8, window.innerWidth - 310);
         const y = Math.min(evt.clientY + 8, window.innerHeight - 200);
         pop.style.left = x + 'px';
-        pop.style.top  = y + 'px';
+        pop.style.top = y + 'px';
         setTimeout(() => document.addEventListener('click', calClosePopup, {once: true}), 10);
     }
 
@@ -2875,7 +2848,13 @@
         }
     }
 
-    init();
+    (async function() {
+        const session = await ZionAuth.protect();
+        if (!session) return;
+        currentUser = await ZionAuth.getUser();
+        init();
+    })();
+
 </script>
 <script>
     if ('serviceWorker' in navigator) {

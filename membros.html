@@ -447,7 +447,16 @@
                 sb('links?select=id,nome,responsavel&ativo=eq.true'),
                 sb('membro_ministerios?select=membro_id,ministerio_id&ativo=eq.true'),
             ]);
-            
+
+            todosMembros = (Array.isArray(membros) ? membros : [])
+                .sort((a, b) => (a.nome||'').localeCompare(b.nome||'', 'pt'));
+            if (Array.isArray(minsData))  minsData.forEach(m => ministeriosMap[m.id] = m);
+            if (Array.isArray(linksData)) linksData.forEach(l => linksMap[l.id] = l);
+            if (Array.isArray(memMinAll)) memMinAll.forEach(r => {
+                if (!membroMinMap[r.membro_id]) membroMinMap[r.membro_id] = [];
+                membroMinMap[r.membro_id].push(r.ministerio_id);
+            });
+
             renderUserBar();
             renderMembros(todosMembros);
         } catch(e) {

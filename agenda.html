@@ -15,8 +15,11 @@
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
@@ -401,8 +404,7 @@
 
 <script>
     // ── AUTH ────────────────────────────────────────────────────────────
-    ZionAuth.protect();
-    const currentUser = ZionAuth.getUser();
+    let currentUser = null;
 
     // ── CONFIG ──────────────────────────────────────────────────────────
     const SUPA_URL = window.SUPABASE_URL || '';
@@ -410,15 +412,21 @@
 
     // ── SUPABASE ────────────────────────────────────────────────────────
     async function sb(path, opts = {}) {
+        const token = await ZionAuth.getToken();
         const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
             ...opts,
             headers: {
-                'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+                'apikey': SUPA_KEY,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
+                'Prefer': 'return=representation',
                 ...opts.headers
             }
         });
-        if (!r.ok) { const e = await r.json().catch(() => ({})); throw { status: r.status, ...e }; }
+        if (!r.ok) {
+            const e = await r.json().catch(() => ({}));
+            throw {status: r.status, ...e};
+        }
         return r.json();
     }
 
@@ -960,7 +968,13 @@
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopup(); });
 
-    init();
+    (async function() {
+        const session = await ZionAuth.protect();
+        if (!session) return;
+        currentUser = await ZionAuth.getUser();
+        init();
+    })();
+    
 </script>
 
 <script>

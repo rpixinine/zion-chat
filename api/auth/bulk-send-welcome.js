@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
     console.log('authUser:', authUser?.email);
     console.log('authError:', authError?.message);
-    
+
     if (authError || !authUser) {
         return res.status(401).json({ error: "Token inválido ou expirado." });
     }
@@ -187,6 +187,7 @@ export default async function handler(req, res) {
                             e_admin:      false,
                             ativo:        true,
                             membro_id:    membro.id,
+                            password_hash: 'supabase_auth',
                             created_at:   new Date().toISOString(),
                             updated_at:   new Date().toISOString(),
                         },

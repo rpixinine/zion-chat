@@ -10,7 +10,8 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png">
 
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap"
+          rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
@@ -20,140 +21,1065 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
     <style>
-        .tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card)}
-        .tab-btn{flex:1;padding:11px 8px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
-        .tab-btn.active{color:var(--primary-dark);border-bottom-color:var(--primary);background:var(--primary-faint)}
-        .tab-btn:hover:not(.active){color:var(--text-muted);background:var(--primary-faint)}
-        .tab-panel{display:none;flex:1;overflow-y:auto;background:var(--bg-input);flex-direction:column}
-        .tab-panel.active{display:flex}
-        .tab-panel::-webkit-scrollbar{width:4px}
-        .tab-panel::-webkit-scrollbar-thumb{background:rgba(0,144,152,0.25);border-radius:2px}
-        .stepper{display:flex;align-items:flex-start;padding:14px 16px 10px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0}
-        .step-wrap{display:flex;flex-direction:column;align-items:center}
-        .step-item{display:flex;align-items:center;flex:1}
-        .step-circle{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-family:var(--font-title);font-size:9px;font-weight:700;color:var(--text-faint);flex-shrink:0;transition:all 0.3s}
-        .step-circle.active{border-color:var(--primary);background:var(--primary);color:#fff}
-        .step-circle.done{border-color:#27ae60;background:#27ae60;color:#fff}
-        .step-line{flex:1;height:2px;background:var(--border);margin:0 4px;transition:all 0.3s}
-        .step-line.done{background:#27ae60}
-        .step-label{font-family:var(--font-title);font-size:7px;letter-spacing:1px;text-transform:uppercase;color:var(--text-faint);margin-top:4px;text-align:center}
-        .wizard-step{display:none;padding:16px;animation:fadeUp 0.3s ease both}
-        .wizard-step.active{display:block}
-        .section-label{font-family:var(--font-title);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-faint);margin:0 0 10px}
-        .dz-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md,10px);padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,80,90,0.05)}
-        .dz-badge{display:inline-block;padding:2px 10px;border-radius:var(--radius-full);background:var(--primary-faint);border:1px solid var(--border);font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--primary-dark);margin-bottom:10px}
-        .oferta-table{width:100%;border-collapse:collapse}
-        .oferta-table thead th{font-family:var(--font-title);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg-input)}
-        .oferta-table thead th:last-child{text-align:right;width:140px}
-        .oferta-row{border-bottom:1px solid rgba(0,144,152,0.07);transition:background 0.15s}
-        .oferta-row:last-child{border-bottom:none}
-        .oferta-row:hover{background:var(--primary-faint)}
-        .oferta-row td{padding:11px 14px;vertical-align:middle}
-        .oferta-row td:last-child{text-align:right}
-        .oferta-icon-wrap{width:30px;height:30px;border-radius:7px;flex-shrink:0;background:var(--primary-faint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
-        .oferta-icon-wrap svg{width:14px;height:14px;color:var(--primary-dark)}
-        .oferta-name-cell{display:flex;align-items:center;gap:10px}
-        .oferta-label{font-family:var(--font-title);font-size:12px;color:var(--text-main)}
-        .oferta-input-wrap{display:inline-flex;align-items:center;gap:3px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm,7px);padding:0 8px;transition:all 0.2s}
-        .oferta-input-wrap:focus-within{border-color:var(--primary-light);background:var(--bg-input);color: #1a1a1a;box-shadow:0 0 0 3px var(--primary-faint)}
-        .oferta-currency{font-size:11px;color:var(--text-faint);font-family:var(--font-title)}
-        .oferta-input{width:80px;border:none;background:transparent;font-family:var(--font-body);font-size:14px;color:var(--text-main);padding:8px 2px;outline:none;text-align:right}
-        .oferta-input::placeholder{color:var(--text-faint);font-size:12px}
-        .oferta-obs{width:100%;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:var(--font-body);font-size:11px;color:var(--text-main);padding:5px 8px;outline:none;resize:none;margin-top:6px;transition:all 0.2s;display:none}
-        .oferta-obs:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-faint)}
-        .total-bar{position:sticky;bottom:0;background:var(--primary-dark);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,144,152,0.3);box-shadow:0 -4px 20px rgba(0,80,90,0.25);flex-shrink:0}
-        .total-label{font-family:var(--font-title);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6)}
-        .total-value{font-family:var(--font-title);font-size:20px;font-weight:700;color:#fff}
-        .total-sym{font-size:13px;opacity:0.8;margin-right:2px}
-        .btn-continue{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);border-radius:var(--radius-full);padding:9px 18px;font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:#fff;cursor:pointer;transition:all 0.2s;white-space:nowrap}
-        .btn-continue:hover{background:rgba(255,255,255,0.25)}
-        .form-group{margin-bottom:12px}
-        .form-label{font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);margin-bottom:5px;display:block}
-        .form-input{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm,7px);background:var(--bg-input);font-family:var(--font-body);font-size:14px;color:var(--text-main);padding:10px 12px;outline:none;transition:all 0.2s}
-        .form-input:focus{border-color:var(--primary-light);background:#fff;box-shadow:0 0 0 3px var(--primary-faint)}
-        .form-input[readonly]{background:rgba(0,144,152,0.04);color:var(--text-muted)}
-        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-        .member-card{display:flex;align-items:center;gap:12px;background:var(--primary-faint);border:1px solid rgba(0,144,152,0.25);border-radius:var(--radius-md,10px);padding:14px;margin-bottom:14px}
-        .member-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--primary-dark),var(--primary-light));display:flex;align-items:center;justify-content:center;font-family:var(--font-title);font-size:15px;color:#fff;font-weight:700;flex-shrink:0}
-        .member-name{font-family:var(--font-title);font-size:13px;color:var(--primary-dark)}
-        .member-type{font-size:10px;color:var(--text-faint);margin-top:2px}
-        .confirm-row{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm,7px);margin-top:14px;cursor:pointer;transition:all 0.2s}
-        .confirm-row:hover{border-color:var(--primary-light)}
-        .confirm-row input[type="checkbox"]{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;margin-top:2px}
-        .confirm-row label{font-size:12px;color:var(--text-muted);cursor:pointer;line-height:1.5}
-        .btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--primary-dark);border:none;border-radius:var(--radius-md,10px);font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:#fff;cursor:pointer;transition:all 0.25s;box-shadow:0 4px 16px rgba(0,100,110,0.25)}
-        .btn-primary:hover:not(:disabled){background:var(--primary);transform:translateY(-1px)}
-        .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
-        .btn-secondary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md,10px);font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:var(--text-muted);cursor:pointer;transition:all 0.2s;margin-top:8px}
-        .btn-secondary:hover{border-color:var(--primary-light);color:var(--primary-dark)}
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            background: var(--bg-card)
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 11px 8px;
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s
+        }
+
+        .tab-btn.active {
+            color: var(--primary-dark);
+            border-bottom-color: var(--primary);
+            background: var(--primary-faint)
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: var(--text-muted);
+            background: var(--primary-faint)
+        }
+
+        .tab-panel {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-input);
+            flex-direction: column
+        }
+
+        .tab-panel.active {
+            display: flex
+        }
+
+        .tab-panel::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .tab-panel::-webkit-scrollbar-thumb {
+            background: rgba(0, 144, 152, 0.25);
+            border-radius: 2px
+        }
+
+        .stepper {
+            display: flex;
+            align-items: flex-start;
+            padding: 14px 16px 10px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0
+        }
+
+        .step-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            flex: 1
+        }
+
+        .step-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-title);
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-faint);
+            flex-shrink: 0;
+            transition: all 0.3s
+        }
+
+        .step-circle.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #fff
+        }
+
+        .step-circle.done {
+            border-color: #27ae60;
+            background: #27ae60;
+            color: #fff
+        }
+
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: var(--border);
+            margin: 0 4px;
+            transition: all 0.3s
+        }
+
+        .step-line.done {
+            background: #27ae60
+        }
+
+        .step-label {
+            font-family: var(--font-title);
+            font-size: 7px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin-top: 4px;
+            text-align: center
+        }
+
+        .wizard-step {
+            display: none;
+            padding: 16px;
+            animation: fadeUp 0.3s ease both
+        }
+
+        .wizard-step.active {
+            display: block
+        }
+
+        .section-label {
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin: 0 0 10px
+        }
+
+        .dz-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md, 10px);
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 80, 90, 0.05)
+        }
+
+        .dz-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 10px
+        }
+
+        .oferta-table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        .oferta-table thead th {
+            font-family: var(--font-title);
+            font-size: 8px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-input)
+        }
+
+        .oferta-table thead th:last-child {
+            text-align: right;
+            width: 140px
+        }
+
+        .oferta-row {
+            border-bottom: 1px solid rgba(0, 144, 152, 0.07);
+            transition: background 0.15s
+        }
+
+        .oferta-row:last-child {
+            border-bottom: none
+        }
+
+        .oferta-row:hover {
+            background: var(--primary-faint)
+        }
+
+        .oferta-row td {
+            padding: 11px 14px;
+            vertical-align: middle
+        }
+
+        .oferta-row td:last-child {
+            text-align: right
+        }
+
+        .oferta-icon-wrap {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            flex-shrink: 0;
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .oferta-icon-wrap svg {
+            width: 14px;
+            height: 14px;
+            color: var(--primary-dark)
+        }
+
+        .oferta-name-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .oferta-label {
+            font-family: var(--font-title);
+            font-size: 12px;
+            color: var(--text-main)
+        }
+
+        .oferta-input-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm, 7px);
+            padding: 0 8px;
+            transition: all 0.2s
+        }
+
+        .oferta-input-wrap:focus-within {
+            border-color: var(--primary-light);
+            background: var(--bg-input);
+            color: #1a1a1a;
+            box-shadow: 0 0 0 3px var(--primary-faint)
+        }
+
+        .oferta-currency {
+            font-size: 11px;
+            color: var(--text-faint);
+            font-family: var(--font-title)
+        }
+
+        .oferta-input {
+            width: 80px;
+            border: none;
+            background: transparent;
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: var(--text-main);
+            padding: 8px 2px;
+            outline: none;
+            text-align: right
+        }
+
+        .oferta-input::placeholder {
+            color: var(--text-faint);
+            font-size: 12px
+        }
+
+        .oferta-obs {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-input);
+            font-family: var(--font-body);
+            font-size: 11px;
+            color: var(--text-main);
+            padding: 5px 8px;
+            outline: none;
+            resize: none;
+            margin-top: 6px;
+            transition: all 0.2s;
+            display: none
+        }
+
+        .oferta-obs:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px var(--primary-faint)
+        }
+
+        .total-bar {
+            position: sticky;
+            bottom: 0;
+            background: var(--primary-dark);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid rgba(0, 144, 152, 0.3);
+            box-shadow: 0 -4px 20px rgba(0, 80, 90, 0.25);
+            flex-shrink: 0
+        }
+
+        .total-label {
+            font-family: var(--font-title);
+            font-size: 8px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6)
+        }
+
+        .total-value {
+            font-family: var(--font-title);
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff
+        }
+
+        .total-sym {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-right: 2px
+        }
+
+        .btn-continue {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: var(--radius-full);
+            padding: 9px 18px;
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap
+        }
+
+        .btn-continue:hover {
+            background: rgba(255, 255, 255, 0.25)
+        }
+
+        .form-group {
+            margin-bottom: 12px
+        }
+
+        .form-label {
+            font-family: var(--font-title);
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin-bottom: 5px;
+            display: block
+        }
+
+        .form-input {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm, 7px);
+            background: var(--bg-input);
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: var(--text-main);
+            padding: 10px 12px;
+            outline: none;
+            transition: all 0.2s
+        }
+
+        .form-input:focus {
+            border-color: var(--primary-light);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-faint)
+        }
+
+        .form-input[readonly] {
+            background: rgba(0, 144, 152, 0.04);
+            color: var(--text-muted)
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns:1fr 1fr;
+            gap: 12px
+        }
+
+        .member-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--primary-faint);
+            border: 1px solid rgba(0, 144, 152, 0.25);
+            border-radius: var(--radius-md, 10px);
+            padding: 14px;
+            margin-bottom: 14px
+        }
+
+        .member-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-title);
+            font-size: 15px;
+            color: #fff;
+            font-weight: 700;
+            flex-shrink: 0
+        }
+
+        .member-name {
+            font-family: var(--font-title);
+            font-size: 13px;
+            color: var(--primary-dark)
+        }
+
+        .member-type {
+            font-size: 10px;
+            color: var(--text-faint);
+            margin-top: 2px
+        }
+
+        .confirm-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm, 7px);
+            margin-top: 14px;
+            cursor: pointer;
+            transition: all 0.2s
+        }
+
+        .confirm-row:hover {
+            border-color: var(--primary-light)
+        }
+
+        .confirm-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px
+        }
+
+        .confirm-row label {
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            line-height: 1.5
+        }
+
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px;
+            background: var(--primary-dark);
+            border: none;
+            border-radius: var(--radius-md, 10px);
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 16px rgba(0, 100, 110, 0.25)
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary);
+            transform: translateY(-1px)
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none
+        }
+
+        .btn-secondary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 11px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md, 10px);
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary-light);
+            color: var(--primary-dark)
+        }
+
         /* Payment grid — 3 colunas, wrap automatico para 2a linha */
-        .payment-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
-        .payment-option{border:2px solid var(--border);border-radius:var(--radius-md,10px);padding:14px 8px;cursor:pointer;text-align:center;transition:all 0.2s;background:var(--bg-card);position:relative}
-        .payment-option:hover{border-color:var(--primary-light);background:var(--primary-faint)}
-        .payment-option.selected{border-color:var(--primary);background:var(--primary-faint);box-shadow:0 0 0 3px var(--primary-faint)}
-        .pay-icon-wrap{width:36px;height:36px;border-radius:9px;background:var(--primary-faint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 7px}
-        .pay-icon-wrap svg{width:18px;height:18px;color:var(--primary-dark)}
-        .pay-name{font-family:var(--font-title);font-size:9px;color:var(--text-main);letter-spacing:0.5px}
-        .pay-desc{font-size:9px;color:var(--text-faint);margin-top:2px}
-        .pay-soon{position:absolute;top:4px;right:4px;background:rgba(150,150,150,0.1);border:1px solid rgba(150,150,150,0.2);border-radius:var(--radius-full);padding:1px 5px;font-size:7px;font-family:var(--font-title);color:#bbb;letter-spacing:1px}
-        .pay-detail{display:none;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm,7px);padding:14px;margin-top:8px;animation:fadeUp 0.25s ease both}
-        .iban-text{font-family:var(--font-title);font-size:13px;color:var(--primary-dark);letter-spacing:1px;margin:8px 0 4px}
-        .iban-sub{font-size:11px;color:var(--text-faint);line-height:1.6}
+        .payment-grid {
+            display: grid;
+            grid-template-columns:1fr 1fr 1fr;
+            gap: 8px;
+            margin: 12px 0
+        }
+
+        .payment-option {
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md, 10px);
+            padding: 14px 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            background: var(--bg-card);
+            position: relative
+        }
+
+        .payment-option:hover {
+            border-color: var(--primary-light);
+            background: var(--primary-faint)
+        }
+
+        .payment-option.selected {
+            border-color: var(--primary);
+            background: var(--primary-faint);
+            box-shadow: 0 0 0 3px var(--primary-faint)
+        }
+
+        .pay-icon-wrap {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 7px
+        }
+
+        .pay-icon-wrap svg {
+            width: 18px;
+            height: 18px;
+            color: var(--primary-dark)
+        }
+
+        .pay-name {
+            font-family: var(--font-title);
+            font-size: 9px;
+            color: var(--text-main);
+            letter-spacing: 0.5px
+        }
+
+        .pay-desc {
+            font-size: 9px;
+            color: var(--text-faint);
+            margin-top: 2px
+        }
+
+        .pay-soon {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(150, 150, 150, 0.1);
+            border: 1px solid rgba(150, 150, 150, 0.2);
+            border-radius: var(--radius-full);
+            padding: 1px 5px;
+            font-size: 7px;
+            font-family: var(--font-title);
+            color: #bbb;
+            letter-spacing: 1px
+        }
+
+        .pay-detail {
+            display: none;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm, 7px);
+            padding: 14px;
+            margin-top: 8px;
+            animation: fadeUp 0.25s ease both
+        }
+
+        .iban-text {
+            font-family: var(--font-title);
+            font-size: 13px;
+            color: var(--primary-dark);
+            letter-spacing: 1px;
+            margin: 8px 0 4px
+        }
+
+        .iban-sub {
+            font-size: 11px;
+            color: var(--text-faint);
+            line-height: 1.6
+        }
+
         /* URL Payment waiting */
-        .pay-open-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:var(--primary-dark);border:none;border-radius:var(--radius-md,10px);font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;color:#fff;cursor:pointer;transition:all 0.2s;box-shadow:0 3px 12px rgba(0,100,110,0.25);margin-bottom:12px;text-decoration:none}
-        .pay-open-btn:hover{background:var(--primary)}
-        .url-pay-poll{margin-top:10px;text-align:center}
-        .mb-ref-card{background:var(--surface-soft);border-radius:12px;padding:16px;margin:4px 0}
-        .mb-ref-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-light)}
-        .mb-ref-row:last-of-type{border-bottom:none}
-        .mb-ref-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-faint)}
-        .mb-ref-value{font-family:var(--font-title);font-size:13px;color:var(--text-main);font-weight:600}
-        .mb-ref-big{font-size:20px;letter-spacing:4px;color:var(--primary-dark)}
-        .mb-ref-hint{font-size:10px;color:var(--text-faint);text-align:center;margin-top:10px;margin-bottom:0;line-height:1.5}
-        .url-pay-poll-ring{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 8px}
-        .url-pay-msg{font-size:11px;color:var(--text-muted)}
-        .sum-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,144,152,0.07);font-size:13px}
-        .sum-row:last-child{border-bottom:none}
-        .sum-type{display:flex;align-items:center;gap:8px;color:var(--text-muted)}
-        .sum-icon{width:24px;height:24px;border-radius:6px;background:var(--primary-faint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
-        .sum-icon svg{width:12px;height:12px;color:var(--primary-dark)}
-        .sum-amount{font-family:var(--font-title);font-size:13px;color:var(--primary-dark)}
-        .sum-total-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0 0;margin-top:8px;border-top:2px solid var(--border)}
-        .sum-total-label{font-family:var(--font-title);font-size:11px;color:var(--text-main)}
-        .sum-total-val{font-family:var(--font-title);font-size:18px;color:var(--primary-dark);font-weight:700}
-        .success-wrap{text-align:center;padding:28px 20px 20px}
-        .success-ring{width:72px;height:72px;border-radius:50%;background:rgba(39,174,96,0.08);border:3px solid #27ae60;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both}
-        .success-ring svg{width:32px;height:32px;color:#27ae60}
-        .success-title{font-family:var(--font-title);font-size:18px;color:var(--primary-dark);margin-bottom:8px}
-        .success-text{font-size:13px;color:var(--text-muted);line-height:1.7;max-width:280px;margin:0 auto 18px}
-        .success-ref{font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:var(--text-faint);background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-full);padding:5px 16px;display:inline-block;margin-bottom:20px}
-        .filter-bar{display:flex;gap:8px;flex-wrap:wrap;padding:14px 16px 0}
-        .filter-select{flex:1;min-width:80px;border:1px solid var(--border);border-radius:var(--radius-sm,7px);background:var(--bg-card);font-family:var(--font-body);font-size:12px;color:var(--text-main);padding:8px 10px;outline:none;transition:all 0.2s}
-        .hist-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px 0}
-        .hist-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm,7px);padding:11px;text-align:center}
-        .hist-stat-val{font-family:var(--font-title);font-size:14px;color:var(--primary-dark);font-weight:700}
-        .hist-stat-label{font-family:var(--font-title);font-size:7px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);margin-top:3px}
-        .hist-list{padding:12px 16px 20px}
-        .hist-month-header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--primary-faint);border-radius:var(--radius-sm,7px);border:1px solid var(--border);margin-bottom:8px;margin-top:12px}
-        .hist-month-title{font-family:var(--font-title);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--primary-dark)}
-        .hist-month-total{font-family:var(--font-title);font-size:12px;color:var(--primary)}
-        .hist-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card);border-radius:var(--radius-sm,7px);border:1px solid rgba(0,144,152,0.1);margin-bottom:6px;transition:all 0.15s}
-        .hist-item:hover{border-color:var(--border);box-shadow:var(--shadow-sm)}
-        .hist-item-icon{width:32px;height:32px;border-radius:8px;background:var(--primary-faint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-        .hist-item-icon svg{width:14px;height:14px;color:var(--primary-dark)}
-        .hist-item-name{font-family:var(--font-title);font-size:11px;color:var(--text-main)}
-        .hist-item-date{font-size:10px;color:var(--text-faint);margin-top:2px}
-        .hist-item-obs{font-size:10px;color:var(--text-faint);margin-top:2px;font-style:italic}
-        .hist-item-amount{font-family:var(--font-title);font-size:13px;color:var(--primary-dark);text-align:right}
-        .hist-item-status{font-size:9px;letter-spacing:1px;text-transform:uppercase;font-family:var(--font-title);margin-top:2px;text-align:right}
-        .st-pendente{color:#e67e22}.st-confirmado{color:#27ae60}
-        .empty-state{text-align:center;padding:44px 20px;color:var(--text-faint)}
-        .empty-state svg{width:36px;height:36px;margin-bottom:12px;opacity:0.3}
-        .empty-label{font-family:var(--font-title);font-size:11px;letter-spacing:1.5px}
-        .dz-loader{display:flex;align-items:center;justify-content:center;padding:40px}
-        .dz-loader-ring{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite}
-        .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#1A1A1A;color:#fff;font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;padding:10px 20px;border-radius:var(--radius-full);z-index:999;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
-        .toast.show{transform:translateX(-50%) translateY(0)}.toast.error{background:#c0392b}.toast.ok{background:#27ae60}
+        .pay-open-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 20px;
+            background: var(--primary-dark);
+            border: none;
+            border-radius: var(--radius-md, 10px);
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 3px 12px rgba(0, 100, 110, 0.25);
+            margin-bottom: 12px;
+            text-decoration: none
+        }
+
+        .pay-open-btn:hover {
+            background: var(--primary)
+        }
+
+        .url-pay-poll {
+            margin-top: 10px;
+            text-align: center
+        }
+
+        .mb-ref-card {
+            background: var(--surface-soft);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 4px 0
+        }
+
+        .mb-ref-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border-light)
+        }
+
+        .mb-ref-row:last-of-type {
+            border-bottom: none
+        }
+
+        .mb-ref-label {
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-faint)
+        }
+
+        .mb-ref-value {
+            font-family: var(--font-title);
+            font-size: 13px;
+            color: var(--text-main);
+            font-weight: 600
+        }
+
+        .mb-ref-big {
+            font-size: 20px;
+            letter-spacing: 4px;
+            color: var(--primary-dark)
+        }
+
+        .mb-ref-hint {
+            font-size: 10px;
+            color: var(--text-faint);
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 0;
+            line-height: 1.5
+        }
+
+        .url-pay-poll-ring {
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 8px
+        }
+
+        .url-pay-msg {
+            font-size: 11px;
+            color: var(--text-muted)
+        }
+
+        .sum-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 144, 152, 0.07);
+            font-size: 13px
+        }
+
+        .sum-row:last-child {
+            border-bottom: none
+        }
+
+        .sum-type {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted)
+        }
+
+        .sum-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .sum-icon svg {
+            width: 12px;
+            height: 12px;
+            color: var(--primary-dark)
+        }
+
+        .sum-amount {
+            font-family: var(--font-title);
+            font-size: 13px;
+            color: var(--primary-dark)
+        }
+
+        .sum-total-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0 0;
+            margin-top: 8px;
+            border-top: 2px solid var(--border)
+        }
+
+        .sum-total-label {
+            font-family: var(--font-title);
+            font-size: 11px;
+            color: var(--text-main)
+        }
+
+        .sum-total-val {
+            font-family: var(--font-title);
+            font-size: 18px;
+            color: var(--primary-dark);
+            font-weight: 700
+        }
+
+        .success-wrap {
+            text-align: center;
+            padding: 28px 20px 20px
+        }
+
+        .success-ring {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(39, 174, 96, 0.08);
+            border: 3px solid #27ae60;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both
+        }
+
+        .success-ring svg {
+            width: 32px;
+            height: 32px;
+            color: #27ae60
+        }
+
+        .success-title {
+            font-family: var(--font-title);
+            font-size: 18px;
+            color: var(--primary-dark);
+            margin-bottom: 8px
+        }
+
+        .success-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.7;
+            max-width: 280px;
+            margin: 0 auto 18px
+        }
+
+        .success-ref {
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--text-faint);
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            padding: 5px 16px;
+            display: inline-block;
+            margin-bottom: 20px
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 14px 16px 0
+        }
+
+        .filter-select {
+            flex: 1;
+            min-width: 80px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm, 7px);
+            background: var(--bg-card);
+            font-family: var(--font-body);
+            font-size: 12px;
+            color: var(--text-main);
+            padding: 8px 10px;
+            outline: none;
+            transition: all 0.2s
+        }
+
+        .hist-stats {
+            display: grid;
+            grid-template-columns:1fr 1fr 1fr;
+            gap: 8px;
+            padding: 12px 16px 0
+        }
+
+        .hist-stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm, 7px);
+            padding: 11px;
+            text-align: center
+        }
+
+        .hist-stat-val {
+            font-family: var(--font-title);
+            font-size: 14px;
+            color: var(--primary-dark);
+            font-weight: 700
+        }
+
+        .hist-stat-label {
+            font-family: var(--font-title);
+            font-size: 7px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin-top: 3px
+        }
+
+        .hist-list {
+            padding: 12px 16px 20px
+        }
+
+        .hist-month-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--primary-faint);
+            border-radius: var(--radius-sm, 7px);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            margin-top: 12px
+        }
+
+        .hist-month-title {
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--primary-dark)
+        }
+
+        .hist-month-total {
+            font-family: var(--font-title);
+            font-size: 12px;
+            color: var(--primary)
+        }
+
+        .hist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm, 7px);
+            border: 1px solid rgba(0, 144, 152, 0.1);
+            margin-bottom: 6px;
+            transition: all 0.15s
+        }
+
+        .hist-item:hover {
+            border-color: var(--border);
+            box-shadow: var(--shadow-sm)
+        }
+
+        .hist-item-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .hist-item-icon svg {
+            width: 14px;
+            height: 14px;
+            color: var(--primary-dark)
+        }
+
+        .hist-item-name {
+            font-family: var(--font-title);
+            font-size: 11px;
+            color: var(--text-main)
+        }
+
+        .hist-item-date {
+            font-size: 10px;
+            color: var(--text-faint);
+            margin-top: 2px
+        }
+
+        .hist-item-obs {
+            font-size: 10px;
+            color: var(--text-faint);
+            margin-top: 2px;
+            font-style: italic
+        }
+
+        .hist-item-amount {
+            font-family: var(--font-title);
+            font-size: 13px;
+            color: var(--primary-dark);
+            text-align: right
+        }
+
+        .hist-item-status {
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-family: var(--font-title);
+            margin-top: 2px;
+            text-align: right
+        }
+
+        .st-pendente {
+            color: #e67e22
+        }
+
+        .st-confirmado {
+            color: #27ae60
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 44px 20px;
+            color: var(--text-faint)
+        }
+
+        .empty-state svg {
+            width: 36px;
+            height: 36px;
+            margin-bottom: 12px;
+            opacity: 0.3
+        }
+
+        .empty-label {
+            font-family: var(--font-title);
+            font-size: 11px;
+            letter-spacing: 1.5px
+        }
+
+        .dz-loader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px
+        }
+
+        .dz-loader-ring {
+            width: 26px;
+            height: 26px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: #1A1A1A;
+            color: #fff;
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            padding: 10px 20px;
+            border-radius: var(--radius-full);
+            z-index: 999;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3)
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0)
+        }
+
+        .toast.error {
+            background: #c0392b
+        }
+
+        .toast.ok {
+            background: #27ae60
+        }
 
         /* ── Hero banner ─────────────────────────────────── */
         .banner {
@@ -167,46 +1093,84 @@
             padding: 0 14px 14px !important;
             overflow: hidden !important;
         }
+
         .banner img,
-        .banner-fallback { display: none !important; }
+        .banner-fallback {
+            display: none !important;
+        }
 
         .banner-overlay {
-            position: absolute; inset: 0;
-            background: rgba(0,0,0,0.50);
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.50);
         }
+
         .banner-gradient {
-            position: absolute; left: 0; right: 0; bottom: 0;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
             height: 120px;
-            background: linear-gradient(to bottom, rgba(2,22,30,0), rgba(2,22,30,1));
+            background: linear-gradient(to bottom, rgba(2, 22, 30, 0), rgba(2, 22, 30, 1));
         }
 
         /* ── Nav pills (dark style) ──────────────────────── */
         .back-btn {
-            position: relative; z-index: 2;
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(2,22,30,0.65);
-            border: 1px solid rgba(216,195,165,0.35);
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(2, 22, 30, 0.65);
+            border: 1px solid rgba(216, 195, 165, 0.35);
             border-radius: 999px;
             padding: 6px 14px;
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
-            color: var(--primary); text-decoration: none;
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            color: var(--primary);
+            text-decoration: none;
             backdrop-filter: blur(8px);
             transition: all 0.2s;
         }
-        .back-btn:hover { background: rgba(216,195,165,0.12); border-color: var(--primary-light); color: var(--primary-light); }
+
+        .back-btn:hover {
+            background: rgba(216, 195, 165, 0.12);
+            border-color: var(--primary-light);
+            color: var(--primary-light);
+        }
 
         .page-badge {
-            position: relative; z-index: 2;
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
-            color: var(--primary); text-transform: uppercase;
-            background: rgba(2,22,30,0.65);
-            border: 1px solid rgba(216,195,165,0.35);
-            border-radius: 999px; padding: 6px 14px;
+            position: relative;
+            z-index: 2;
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--primary);
+            text-transform: uppercase;
+            background: rgba(2, 22, 30, 0.65);
+            border: 1px solid rgba(216, 195, 165, 0.35);
+            border-radius: 999px;
+            padding: 6px 14px;
             backdrop-filter: blur(8px);
         }
 
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes popIn{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.5);
+                opacity: 0
+            }
+            to {
+                transform: scale(1);
+                opacity: 1
+            }
+        }
     </style>
 </head>
 <body>
@@ -224,21 +1188,69 @@
     </div>
     <div class="tab-panel active" id="panel-nova">
         <div class="stepper">
-            <div class="step-item"><div class="step-wrap"><div class="step-circle active" id="sc1">1</div><div class="step-label">Ofertas</div></div><div class="step-line" id="sl1"></div></div>
-            <div class="step-item"><div class="step-wrap"><div class="step-circle" id="sc2">2</div><div class="step-label">Dados</div></div><div class="step-line" id="sl2"></div></div>
-            <div class="step-item"><div class="step-wrap"><div class="step-circle" id="sc3">3</div><div class="step-label">Morada</div></div><div class="step-line" id="sl3"></div></div>
-            <div class="step-item"><div class="step-wrap"><div class="step-circle" id="sc4">4</div><div class="step-label">Pagamento</div></div><div class="step-line" id="sl4"></div></div>
-            <div class="step-wrap"><div class="step-circle" id="sc5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg></div><div class="step-label">Fim</div></div>
+            <div class="step-item">
+                <div class="step-wrap">
+                    <div class="step-circle active" id="sc1">1</div>
+                    <div class="step-label">Ofertas</div>
+                </div>
+                <div class="step-line" id="sl1"></div>
+            </div>
+            <div class="step-item">
+                <div class="step-wrap">
+                    <div class="step-circle" id="sc2">2</div>
+                    <div class="step-label">Dados</div>
+                </div>
+                <div class="step-line" id="sl2"></div>
+            </div>
+            <div class="step-item">
+                <div class="step-wrap">
+                    <div class="step-circle" id="sc3">3</div>
+                    <div class="step-label">Morada</div>
+                </div>
+                <div class="step-line" id="sl3"></div>
+            </div>
+            <div class="step-item">
+                <div class="step-wrap">
+                    <div class="step-circle" id="sc4">4</div>
+                    <div class="step-label">Pagamento</div>
+                </div>
+                <div class="step-line" id="sl4"></div>
+            </div>
+            <div class="step-wrap">
+                <div class="step-circle" id="sc5">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                         stroke-linejoin="round" width="10" height="10">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <div class="step-label">Fim</div>
+            </div>
         </div>
         <!-- STEP 1 -->
         <div class="wizard-step active" id="wz1">
             <p class="section-label">Indique o valor por tipo de oferta</p>
             <div class="dz-card" style="padding:0;overflow:hidden;">
-                <table class="oferta-table"><thead><tr><th>Tipo de Oferta</th><th>Valor (euros)</th></tr></thead><tbody id="oferta-tbody"></tbody></table>
+                <table class="oferta-table">
+                    <thead>
+                    <tr>
+                        <th>Tipo de Oferta</th>
+                        <th>Valor (euros)</th>
+                    </tr>
+                    </thead>
+                    <tbody id="oferta-tbody"></tbody>
+                </table>
             </div>
             <div class="total-bar" id="total-bar" style="display:none">
-                <div><div class="total-label">Total da Oferta</div><div class="total-value"><span class="total-sym">€</span><span id="total-num">0,00</span></div></div>
-                <button class="btn-continue" onclick="goToStep(2)">Continuar<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg></button>
+                <div>
+                    <div class="total-label">Total da Oferta</div>
+                    <div class="total-value"><span class="total-sym">€</span><span id="total-num">0,00</span></div>
+                </div>
+                <button class="btn-continue" onclick="goToStep(2)">Continuar
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                         stroke-linejoin="round" width="13" height="13">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
             </div>
         </div>
         <!-- STEP 2 -->
@@ -248,16 +1260,34 @@
             <div class="dz-card">
                 <div class="dz-badge">Dados de Faturacao</div>
                 <div class="form-row" style="margin-top:4px">
-                    <div class="form-group"><label class="form-label">Nome Completo</label><input class="form-input" id="f-nome" type="text" readonly></div>
-                    <div class="form-group"><label class="form-label">NIF</label><input class="form-input" id="f-nif" type="text" placeholder="Nao informado"></div>
+                    <div class="form-group"><label class="form-label">Nome Completo</label><input class="form-input"
+                                                                                                  id="f-nome"
+                                                                                                  type="text" readonly>
+                    </div>
+                    <div class="form-group"><label class="form-label">NIF</label><input class="form-input" id="f-nif"
+                                                                                        type="text"
+                                                                                        placeholder="Nao informado">
+                    </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="f-email" type="email" readonly></div>
-                    <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="f-telefone" type="tel" placeholder="Nao informado"></div>
+                    <div class="form-group"><label class="form-label">Email</label><input class="form-input"
+                                                                                          id="f-email" type="email"
+                                                                                          readonly></div>
+                    <div class="form-group"><label class="form-label">Telefone</label><input class="form-input"
+                                                                                             id="f-telefone" type="tel"
+                                                                                             placeholder="Nao informado">
+                    </div>
                 </div>
-                <div class="confirm-row"><input type="checkbox" id="cb-dados" onchange="toggleBtn('btn-s2','cb-dados')"><label for="cb-dados">Confirmo que os meus dados estao corretos e desejo prosseguir.</label></div>
+                <div class="confirm-row"><input type="checkbox" id="cb-dados" onchange="toggleBtn('btn-s2','cb-dados')"><label
+                        for="cb-dados">Confirmo que os meus dados estao corretos e desejo prosseguir.</label></div>
             </div>
-            <button class="btn-primary" id="btn-s2" onclick="goToStep(3)" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar Dados</button>
+            <button class="btn-primary" id="btn-s2" onclick="goToStep(3)" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                     stroke-linejoin="round" width="15" height="15">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Confirmar Dados
+            </button>
             <button class="btn-secondary" onclick="goToStep(1)">Voltar</button>
         </div>
         <!-- STEP 3 -->
@@ -265,15 +1295,30 @@
             <p class="section-label">Confirmar Morada</p>
             <div class="dz-card">
                 <div class="dz-badge">Morada de Faturacao</div>
-                <div class="form-group" style="margin-top:4px"><label class="form-label">Morada</label><input class="form-input" id="f-morada" type="text" placeholder="Rua, numero, andar"></div>
+                <div class="form-group" style="margin-top:4px"><label class="form-label">Morada</label><input
+                        class="form-input" id="f-morada" type="text" placeholder="Rua, numero, andar"></div>
                 <div class="form-row">
-                    <div class="form-group"><label class="form-label">Codigo Postal</label><input class="form-input" id="f-cp" type="text" placeholder="0000-000"></div>
-                    <div class="form-group"><label class="form-label">Cidade</label><input class="form-input" id="f-cidade" type="text" placeholder="Lisboa"></div>
+                    <div class="form-group"><label class="form-label">Codigo Postal</label><input class="form-input"
+                                                                                                  id="f-cp" type="text"
+                                                                                                  placeholder="0000-000">
+                    </div>
+                    <div class="form-group"><label class="form-label">Cidade</label><input class="form-input"
+                                                                                           id="f-cidade" type="text"
+                                                                                           placeholder="Lisboa"></div>
                 </div>
-                <div class="form-group"><label class="form-label">Pais</label><input class="form-input" id="f-pais" type="text" value="Portugal"></div>
-                <div class="confirm-row"><input type="checkbox" id="cb-morada" onchange="toggleBtn('btn-s3','cb-morada')"><label for="cb-morada">Confirmo que a minha morada esta correta.</label></div>
+                <div class="form-group"><label class="form-label">Pais</label><input class="form-input" id="f-pais"
+                                                                                     type="text" value="Portugal"></div>
+                <div class="confirm-row"><input type="checkbox" id="cb-morada"
+                                                onchange="toggleBtn('btn-s3','cb-morada')"><label for="cb-morada">Confirmo
+                    que a minha morada esta correta.</label></div>
             </div>
-            <button class="btn-primary" id="btn-s3" onclick="goToStep(4)" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar Morada</button>
+            <button class="btn-primary" id="btn-s3" onclick="goToStep(4)" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                     stroke-linejoin="round" width="15" height="15">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Confirmar Morada
+            </button>
             <button class="btn-secondary" onclick="goToStep(2)">Voltar</button>
         </div>
         <!-- STEP 4 -->
@@ -284,57 +1329,121 @@
             <div class="dz-card" style="padding:14px">
                 <div class="payment-grid">
                     <div class="payment-option" id="pay-mbway" onclick="selectPayment('mbway')">
-                        <div class="pay-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
-                        <div class="pay-name">MB Way</div><div class="pay-desc">Instantaneo</div>
+                        <div class="pay-icon-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="5" y="2" width="14" height="20" rx="2"/>
+                                <line x1="12" y1="18" x2="12.01" y2="18"/>
+                            </svg>
+                        </div>
+                        <div class="pay-name">MB Way</div>
+                        <div class="pay-desc">Instantaneo</div>
                     </div>
                     <div class="payment-option" id="pay-cartao" onclick="selectPayment('cartao')">
-                        <div class="pay-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-                        <div class="pay-name">Cartao</div><div class="pay-desc">Visa/Mastercard</div>
+                        <div class="pay-icon-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="4" width="22" height="16" rx="2"/>
+                                <line x1="1" y1="10" x2="23" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="pay-name">Cartao</div>
+                        <div class="pay-desc">Visa/Mastercard</div>
                     </div>
                     <div class="payment-option" id="pay-applepay" onclick="selectPayment('applepay')">
-                        <div class="pay-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12.5c0-2.21 1.79-4 4-4s4 1.79 4 4"/><line x1="12" y1="8.5" x2="12" y2="8.6"/></svg></div>
-                        <div class="pay-name">Apple Pay</div><div class="pay-desc">Safari / iPhone</div>
+                        <div class="pay-icon-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                                <path d="M8 12.5c0-2.21 1.79-4 4-4s4 1.79 4 4"/>
+                                <line x1="12" y1="8.5" x2="12" y2="8.6"/>
+                            </svg>
+                        </div>
+                        <div class="pay-name">Apple Pay</div>
+                        <div class="pay-desc">Safari / iPhone</div>
                     </div>
                     <div class="payment-option" id="pay-multibanco" onclick="selectPayment('multibanco')">
-                        <div class="pay-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
-                        <div class="pay-name">Multibanco</div><div class="pay-desc">Ref. ATM</div>
+                        <div class="pay-icon-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                                <line x1="2" y1="10" x2="22" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="pay-name">Multibanco</div>
+                        <div class="pay-desc">Ref. ATM</div>
                     </div>
                     <div class="payment-option" id="pay-transferencia" onclick="selectPayment('transferencia')">
-                        <div class="pay-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-                        <div class="pay-name">Transferencia</div><div class="pay-desc">IBAN / Banco</div>
+                        <div class="pay-icon-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M3 9h18M9 21V9"/>
+                            </svg>
+                        </div>
+                        <div class="pay-name">Transferencia</div>
+                        <div class="pay-desc">IBAN / Banco</div>
                     </div>
                 </div>
                 <!-- MBWay detail -->
                 <div class="pay-detail" id="det-mbway">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:8px;height:8px;border-radius:50%;background:#27ae60;flex-shrink:0"></div><span style="font-size:11px;color:var(--text-muted)">Notificacao enviada para o seu telemovel MB WAY</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                        <div style="width:8px;height:8px;border-radius:50%;background:#27ae60;flex-shrink:0"></div>
+                        <span style="font-size:11px;color:var(--text-muted)">Notificacao enviada para o seu telemovel MB WAY</span>
+                    </div>
                     <div class="form-group" style="margin:0">
                         <label class="form-label">Telemovel MB WAY</label>
-                        <input class="form-input" id="f-mbway" type="tel" placeholder="+351 9XX XXX XXX" oninput="onMbwayTelChange()">
-                        <div id="mbway-tel-hint" style="font-size:10px;color:var(--text-faint);margin-top:4px">Introduza o numero associado a app MB WAY</div>
+                        <input class="form-input" id="f-mbway" type="tel" placeholder="+351 9XX XXX XXX"
+                               oninput="onMbwayTelChange()">
+                        <div id="mbway-tel-hint" style="font-size:10px;color:var(--text-faint);margin-top:4px">Introduza
+                            o numero associado a app MB WAY
+                        </div>
                     </div>
                     <div id="mbway-status-wrap" style="display:none;margin-top:12px">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">Aguarda confirmacao</span><div id="mbway-countdown" style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark);font-weight:700">4:00</div></div>
-                        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="mbway-progress" style="height:100%;width:100%;background:var(--primary);transition:width 1s linear;border-radius:2px"></div></div>
-                        <div id="mbway-estado-msg" style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center"></div>
-                        <button id="mbway-reenviar-btn" onclick="mbwayReenviar()" style="display:none;width:100%;margin-top:8px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm,7px);font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--primary-dark);cursor:pointer">Reenviar Notificacao</button>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                            <span style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint)">Aguarda confirmacao</span>
+                            <div id="mbway-countdown"
+                                 style="font-family:var(--font-title);font-size:14px;color:var(--primary-dark);font-weight:700">
+                                4:00
+                            </div>
+                        </div>
+                        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+                            <div id="mbway-progress"
+                                 style="height:100%;width:100%;background:var(--primary);transition:width 1s linear;border-radius:2px"></div>
+                        </div>
+                        <div id="mbway-estado-msg"
+                             style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center"></div>
+                        <button id="mbway-reenviar-btn" onclick="mbwayReenviar()"
+                                style="display:none;width:100%;margin-top:8px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm,7px);font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--primary-dark);cursor:pointer">
+                            Reenviar Notificacao
+                        </button>
                     </div>
                 </div>
                 <!-- Cartao detail -->
                 <div class="pay-detail" id="det-cartao">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="1.8"
+                             stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                            <rect x="3" y="11" width="18" height="11" rx="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
                         <span style="font-size:11px;color:var(--text-muted)">Pagamento 3D Secure — Visa &amp; Mastercard</span>
                     </div>
-                    <p style="font-size:11px;color:var(--text-faint);margin:0 0 10px">Sera aberta uma pagina segura EuPago. Apos o pagamento, esta pagina actualiza automaticamente.</p>
+                    <p style="font-size:11px;color:var(--text-faint);margin:0 0 10px">Sera aberta uma pagina segura
+                        EuPago. Apos o pagamento, esta pagina actualiza automaticamente.</p>
                     <div id="det-cartao-ui"></div>
                 </div>
                 <!-- Apple Pay detail -->
                 <div class="pay-detail" id="det-applepay">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="1.8"
+                             stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                        </svg>
                         <span style="font-size:11px;color:var(--text-muted)">Disponivel no Safari (iPhone, iPad, Mac)</span>
                     </div>
-                    <p style="font-size:11px;color:var(--text-faint);margin:0 0 10px">Sera aberta uma pagina segura EuPago. Apos o pagamento, esta pagina actualiza automaticamente.</p>
+                    <p style="font-size:11px;color:var(--text-faint);margin:0 0 10px">Sera aberta uma pagina segura
+                        EuPago. Apos o pagamento, esta pagina actualiza automaticamente.</p>
                     <div id="det-applepay-ui"></div>
                 </div>
                 <!-- Multibanco detail -->
@@ -342,32 +1451,50 @@
                 <!-- Multibanco detail -->
                 <div class="pay-detail" id="det-multibanco" style="display:none">
                     <div id="det-multibanco-ui" style="padding:4px 0">
-                        <p style="text-align:center;font-size:12px;color:var(--text-faint)">Clica em "Gerar Referencia Multibanco" para obteres os dados de pagamento.</p>
+                        <p style="text-align:center;font-size:12px;color:var(--text-faint)">Clica em "Gerar Referencia
+                            Multibanco" para obteres os dados de pagamento.</p>
                     </div>
                 </div>
                 <!-- Transferencia detail -->
                 <div class="pay-detail" id="det-transferencia">
                     <div class="dz-badge">IBAN Zion Lisboa</div>
                     <div class="iban-text">PT50 0000 0000 0000 0000 0000 0</div>
-                    <div class="iban-sub">Banco: Caixa Geral de Depositos · BIC: CGDIPTPL<br>Titular: Zion Church Lisboa</div>
-                    <div class="form-group" style="margin:12px 0 0"><label class="form-label">Referencia (opcional)</label><input class="form-input" id="f-ref" type="text" placeholder="Ex: TRF-2026-001"></div>
+                    <div class="iban-sub">Banco: Caixa Geral de Depositos · BIC: CGDIPTPL<br>Titular: Zion Church Lisboa
+                    </div>
+                    <div class="form-group" style="margin:12px 0 0"><label class="form-label">Referencia
+                        (opcional)</label><input class="form-input" id="f-ref" type="text"
+                                                 placeholder="Ex: TRF-2026-001"></div>
                 </div>
             </div>
             <button class="btn-primary" id="btn-s4" onclick="submitOferta()" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar e Registar Oferta
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                     stroke-linejoin="round" width="15" height="15">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Confirmar e Registar Oferta
             </button>
             <button class="btn-secondary" onclick="goToStep(3)">Voltar</button>
         </div>
         <!-- STEP 5 -->
         <div class="wizard-step" id="wz5">
             <div class="success-wrap">
-                <div class="success-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="success-ring">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
                 <div class="success-title">Oferta Registada</div>
-                <p class="success-text">A sua contribuicao foi registada com sucesso. Que Deus abencoe a sua semeadura!</p>
+                <p class="success-text">A sua contribuicao foi registada com sucesso. Que Deus abencoe a sua
+                    semeadura!</p>
                 <div class="success-ref" id="success-ref">REF: —</div>
                 <div id="success-summary" style="width:100%;max-width:340px;margin:0 auto 20px;text-align:left;"></div>
-                <button class="btn-primary" onclick="resetWizard()" style="max-width:280px;margin:0 auto 8px;">Nova Oferta</button>
-                <button class="btn-secondary" onclick="switchTab('historico')" style="max-width:280px;margin:0 auto;">Ver Historico</button>
+                <button class="btn-primary" onclick="resetWizard()" style="max-width:280px;margin:0 auto 8px;">Nova
+                    Oferta
+                </button>
+                <button class="btn-secondary" onclick="switchTab('historico')" style="max-width:280px;margin:0 auto;">
+                    Ver Historico
+                </button>
             </div>
         </div>
     </div>
@@ -377,32 +1504,76 @@
             <select class="filter-select" id="filter-ano" onchange="loadHistorico()"></select>
             <select class="filter-select" id="filter-mes" onchange="loadHistorico()">
                 <option value="">Todos os meses</option>
-                <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Marco</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                <option value="01">Janeiro</option>
+                <option value="02">Fevereiro</option>
+                <option value="03">Marco</option>
+                <option value="04">Abril</option>
+                <option value="05">Maio</option>
+                <option value="06">Junho</option>
+                <option value="07">Julho</option>
+                <option value="08">Agosto</option>
+                <option value="09">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
             </select>
             <select class="filter-select" id="filter-tipo" onchange="loadHistorico()">
                 <option value="">Todos os tipos</option>
-                <option value="dizimo">Dizimo</option><option value="oferta_culto">Oferta de Culto</option><option value="pul">PUL</option><option value="missoes">Missoes</option><option value="caridade">Caridade</option><option value="lumen">Lumen</option>
+                <option value="dizimo">Dizimo</option>
+                <option value="oferta_culto">Oferta de Culto</option>
+                <option value="pul">PUL</option>
+                <option value="missoes">Missoes</option>
+                <option value="caridade">Caridade</option>
+                <option value="lumen">Lumen</option>
             </select>
         </div>
         <div class="hist-stats">
-            <div class="hist-stat"><div class="hist-stat-val" id="stat-periodo">€0,00</div><div class="hist-stat-label">Periodo</div></div>
-            <div class="hist-stat"><div class="hist-stat-val" id="stat-mes">€0,00</div><div class="hist-stat-label">Este Mes</div></div>
-            <div class="hist-stat"><div class="hist-stat-val" id="stat-ano">€0,00</div><div class="hist-stat-label">Este Ano</div></div>
+            <div class="hist-stat">
+                <div class="hist-stat-val" id="stat-periodo">€0,00</div>
+                <div class="hist-stat-label">Periodo</div>
+            </div>
+            <div class="hist-stat">
+                <div class="hist-stat-val" id="stat-mes">€0,00</div>
+                <div class="hist-stat-label">Este Mes</div>
+            </div>
+            <div class="hist-stat">
+                <div class="hist-stat-val" id="stat-ano">€0,00</div>
+                <div class="hist-stat-label">Este Ano</div>
+            </div>
         </div>
-        <div class="hist-list" id="hist-content"><div class="dz-loader"><div class="dz-loader-ring"></div></div></div>
+        <div class="hist-list" id="hist-content">
+            <div class="dz-loader">
+                <div class="dz-loader-ring"></div>
+            </div>
+        </div>
     </div>
     <div class="footer">
         <div class="footer-links">
             <a class="footer-link" href="https://zionchurch.org.br/" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" width="12" height="12">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
                 Site Global
             </a>
             <a class="footer-link" href="https://zionlisboa.pt/" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" width="12" height="12">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
                 Site Oficial
             </a>
             <a class="footer-link" href="https://www.instagram.com/zionlisboa/?hl=en" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" width="12" height="12">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                </svg>
                 @ZionLisboa
             </a>
         </div>
@@ -416,381 +1587,773 @@
 <div class="toast" id="toast"></div>
 <script>
     var TIPOS = [
-        { key:'dizimo', label:'Dizimo', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
-        { key:'oferta_culto', label:'Oferta de Culto', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>' },
-        { key:'pul', label:'PUL — Por Um Legado', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
-        { key:'missoes', label:'Missoes', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' },
-        { key:'caridade', label:'Caridade', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' },
-        { key:'lumen', label:'Lumen', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' }
+        {
+            key: 'dizimo',
+            label: 'Dizimo',
+            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+        },
+        {
+            key: 'oferta_culto',
+            label: 'Oferta de Culto',
+            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
+        },
+        {
+            key: 'pul',
+            label: 'PUL — Por Um Legado',
+            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
+        },
+        {
+            key: 'missoes',
+            label: 'Missoes',
+            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
+        },
+        {
+            key: 'caridade',
+            label: 'Caridade',
+            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+        },
+        {
+            key: 'lumen',
+            label: 'Lumen',
+            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+        }
     ];
-    var MES_NOME    = ['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    var FORMA_LABEL = { mbway:'MBWay', cartao:'Cartao', applepay:'Apple Pay', transferencia:'Transferencia', multibanco:'Multibanco' };
+    var MES_NOME = ['', 'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    var FORMA_LABEL = {
+        mbway: 'MBWay',
+        cartao: 'Cartao',
+        applepay: 'Apple Pay',
+        transferencia: 'Transferencia',
+        multibanco: 'Multibanco'
+    };
 
     var authUser = null;
-    var SB_URL   = window.SUPABASE_URL      || '';
-    var SB_KEY   = window.SUPABASE_ANON_KEY || '';
+    var SB_URL = window.SUPABASE_URL || '';
+    var SB_KEY = window.SUPABASE_ANON_KEY || '';
 
-    (async function() {
+    (async function () {
         const session = await ZionAuth.protect();
         if (!session) return;
         authUser = await ZionAuth.getUser();
-        // Inicializar depois do login
+
         buildOfertaTable();
         populateYears();
-        if (SB_URL && SB_KEY) {
-            sbReq('usuarios?select=membro_id&id=eq.' + authUser.id, 'GET')
-                .then(function(urows) {
-                    if (urows && urows.length && urows[0].membro_id) {
-                        membroId = urows[0].membro_id;
-                    }
-                }).catch(function() {});
+
+        if (SB_URL && SB_KEY && authUser.email) {
+            sbReq('membros?select=id&email=eq.'
+                + encodeURIComponent(authUser.email.toLowerCase())
+                + '&ativo=eq.true&limit=1', 'GET')
+                .then(function (rows) {
+                    if (rows && rows.length) membroId = rows[0].id;
+                }).catch(function () {});
         }
     })();
 
     function sbReq(path, method, body) {
-        return ZionAuth.getToken().then(function(token) {
+        return ZionAuth.getToken().then(function (token) {
             var headers = {
                 'apikey': SB_KEY,
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             };
             if (method === 'POST') headers['Prefer'] = 'return=representation';
-            var opts = { method: method || 'GET', headers: headers };
+            var opts = {method: method || 'GET', headers: headers};
             if (body) opts.body = JSON.stringify(body);
-            return fetch(SB_URL + '/rest/v1/' + path, opts).then(function(r) {
-                if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ' — ' + t); });
+            return fetch(SB_URL + '/rest/v1/' + path, opts).then(function (r) {
+                if (!r.ok) return r.text().then(function (t) {
+                    throw new Error('HTTP ' + r.status + ' — ' + t);
+                });
                 var ct = r.headers.get('content-type') || '';
                 return ct.includes('json') ? r.json() : null;
             });
         });
     }
 
-    var valores={}; var membroDB=null; var membroId=null; var pagamento=null;
+    var valores = {};
+    var membroDB = null;
+    var membroId = null;
+    var pagamento = null;
 
-    function buildOfertaTable(){
-        var tbody=document.getElementById('oferta-tbody');
-        TIPOS.forEach(function(t){
-            var tr=document.createElement('tr');
-            tr.className='oferta-row';
-            var td1=document.createElement('td');
-            td1.innerHTML='<div class="oferta-name-cell"><div class="oferta-icon-wrap">'+t.svg+'</div><div class="oferta-label">'+t.label+'</div></div>';
-            var obs=document.createElement('textarea');
-            obs.className='oferta-obs'; obs.id='obs-'+t.key; obs.rows=1; obs.placeholder='Observacao (opcional)...';
+    function buildOfertaTable() {
+        var tbody = document.getElementById('oferta-tbody');
+        TIPOS.forEach(function (t) {
+            var tr = document.createElement('tr');
+            tr.className = 'oferta-row';
+            var td1 = document.createElement('td');
+            td1.innerHTML = '<div class="oferta-name-cell"><div class="oferta-icon-wrap">' + t.svg + '</div><div class="oferta-label">' + t.label + '</div></div>';
+            var obs = document.createElement('textarea');
+            obs.className = 'oferta-obs';
+            obs.id = 'obs-' + t.key;
+            obs.rows = 1;
+            obs.placeholder = 'Observacao (opcional)...';
             td1.appendChild(obs);
-            var td2=document.createElement('td');
-            td2.innerHTML='<div class="oferta-input-wrap"><span class="oferta-currency">€</span><input class="oferta-input" type="number" min="0" step="0.01" id="val-'+t.key+'" placeholder="0,00"></div>';
-            tr.appendChild(td1); tr.appendChild(td2);
+            var td2 = document.createElement('td');
+            td2.innerHTML = '<div class="oferta-input-wrap"><span class="oferta-currency">€</span><input class="oferta-input" type="number" min="0" step="0.01" id="val-' + t.key + '" placeholder="0,00"></div>';
+            tr.appendChild(td1);
+            tr.appendChild(td2);
             tbody.appendChild(tr);
             // Attach event listener (avoids quoting issues with inline oninput)
-            (function(key){ td2.querySelector('input').addEventListener('input', function(){ onValorChange(key); }); })(t.key);
+            (function (key) {
+                td2.querySelector('input').addEventListener('input', function () {
+                    onValorChange(key);
+                });
+            })(t.key);
         });
     }
-    function onValorChange(key){ var v=parseFloat(document.getElementById('val-'+key).value)||0; valores[key]=v; document.getElementById('obs-'+key).style.display=v>0?'block':'none'; updateTotal(); }
-    function updateTotal(){ var total=calcTotal(); var bar=document.getElementById('total-bar'); bar.style.display=total>0?'flex':'none'; if(total>0) document.getElementById('total-num').textContent=fmtEuro(total); }
-    function calcTotal(){ var t=0; for(var k in valores){ if(valores.hasOwnProperty(k)) t+=valores[k]; } return t; }
 
-    function updateStepper(n){
-        for(var i=1;i<=5;i++){ var c=document.getElementById('sc'+i); if(!c) continue; c.classList.remove('active','done'); if(i<n) c.classList.add('done'); else if(i===n) c.classList.add('active'); }
-        for(var j=1;j<=4;j++){ var l=document.getElementById('sl'+j); if(l) l.classList.toggle('done',j<n); }
+    function onValorChange(key) {
+        var v = parseFloat(document.getElementById('val-' + key).value) || 0;
+        valores[key] = v;
+        document.getElementById('obs-' + key).style.display = v > 0 ? 'block' : 'none';
+        updateTotal();
     }
-    function goToStep(n){
-        if(n===2){ if(calcTotal()<=0){ showToast('Indique pelo menos um valor de oferta.','error'); return; } prepareStep2(); }
-        if(n===3) prepareStep3();
-        if(n===4) prepareStep4();
-        for(var s=1;s<=5;s++){ var el=document.getElementById('wz'+s); if(el) el.classList.toggle('active',s===n); }
+
+    function updateTotal() {
+        var total = calcTotal();
+        var bar = document.getElementById('total-bar');
+        bar.style.display = total > 0 ? 'flex' : 'none';
+        if (total > 0) document.getElementById('total-num').textContent = fmtEuro(total);
+    }
+
+    function calcTotal() {
+        var t = 0;
+        for (var k in valores) {
+            if (valores.hasOwnProperty(k)) t += valores[k];
+        }
+        return t;
+    }
+
+    function updateStepper(n) {
+        for (var i = 1; i <= 5; i++) {
+            var c = document.getElementById('sc' + i);
+            if (!c) continue;
+            c.classList.remove('active', 'done');
+            if (i < n) c.classList.add('done'); else if (i === n) c.classList.add('active');
+        }
+        for (var j = 1; j <= 4; j++) {
+            var l = document.getElementById('sl' + j);
+            if (l) l.classList.toggle('done', j < n);
+        }
+    }
+
+    function goToStep(n) {
+        if (n === 2) {
+            if (calcTotal() <= 0) {
+                showToast('Indique pelo menos um valor de oferta.', 'error');
+                return;
+            }
+            prepareStep2();
+        }
+        if (n === 3) prepareStep3();
+        if (n === 4) prepareStep4();
+        for (var s = 1; s <= 5; s++) {
+            var el = document.getElementById('wz' + s);
+            if (el) el.classList.toggle('active', s === n);
+        }
         updateStepper(n);
-        document.getElementById('panel-nova').scrollTop=0;
+        document.getElementById('panel-nova').scrollTop = 0;
     }
-    function prepareStep2(){
-        var initials=(authUser.nome||'U').split(' ').map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
-        var tipoMap={visitante:'Visitante',membro:'Membro',admin:'Administrador'};
-        document.getElementById('member-s2').innerHTML='<div class="member-avatar">'+initials+'</div><div><div class="member-name">'+(authUser.nome||'')+'</div><div class="member-type">'+(tipoMap[authUser.tipo]||authUser.tipo)+'</div></div>';
-        document.getElementById('f-nome').value=authUser.nome||''; document.getElementById('f-email').value=authUser.email||'';
-        document.getElementById('f-nif').value=''; document.getElementById('f-telefone').value='';
-        document.getElementById('cb-dados').checked=false; document.getElementById('btn-s2').disabled=true;
-        if(!SB_URL||!SB_KEY) return;
-        sbReq('usuarios?select=membro_id&id=eq.'+authUser.id,'GET').then(function(urows){
-            if(!urows||!urows.length||!urows[0].membro_id) return;
-            membroId=urows[0].membro_id;
-            return sbReq('membros?select=id,nif,telefone,morada,cidade,codigo_postal,pais,email,nome&id=eq.'+membroId,'GET');
-        }).then(function(rows){
-            if(!rows||!rows.length) return; membroDB=rows[0];
-            if(membroDB.nif)      document.getElementById('f-nif').value=membroDB.nif;
-            if(membroDB.telefone) document.getElementById('f-telefone').value=membroDB.telefone;
-            if(membroDB.nome)     document.getElementById('f-nome').value=membroDB.nome;
-            if(membroDB.email)    document.getElementById('f-email').value=membroDB.email;
-        }).catch(function(e){ console.warn('Carregar membro:',e.message); });
-    }
-    function prepareStep3(){
-        var db=membroDB||{};
-        document.getElementById('f-morada').value=db.morada||''; document.getElementById('f-cp').value=db.codigo_postal||'';
-        document.getElementById('f-cidade').value=db.cidade||'Lisboa'; document.getElementById('f-pais').value=db.pais||'Portugal';
-        document.getElementById('cb-morada').checked=false; document.getElementById('btn-s3').disabled=true;
-    }
-    function prepareStep4(){
-        var total=calcTotal(); var html='';
-        TIPOS.forEach(function(t){ var v=valores[t.key]||0; if(v<=0) return; html+='<div class="sum-row"><div class="sum-type"><div class="sum-icon">'+t.svg+'</div>'+t.label+'</div><div class="sum-amount">€'+fmtEuro(v)+'</div></div>'; });
-        html+='<div class="sum-total-row"><div class="sum-total-label">Total</div><div class="sum-total-val">€'+fmtEuro(total)+'</div></div>';
-        document.getElementById('sum-card').innerHTML=html;
-        pagamento=null;
-        document.querySelectorAll('.payment-option').forEach(function(el){ el.classList.remove('selected'); });
-        document.querySelectorAll('.pay-detail').forEach(function(el){ el.style.display='none'; });
-        document.getElementById('btn-s4').disabled=true;
-    }
-    function selectPayment(method){
-        pagamento=method;
-        document.querySelectorAll('.payment-option').forEach(function(el){ el.classList.remove('selected'); });
-        document.getElementById('pay-'+method).classList.add('selected');
-        document.querySelectorAll('.pay-detail').forEach(function(el){ el.style.display='none'; });
-        document.getElementById('det-'+method).style.display='block';
-        var btn=document.getElementById('btn-s4');
-        if(method==='cartao')    btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Pagar com Cartao';
-        else if(method==='applepay') btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>Pagar com Apple Pay';
-        else btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar e Registar Oferta';
-        btn.disabled=false;
-    }
-    function toggleBtn(btnId,cbId){ document.getElementById(btnId).disabled=!document.getElementById(cbId).checked; }
 
-    function submitOferta(){
-        var btn=document.getElementById('btn-s4'); btn.disabled=true; btn.textContent='A registar...';
-        var today=new Date().toISOString().split('T')[0]; var total=calcTotal();
-        var ref='ZL'+Date.now().toString(36).toUpperCase();
-        var nome=document.getElementById('f-nome').value||authUser.nome||'';
-        var nif=document.getElementById('f-nif').value||'';
-        var tel=document.getElementById('f-telefone').value||'';
-        var morada=document.getElementById('f-morada').value||'';
-        var cidade=document.getElementById('f-cidade').value||'Lisboa';
-        var cp=document.getElementById('f-cp').value||'';
-        var pais=document.getElementById('f-pais').value||'Portugal';
-        var email=document.getElementById('f-email').value||authUser.email||'';
-        var tiposAtivos=TIPOS.filter(function(t){ return (valores[t.key]||0)>0; });
-        var dizimoIdsGravados=[]; var crIdsGravados=[];
+    function prepareStep2() {
+        var initials = (authUser.nome || 'U').split(' ').map(function (w) {
+            return w[0];
+        }).slice(0, 2).join('').toUpperCase();
+        var tipoMap = {visitante: 'Visitante', membro: 'Membro', admin: 'Administrador'};
+        document.getElementById('member-s2').innerHTML = '<div class="member-avatar">' + initials + '</div><div><div class="member-name">' + (authUser.nome || '') + '</div><div class="member-type">' + (tipoMap[authUser.tipo] || authUser.tipo) + '</div></div>';
+        document.getElementById('f-nome').value = authUser.nome || '';
+        document.getElementById('f-email').value = authUser.email || '';
+        document.getElementById('f-nif').value = '';
+        document.getElementById('f-telefone').value = '';
+        document.getElementById('cb-dados').checked = false;
+        document.getElementById('btn-s2').disabled = true;
 
-        if(SB_URL&&SB_KEY&&(nif||tel||morada)){
-            var patch={}; if(nif) patch.nif=nif; if(tel) patch.telefone=tel; if(morada) patch.morada=morada; if(cidade) patch.cidade=cidade; if(cp) patch.codigo_postal=cp; if(pais) patch.pais=pais;
-            sbReq('membros?id=eq.'+(membroId||authUser.id),'PATCH',patch).catch(function(e){ console.warn('Patch membro:',e.message); });
+        if (!SB_URL || !SB_KEY || !authUser.email) return;
+
+        // ← Lookup por email em vez de por ID
+        sbReq('membros?select=id,nif,telefone,morada,cidade,codigo_postal,pais,email,nome&email=eq.'
+            + encodeURIComponent(authUser.email.toLowerCase()) + '&ativo=eq.true&limit=1', 'GET')
+            .then(function (rows) {
+                if (!rows || !rows.length) return;
+                membroDB = rows[0];
+                membroId = membroDB.id;
+                if (membroDB.nif) document.getElementById('f-nif').value = membroDB.nif;
+                if (membroDB.telefone) document.getElementById('f-telefone').value = membroDB.telefone;
+                if (membroDB.nome) document.getElementById('f-nome').value = membroDB.nome;
+                if (membroDB.email) document.getElementById('f-email').value = membroDB.email;
+            }).catch(function (e) {
+            console.warn('Carregar membro:', e.message);
+        });
+    }
+
+    function prepareStep3() {
+        var db = membroDB || {};
+        document.getElementById('f-morada').value = db.morada || '';
+        document.getElementById('f-cp').value = db.codigo_postal || '';
+        document.getElementById('f-cidade').value = db.cidade || 'Lisboa';
+        document.getElementById('f-pais').value = db.pais || 'Portugal';
+        document.getElementById('cb-morada').checked = false;
+        document.getElementById('btn-s3').disabled = true;
+    }
+
+    function prepareStep4() {
+        var total = calcTotal();
+        var html = '';
+        TIPOS.forEach(function (t) {
+            var v = valores[t.key] || 0;
+            if (v <= 0) return;
+            html += '<div class="sum-row"><div class="sum-type"><div class="sum-icon">' + t.svg + '</div>' + t.label + '</div><div class="sum-amount">€' + fmtEuro(v) + '</div></div>';
+        });
+        html += '<div class="sum-total-row"><div class="sum-total-label">Total</div><div class="sum-total-val">€' + fmtEuro(total) + '</div></div>';
+        document.getElementById('sum-card').innerHTML = html;
+        pagamento = null;
+        document.querySelectorAll('.payment-option').forEach(function (el) {
+            el.classList.remove('selected');
+        });
+        document.querySelectorAll('.pay-detail').forEach(function (el) {
+            el.style.display = 'none';
+        });
+        document.getElementById('btn-s4').disabled = true;
+    }
+
+    function selectPayment(method) {
+        pagamento = method;
+        document.querySelectorAll('.payment-option').forEach(function (el) {
+            el.classList.remove('selected');
+        });
+        document.getElementById('pay-' + method).classList.add('selected');
+        document.querySelectorAll('.pay-detail').forEach(function (el) {
+            el.style.display = 'none';
+        });
+        document.getElementById('det-' + method).style.display = 'block';
+        var btn = document.getElementById('btn-s4');
+        if (method === 'cartao') btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Pagar com Cartao';
+        else if (method === 'applepay') btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>Pagar com Apple Pay';
+        else btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar e Registar Oferta';
+        btn.disabled = false;
+    }
+
+    function toggleBtn(btnId, cbId) {
+        document.getElementById(btnId).disabled = !document.getElementById(cbId).checked;
+    }
+
+    function submitOferta() {
+        var btn = document.getElementById('btn-s4');
+        btn.disabled = true;
+        btn.textContent = 'A registar...';
+        var today = new Date().toISOString().split('T')[0];
+        var total = calcTotal();
+        var ref = 'ZL' + Date.now().toString(36).toUpperCase();
+        var nome = document.getElementById('f-nome').value || authUser.nome || '';
+        var nif = document.getElementById('f-nif').value || '';
+        var tel = document.getElementById('f-telefone').value || '';
+        var morada = document.getElementById('f-morada').value || '';
+        var cidade = document.getElementById('f-cidade').value || 'Lisboa';
+        var cp = document.getElementById('f-cp').value || '';
+        var pais = document.getElementById('f-pais').value || 'Portugal';
+        var email = document.getElementById('f-email').value || authUser.email || '';
+        var tiposAtivos = TIPOS.filter(function (t) {
+            return (valores[t.key] || 0) > 0;
+        });
+        var dizimoIdsGravados = [];
+        var crIdsGravados = [];
+
+        if (SB_URL && SB_KEY && (nif || tel || morada)) {
+            var patch = {};
+            if (nif) patch.nif = nif;
+            if (tel) patch.telefone = tel;
+            if (morada) patch.morada = morada;
+            if (cidade) patch.cidade = cidade;
+            if (cp) patch.codigo_postal = cp;
+            if (pais) patch.pais = pais;
+            sbReq('membros?id=eq.' + (membroId || authUser.id), 'PATCH', patch).catch(function (e) {
+                console.warn('Patch membro:', e.message);
+            });
         }
 
-        var chain=Promise.resolve();
-        tiposAtivos.forEach(function(t){
-            chain=chain.then(function(){
-                var v=valores[t.key]; var obsEl=document.getElementById('obs-'+t.key); var obsVal=obsEl?(obsEl.value.trim()||null):null;
-                if(!SB_URL||!SB_KEY) return Promise.resolve();
-                var mid=membroId||authUser.id;
-                return sbReq('dizimos','POST',{ membro_id:mid,membro_nome:nome,data_oferta:today,tipo_oferta:t.key,valor:v,observacoes:obsVal,forma_pagamento:pagamento,status:'pendente',referencia:ref })
-                    .then(function(dzRows){
-                        return sbReq('contas_receber','POST',{ tipo:'dizimo',membro_id:mid,membro_nome:nome,descricao:t.label+' — '+nome,referencia:ref,valor_total:v,valor_recebido:0,data_emissao:today,data_vencimento:today,forma_pagamento:pagamento,status:'pendente',observacoes:obsVal })
-                            .then(function(crRows){
-                                if(dzRows&&crRows&&dzRows[0]&&crRows[0]){
-                                    dizimoIdsGravados.push(dzRows[0].id); crIdsGravados.push(crRows[0].id);
-                                    return sbReq('dizimos?id=eq.'+dzRows[0].id,'PATCH',{ contas_receber_id:crRows[0].id }).catch(function(){});
+        var chain = Promise.resolve();
+        tiposAtivos.forEach(function (t) {
+            chain = chain.then(function () {
+                var v = valores[t.key];
+                var obsEl = document.getElementById('obs-' + t.key);
+                var obsVal = obsEl ? (obsEl.value.trim() || null) : null;
+                if (!SB_URL || !SB_KEY) return Promise.resolve();
+                var mid = membroId || authUser.id;
+                return sbReq('dizimos', 'POST', {
+                    membro_id: mid,
+                    membro_nome: nome,
+                    data_oferta: today,
+                    tipo_oferta: t.key,
+                    valor: v,
+                    observacoes: obsVal,
+                    forma_pagamento: pagamento,
+                    status: 'pendente',
+                    referencia: ref
+                })
+                    .then(function (dzRows) {
+                        return sbReq('contas_receber', 'POST', {
+                            tipo: 'dizimo',
+                            membro_id: mid,
+                            membro_nome: nome,
+                            descricao: t.label + ' — ' + nome,
+                            referencia: ref,
+                            valor_total: v,
+                            valor_recebido: 0,
+                            data_emissao: today,
+                            data_vencimento: today,
+                            forma_pagamento: pagamento,
+                            status: 'pendente',
+                            observacoes: obsVal
+                        })
+                            .then(function (crRows) {
+                                if (dzRows && crRows && dzRows[0] && crRows[0]) {
+                                    dizimoIdsGravados.push(dzRows[0].id);
+                                    crIdsGravados.push(crRows[0].id);
+                                    return sbReq('dizimos?id=eq.' + dzRows[0].id, 'PATCH', {contas_receber_id: crRows[0].id}).catch(function () {
+                                    });
                                 }
                             });
-                    }).catch(function(e){ console.error('Erro insert '+t.key+':',e.message); });
+                    }).catch(function (e) {
+                        console.error('Erro insert ' + t.key + ':', e.message);
+                    });
             });
         });
 
-        chain.then(function(){
-            document.getElementById('success-ref').textContent='REF: '+ref;
-            var sh='<div class="dz-card" style="padding:12px;margin-bottom:0">';
-            tiposAtivos.forEach(function(t){ sh+='<div class="sum-row"><div class="sum-type"><div class="sum-icon">'+t.svg+'</div>'+t.label+'</div><div class="sum-amount">€'+fmtEuro(valores[t.key])+'</div></div>'; });
-            sh+='<div class="sum-total-row"><div class="sum-total-label">Total</div><div class="sum-total-val">€'+fmtEuro(total)+'</div></div></div>';
-            document.getElementById('success-summary').innerHTML=sh;
+        chain.then(function () {
+            document.getElementById('success-ref').textContent = 'REF: ' + ref;
+            var sh = '<div class="dz-card" style="padding:12px;margin-bottom:0">';
+            tiposAtivos.forEach(function (t) {
+                sh += '<div class="sum-row"><div class="sum-type"><div class="sum-icon">' + t.svg + '</div>' + t.label + '</div><div class="sum-amount">€' + fmtEuro(valores[t.key]) + '</div></div>';
+            });
+            sh += '<div class="sum-total-row"><div class="sum-total-label">Total</div><div class="sum-total-val">€' + fmtEuro(total) + '</div></div></div>';
+            document.getElementById('success-summary').innerHTML = sh;
 
-            if(pagamento==='mbway'){
-                btn.disabled=false; btn.textContent='Confirmar e Registar Oferta';
-                mbwayIniciar(total,ref,dizimoIdsGravados,crIdsGravados)
-                    .then(function(data){
-                        if(data.referencia&&dizimoIdsGravados.length>0) sbReq('dizimos?id=in.('+dizimoIdsGravados.join(',')+')', 'PATCH',{ eupago_referencia:data.referencia,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
-                        if(data.referencia&&crIdsGravados.length>0) sbReq('contas_receber?id=in.('+crIdsGravados.join(',')+')', 'PATCH',{ referencia_eupago:data.referencia,status:'aguarda_pagamento' }).catch(function(){});
-                        showToast('Notificacao MB WAY enviada!','ok');
-                    }).catch(function(e){ showToast(e.message||'Erro ao enviar MB WAY','error'); });
+            if (pagamento === 'mbway') {
+                btn.disabled = false;
+                btn.textContent = 'Confirmar e Registar Oferta';
+                mbwayIniciar(total, ref, dizimoIdsGravados, crIdsGravados)
+                    .then(function (data) {
+                        if (data.referencia && dizimoIdsGravados.length > 0) sbReq('dizimos?id=in.(' + dizimoIdsGravados.join(',') + ')', 'PATCH', {
+                            eupago_referencia: data.referencia,
+                            eupago_id_transacao: data.id_transacao,
+                            status: 'aguarda_pagamento'
+                        }).catch(function () {
+                        });
+                        if (data.referencia && crIdsGravados.length > 0) sbReq('contas_receber?id=in.(' + crIdsGravados.join(',') + ')', 'PATCH', {
+                            referencia_eupago: data.referencia,
+                            status: 'aguarda_pagamento'
+                        }).catch(function () {
+                        });
+                        showToast('Notificacao MB WAY enviada!', 'ok');
+                    }).catch(function (e) {
+                    showToast(e.message || 'Erro ao enviar MB WAY', 'error');
+                });
                 return;
             }
-            if(pagamento==='cartao'||pagamento==='applepay'||pagamento==='multibanco'){
-                btn.disabled=false;
-                if(pagamento==='multibanco') btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Gerar Referencia Multibanco';
-                else btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar e Registar Oferta';
-                urlPagamentoIniciar(pagamento,total,ref,email,tel,dizimoIdsGravados,crIdsGravados);
+            if (pagamento === 'cartao' || pagamento === 'applepay' || pagamento === 'multibanco') {
+                btn.disabled = false;
+                if (pagamento === 'multibanco') btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Gerar Referencia Multibanco';
+                else btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>Confirmar e Registar Oferta';
+                urlPagamentoIniciar(pagamento, total, ref, email, tel, dizimoIdsGravados, crIdsGravados);
                 return;
             }
-            goToStep(5); showToast('Oferta registada com sucesso!','ok');
-        }).catch(function(e){
-            showToast('Erro ao registar. Tente novamente.','error');
-            btn.disabled=false; btn.textContent='Confirmar e Registar Oferta';
-            console.error('Submit error:',e);
+            goToStep(5);
+            showToast('Oferta registada com sucesso!', 'ok');
+        }).catch(function (e) {
+            showToast('Erro ao registar. Tente novamente.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Confirmar e Registar Oferta';
+            console.error('Submit error:', e);
         });
     }
 
-    function resetWizard(){
-        valores={}; pagamento=null; if(urlPayPollTimer){ clearInterval(urlPayPollTimer); urlPayPollTimer=null; }
-        document.querySelectorAll('.oferta-input').forEach(function(el){ el.value=''; });
-        document.querySelectorAll('.oferta-obs').forEach(function(el){ el.value=''; el.style.display='none'; });
-        document.getElementById('total-bar').style.display='none';
+    function resetWizard() {
+        valores = {};
+        pagamento = null;
+        if (urlPayPollTimer) {
+            clearInterval(urlPayPollTimer);
+            urlPayPollTimer = null;
+        }
+        document.querySelectorAll('.oferta-input').forEach(function (el) {
+            el.value = '';
+        });
+        document.querySelectorAll('.oferta-obs').forEach(function (el) {
+            el.value = '';
+            el.style.display = 'none';
+        });
+        document.getElementById('total-bar').style.display = 'none';
         goToStep(1);
     }
 
     // ─── URL PAGAMENTO (Cartao / Apple Pay) ───────────────────────
-    var urlPayPollTimer=null; var urlPayDizimoIds=[]; var urlPayCrIds=[]; var urlPayReferencia=null;
+    var urlPayPollTimer = null;
+    var urlPayDizimoIds = [];
+    var urlPayCrIds = [];
+    var urlPayReferencia = null;
 
-    function urlPagamentoIniciar(tipo,totalValor,referencia,email,tel,dizimoIds,crIds){
-        urlPayDizimoIds=dizimoIds||[]; urlPayCrIds=crIds||[]; urlPayReferencia=referencia;
-        var uiMap={'cartao':'det-cartao-ui','applepay':'det-applepay-ui','multibanco':'det-multibanco-ui'};
-        var uiId=uiMap[tipo]||'det-cartao-ui';
-        document.getElementById(uiId).innerHTML='<div class="dz-loader"><div class="dz-loader-ring"></div></div><p style="text-align:center;font-size:11px;color:var(--text-faint);margin-top:4px">A preparar pagamento seguro...</p>';
-        var fnUrl=SB_URL.split('/rest')[0]+'/functions/v1/eupago-url-pagamento';
-        fetch(fnUrl,{
-            method:'POST',
-            headers:{'Content-Type':'application/json','apikey':SB_KEY},
-            body:JSON.stringify({ tipo:tipo,valor:totalValor.toFixed(2),referencia:referencia,email:email||'',telefone:tel||'',descricao:'Oferta Zion Lisboa',dizimo_ids:urlPayDizimoIds,contas_receber_ids:urlPayCrIds })
+    function urlPagamentoIniciar(tipo, totalValor, referencia, email, tel, dizimoIds, crIds) {
+        urlPayDizimoIds = dizimoIds || [];
+        urlPayCrIds = crIds || [];
+        urlPayReferencia = referencia;
+        var uiMap = {'cartao': 'det-cartao-ui', 'applepay': 'det-applepay-ui', 'multibanco': 'det-multibanco-ui'};
+        var uiId = uiMap[tipo] || 'det-cartao-ui';
+        document.getElementById(uiId).innerHTML = '<div class="dz-loader"><div class="dz-loader-ring"></div></div><p style="text-align:center;font-size:11px;color:var(--text-faint);margin-top:4px">A preparar pagamento seguro...</p>';
+        var fnUrl = SB_URL.split('/rest')[0] + '/functions/v1/eupago-url-pagamento';
+        fetch(fnUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'apikey': SB_KEY},
+            body: JSON.stringify({
+                tipo: tipo,
+                valor: totalValor.toFixed(2),
+                referencia: referencia,
+                email: email || '',
+                telefone: tel || '',
+                descricao: 'Oferta Zion Lisboa',
+                dizimo_ids: urlPayDizimoIds,
+                contas_receber_ids: urlPayCrIds
+            })
         })
-            .then(function(r){ return r.json(); })
-            .then(function(data){
-                if(!data.success) throw new Error(data.error||'Erro ao gerar pagamento');
-                if(tipo!=='multibanco'&&!data.paymentUrl) throw new Error('Sem URL de pagamento');
-                var refEupago=data.referencia||referencia; urlPayReferencia=refEupago;
-                if(urlPayDizimoIds.length>0) sbReq('dizimos?id=in.('+urlPayDizimoIds.join(',')+')', 'PATCH',{ eupago_referencia:refEupago,eupago_id_transacao:data.id_transacao,status:'aguarda_pagamento' }).catch(function(){});
-                if(urlPayCrIds.length>0) sbReq('contas_receber?id=in.('+urlPayCrIds.join(',')+')', 'PATCH',{ referencia_eupago:refEupago,status:'aguarda_pagamento' }).catch(function(){});
-                var uiEl=document.getElementById(uiId);
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (!data.success) throw new Error(data.error || 'Erro ao gerar pagamento');
+                if (tipo !== 'multibanco' && !data.paymentUrl) throw new Error('Sem URL de pagamento');
+                var refEupago = data.referencia || referencia;
+                urlPayReferencia = refEupago;
+                if (urlPayDizimoIds.length > 0) sbReq('dizimos?id=in.(' + urlPayDizimoIds.join(',') + ')', 'PATCH', {
+                    eupago_referencia: refEupago,
+                    eupago_id_transacao: data.id_transacao,
+                    status: 'aguarda_pagamento'
+                }).catch(function () {
+                });
+                if (urlPayCrIds.length > 0) sbReq('contas_receber?id=in.(' + urlPayCrIds.join(',') + ')', 'PATCH', {
+                    referencia_eupago: refEupago,
+                    status: 'aguarda_pagamento'
+                }).catch(function () {
+                });
+                var uiEl = document.getElementById(uiId);
                 // Cartao/ApplePay: abre automaticamente (sem precisar de 2º clique)
-                if(tipo!=='multibanco' && data.paymentUrl){
-                    window.open(data.paymentUrl,'_blank');
+                if (tipo !== 'multibanco' && data.paymentUrl) {
+                    window.open(data.paymentUrl, '_blank');
                 }
-                if(tipo==='multibanco'){
+                if (tipo === 'multibanco') {
                     // Mostrar Entidade + Referencia ATM
-                    var ent=data.entidade||'--'; var ref=data.referencia||'--';
-                    uiEl.innerHTML='<div class="mb-ref-card">'+
-                        '<div class="mb-ref-row"><span class="mb-ref-label">Entidade</span><span class="mb-ref-value">'+ent+'</span></div>'+
-                        '<div class="mb-ref-row"><span class="mb-ref-label">Referencia</span><span class="mb-ref-value mb-ref-big">'+ref+'</span></div>'+
-                        '<div class="mb-ref-row"><span class="mb-ref-label">Valor</span><span class="mb-ref-value">'+totalValor.toFixed(2)+' €</span></div>'+
-                        '<p class="mb-ref-hint">Paga no Multibanco ou Homebanking.<br>Esta pagina actualiza automaticamente quando o pagamento for confirmado.</p>'+
+                    var ent = data.entidade || '--';
+                    var ref = data.referencia || '--';
+                    uiEl.innerHTML = '<div class="mb-ref-card">' +
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Entidade</span><span class="mb-ref-value">' + ent + '</span></div>' +
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Referencia</span><span class="mb-ref-value mb-ref-big">' + ref + '</span></div>' +
+                        '<div class="mb-ref-row"><span class="mb-ref-label">Valor</span><span class="mb-ref-value">' + totalValor.toFixed(2) + ' €</span></div>' +
+                        '<p class="mb-ref-hint">Paga no Multibanco ou Homebanking.<br>Esta pagina actualiza automaticamente quando o pagamento for confirmado.</p>' +
                         '</div>';
                 } else {
-                    var label=tipo==='cartao'?'Pagar com Cartao':'Pagar com Apple Pay';
-                    uiEl.innerHTML='<div style="text-align:center;padding:8px 0"><a class="pay-open-btn" href="'+data.paymentUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+label+'</a><div class="url-pay-poll" style="margin-top:12px"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
+                    var label = tipo === 'cartao' ? 'Pagar com Cartao' : 'Pagar com Apple Pay';
+                    uiEl.innerHTML = '<div style="text-align:center;padding:8px 0"><a class="pay-open-btn" href="' + data.paymentUrl + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' + label + '</a><div class="url-pay-poll" style="margin-top:12px"><div class="url-pay-poll-ring"></div><div class="url-pay-msg">A aguardar confirmacao...<br><small style="color:var(--text-faint);font-size:10px">Esta pagina actualiza automaticamente</small></div></div></div>';
                 }
-                if(urlPayPollTimer) clearInterval(urlPayPollTimer);
-                urlPayPollTimer=setInterval(function(){ urlPayVerificarEstado(refEupago); },5000);
-                showToast('Pagina de pagamento aberta!','ok');
-            }).catch(function(e){
-            document.getElementById(uiId).innerHTML='<p style="color:#c0392b;font-size:12px;text-align:center">'+(e.message||'Erro ao preparar pagamento')+'</p>';
-            showToast(e.message||'Erro ao preparar pagamento','error');
+                if (urlPayPollTimer) clearInterval(urlPayPollTimer);
+                urlPayPollTimer = setInterval(function () {
+                    urlPayVerificarEstado(refEupago);
+                }, 5000);
+                showToast('Pagina de pagamento aberta!', 'ok');
+            }).catch(function (e) {
+            document.getElementById(uiId).innerHTML = '<p style="color:#c0392b;font-size:12px;text-align:center">' + (e.message || 'Erro ao preparar pagamento') + '</p>';
+            showToast(e.message || 'Erro ao preparar pagamento', 'error');
         });
     }
 
-    function urlPayVerificarEstado(refEupago){
-        if(!refEupago||!SB_URL||!SB_KEY) return;
-        sbReq('dizimos?select=status&eupago_referencia=eq.'+refEupago+'&limit=1','GET').then(function(rows){
-            if(!rows||!rows.length) return;
-            var st=rows[0].status;
-            if(st==='confirmado'){ clearInterval(urlPayPollTimer); urlPayPollTimer=null; showToast('Pagamento confirmado!','ok'); setTimeout(function(){ goToStep(5); },1000); }
-            else if(st==='cancelado'){ clearInterval(urlPayPollTimer); urlPayPollTimer=null; showToast('Pagamento cancelado ou recusado.','error'); }
-        }).catch(function(){});
+    function urlPayVerificarEstado(refEupago) {
+        if (!refEupago || !SB_URL || !SB_KEY) return;
+        sbReq('dizimos?select=status&eupago_referencia=eq.' + refEupago + '&limit=1', 'GET').then(function (rows) {
+            if (!rows || !rows.length) return;
+            var st = rows[0].status;
+            if (st === 'confirmado') {
+                clearInterval(urlPayPollTimer);
+                urlPayPollTimer = null;
+                showToast('Pagamento confirmado!', 'ok');
+                setTimeout(function () {
+                    goToStep(5);
+                }, 1000);
+            } else if (st === 'cancelado') {
+                clearInterval(urlPayPollTimer);
+                urlPayPollTimer = null;
+                showToast('Pagamento cancelado ou recusado.', 'error');
+            }
+        }).catch(function () {
+        });
     }
 
     // ─── TABS ─────────────────────────────────────────────────────
-    function switchTab(tab){
-        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-        document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
-        document.getElementById('tab-'+tab).classList.add('active');
-        document.getElementById('panel-'+tab).classList.add('active');
-        if(tab==='historico') loadHistorico();
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(function (b) {
+            b.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-panel').forEach(function (p) {
+            p.classList.remove('active');
+        });
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('panel-' + tab).classList.add('active');
+        if (tab === 'historico') loadHistorico();
     }
 
     // ─── HISTORICO ────────────────────────────────────────────────
-    function loadHistorico(){
-        var ano=document.getElementById('filter-ano').value; var mes=document.getElementById('filter-mes').value; var tipo=document.getElementById('filter-tipo').value;
-        document.getElementById('hist-content').innerHTML='<div class="dz-loader"><div class="dz-loader-ring"></div></div>';
-        if(!SB_URL||!SB_KEY){ document.getElementById('hist-content').innerHTML='<div class="empty-state"><div class="empty-label">Supabase nao configurado</div></div>'; return; }
-        function _run(){
-            var mid=membroId||authUser.id;
-            var qs='dizimos?select=*&membro_id=eq.'+mid+'&order=data_oferta.desc';
-            if(ano&&mes){ var ud=new Date(parseInt(ano),parseInt(mes),0).getDate(); var uds=String(ud).padStart(2,'0'); qs+='&data_oferta=gte.'+ano+'-'+mes+'-01&data_oferta=lte.'+ano+'-'+mes+'-'+uds; }
-            else if(ano) qs+='&data_oferta=gte.'+ano+'-01-01&data_oferta=lte.'+ano+'-12-31';
-            if(tipo) qs+='&tipo_oferta=eq.'+tipo;
-            sbReq(qs,'GET').then(function(data){
-                if(!data) data=[];
-                var now=new Date(); var anoAtual=now.getFullYear().toString(); var mesAtual=anoAtual+'-'+String(now.getMonth()+1).padStart(2,'0');
-                var totP=0,totM=0,totA=0;
-                data.forEach(function(d){ var v=parseFloat(d.valor||0); totP+=v; if((d.data_oferta||'').startsWith(mesAtual)) totM+=v; if((d.data_oferta||'').startsWith(anoAtual)) totA+=v; });
-                document.getElementById('stat-periodo').textContent='€'+fmtEuro(totP);
-                document.getElementById('stat-mes').textContent='€'+fmtEuro(totM);
-                document.getElementById('stat-ano').textContent='€'+fmtEuro(totA);
-                if(!data.length){ document.getElementById('hist-content').innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="empty-label">Nenhuma oferta encontrada</div></div>'; return; }
-                var byMonth={};
-                data.forEach(function(d){ var m=(d.data_oferta||'sem-data').substring(0,7); if(!byMonth[m]) byMonth[m]=[]; byMonth[m].push(d); });
-                var html='';
-                Object.keys(byMonth).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(month){
-                    var items=byMonth[month]; var mTot=0; items.forEach(function(d){ mTot+=parseFloat(d.valor||0); });
-                    var parts=month.split('-'); var mLabel=parts[1]?MES_NOME[parseInt(parts[1])]+' '+parts[0]:month;
-                    html+='<div class="hist-month-header"><div class="hist-month-title">'+mLabel+'</div><div class="hist-month-total">€'+fmtEuro(mTot)+'</div></div>';
-                    items.forEach(function(d){
-                        var ti=TIPOS.filter(function(t){ return t.key===d.tipo_oferta; })[0]||{svg:TIPOS[0].svg,label:d.tipo_oferta};
-                        var dStr=d.data_oferta?new Date(d.data_oferta+'T12:00:00').toLocaleDateString('pt-PT'):'—';
-                        var sCls=d.status==='confirmado'?'st-confirmado':'st-pendente';
-                        var sLbl=d.status==='confirmado'?'Confirmado':d.status==='cancelado'?'Cancelado':'Pendente';
-                        var obs=d.observacoes?'<div class="hist-item-obs">"'+d.observacoes+'"</div>':'';
-                        var forma=FORMA_LABEL[d.forma_pagamento]||d.forma_pagamento||'—';
-                        html+='<div class="hist-item"><div class="hist-item-icon">'+ti.svg+'</div><div style="flex:1;min-width:0"><div class="hist-item-name">'+ti.label+'</div><div class="hist-item-date">'+dStr+' · '+forma+'</div>'+obs+'</div><div><div class="hist-item-amount">€'+fmtEuro(d.valor)+'</div><div class="hist-item-status '+sCls+'">'+sLbl+'</div></div></div>';
+    function loadHistorico() {
+        var ano = document.getElementById('filter-ano').value;
+        var mes = document.getElementById('filter-mes').value;
+        var tipo = document.getElementById('filter-tipo').value;
+        document.getElementById('hist-content').innerHTML = '<div class="dz-loader"><div class="dz-loader-ring"></div></div>';
+        if (!SB_URL || !SB_KEY) {
+            document.getElementById('hist-content').innerHTML = '<div class="empty-state"><div class="empty-label">Supabase nao configurado</div></div>';
+            return;
+        }
+
+        function _run() {
+            var mid = membroId || authUser.id;
+            var qs = 'dizimos?select=*&membro_id=eq.' + mid + '&order=data_oferta.desc';
+            if (ano && mes) {
+                var ud = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+                var uds = String(ud).padStart(2, '0');
+                qs += '&data_oferta=gte.' + ano + '-' + mes + '-01&data_oferta=lte.' + ano + '-' + mes + '-' + uds;
+            } else if (ano) qs += '&data_oferta=gte.' + ano + '-01-01&data_oferta=lte.' + ano + '-12-31';
+            if (tipo) qs += '&tipo_oferta=eq.' + tipo;
+            sbReq(qs, 'GET').then(function (data) {
+                if (!data) data = [];
+                var now = new Date();
+                var anoAtual = now.getFullYear().toString();
+                var mesAtual = anoAtual + '-' + String(now.getMonth() + 1).padStart(2, '0');
+                var totP = 0, totM = 0, totA = 0;
+                data.forEach(function (d) {
+                    var v = parseFloat(d.valor || 0);
+                    totP += v;
+                    if ((d.data_oferta || '').startsWith(mesAtual)) totM += v;
+                    if ((d.data_oferta || '').startsWith(anoAtual)) totA += v;
+                });
+                document.getElementById('stat-periodo').textContent = '€' + fmtEuro(totP);
+                document.getElementById('stat-mes').textContent = '€' + fmtEuro(totM);
+                document.getElementById('stat-ano').textContent = '€' + fmtEuro(totA);
+                if (!data.length) {
+                    document.getElementById('hist-content').innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="empty-label">Nenhuma oferta encontrada</div></div>';
+                    return;
+                }
+                var byMonth = {};
+                data.forEach(function (d) {
+                    var m = (d.data_oferta || 'sem-data').substring(0, 7);
+                    if (!byMonth[m]) byMonth[m] = [];
+                    byMonth[m].push(d);
+                });
+                var html = '';
+                Object.keys(byMonth).sort(function (a, b) {
+                    return b.localeCompare(a);
+                }).forEach(function (month) {
+                    var items = byMonth[month];
+                    var mTot = 0;
+                    items.forEach(function (d) {
+                        mTot += parseFloat(d.valor || 0);
+                    });
+                    var parts = month.split('-');
+                    var mLabel = parts[1] ? MES_NOME[parseInt(parts[1])] + ' ' + parts[0] : month;
+                    html += '<div class="hist-month-header"><div class="hist-month-title">' + mLabel + '</div><div class="hist-month-total">€' + fmtEuro(mTot) + '</div></div>';
+                    items.forEach(function (d) {
+                        var ti = TIPOS.filter(function (t) {
+                            return t.key === d.tipo_oferta;
+                        })[0] || {svg: TIPOS[0].svg, label: d.tipo_oferta};
+                        var dStr = d.data_oferta ? new Date(d.data_oferta + 'T12:00:00').toLocaleDateString('pt-PT') : '—';
+                        var sCls = d.status === 'confirmado' ? 'st-confirmado' : 'st-pendente';
+                        var sLbl = d.status === 'confirmado' ? 'Confirmado' : d.status === 'cancelado' ? 'Cancelado' : 'Pendente';
+                        var obs = d.observacoes ? '<div class="hist-item-obs">"' + d.observacoes + '"</div>' : '';
+                        var forma = FORMA_LABEL[d.forma_pagamento] || d.forma_pagamento || '—';
+                        html += '<div class="hist-item"><div class="hist-item-icon">' + ti.svg + '</div><div style="flex:1;min-width:0"><div class="hist-item-name">' + ti.label + '</div><div class="hist-item-date">' + dStr + ' · ' + forma + '</div>' + obs + '</div><div><div class="hist-item-amount">€' + fmtEuro(d.valor) + '</div><div class="hist-item-status ' + sCls + '">' + sLbl + '</div></div></div>';
                     });
                 });
-                document.getElementById('hist-content').innerHTML=html;
-            }).catch(function(e){ document.getElementById('hist-content').innerHTML='<div class="empty-state"><div class="empty-label">Erro ao carregar historico</div></div>'; });
+                document.getElementById('hist-content').innerHTML = html;
+            }).catch(function (e) {
+                document.getElementById('hist-content').innerHTML = '<div class="empty-state"><div class="empty-label">Erro ao carregar historico</div></div>';
+            });
         }
-        if(membroId){ _run(); } else {
-            sbReq('usuarios?select=membro_id&id=eq.'+authUser.id,'GET').then(function(urows){ if(urows&&urows.length&&urows[0].membro_id) membroId=urows[0].membro_id; _run(); }).catch(function(){ _run(); });
+
+        if (membroId) {
+            _run();
+        } else if (authUser && authUser.email) {
+            sbReq('membros?select=id&email=eq.'
+                + encodeURIComponent(authUser.email.toLowerCase())
+                + '&ativo=eq.true&limit=1', 'GET')
+                .then(function (rows) {
+                    if (rows && rows.length) membroId = rows[0].id;
+                    _run();
+                }).catch(function () { _run(); });
+        } else {
+            _run();
         }
     }
 
     // ─── HELPERS ──────────────────────────────────────────────────
-    function fmtEuro(v){ return parseFloat(v||0).toFixed(2).replace('.',','); }
-    function showToast(msg,type){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast '+(type||''); void t.offsetWidth; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },3400); }
-    function populateYears(){ var sel=document.getElementById('filter-ano'); var opt0=document.createElement('option'); opt0.value=''; opt0.textContent='Todos os anos'; sel.appendChild(opt0); var now=new Date().getFullYear(); for(var y=now;y>=2020;y--){ var opt=document.createElement('option'); opt.value=y; opt.textContent=y; sel.appendChild(opt); } sel.value=now; }
+    function fmtEuro(v) {
+        return parseFloat(v || 0).toFixed(2).replace('.', ',');
+    }
+
+    function showToast(msg, type) {
+        var t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast ' + (type || '');
+        void t.offsetWidth;
+        t.classList.add('show');
+        setTimeout(function () {
+            t.classList.remove('show');
+        }, 3400);
+    }
+
+    function populateYears() {
+        var sel = document.getElementById('filter-ano');
+        var opt0 = document.createElement('option');
+        opt0.value = '';
+        opt0.textContent = 'Todos os anos';
+        sel.appendChild(opt0);
+        var now = new Date().getFullYear();
+        for (var y = now; y >= 2020; y--) {
+            var opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            sel.appendChild(opt);
+        }
+        sel.value = now;
+    }
+
 
     // ─── INIT ─────────────────────────────────────────────────────
-    
-    
-    
+    if (SB_URL && SB_KEY && authUser.email) {
+        sbReq('membros?select=id&email=eq.'
+            + encodeURIComponent(authUser.email.toLowerCase())
+            + '&ativo=eq.true&limit=1', 'GET')
+            .then(function (rows) {
+                if (rows && rows.length) membroId = rows[0].id;
+            }).catch(function () {
+        });
+    }
+
+
     // ─── MBWAY ────────────────────────────────────────────────────
-    var mbwayTimer=null; var mbwayPollTimer=null; var mbwaySegsLeft=240;
-    var mbwayTransacao=null; var mbwayReferencia=null; var mbwayDizimoIds=[]; var mbwayCrIds=[];
+    var mbwayTimer = null;
+    var mbwayPollTimer = null;
+    var mbwaySegsLeft = 240;
+    var mbwayTransacao = null;
+    var mbwayReferencia = null;
+    var mbwayDizimoIds = [];
+    var mbwayCrIds = [];
 
-    function onMbwayTelChange(){ if(mbwayTimer){ clearInterval(mbwayTimer); mbwayTimer=null; } if(mbwayPollTimer){ clearInterval(mbwayPollTimer); mbwayPollTimer=null; } document.getElementById('mbway-status-wrap').style.display='none'; mbwayTransacao=null; }
-
-    function mbwayIniciar(totalValor,referencia,dizimoIds,crIds){
-        var tel=(document.getElementById('f-mbway').value||'').trim();
-        if(!tel) return Promise.reject(new Error('Indique o numero MB WAY'));
-        mbwayDizimoIds=dizimoIds||[]; mbwayCrIds=crIds||[];
-        var fnUrl=SB_URL.split('/rest')[0]+'/functions/v1/mbway-iniciar';
-        return fetch(fnUrl,{ method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY}, body:JSON.stringify({ telemovel:tel,valor:totalValor.toFixed(2),referencia:referencia,descricao:'Oferta Zion Lisboa',email:authUser.email||'',dizimo_ids:mbwayDizimoIds,contas_receber_ids:mbwayCrIds }) })
-            .then(function(r){ return r.json(); }).then(function(data){ if(!data.success) throw new Error(data.error||'Erro MB WAY'); mbwayTransacao=data.id_transacao; mbwayReferencia=data.referencia; mbwayIniciarCountdown(); return data; });
+    function onMbwayTelChange() {
+        if (mbwayTimer) {
+            clearInterval(mbwayTimer);
+            mbwayTimer = null;
+        }
+        if (mbwayPollTimer) {
+            clearInterval(mbwayPollTimer);
+            mbwayPollTimer = null;
+        }
+        document.getElementById('mbway-status-wrap').style.display = 'none';
+        mbwayTransacao = null;
     }
 
-    function mbwayIniciarCountdown(){
-        mbwaySegsLeft=240;
-        document.getElementById('mbway-status-wrap').style.display='block';
-        document.getElementById('mbway-reenviar-btn').style.display='none';
-        document.getElementById('mbway-estado-msg').textContent='Verifique a notificacao na app MB WAY e confirme o pagamento.';
+    function mbwayIniciar(totalValor, referencia, dizimoIds, crIds) {
+        var tel = (document.getElementById('f-mbway').value || '').trim();
+        if (!tel) return Promise.reject(new Error('Indique o numero MB WAY'));
+        mbwayDizimoIds = dizimoIds || [];
+        mbwayCrIds = crIds || [];
+        var fnUrl = SB_URL.split('/rest')[0] + '/functions/v1/mbway-iniciar';
+        return fetch(fnUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'apikey': SB_KEY},
+            body: JSON.stringify({
+                telemovel: tel,
+                valor: totalValor.toFixed(2),
+                referencia: referencia,
+                descricao: 'Oferta Zion Lisboa',
+                email: authUser.email || '',
+                dizimo_ids: mbwayDizimoIds,
+                contas_receber_ids: mbwayCrIds
+            })
+        })
+            .then(function (r) {
+                return r.json();
+            }).then(function (data) {
+                if (!data.success) throw new Error(data.error || 'Erro MB WAY');
+                mbwayTransacao = data.id_transacao;
+                mbwayReferencia = data.referencia;
+                mbwayIniciarCountdown();
+                return data;
+            });
+    }
+
+    function mbwayIniciarCountdown() {
+        mbwaySegsLeft = 240;
+        document.getElementById('mbway-status-wrap').style.display = 'block';
+        document.getElementById('mbway-reenviar-btn').style.display = 'none';
+        document.getElementById('mbway-estado-msg').textContent = 'Verifique a notificacao na app MB WAY e confirme o pagamento.';
         mbwayRenderCountdown();
-        if(mbwayTimer) clearInterval(mbwayTimer);
-        mbwayTimer=setInterval(function(){
-            mbwaySegsLeft--; mbwayRenderCountdown();
-            if(mbwaySegsLeft<=0){ clearInterval(mbwayTimer); mbwayTimer=null; clearInterval(mbwayPollTimer); mbwayPollTimer=null; document.getElementById('mbway-estado-msg').textContent='Tempo expirado. Reenvie a notificacao.'; document.getElementById('mbway-reenviar-btn').style.display='block'; }
-        },1000);
-        if(mbwayPollTimer) clearInterval(mbwayPollTimer);
-        mbwayPollTimer=setInterval(mbwayPollEstado,5000);
+        if (mbwayTimer) clearInterval(mbwayTimer);
+        mbwayTimer = setInterval(function () {
+            mbwaySegsLeft--;
+            mbwayRenderCountdown();
+            if (mbwaySegsLeft <= 0) {
+                clearInterval(mbwayTimer);
+                mbwayTimer = null;
+                clearInterval(mbwayPollTimer);
+                mbwayPollTimer = null;
+                document.getElementById('mbway-estado-msg').textContent = 'Tempo expirado. Reenvie a notificacao.';
+                document.getElementById('mbway-reenviar-btn').style.display = 'block';
+            }
+        }, 1000);
+        if (mbwayPollTimer) clearInterval(mbwayPollTimer);
+        mbwayPollTimer = setInterval(mbwayPollEstado, 5000);
     }
-    function mbwayRenderCountdown(){ var m=Math.floor(mbwaySegsLeft/60); var s=mbwaySegsLeft%60; var pct=(mbwaySegsLeft/240)*100; document.getElementById('mbway-countdown').textContent=m+':'+(s<10?'0':'')+s; document.getElementById('mbway-progress').style.width=pct+'%'; }
-    function mbwayPollEstado(){
-        if(!mbwayTransacao||!SB_URL||!SB_KEY) return;
-        var pollRef=mbwayReferencia||mbwayTransacao;
-        sbReq('dizimos?select=status&eupago_referencia=eq.'+pollRef+'&limit=1','GET').then(function(rows){
-            if(!rows||!rows.length) return; var st=rows[0].status;
-            if(st==='confirmado'){ clearInterval(mbwayTimer); clearInterval(mbwayPollTimer); mbwayTimer=mbwayPollTimer=null; document.getElementById('mbway-countdown').textContent=''; document.getElementById('mbway-progress').style.width='100%'; document.getElementById('mbway-progress').style.background='#27ae60'; document.getElementById('mbway-estado-msg').textContent='Pagamento confirmado!'; document.getElementById('mbway-estado-msg').style.color='#27ae60'; setTimeout(function(){ goToStep(5); },1200); }
-            else if(st==='cancelado'){ clearInterval(mbwayTimer); clearInterval(mbwayPollTimer); mbwayTimer=mbwayPollTimer=null; document.getElementById('mbway-estado-msg').textContent='Pagamento recusado ou cancelado.'; document.getElementById('mbway-estado-msg').style.color='#c0392b'; document.getElementById('mbway-reenviar-btn').style.display='block'; }
-        }).catch(function(){});
+
+    function mbwayRenderCountdown() {
+        var m = Math.floor(mbwaySegsLeft / 60);
+        var s = mbwaySegsLeft % 60;
+        var pct = (mbwaySegsLeft / 240) * 100;
+        document.getElementById('mbway-countdown').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        document.getElementById('mbway-progress').style.width = pct + '%';
     }
-    function mbwayReenviar(){ var tel=(document.getElementById('f-mbway').value||'').trim(); if(!tel){ showToast('Indique o numero MB WAY','error'); return; } document.getElementById('mbway-reenviar-btn').style.display='none'; mbwayIniciar(calcTotal(),'ZL'+Date.now().toString(36).toUpperCase(),mbwayDizimoIds,mbwayCrIds).catch(function(e){ showToast(e.message,'error'); }); }
+
+    function mbwayPollEstado() {
+        if (!mbwayTransacao || !SB_URL || !SB_KEY) return;
+        var pollRef = mbwayReferencia || mbwayTransacao;
+        sbReq('dizimos?select=status&eupago_referencia=eq.' + pollRef + '&limit=1', 'GET').then(function (rows) {
+            if (!rows || !rows.length) return;
+            var st = rows[0].status;
+            if (st === 'confirmado') {
+                clearInterval(mbwayTimer);
+                clearInterval(mbwayPollTimer);
+                mbwayTimer = mbwayPollTimer = null;
+                document.getElementById('mbway-countdown').textContent = '';
+                document.getElementById('mbway-progress').style.width = '100%';
+                document.getElementById('mbway-progress').style.background = '#27ae60';
+                document.getElementById('mbway-estado-msg').textContent = 'Pagamento confirmado!';
+                document.getElementById('mbway-estado-msg').style.color = '#27ae60';
+                setTimeout(function () {
+                    goToStep(5);
+                }, 1200);
+            } else if (st === 'cancelado') {
+                clearInterval(mbwayTimer);
+                clearInterval(mbwayPollTimer);
+                mbwayTimer = mbwayPollTimer = null;
+                document.getElementById('mbway-estado-msg').textContent = 'Pagamento recusado ou cancelado.';
+                document.getElementById('mbway-estado-msg').style.color = '#c0392b';
+                document.getElementById('mbway-reenviar-btn').style.display = 'block';
+            }
+        }).catch(function () {
+        });
+    }
+
+    function mbwayReenviar() {
+        var tel = (document.getElementById('f-mbway').value || '').trim();
+        if (!tel) {
+            showToast('Indique o numero MB WAY', 'error');
+            return;
+        }
+        document.getElementById('mbway-reenviar-btn').style.display = 'none';
+        mbwayIniciar(calcTotal(), 'ZL' + Date.now().toString(36).toUpperCase(), mbwayDizimoIds, mbwayCrIds).catch(function (e) {
+            showToast(e.message, 'error');
+        });
+    }
 </script>
 </body>
 </html>

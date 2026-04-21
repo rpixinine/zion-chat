@@ -881,6 +881,11 @@
             return html;
         }
 
+        function getDescendantesIds(lista, id) {
+            const filhos = lista.filter(m => m.parent_id === id).map(m => m.id);
+            return [...filhos, ...filhos.flatMap(fid => getDescendantesIds(lista, fid))];
+        }
+
         /* ══════════════════════════════════════════
            INIT
         ══════════════════════════════════════════ */
@@ -955,7 +960,7 @@
 
                 const todosMinRaw = await sb('ministerios?ativo=eq.true&select=id,nome,parent_id&order=nome').catch(() => []);
                 const minIds = new Set(minsRaw.map(v => v.ministerios?.id).filter(Boolean));
-                vl_ministeriosList = todosMinRaw.filter(m => minIds.has(m.id) || !m.parent_id);
+                vl_ministeriosList = todosMinRaw;
 
                 const idSet = new Set(), nacSet = new Set();
                 vl_ativosCache.forEach(m => {
@@ -1038,10 +1043,7 @@
             if (_vl_min === '__sem__') {
                 lista = lista.filter(m => !m._ministerios.length);
             } else if (_vl_min) {
-                const filhosDoPilar = vl_ministeriosList
-                    .filter(m => m.parent_id === _vl_min)
-                    .map(m => m.id);
-                const idsAlvo = [_vl_min, ...filhosDoPilar];
+                const idsAlvo = [_vl_min, ...getDescendantesIds(vl_ministeriosList, _vl_min)];
                 lista = lista.filter(m => m._ministerios.some(mn => idsAlvo.includes(mn.id)));
             }
 
@@ -1790,7 +1792,7 @@
 
             const todosInsMin = await sb('ministerios?ativo=eq.true&select=id,nome,parent_id&order=nome').catch(() => []);
             const minIds = new Set(inscricoes.flatMap(i => i._areas?.map(a => a.ministerios?.id)).filter(Boolean));
-            _ins_todos_ministerios = todosInsMin.filter(m => minIds.has(m.id) || !m.parent_id);
+            _ins_todos_ministerios = todosInsMin;
 
             const campOpts = campanhas.map(c => `<option value="${c.id}" ${vl_campFiltro === c.id ? 'selected' : ''}>${c.nome} (${c.status})</option>`).join('');
             const pendentes = inscricoes.filter(i => i.status === 'pendente').length;
@@ -1850,7 +1852,10 @@
                     return ordens.some(ord => {
                         const a = i._areas.find(x => x.ordem === ord);
                         if (!a) return false;
-                        if (_ins_min && a.ministerio_id !== _ins_min) return false;
+                        if (_ins_min) {
+                            const idsAlvo = [_ins_min, ...getDescendantesIds(_ins_todos_ministerios, _ins_min)];
+                            if (!idsAlvo.includes(a.ministerio_id)) return false;
+                        }
                         return true;
                     });
                 });

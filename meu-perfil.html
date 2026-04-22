@@ -494,9 +494,29 @@
         <div class="form-section">Cursos ZAO</div>
         <div class="form-group">
             <div id="cursos-lista-edit"></div>
-            <div class="add-row" style="margin-top:8px">
-                <select class="form-select" id="curso-sel-edit" style="font-size:13px;flex:1"><option value="">Seleciona curso...</option></select>
-                <button class="btn-inline" onclick="pAddCurso('edit')">Adicionar</button>
+            <!-- Substitui o add-row de cursos -->
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+                <div class="add-row">
+                    <select class="form-select" id="curso-sel-edit" style="font-size:13px;flex:1">
+                        <option value="">Seleciona curso...</option>
+                    </select>
+                    <select class="form-select" id="curso-status-edit" style="max-width:130px;font-size:13px">
+                        <option value="concluido">Concluído</option>
+                        <option value="cursando">A Cursar</option>
+                        <option value="trancou">Trancado</option>
+                    </select>
+                </div>
+                <div class="add-row">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                        <label class="form-label">Data Início</label>
+                        <input class="form-input" id="curso-data-inicio-edit" type="date" style="padding:10px 12px">
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                        <label class="form-label">Data Conclusão</label>
+                        <input class="form-input" id="curso-data-fim-edit" type="date" style="padding:10px 12px">
+                    </div>
+                    <button class="btn-inline" onclick="pAddCurso('edit')" style="align-self:flex-end">Adicionar</button>
+                </div>
             </div>
         </div>
 
@@ -920,11 +940,31 @@
             } catch { try { const fRows=await sb(`membros?pai_id=eq.${memId}&select=id,nome&ativo=eq.true`); _editFilhos=fRows.map(r=>({relId:null,memId:r.id,nome:r.nome})); } catch {} }
             const matriculas = await sb(`zao_matriculas?membro_id=eq.${memId}&select=concluido_em,zao_turmas(nome,zao_cursos(nome))&status=eq.concluido&order=concluido_em.desc`).catch(()=>[]);
             _editCursos = [...(matriculas||[]).map(mc=>({nome:mc.zao_turmas?.zao_cursos?.nome||'—', readonly:true}))];
-            try { const extra=JSON.parse(_membroSel.cursos_concluidos||'[]'); if(Array.isArray(extra)) extra.forEach(c=>{const id=typeof c==='object'?c.id:null; const nome=typeof c==='object'?c.nome:(c||''); _editCursos.push({id,nome,readonly:false});}); } catch {}
-            try { _editIdiomas=JSON.parse(_membroSel['Idiomas']||_membroSel.idiomas||'[]'); } catch { _editIdiomas=[]; }
+            try { 
+                const extra=JSON.parse(_membroSel.cursos_concluidos||'[]'); 
+                if(Array.isArray(extra))
+                extra.forEach(c => {
+                    const id    = typeof c === 'object' ? c.id : null;
+                    const nome  = typeof c === 'object' ? c.nome : (c || '');
+                    const status = typeof c === 'object' ? (c.status || 'concluido') : 'concluido';
+                    const dataInicio = typeof c === 'object' ? (c.data_inicio || null) : null;
+                    const data  = typeof c === 'object' ? (c.data || null) : null;
+                    _editCursos.push({ id, nome, status, data_inicio: dataInicio, data, readonly: false });
+                });
+            } catch {}
+
+            try {
+                const rawI = _membroSel['Idiomas'] || _membroSel.idiomas || '[]';
+                _editIdiomas = Array.isArray(rawI) ? rawI : JSON.parse(rawI);
+            } catch { _editIdiomas=[]; }
             if (!Array.isArray(_editIdiomas)) _editIdiomas=[];
-            try { _editNacs=JSON.parse(_membroSel.nacionalidade||'[]'); } catch { _editNacs=[]; }
+
+            try {
+                const rawN = _membroSel.nacionalidade || '[]';
+                _editNacs = Array.isArray(rawN) ? rawN : JSON.parse(rawN);
+            } catch { _editNacs=[]; }
             if (!Array.isArray(_editNacs)) _editNacs=[];
+
             _editConjugePending=undefined; _editLinkPending=undefined; _editFotoBlob=null;
         }
 
@@ -1200,12 +1240,75 @@
 
         window.pAddMin=async function(ctx){const sel=document.getElementById(`min-sel-${ctx}`);const minId=sel?.value;if(!minId)return;const papel=document.getElementById(`min-papel-${ctx}`)?.value||null;const min=_ministerios.find(m=>m.id===minId);if(!min)return;if(ctx==='edit'){try{await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:_membroSel.id,ministerio_id:minId,papel,ativo:true})});_editMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});}catch{setMsg('perfil','error','Erro ao adicionar area.');return;}}else{_cadMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});}renderMinChips(ctx);renderMinSel(ctx);const pe=document.getElementById(`min-papel-${ctx}`);if(pe)pe.value='';};
 
-        window.pRemMin=async function(ctx,idx){const item=getMins(ctx)[idx];if(!item)return;if(ctx==='edit'&&item.id){try{await sb(`membro_ministerios?id=eq.${item.id}`,{method:'PATCH',body:JSON.stringify({ativo:false})});}catch{}}getMins(ctx).splice(idx,1);renderMinChips(ctx);renderMinSel(ctx);};
+        window.pRemMin = async function(ctx, idx) {
+            const item = getMins(ctx)[idx];
+            if (!item) return;
+            if (ctx === 'edit' && item.id) {
+                try {
+                    await sb(`membro_ministerios?id=eq.${item.id}`, { method: 'DELETE' });
+                } catch(e) {
+                    setMsg('perfil', 'error', 'Erro ao remover área.');
+                    console.error(e);
+                    return; // ← não remove localmente se falhou no servidor
+                }
+            }
+            getMins(ctx).splice(idx, 1);
+            renderMinChips(ctx);
+            renderMinSel(ctx);
+        };
 
         // CURSOS
-        function renderCursos(ctx){const el=document.getElementById(`cursos-lista-${ctx}`);if(!el)return;if(!_editCursos.length){el.innerHTML='<div class="info-empty">Nenhum curso registado.</div>';return;}el.innerHTML=_editCursos.map((c,i)=>`<div class="curso-item"><div class="curso-nome">${c.nome}${c.readonly?' <span style="font-size:10px;opacity:.5">(sistema)</span>':''}</div>${c.readonly?'':`<button class="btn-remove-icon" onclick="pRemCurso(${i})">x</button>`}</div>`).join('');}
+        function renderCursos(ctx) {
+            const el = document.getElementById(`cursos-lista-${ctx}`);
+            if (!el) return;
+            if (!_editCursos.length) { el.innerHTML = '<div class="info-empty">Nenhum curso registado.</div>'; return; }
+
+            const STATUS_LABEL = { concluido: '✓ Concluído', cursando: '▶ A Cursar', trancou: '✕ Trancado' };
+            const STATUS_COLOR = { concluido: 'var(--green)', cursando: 'var(--amber)', trancou: 'var(--red)' };
+
+            el.innerHTML = _editCursos.map((c, i) => {
+                const status = c.status || 'concluido';
+                const color = STATUS_COLOR[status] || STATUS_COLOR.concluido;
+                const label = STATUS_LABEL[status] || status;
+                const datas = [
+                    c.data_inicio ? 'Início: ' + c.data_inicio : '',
+                    c.data ? (status === 'concluido' ? 'Conclusão: ' : 'Até: ') + c.data : ''
+                ].filter(Boolean).join(' · ');
+
+                return `<div class="curso-item">
+            <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+            <div class="curso-nome">
+                <div>${c.nome}${c.readonly ? ' <span style="font-size:10px;opacity:.5">(sistema)</span>' : ''}</div>
+                ${datas ? `<div style="font-size:10px;color:var(--text-faint);margin-top:2px">${datas}</div>` : ''}
+            </div>
+            <span style="font-size:10px;color:${color};white-space:nowrap">${label}</span>
+            ${c.readonly ? '' : `<button class="btn-remove-icon" onclick="pRemCurso(${i})">×</button>`}
+        </div>`;
+            }).join('');
+        }
+
         function renderCursoSel(ctx){const sel=document.getElementById(`curso-sel-${ctx}`);if(!sel)return;const ja=new Set(_editCursos.map(c=>c.id).filter(Boolean));sel.innerHTML='<option value="">Seleciona curso...</option>'+_zaoCursos.filter(c=>!ja.has(c.id)).map(c=>`<option value="${c.id}">${c.nome}${c.nivel?' ('+c.nivel+')':''}</option>`).join('');}
-        window.pAddCurso=function(ctx){const sel=document.getElementById(`curso-sel-${ctx}`);const cursoId=sel?.value;if(!cursoId)return;const curso=_zaoCursos.find(c=>c.id===cursoId);if(!curso)return;if(_editCursos.find(c=>c.id===cursoId))return;_editCursos.push({id:cursoId,nome:curso.nome,readonly:false});renderCursos(ctx);renderCursoSel(ctx);sel.value='';};
+
+        window.pAddCurso = function(ctx) {
+            const sel = document.getElementById(`curso-sel-${ctx}`);
+            const cursoId = sel?.value;
+            if (!cursoId) return;
+            const curso = _zaoCursos.find(c => c.id === cursoId);
+            if (!curso) return;
+            if (_editCursos.find(c => c.id === cursoId)) return;
+
+            const status    = document.getElementById(`curso-status-${ctx}`)?.value || 'concluido';
+            const dataInicio = document.getElementById(`curso-data-inicio-${ctx}`)?.value || null;
+            const dataFim    = document.getElementById(`curso-data-fim-${ctx}`)?.value || null;
+
+            _editCursos.push({ id: cursoId, nome: curso.nome, status, data_inicio: dataInicio, data: dataFim, readonly: false });
+            renderCursos(ctx);
+            renderCursoSel(ctx);
+            sel.value = '';
+            const si = document.getElementById(`curso-data-inicio-${ctx}`); if (si) si.value = '';
+            const sf = document.getElementById(`curso-data-fim-${ctx}`);    if (sf) sf.value = '';
+        };
+
         window.pRemCurso=function(idx){if(_editCursos[idx]?.readonly)return;_editCursos.splice(idx,1);renderCursos('edit');renderCursoSel('edit');};
 
         // FOTO
@@ -1470,14 +1573,17 @@
             ['telefone','nif','genero','data_nascimento','estado_civil','onde_conheceu',
                 'escolaridade','profissao','rua','numero','complemento','bairro','cidade',
                 'codigo_postal','pais','zona','historia'].forEach(c=>{const v=gv('p_'+c);if(v!==null)body[c]=v;});
-            body['Idiomas']        = _editIdiomas;     
+            body['Idiomas']        = _editIdiomas;
             body.nacionalidade     = _editNacs;
             const fotoUrl=await uploadFoto('edit',_membroSel.id);
             if(fotoUrl!==null)body.foto_url=fotoUrl;
             if(_editConjugePending!==undefined)body.conjuge_id=_editConjugePending===false?null:_editConjugePending;
             if(_editLinkPending!==undefined)body.link_id=_editLinkPending===false?null:_editLinkPending;
-            const cursosManual=_editCursos.filter(c=>!c.readonly).map(c=>({id:c.id,nome:c.nome}));
-            body.cursos_concluidos = JSON.stringify(cursosManual); 
+            const cursosManual = _editCursos.filter(c => !c.readonly).map(c => ({
+                id: c.id, nome: c.nome, status: c.status || 'concluido',
+                data_inicio: c.data_inicio || null, data: c.data || null
+            }));
+            body.cursos_concluidos = JSON.stringify(cursosManual);
             body.foi_batizado        = document.getElementById('p_foi_batizado')?.checked        || false;
             body.fez_processo_raizes = document.getElementById('p_fez_processo_raizes')?.checked || false;
             body.fez_workshop_raizes = document.getElementById('p_fez_workshop_raizes')?.checked || false;

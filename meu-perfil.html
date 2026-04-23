@@ -556,6 +556,7 @@
             <textarea class="form-textarea" id="p_historia" placeholder="Partilha um pouco da tua historia..."></textarea>
         </div>
 
+        <div id="doc-section-wrapper">
         <div class="form-section">Documentos</div>
         <div class="notice" style="margin-bottom:14px">
             Os documentos são guardados de forma segura e apenas acessíveis pela administração.
@@ -603,6 +604,7 @@
                        onchange="docHandleUpload(this,'termo_compromisso_url')">
                 <button class="btn-inline" onclick="document.getElementById('doc-file-termo_compromisso_url').click()">📎 PDF</button>
             </div>
+        </div>
         </div>
 
         <button class="btn-save" id="btn-guardar-edit" onclick="pGuardar('edit')">Guardar Alteracoes</button>
@@ -1103,7 +1105,7 @@
             const el=document.getElementById(`nac-chips-${ctx}`); if(!el)return;
             const list=getNacs(ctx);
             if(!list.length){el.innerHTML='<span class="info-empty">Nenhuma nacionalidade adicionada.</span>';return;}
-            
+
             el.innerHTML=list.map((n,idx)=>`<span class="chip">${n}<button class="chip-remove" onclick="pRemNac('${ctx}',${idx})">x</button></span>`).join('');
             if (ctx === 'edit') atualizarCampoBR();
         }
@@ -1298,7 +1300,31 @@
             sel.innerHTML = html;
         }
 
-        window.pAddMin=async function(ctx){const sel=document.getElementById(`min-sel-${ctx}`);const minId=sel?.value;if(!minId)return;const papel=document.getElementById(`min-papel-${ctx}`)?.value||null;const min=_ministerios.find(m=>m.id===minId);if(!min)return;if(ctx==='edit'){try{await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:_membroSel.id,ministerio_id:minId,papel,ativo:true})});_editMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});}catch{setMsg('perfil','error','Erro ao adicionar area.');return;}}else{_cadMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});}renderMinChips(ctx);renderMinSel(ctx);const pe=document.getElementById(`min-papel-${ctx}`);if(pe)pe.value='';};
+        window.pAddMin=async function(ctx){
+            const sel=document.getElementById(`min-sel-${ctx}`);
+            const minId=sel?.value;if(!minId)return;
+            const papel=document.getElementById(`min-papel-${ctx}`)?.value||null;
+            const min=_ministerios.find(m=>m.id===minId);
+            if(!min)return;
+            if(ctx==='edit'){
+                try{await sb('membro_ministerios',{
+                    method:'POST',
+                    body:JSON.stringify({membro_id:_membroSel.id,ministerio_id:minId,papel,ativo:true})});
+                    _editMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});
+                }
+                catch{
+                    setMsg('perfil','error','Erro ao adicionar area.');
+                    return;
+                }
+            }else{
+                _cadMins.push({ministerio_id:minId,nome:min.nome,papel:papel||''});
+            }
+            renderMinChips(ctx);
+            if (ctx === 'edit') inicializarDocInputs();
+            renderMinSel(ctx);
+            const pe=document.getElementById(`min-papel-${ctx}`);
+            if(pe)pe.value='';
+        };
 
         window.pRemMin = async function(ctx, idx) {
             const item = getMins(ctx)[idx];
@@ -1309,11 +1335,12 @@
                 } catch(e) {
                     setMsg('perfil', 'error', 'Erro ao remover área.');
                     console.error(e);
-                    return; // ← não remove localmente se falhou no servidor
+                    return; 
                 }
             }
             getMins(ctx).splice(idx, 1);
             renderMinChips(ctx);
+            if (ctx === 'edit') inicializarDocInputs();
             renderMinSel(ctx);
         };
 
@@ -1750,7 +1777,25 @@
             }
         }
 
+        function membroTemLumem() {
+            // Encontra o ID do ministério "Lumem"
+            const lumem = _ministerios.find(m => m.nome.toLowerCase().trim() === 'lumem');
+            if (!lumem) return false;
+
+            // Verifica se tem o Lumem directamente, ou um filho do Lumem
+            return _editMins.some(em => {
+                if (em.ministerio_id === lumem.id) return true;
+                const min = _ministerios.find(m => m.id === em.ministerio_id);
+                return min?.parent_id === lumem.id;
+            });
+        }
+
         function inicializarDocInputs() {
+            const temAcesso = membroTemLumem();
+            const secDoc = document.getElementById('doc-section-wrapper');
+            if (secDoc) secDoc.style.display = temAcesso ? 'block' : 'none';
+            if (!temAcesso) return;
+
             DOC_CAMPOS.forEach(c => renderDocStatus(c, _membroSel[c] || null));
             atualizarCampoBR();
         }

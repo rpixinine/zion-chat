@@ -227,6 +227,14 @@
         .toggle-track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--text-faint); transition: transform .2s, background .2s; }
         .toggle input:checked + .toggle-track::after { transform: translateX(20px); background: #fff; }
 
+        /* DOCUMENTOS */
+        .doc-row { display:flex; align-items:center; gap:10px; background:var(--navy-card); border:1px solid var(--navy-border); border-radius:10px; padding:11px 13px; }
+        .doc-status { flex:1; font-size:12px; line-height:1.5; }
+        .doc-ok       { color:var(--green); }
+        .doc-missing  { color:var(--text-faint); font-style:italic; }
+        .doc-error    { color:var(--red); }
+        .doc-uploading{ color:var(--amber); }
+
     </style>
 </head>
 <body>
@@ -546,6 +554,55 @@
         <div class="form-group">
             <label class="form-label">Historia / Notas</label>
             <textarea class="form-textarea" id="p_historia" placeholder="Partilha um pouco da tua historia..."></textarea>
+        </div>
+
+        <div class="form-section">Documentos</div>
+        <div class="notice" style="margin-bottom:14px">
+            Os documentos são guardados de forma segura e apenas acessíveis pela administração.
+        </div>
+
+        <!-- Resenha do Livro -->
+        <div class="form-group">
+            <label class="form-label">Resenha do Livro</label>
+            <div class="doc-row">
+                <div class="doc-status" id="doc-status-resenha_livro_url"></div>
+                <input type="file" accept="application/pdf" id="doc-file-resenha_livro_url" style="display:none"
+                       onchange="docHandleUpload(this,'resenha_livro_url')">
+                <button class="btn-inline" onclick="document.getElementById('doc-file-resenha_livro_url').click()">📎 PDF</button>
+            </div>
+        </div>
+
+        <!-- Antecedentes BR — só aparece se nacionalidade incluir Brasileira -->
+        <div class="form-group" id="doc-field-antecedentes-br" style="display:none">
+            <label class="form-label">Antecedentes Criminais (Brasil)</label>
+            <div class="doc-row">
+                <div class="doc-status" id="doc-status-antecedentes_br_url"></div>
+                <input type="file" accept="application/pdf" id="doc-file-antecedentes_br_url" style="display:none"
+                       onchange="docHandleUpload(this,'antecedentes_br_url')">
+                <button class="btn-inline" onclick="document.getElementById('doc-file-antecedentes_br_url').click()">📎 PDF</button>
+            </div>
+        </div>
+
+        <!-- Antecedentes PT — para todos -->
+        <div class="form-group">
+            <label class="form-label">Antecedentes Criminais (Portugal)</label>
+            <div class="doc-row">
+                <div class="doc-status" id="doc-status-antecedentes_pt_url"></div>
+                <input type="file" accept="application/pdf" id="doc-file-antecedentes_pt_url" style="display:none"
+                       onchange="docHandleUpload(this,'antecedentes_pt_url')">
+                <button class="btn-inline" onclick="document.getElementById('doc-file-antecedentes_pt_url').click()">📎 PDF</button>
+            </div>
+        </div>
+
+        <!-- Termo de Compromisso -->
+        <div class="form-group">
+            <label class="form-label">Termo de Compromisso</label>
+            <div class="doc-row">
+                <div class="doc-status" id="doc-status-termo_compromisso_url"></div>
+                <input type="file" accept="application/pdf" id="doc-file-termo_compromisso_url" style="display:none"
+                       onchange="docHandleUpload(this,'termo_compromisso_url')">
+                <button class="btn-inline" onclick="document.getElementById('doc-file-termo_compromisso_url').click()">📎 PDF</button>
+            </div>
         </div>
 
         <button class="btn-save" id="btn-guardar-edit" onclick="pGuardar('edit')">Guardar Alteracoes</button>
@@ -940,8 +997,8 @@
             } catch { try { const fRows=await sb(`membros?pai_id=eq.${memId}&select=id,nome&ativo=eq.true`); _editFilhos=fRows.map(r=>({relId:null,memId:r.id,nome:r.nome})); } catch {} }
             const matriculas = await sb(`zao_matriculas?membro_id=eq.${memId}&select=concluido_em,zao_turmas(nome,zao_cursos(nome))&status=eq.concluido&order=concluido_em.desc`).catch(()=>[]);
             _editCursos = [...(matriculas||[]).map(mc=>({nome:mc.zao_turmas?.zao_cursos?.nome||'—', readonly:true}))];
-            try { 
-                const extra=JSON.parse(_membroSel.cursos_concluidos||'[]'); 
+            try {
+                const extra=JSON.parse(_membroSel.cursos_concluidos||'[]');
                 if(Array.isArray(extra))
                 extra.forEach(c => {
                     const id    = typeof c === 'object' ? c.id : null;
@@ -1008,6 +1065,7 @@
             renderConjuge('edit'); renderConjugeSel('edit');
             renderLink('edit'); renderLinkSel('edit');
             renderIdiomasChips('edit'); renderNacChips('edit');
+            inicializarDocInputs();
         }
 
         function resetarCadastro() {
@@ -1045,7 +1103,9 @@
             const el=document.getElementById(`nac-chips-${ctx}`); if(!el)return;
             const list=getNacs(ctx);
             if(!list.length){el.innerHTML='<span class="info-empty">Nenhuma nacionalidade adicionada.</span>';return;}
+            
             el.innerHTML=list.map((n,idx)=>`<span class="chip">${n}<button class="chip-remove" onclick="pRemNac('${ctx}',${idx})">x</button></span>`).join('');
+            if (ctx === 'edit') atualizarCampoBR();
         }
         window.pAddNac=function(ctx){const sel=document.getElementById(`nac-sel-${ctx}`);if(!sel||!sel.value)return;const list=getNacs(ctx);if(list.includes(sel.value)){sel.value='';return;}list.push(sel.value);sel.value='';renderNacChips(ctx);};
         window.pRemNac=function(ctx,idx){getNacs(ctx).splice(idx,1);renderNacChips(ctx);};
@@ -1665,6 +1725,99 @@
             const cm=document.getElementById('conf-msg');   if(cm)cm.innerHTML=`Bem-vindo/a, <strong>${body.nome}</strong>!<br>O teu registo foi criado com sucesso.`;
             mostrar('confirmado');
         }
+
+        // ── DOCUMENTOS ────────────────────────────────────────────────
+        const DOC_BUCKET = 'documentos-membros';
+        const DOC_CAMPOS = ['resenha_livro_url','antecedentes_br_url','antecedentes_pt_url','termo_compromisso_url'];
+        const DOC_LABEL  = {
+            resenha_livro_url:     'Resenha do Livro',
+            antecedentes_br_url:   'Antecedentes BR',
+            antecedentes_pt_url:   'Antecedentes PT',
+            termo_compromisso_url: 'Termo de Compromisso'
+        };
+
+        function renderDocStatus(campo, path, estado='idle', erroMsg='') {
+            const el = document.getElementById(`doc-status-${campo}`);
+            if (!el) return;
+            if (estado === 'uploading') { el.innerHTML = '<span class="doc-uploading">⏳ A enviar...</span>'; return; }
+            if (estado === 'error')     { el.innerHTML = `<span class="doc-error">❌ ${erroMsg}</span>`; return; }
+            if (path) {
+                el.innerHTML = `<span class="doc-ok">✅ Documento anexado</span>
+            &nbsp;·&nbsp;<a href="#" style="color:var(--teal);font-size:12px"
+            onclick="docVerPDF(event,'${path}')">Ver PDF</a>`;
+            } else {
+                el.innerHTML = '<span class="doc-missing">Nenhum documento anexado.</span>';
+            }
+        }
+
+        function inicializarDocInputs() {
+            DOC_CAMPOS.forEach(c => renderDocStatus(c, _membroSel[c] || null));
+            atualizarCampoBR();
+        }
+
+        function atualizarCampoBR() {
+            const isBR = _editNacs.some(n => n.toLowerCase().includes('brasileira'));
+            const el = document.getElementById('doc-field-antecedentes-br');
+            if (el) el.style.display = isBR ? 'block' : 'none';
+        }
+
+        window.docHandleUpload = async function(input, campo) {
+            const file = input.files?.[0];
+            if (!file) return;
+            input.value = '';
+            if (file.type !== 'application/pdf') {
+                renderDocStatus(campo, _membroSel[campo] || null, 'error', 'Apenas ficheiros PDF são aceites.');
+                return;
+            }
+            renderDocStatus(campo, null, 'uploading');
+            try {
+                const path = `${_membroSel.id}/${campo}.pdf`;
+                const r = await fetch(`${SUPA_URL}/storage/v1/object/${DOC_BUCKET}/${path}`, {
+                    method: 'POST',
+                    headers: {
+                        apikey: SUPA_KEY,
+                        Authorization: `Bearer ${SUPA_KEY}`,
+                        'Content-Type': 'application/pdf',
+                        'Cache-Control': '3600',
+                        'x-upsert': 'true'
+                    },
+                    body: file
+                });
+                if (!r.ok) throw await r.json();
+                await sb('rpc/atualizar_perfil', {
+                    method: 'POST',
+                    body: JSON.stringify({ p_id: _membroSel.id, p_dados: { [campo]: path } })
+                });
+                _membroSel[campo] = path;
+                renderDocStatus(campo, path);
+                setMsg('perfil', 'success', `✅ ${DOC_LABEL[campo]} guardado com sucesso.`);
+                setTimeout(() => limparMsg('perfil'), 3500);
+            } catch(e) {
+                console.error('Upload doc falhou', e);
+                renderDocStatus(campo, _membroSel[campo] || null, 'error', 'Erro ao enviar. Tenta novamente.');
+            }
+        };
+
+        window.docVerPDF = async function(e, path) {
+            e.preventDefault();
+            try {
+                const r = await fetch(`${SUPA_URL}/storage/v1/object/sign/${DOC_BUCKET}/${path}`, {
+                    method: 'POST',
+                    headers: {
+                        apikey: SUPA_KEY,
+                        Authorization: `Bearer ${SUPA_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ expiresIn: 3600 })
+                });
+                if (!r.ok) throw await r.json();
+                const data = await r.json();
+                window.open(`${SUPA_URL}/storage/v1${data.signedURL}`, '_blank');
+            } catch(e) {
+                console.error('Erro URL assinada', e);
+                alert('Erro ao abrir o documento.');
+            }
+        };
 
         window.pVoltar=function(){
             _membroSel=null;

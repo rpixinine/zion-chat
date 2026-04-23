@@ -1,0 +1,618 @@
+<style>
+    /* ══════════════════════════════════════════════════════
+       LUMEN MODULE — modules/lumen.html
+    ══════════════════════════════════════════════════════ */
+    .lmn-page { display:flex; height:100%; overflow:hidden; }
+
+    .lmn-sidebar {
+        width:280px; min-width:200px; flex-shrink:0;
+        background:var(--bg-card); border-right:1px solid var(--border);
+        display:flex; flex-direction:column; overflow:hidden; position:relative;
+    }
+    .lmn-side-hd {
+        padding:10px 12px 8px; border-bottom:1px solid var(--border);
+        display:flex; align-items:center; gap:6px; flex-shrink:0;
+    }
+    .lmn-side-title {
+        font-family:var(--font-title); font-size:9px; letter-spacing:2px;
+        text-transform:uppercase; color:var(--text-faint); flex:1;
+    }
+    .lmn-filter-bar {
+        display:flex; gap:4px; padding:6px 8px; border-bottom:1px solid var(--border);
+        flex-wrap:wrap; flex-shrink:0; background:var(--bg-panel);
+    }
+    .lmn-chip {
+        padding:3px 9px; border-radius:20px; font-size:9px; font-family:var(--font-title);
+        letter-spacing:0.5px; cursor:pointer; border:1px solid var(--border);
+        background:var(--bg-input); color:var(--text-faint); transition:all 0.12s;
+    }
+    .lmn-chip:hover { border-color:var(--primary); color:var(--primary-dark); }
+    .lmn-chip.on { background:var(--primary); color:white; border-color:var(--primary); }
+    .lmn-chip.on.f-inc { background:#e74c3c; border-color:#e74c3c; }
+    .lmn-chip.on.f-vence { background:#f39c12; border-color:#f39c12; }
+
+    .lmn-list { flex:1; overflow-y:auto; padding:4px 0 8px; }
+
+    .lmn-item {
+        display:flex; align-items:center; gap:8px; padding:9px 12px;
+        border-radius:7px; margin:2px 6px; cursor:pointer;
+        border:1px solid transparent; transition:all 0.12s;
+    }
+    .lmn-item:hover { background:var(--bg-panel); border-color:var(--border); }
+    .lmn-item.active { background:var(--primary-faint); border-color:var(--primary); }
+    .lmn-item-nome { flex:1; font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .lmn-item-sub  { font-size:9px; color:var(--text-faint); font-family:var(--font-title); margin-top:1px; }
+
+    .cdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .cdot-ok   { background:#27ae60; }
+    .cdot-warn { background:#f39c12; }
+    .cdot-err  { background:#e74c3c; }
+
+    .lmn-content { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+    .lmn-empty   { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-faint); text-align:center; gap:8px; }
+
+    /* Stats row */
+    .lmn-stats { display:flex; gap:10px; padding:14px 18px; flex-wrap:wrap; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .lmn-stat  { flex:1; min-width:70px; background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; text-align:center; }
+    .lmn-stat-n { font-family:var(--font-title); font-size:20px; color:var(--primary-dark); }
+    .lmn-stat-l { font-size:9px; font-family:var(--font-title); letter-spacing:1px; color:var(--text-faint); margin-top:2px; }
+
+    /* Compliance table */
+    .lmn-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .lmn-table th { font-family:var(--font-title); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--border); text-align:center; white-space:nowrap; }
+    .lmn-table th:nth-child(1), .lmn-table th:nth-child(2) { text-align:left; }
+    .lmn-table td { padding:8px 10px; border-bottom:1px solid var(--border); text-align:center; vertical-align:middle; }
+    .lmn-table td:nth-child(2) { text-align:left; font-weight:600; white-space:nowrap; }
+    .lmn-table tr:hover td { background:var(--bg-panel); }
+    .lmn-check { width:15px; height:15px; cursor:pointer; accent-color:var(--primary); }
+
+    .tbadge { padding:2px 8px; border-radius:20px; font-size:9px; font-family:var(--font-title); letter-spacing:0.3px; white-space:nowrap; display:inline-block; }
+    .tb-ok      { background:rgba(39,174,96,0.12);   color:#27ae60; }
+    .tb-pend    { background:rgba(243,156,18,0.12);   color:#f39c12; }
+    .tb-miss    { background:rgba(231,76,60,0.10);    color:#e74c3c; }
+    .tb-vence   { background:rgba(243,156,18,0.12);   color:#f39c12; }
+
+    /* Termos history */
+    .termo-card {
+        display:flex; align-items:center; padding:11px 14px; gap:12px;
+        border:1px solid var(--border); border-radius:10px; background:var(--bg-card); font-size:12px;
+    }
+    .termo-card.signed { border-color:rgba(39,174,96,0.3); background:rgba(39,174,96,0.04); }
+    .termo-card.pending{ border-color:rgba(243,156,18,0.3); }
+
+    /* Modal */
+    .lmn-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:300; align-items:center; justify-content:center; overflow-y:auto; padding:20px; }
+    .lmn-modal-box { background:var(--bg-card); border-radius:var(--radius); padding:24px; width:500px; max-width:96vw; box-shadow:var(--shadow-md); }
+</style>
+
+<!-- ══ LUMEN PAGE ══ -->
+<div class="lmn-page">
+
+    <!-- SIDEBAR -->
+    <div class="lmn-sidebar">
+        <div class="lmn-side-hd">
+            <div class="lmn-side-title">Lumen · Membros</div>
+            <button class="btn-icon" onclick="lmn_init()" title="Recarregar">↺</button>
+            <button class="btn-add" style="font-size:11px;padding:4px 10px" onclick="lmn_renderGeral()">Geral</button>
+        </div>
+        <div class="lmn-filter-bar">
+            <span class="lmn-chip on"        onclick="lmn_setFiltro(this,'')">Todos</span>
+            <span class="lmn-chip f-inc"     onclick="lmn_setFiltro(this,'inc')">Incompletos</span>
+            <span class="lmn-chip f-vence"   onclick="lmn_setFiltro(this,'vence')">Sem Termo</span>
+        </div>
+        <div class="lmn-list" id="lmn-side-list">
+            <div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">A carregar…</div>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="lmn-content" id="lmn-content">
+        <div class="lmn-empty" id="lmn-empty">
+            <div style="font-size:36px;opacity:.15">🏛️</div>
+            <div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Lumen · Ministério de Crianças</div>
+            <button class="btn-sm primary" style="margin-top:10px" onclick="lmn_renderGeral()">Ver Visão Geral</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL GERAR LINKS ══ -->
+<div id="lmn-modal-link" class="lmn-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="lmn-modal-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="font-family:var(--font-title);font-size:11px;letter-spacing:1.5px;color:var(--primary-dark)">GERAR LINK DE ASSINATURA</div>
+            <button class="btn-sm" onclick="document.getElementById('lmn-modal-link').style.display='none'">Fechar</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <div class="crud-group">
+                <label>Semestre</label>
+                <select id="lmn-l-sem">
+                    <option value="1">1.º Semestre (Janeiro)</option>
+                    <option value="2">2.º Semestre (Julho)</option>
+                </select>
+            </div>
+            <div class="crud-group">
+                <label>Ano</label>
+                <input id="lmn-l-ano" type="number" min="2024" max="2099">
+            </div>
+        </div>
+
+        <div style="margin-bottom:12px">
+            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:8px">MEMBROS SELECCIONADOS</div>
+            <div id="lmn-l-mems" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px"></div>
+        </div>
+
+        <div id="lmn-l-result" style="display:none;margin-bottom:12px">
+            <div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--green);margin-bottom:6px">LINK GERADO ✓</div>
+            <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;word-break:break-all;color:var(--text-main);font-family:monospace" id="lmn-l-url"></div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+                <button class="btn-sm" style="flex:1" onclick="lmn_copiarLink()">📋 Copiar</button>
+                <button class="btn-sm" style="flex:1;background:rgba(37,211,102,0.15);color:#25d366;border-color:#25d366" onclick="lmn_zapLink()">📱 WhatsApp</button>
+            </div>
+            <div style="font-size:10px;color:var(--text-faint);margin-top:6px">Este link serve para todos os membros selecionados. Cada um procura o seu nome e assina.</div>
+        </div>
+
+        <div class="form-msg" id="lmn-l-msg"></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn-sm" style="flex:1" onclick="document.getElementById('lmn-modal-link').style.display='none'">Cancelar</button>
+            <button class="btn-sm primary" style="flex:1" id="lmn-l-btn" onclick="lmn_criarLinks()">Gerar Links</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL TERMOS DO MEMBRO ══ -->
+<div id="lmn-modal-hist" class="lmn-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="lmn-modal-box" style="max-width:520px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="font-family:var(--font-title);font-size:11px;letter-spacing:1.5px;color:var(--primary-dark)" id="lmn-hist-title">Histórico de Termos</div>
+            <button class="btn-sm" onclick="document.getElementById('lmn-modal-hist').style.display='none'">Fechar</button>
+        </div>
+        <div id="lmn-hist-body" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto"></div>
+    </div>
+</div>
+
+<!-- ══════ JAVASCRIPT ══════ -->
+<script>
+    (function() {
+        const LUMEN_ID  = '150578ea-303e-4350-825a-4e6d34c98154';
+        const lmn_sb    = window.sb;
+        const BASE_URL  = location.origin + location.pathname.replace(/\/[^/]*$/, '/');
+
+        var lmn_membros  = [];
+        var lmn_termos   = [];
+        var lmn_lumenIds = [];
+        var lmn_selIds   = new Set();
+        var lmn_filtro   = '';
+        var lmn_selMemId = null;
+
+        /* ── HELPERS ── */
+        function lmn_t(m, t) { if (window.toast) window.toast(m, t || 'ok'); }
+        function smsg(id, msg, t) { const e=document.getElementById(id); if(!e)return; e.textContent=msg; e.className='form-msg '+(t||''); }
+
+        function lmn_getSem() { return new Date().getMonth() < 6 ? 1 : 2; }
+        function lmn_getAno() { return new Date().getFullYear(); }
+
+        function lmn_termoStatus(memId) {
+            const sem = lmn_getSem(), ano = lmn_getAno();
+            const lista = lmn_termos.filter(t => t.membro_id === memId);
+            const atual = lista.find(t => t.semestre === sem && t.ano === ano);
+            if (atual?.assinado_em) return { st:'ok',    lbl:`S${sem}/${ano} ✓`,    t:atual };
+            if (atual)              return { st:'pend',  lbl:'Aguarda assinatura',   t:atual };
+            // previous
+            const ps = sem===1?2:1, pa = sem===1?ano-1:ano;
+            const prev = lista.find(t => t.semestre===ps && t.ano===pa);
+            if (prev?.assinado_em) return { st:'vence', lbl:`Renovar (S${ps}/${pa})`, t:prev };
+            return { st:'miss', lbl:'Sem termo', t:null };
+        }
+
+        function lmn_compliance(m) {
+            let ok=0, total=0;
+            total++; if (m.antecedentes_pt_url) ok++;
+            total++; if (m.resenha_livro_url)   ok++;
+            let nacs=[]; try { nacs=Array.isArray(m.nacionalidade)?m.nacionalidade:JSON.parse(m.nacionalidade||'[]'); }catch{}
+            const isBR = nacs.some(n=>(n||'').toLowerCase().includes('brasileira'));
+            if (isBR) { total++; if (m.antecedentes_br_url) ok++; }
+            const ts = lmn_termoStatus(m.id);
+            total++; if (ts.st==='ok') ok++;
+            return { ok, total, isBR, ts };
+        }
+
+        function docIcon(url) {
+            return url
+                ? `<span style="color:#27ae60;font-size:14px" title="${url.split('/').pop()}">✓</span>`
+                : `<span style="color:#e74c3c;font-size:14px">✗</span>`;
+        }
+
+        /* ── INIT ── */
+        window.lmn_init = async function() {
+            lmn_selIds.clear();
+            document.getElementById('lmn-side-list').innerHTML =
+                '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">A carregar…</div>';
+
+            try {
+                const allMins = await lmn_sb('ministerios?select=id,nome,parent_id&ativo=eq.true').catch(()=>[]);
+                lmn_lumenIds  = allMins.filter(m => m.id===LUMEN_ID || m.parent_id===LUMEN_ID).map(m=>m.id);
+
+                if (!lmn_lumenIds.length) {
+                    document.getElementById('lmn-side-list').innerHTML =
+                        '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Ministério Lumen não encontrado.</div>';
+                    return;
+                }
+
+                const assocs = await lmn_sb(
+                    `membro_ministerios?ministerio_id=in.(${lmn_lumenIds.join(',')})&ativo=eq.true&select=membro_id,ministerio_id,papel`
+                ).catch(()=>[]);
+
+                const memIds = [...new Set((assocs||[]).map(a=>a.membro_id))];
+                if (!memIds.length) { lmn_membros=[]; lmn_termos=[]; lmn_renderSide(); return; }
+
+                [lmn_membros, lmn_termos] = await Promise.all([
+                    lmn_sb(`membros?id=in.(${memIds.join(',')})&ativo=eq.true&select=id,nome,foto_url,genero,email,telefone,nif,nacionalidade,resenha_livro_url,antecedentes_br_url,antecedentes_pt_url,cursos_concluidos&order=nome`).catch(()=>[]),
+                    lmn_sb(`lumen_termos?membro_id=in.(${memIds.join(',')})&select=*&order=ano.desc,semestre.desc`).catch(()=>[]),
+                ]);
+
+                // Attach ministry info to each member
+                lmn_membros.forEach(m => {
+                    const a = assocs.find(x=>x.membro_id===m.id);
+                    m._papel   = a?.papel || '';
+                    m._min_id  = a?.ministerio_id || '';
+                    const mn   = allMins.find(x=>x.id===a?.ministerio_id);
+                    m._min_nome= mn?.nome || 'Lumen';
+                });
+
+                lmn_renderSide();
+                lmn_renderGeral();
+
+            } catch(e) {
+                console.error(e);
+                document.getElementById('lmn-side-list').innerHTML =
+                    '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Erro ao carregar.</div>';
+            }
+        };
+
+        /* ── SIDEBAR ── */
+        window.lmn_setFiltro = function(el, f) {
+            lmn_filtro = f;
+            document.querySelectorAll('.lmn-filter-bar .lmn-chip').forEach(c=>c.classList.remove('on'));
+            if (el) el.classList.add('on');
+            lmn_renderSide();
+        };
+
+        function lmn_renderSide() {
+            const el = document.getElementById('lmn-side-list'); if (!el) return;
+            let lista = lmn_membros;
+            if (lmn_filtro==='inc')   lista = lista.filter(m=>{ const c=lmn_compliance(m); return c.ok<c.total; });
+            if (lmn_filtro==='vence') lista = lista.filter(m=>lmn_termoStatus(m.id).st!=='ok');
+
+            if (!lista.length) { el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum resultado</div>'; return; }
+
+            el.innerHTML = lista.map(m => {
+                const c = lmn_compliance(m);
+                const dc = c.ok===c.total?'cdot-ok':c.ok>0?'cdot-warn':'cdot-err';
+                const isActive = lmn_selMemId===m.id;
+                return `<div class="lmn-item ${isActive?'active':''}" onclick="lmn_selMembro('${m.id}')">
+        <div class="cdot ${dc}"></div>
+        <div style="flex:1;min-width:0">
+          <div class="lmn-item-nome">${m.nome}</div>
+          <div class="lmn-item-sub">${m._min_nome} · ${c.ok}/${c.total}</div>
+        </div>
+      </div>`;
+            }).join('');
+        }
+
+        /* ── VISÃO GERAL ── */
+        window.lmn_renderGeral = function() {
+            lmn_selMemId = null;
+            lmn_renderSide();
+            const el = document.getElementById('lmn-content'); if (!el) return;
+
+            const sem = lmn_getSem(), ano = lmn_getAno();
+            const total     = lmn_membros.length;
+            const docsOk    = lmn_membros.filter(m=>{ const c=lmn_compliance(m); return c.ok===c.total; }).length;
+            const termoOk   = lmn_membros.filter(m=>lmn_termoStatus(m.id).st==='ok').length;
+            const pendentes = lmn_membros.filter(m=>lmn_termoStatus(m.id).st==='pend').length;
+            const semTermo  = lmn_membros.filter(m=>{ const s=lmn_termoStatus(m.id).st; return s==='miss'||s==='vence'; }).length;
+
+            el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--bg-card);flex-shrink:0;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">Lumen — Visão Geral</div>
+        <div style="font-size:10px;color:var(--text-faint);margin-top:2px">${total} membros · ${sem}º Semestre ${ano}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-sm" onclick="lmn_selecionarPendentes()" title="Seleciona membros sem termo atual">Sel. Sem Termo</button>
+        <button class="btn-sm primary" onclick="lmn_abrirModalLink()">📝 Gerar Link</button>
+      </div>
+    </div>
+
+    <div class="lmn-stats">
+      <div class="lmn-stat"><div class="lmn-stat-n">${total}</div><div class="lmn-stat-l">MEMBROS</div></div>
+      <div class="lmn-stat" style="border-color:rgba(39,174,96,.3)"><div class="lmn-stat-n" style="color:#27ae60">${docsOk}</div><div class="lmn-stat-l">DOCS OK</div></div>
+      <div class="lmn-stat" style="border-color:rgba(39,174,96,.3)"><div class="lmn-stat-n" style="color:#27ae60">${termoOk}</div><div class="lmn-stat-l">TERMO ✓</div></div>
+      <div class="lmn-stat" style="border-color:rgba(243,156,18,.3)"><div class="lmn-stat-n" style="color:#f39c12">${pendentes}</div><div class="lmn-stat-l">AGUARDAM</div></div>
+      <div class="lmn-stat" style="border-color:rgba(231,76,60,.3)"><div class="lmn-stat-n" style="color:#e74c3c">${semTermo}</div><div class="lmn-stat-l">SEM TERMO</div></div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto">
+      <div style="overflow-x:auto">
+        <table class="lmn-table">
+          <thead><tr>
+            <th style="padding-left:14px"><input type="checkbox" class="lmn-check" id="lmn-ca" onchange="lmn_toggleAll(this.checked)"></th>
+            <th style="text-align:left">Nome</th>
+            <th>Equipa</th>
+            <th>Antec. PT</th>
+            <th>Antec. BR</th>
+            <th>Resenha</th>
+            <th>Cursos</th>
+            <th>Termo ${sem}S/${ano}</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+          ${lmn_membros.map(m => {
+                let nacs=[]; try{nacs=Array.isArray(m.nacionalidade)?m.nacionalidade:JSON.parse(m.nacionalidade||'[]');}catch{}
+                const isBR = nacs.some(n=>(n||'').toLowerCase().includes('brasileira'));
+                let cursos=[]; try{cursos=JSON.parse(m.cursos_concluidos||'[]');}catch{}
+                const nC = Array.isArray(cursos)?cursos.length:0;
+                const ts = lmn_termoStatus(m.id);
+                const tcls = {ok:'tb-ok',pend:'tb-pend',vence:'tb-vence',miss:'tb-miss'}[ts.st];
+                return `<tr>
+              <td style="padding-left:14px"><input type="checkbox" class="lmn-check lmn-rc" data-id="${m.id}" onchange="lmn_togSel('${m.id}',this.checked)"></td>
+              <td style="cursor:pointer" onclick="lmn_selMembro('${m.id}')">${m.nome}</td>
+              <td style="font-size:10px;color:var(--text-faint)">${m._min_nome||'—'}</td>
+              <td>${docIcon(m.antecedentes_pt_url)}</td>
+              <td>${isBR ? docIcon(m.antecedentes_br_url) : '<span style="color:var(--text-faint);font-size:10px">N/A</span>'}</td>
+              <td>${docIcon(m.resenha_livro_url)}</td>
+              <td>${nC>0?`<span style="color:var(--primary-dark);font-weight:600">${nC}</span>`:'<span style="color:var(--text-faint)">0</span>'}</td>
+              <td><span class="tbadge ${tcls}">${ts.lbl}</span></td>
+              <td style="white-space:nowrap">
+                ${ts.st!=='ok'?`<button class="btn-sm" style="font-size:10px;padding:2px 7px" onclick="lmn_abrirModalLink(['${m.id}'])">Link</button>`:''}
+                ${ts.t?.pdf_url?`<button class="btn-sm" style="font-size:10px;padding:2px 7px;margin-left:3px" onclick="lmn_verDoc('${ts.t.pdf_url}')">PDF</button>`:''}
+                <button class="btn-sm" style="font-size:10px;padding:2px 7px;margin-left:3px" onclick="lmn_verHistorico('${m.id}')">Hist.</button>
+              </td>
+            </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+        };
+
+        /* ── MEMBRO DETALHE ── */
+        window.lmn_selMembro = async function(id) {
+            lmn_selMemId = id;
+            lmn_renderSide();
+            const m = lmn_membros.find(x=>x.id===id); if (!m) return;
+            const el = document.getElementById('lmn-content'); if (!el) return;
+
+            let nacs=[]; try{nacs=Array.isArray(m.nacionalidade)?m.nacionalidade:JSON.parse(m.nacionalidade||'[]');}catch{}
+            const isBR = nacs.some(n=>(n||'').toLowerCase().includes('brasileira'));
+            let cursos=[]; try{cursos=JSON.parse(m.cursos_concluidos||'[]');}catch{}
+            const termosM = lmn_termos.filter(t=>t.membro_id===id).sort((a,b)=>b.ano-a.ano||b.semestre-a.semestre);
+            const c = lmn_compliance(m);
+
+            const docRow = (lbl, url) => {
+                const st = url
+                    ? `<span style="color:#27ae60">✓ Anexado</span> · <a href="#" style="color:var(--primary-dark);font-size:11px" onclick="lmn_verDoc('${url}');return false">Ver</a>`
+                    : `<span style="color:#e74c3c">✗ Em falta</span>`;
+                return `<tr><td style="padding:8px 12px;font-weight:600;width:180px">${lbl}</td><td style="padding:8px 12px">${st}</td></tr>`;
+            };
+
+            el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--bg-card);flex-shrink:0;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">${m.nome}</div>
+        <div style="font-size:10px;color:var(--text-faint);margin-top:2px">${m._min_nome} · ${m._papel||'—'} · Docs ${c.ok}/${c.total}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" onclick="lmn_renderGeral()">← Geral</button>
+        <button class="btn-sm primary" onclick="lmn_abrirModalLink(['${m.id}'])">📝 Gerar Link</button>
+      </div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:18px">
+
+      <!-- Documentos -->
+      <div>
+        <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">DOCUMENTOS</div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            ${docRow('Antecedentes PT', m.antecedentes_pt_url)}
+            ${isBR ? docRow('Antecedentes BR', m.antecedentes_br_url) : ''}
+            ${docRow('Resenha do Livro', m.resenha_livro_url)}
+          </table>
+        </div>
+      </div>
+
+      <!-- Cursos -->
+      <div>
+        <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">CURSOS (${cursos.length})</div>
+        ${cursos.length
+                ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${cursos.map(c=>{
+                    const nome = typeof c==='object'?c.nome:c;
+                    const st   = typeof c==='object'?(c.status||'concluido'):'concluido';
+                    const clr  = st==='concluido'?'#27ae60':st==='cursando'?'var(--orange)':'#e74c3c';
+                    return `<span style="padding:3px 10px;border-radius:20px;font-size:11px;border:1px solid ${clr};color:${clr}">${nome}</span>`;
+                }).join('')}</div>`
+                : '<div style="font-size:12px;color:var(--text-faint);font-style:italic">Nenhum curso registado</div>'}
+      </div>
+
+      <!-- Termos -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint)">TERMOS DE COMPROMISSO</div>
+          <button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="lmn_abrirModalLink(['${m.id}'])">+ Novo</button>
+        </div>
+        ${termosM.length
+                ? `<div style="display:flex;flex-direction:column;gap:6px">${termosM.map(t => {
+                    const signed = !!t.assinado_em;
+                    return `<div class="termo-card ${signed?'signed':'pending'}">
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:13px">${t.semestre}º Semestre ${t.ano}</div>
+                  <div style="font-size:10px;color:var(--text-faint);margin-top:2px">
+                    ${signed
+                        ? '✓ Assinado em ' + new Date(t.assinado_em).toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'})
+                        : 'Aguarda assinatura' + (t.link_ativo?' · Link ativo':'')}
+                  </div>
+                </div>
+                ${signed ? '<span class="tbadge tb-ok">Assinado</span>' : '<span class="tbadge tb-pend">Pendente</span>'}
+                ${t.pdf_url ? `<button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="lmn_verDoc('${t.pdf_url}')">PDF</button>` : ''}
+                ${!signed && t.link_token ? `<button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="lmn_copiarLinkTermo('${t.link_token}')">Link</button>` : ''}
+              </div>`;
+                }).join('')}</div>`
+                : '<div style="font-size:12px;color:var(--text-faint);font-style:italic">Nenhum termo registado</div>'}
+      </div>
+    </div>`;
+        };
+
+        /* ── MODAL HISTÓRICO ── */
+        window.lmn_verHistorico = function(memId) {
+            const m = lmn_membros.find(x=>x.id===memId); if (!m) return;
+            document.getElementById('lmn-hist-title').textContent = `Termos — ${m.nome}`;
+            const lista = lmn_termos.filter(t=>t.membro_id===memId).sort((a,b)=>b.ano-a.ano||b.semestre-a.semestre);
+            const body  = document.getElementById('lmn-hist-body');
+
+            if (!lista.length) {
+                body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum termo registado.</div>';
+            } else {
+                body.innerHTML = lista.map(t => {
+                    const signed = !!t.assinado_em;
+                    return `<div class="termo-card ${signed?'signed':'pending'}">
+          <div style="flex:1">
+            <div style="font-weight:600">${t.semestre}º Semestre ${t.ano}</div>
+            <div style="font-size:10px;color:var(--text-faint);margin-top:3px">
+              ${signed ? '✓ '+new Date(t.assinado_em).toLocaleDateString('pt-PT') : 'Pendente'}
+              ${t.cargo_funcao ? ' · '+t.cargo_funcao : ''}
+            </div>
+          </div>
+          ${signed?'<span class="tbadge tb-ok">Assinado</span>':'<span class="tbadge tb-pend">Pendente</span>'}
+          ${t.pdf_url ? `<button class="btn-sm" style="font-size:10px" onclick="lmn_verDoc('${t.pdf_url}')">Ver PDF</button>` : ''}
+          ${!signed&&t.link_token ? `<button class="btn-sm" style="font-size:10px" onclick="lmn_copiarLinkTermo('${t.link_token}')">Copiar Link</button>` : ''}
+        </div>`;
+                }).join('');
+            }
+            document.getElementById('lmn-modal-hist').style.display = 'flex';
+        };
+
+        /* ── SELECTION ── */
+        window.lmn_togSel = function(id, on) { if(on) lmn_selIds.add(id); else lmn_selIds.delete(id); };
+        window.lmn_toggleAll = function(on) {
+            document.querySelectorAll('.lmn-rc').forEach(cb => { cb.checked=on; lmn_togSel(cb.dataset.id, on); });
+        };
+        window.lmn_selecionarPendentes = function() {
+            lmn_selIds.clear();
+            document.querySelectorAll('.lmn-rc').forEach(cb => {
+                const id = cb.dataset.id;
+                const on = lmn_termoStatus(id).st !== 'ok';
+                cb.checked = on; if (on) lmn_selIds.add(id);
+            });
+            if (lmn_selIds.size) lmn_t(`${lmn_selIds.size} membro(s) selecionado(s)`);
+        };
+
+        /* ── MODAL GERAR LINKS ── */
+        window.lmn_abrirModalLink = function(ids) {
+            const sel = ids || [...lmn_selIds];
+            if (!sel.length) { lmn_t('Seleciona pelo menos um membro', 'err'); return; }
+
+            const sem = lmn_getSem(), ano = lmn_getAno();
+            document.getElementById('lmn-l-sem').value = String(sem);
+            document.getElementById('lmn-l-ano').value = String(ano);
+            document.getElementById('lmn-l-result').style.display = 'none';
+            smsg('lmn-l-msg','','');
+
+            document.getElementById('lmn-l-mems').innerHTML = sel.map(id => {
+                const m = lmn_membros.find(x=>x.id===id);
+                const ts = lmn_termoStatus(id);
+                return m ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg-panel);border-radius:6px">
+        <span style="font-size:12px;font-weight:600">${m.nome}</span>
+        <span class="tbadge ${ts.st==='ok'?'tb-ok':'tb-pend'}" style="font-size:9px">${ts.lbl}</span>
+      </div>` : '';
+            }).join('');
+
+            document.getElementById('lmn-modal-link')._ids = sel;
+            document.getElementById('lmn-modal-link').style.display = 'flex';
+        };
+
+        window.lmn_criarLinks = async function() {
+            const modal = document.getElementById('lmn-modal-link');
+            const ids   = modal._ids || [];
+            const sem   = parseInt(document.getElementById('lmn-l-sem').value);
+            const ano   = parseInt(document.getElementById('lmn-l-ano').value);
+            const btn   = document.getElementById('lmn-l-btn');
+
+            if (!sem || !ano) { smsg('lmn-l-msg','Seleciona semestre e ano.','err'); return; }
+
+            btn.disabled=true; btn.textContent='A criar…';
+            smsg('lmn-l-msg','','');
+
+            try {
+                let criados=0, existentes=0;
+                for (const memId of ids) {
+                    const ex = lmn_termos.find(t=>t.membro_id===memId&&t.semestre===sem&&t.ano===ano);
+                    if (ex && ex.assinado_em) { existentes++; continue; }
+                    if (!ex) {
+                        const m   = lmn_membros.find(x=>x.id===memId);
+                        const res = await lmn_sb('lumen_termos', {
+                            method:'POST',
+                            body: JSON.stringify({ membro_id:memId, semestre:sem, ano, cargo_funcao:m?._papel||'', localidade:'Lisboa', link_ativo:true })
+                        });
+                        const novo = Array.isArray(res)?res[0]:res;
+                        if (novo) { lmn_termos.push(novo); criados++; }
+                    }
+                }
+
+                const url = `${BASE_URL}assinar-termo.html?sem=${sem}&ano=${ano}`;
+                document.getElementById('lmn-l-url').textContent   = url;
+                document.getElementById('lmn-l-result').style.display = 'block';
+                document.getElementById('lmn-l-result')._url = url;
+                document.getElementById('lmn-l-result')._sem = sem;
+                document.getElementById('lmn-l-result')._ano = ano;
+
+                smsg('lmn-l-msg',
+                    `${criados} link(s) criado(s)${existentes?' · '+existentes+' já assinado(s)':''}.`,
+                    'ok');
+                lmn_t(`Links gerados para ${criados} membro(s)`);
+
+            } catch(e) {
+                smsg('lmn-l-msg', e?.message||JSON.stringify(e), 'err');
+            }
+            btn.disabled=false; btn.textContent='Gerar Links';
+        };
+
+        window.lmn_copiarLink = function() {
+            const url = document.getElementById('lmn-l-url')?.textContent;
+            if (!url) return;
+            navigator.clipboard.writeText(url).then(()=>lmn_t('Link copiado!'));
+        };
+
+        window.lmn_zapLink = function() {
+            const r   = document.getElementById('lmn-l-result');
+            const url = r?._url; if (!url) return;
+            const sem = r?._sem, ano = r?._ano;
+            const msg = encodeURIComponent(
+                `*Zion Lisboa — Lumen* ✍️\n\n*Termo de Compromisso — ${sem}º Semestre ${ano}*\n\nÉ hora de renovar o compromisso com o Lumen!\n\nAcede ao link, procura o teu nome e assina digitalmente:\n${url}\n\n_Obrigado pelo teu serviço! 🙏_`
+            );
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
+        };
+
+        window.lmn_copiarLinkTermo = function(token) {
+            const url = `${BASE_URL}assinar-termo.html?token=${token}`;
+            navigator.clipboard.writeText(url).then(()=>lmn_t('Link individual copiado!'));
+        };
+
+        window.lmn_verDoc = async function(path) {
+            const SUPA_URL = window.SUPABASE_URL||'', SUPA_KEY = window.SUPABASE_ANON_KEY||'';
+            try {
+                const r = await fetch(`${SUPA_URL}/storage/v1/object/sign/documentos-membros/${path}`,{
+                    method:'POST', headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,'Content-Type':'application/json'},
+                    body:JSON.stringify({expiresIn:3600})
+                });
+                if (!r.ok) throw await r.json();
+                const d = await r.json();
+                window.open(`${SUPA_URL}/storage/v1${d.signedURL}`, '_blank');
+            } catch(e) { lmn_t('Erro ao abrir documento','err'); }
+        };
+
+        // Start
+        lmn_init();
+    })();
+</script>

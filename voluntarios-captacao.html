@@ -521,24 +521,28 @@
 
         async function carregarMinisterios() {
             try {
-                // Busca id, nome, tipo E parent_id
                 const data = await sbGet('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&order=nome');
                 const todos = data || [];
 
-                // 1. Monta mapa dos AEs: { ae_id → ae_nome }
-                const aeMap = Object.fromEntries(
-                    todos
-                        .filter(m => m.tipo === 'ae')
-                        .map(a => [a.id, a.nome])
+                // IDs dos AEs
+                const aeIds = new Set(
+                    todos.filter(m => m.tipo === 'ae').map(m => m.id)
                 );
 
-                // 2. Só filhos diretos de AEs (parent_id aponta para um AE)
+                // Filhos diretos dos AEs (Gestão, Multimédia, Operação…)
+                const midMap = Object.fromEntries(
+                    todos
+                        .filter(m => m.parent_id && aeIds.has(m.parent_id))
+                        .map(m => [m.id, m.nome])
+                );
+
+                // Netos dos AEs (filhos dos filhos) — estes são as "areas"
                 ministerios = todos
-                    .filter(m => m.parent_id && aeMap[m.parent_id])
+                    .filter(m => m.parent_id && midMap[m.parent_id])
                     .map(m => ({
                         id:    m.id,
                         nome:  m.nome,
-                        grupo: aeMap[m.parent_id],   // nome do AE pai vira optgroup
+                        grupo: midMap[m.parent_id],  // Gestão / Multimédia / Operação
                     }))
                     .sort((a, b) =>
                         a.grupo.localeCompare(b.grupo, 'pt') ||

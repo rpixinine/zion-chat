@@ -521,14 +521,30 @@
 
         async function carregarMinisterios() {
             try {
-                const data = await sbGet('ministerios?select=id,nome,tipo&ativo=eq.true&order=tipo,nome');
-                ministerios = (data || []).map(m => ({
-                    id:    m.id,
-                    nome:  m.nome,
-                    grupo: m.tipo === 'ministerio' ? 'Ministérios'
-                        : m.tipo === 'area_equipa' ? 'Areas de Equipa'
-                            : (m.tipo || 'Outros'),
-                }));
+                // Busca id, nome, tipo E parent_id
+                const data = await sbGet('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&order=nome');
+                const todos = data || [];
+
+                // 1. Monta mapa dos AEs: { ae_id → ae_nome }
+                const aeMap = Object.fromEntries(
+                    todos
+                        .filter(m => m.tipo === 'ae')
+                        .map(a => [a.id, a.nome])
+                );
+
+                // 2. Só filhos diretos de AEs (parent_id aponta para um AE)
+                ministerios = todos
+                    .filter(m => m.parent_id && aeMap[m.parent_id])
+                    .map(m => ({
+                        id:    m.id,
+                        nome:  m.nome,
+                        grupo: aeMap[m.parent_id],   // nome do AE pai vira optgroup
+                    }))
+                    .sort((a, b) =>
+                        a.grupo.localeCompare(b.grupo, 'pt') ||
+                        a.nome.localeCompare(b.nome, 'pt')
+                    );
+
                 popularSelects();
             } catch (e) {
                 console.error('Erro ministérios:', e);

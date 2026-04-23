@@ -266,7 +266,20 @@
         <div class="nav-item" onclick="loadModule('links')" data-secao="links">Links</div>
 
         <!-- Ministérios (solo) -->
-        <div class="nav-item" onclick="loadModule('ministerios')" data-secao="ministerios">Ministérios/Áreas</div>
+        <div class="nav-group" id="ng-ministerios">
+            <div class="nav-group-label" onclick="toggleNavGroup('ng-ministerios',event)">
+                Ministérios/Áreas <span class="nav-arrow">▼</span>
+            </div>
+            <div class="nav-submenu" id="ng-ministerios-menu">
+                <div class="nav-sub-item" onclick="loadModule('ministerios');closeAllNavGroups()" data-secao="ministerios">
+                    <span class="nav-sub-icon"></span> Ministérios/Áreas
+                </div>
+                <div class="nav-sub-item" onclick="loadModule('lumen');closeAllNavGroups()" data-secao="lumen">
+                    <span class="nav-sub-icon"></span> Lumen
+                </div>
+            </div>
+        </div>
+        
 
         <!-- Cursos ZAO (solo) -->
         <div class="nav-item" onclick="loadModule('cursos')" data-secao="cursos">Cursos ZAO</div>
@@ -471,6 +484,7 @@
         {secao: 'links', label: 'Links', acoes: ['ver', 'criar', 'editar', 'eliminar']},
         {secao: 'cultos', label: 'Cultos', acoes: ['ver', 'criar', 'editar', 'eliminar']},
         {secao: 'ministerios', label: 'Ministérios', acoes: ['ver', 'criar', 'editar', 'eliminar']},
+        {secao: 'lumen', label: 'Lumen', acoes: ['ver', 'criar', 'editar', 'eliminar']},
         {secao: 'salas', label: 'Salas', acoes: ['ver', 'criar', 'editar', 'eliminar']},
         {secao: 'cursos', label: 'Cursos ZAO', acoes: ['ver', 'criar', 'editar', 'eliminar']},
         {secao: 'keola', label: 'Keola', acoes: ['ver', 'criar', 'editar', 'eliminar']},
@@ -558,6 +572,9 @@
                     'ministerios': () => {
                         if (window.min_renderSide) min_renderSide();
                     },
+                    'lumen': () => {
+                        if (window.lmn_init) lmn_init();
+                    },
                     'eventos': () => {
                         if (typeof evSetTab === 'function') evSetTab(0);
                     },
@@ -619,6 +636,7 @@
                     'novos':                   () => { if (window.nv_init)        nv_init(); },
                     'voluntarios':             () => { if (window.vl_init)        vl_init(); },
                     'ministerios':             () => { if (window.min_renderSide) min_renderSide(); },
+                    'lumen':                   () => { if (window.lmn_init)       lmn_init(); },
                     'keola':                   () => { if (window.kl_init)        kl_init(); },
                     'financeiro-receber':      () => { if (window.rec_init)       rec_init(); },
                     'financeiro-invoices':     () => { if (window.fem_init)       fem_init(); },
@@ -707,9 +725,15 @@
                 // Presbítero via membros
                 userPerms = {
                     e_admin: false,
-                    ver_dashboard: true, ver_membros: true, ver_eventos: true,
-                    ver_ministerios: true, ver_links: true, ver_cultos: true,
-                    criar_eventos: true, editar_eventos: true, editar_membros: true,
+                    ver_dashboard: true, 
+                    ver_membros: true, 
+                    ver_eventos: true,
+                    ver_ministerios: true, 
+                    ver_links: true, 
+                    ver_cultos: true,
+                    criar_eventos: true, 
+                    editar_eventos: true, 
+                    editar_membros: true,
                     ...(u || {}),
                 };
             } else if (u && Object.keys(u).some(k => k.startsWith('ver_') && u[k])) {
@@ -739,7 +763,7 @@
         // Ir para a primeira secção visível
         const primeiraVisivel = [
             'dashboard', 'membros', 'novos', 'pastores', 'links',
-            'cultos', 'ministerios', 'salas', 'cursos', 'keola',
+            'cultos', 'ministerios', 'lumen','salas', 'cursos', 'keola',
             'loja', 'eventos', 'fornecedores', 'financeiro-receber','financeiro-invoices',
             'financeiro-pagar', 'financeiro-faturas', 'financeiro-relatorios',
             'configuracoes','report-membros'
@@ -795,9 +819,15 @@
             } else if (currentUser.e_presbitero) {
                 userPerms = {
                     e_admin: false,
-                    ver_dashboard: true, ver_membros: true, ver_eventos: true,
-                    ver_ministerios: true, ver_links: true, ver_cultos: true,
-                    criar_eventos: true, editar_eventos: true, editar_membros: true,
+                    ver_dashboard: true,
+                    ver_membros: true,
+                    ver_eventos: true,
+                    ver_ministerios: true, 
+                    ver_links: true, 
+                    ver_cultos: true,
+                    criar_eventos: true, 
+                    editar_eventos: true, 
+                    editar_membros: true,
                     ...(u || {}),
                 };
             } else if (u && Object.keys(u).some(k => k.startsWith('ver_') && u[k])) {
@@ -822,7 +852,7 @@
 
         const primeiraVisivel = [
             'dashboard', 'membros', 'novos', 'pastores', 'links',
-            'cultos', 'ministerios', 'salas', 'cursos', 'keola',
+            'cultos', 'ministerios', 'lumen','salas', 'cursos', 'keola',
             'loja', 'eventos', 'fornecedores', 'financeiro-receber',
             'financeiro-invoices', 'financeiro-pagar', 'financeiro-faturas',
             'financeiro-relatorios', 'configuracoes','report-membros'
@@ -1246,6 +1276,7 @@
             'cursos': 'Cursos ZAO',
             'lista-compras': 'Lista de Compras',
             'ministerios': 'Ministérios',
+            'lumen': 'Lumen',
             'voluntarios': 'Voluntários',
             'financeiro-receber': 'Contas a Receber',
             'financeiro-pagar': 'Contas a Pagar',
@@ -1328,6 +1359,9 @@
                     },
                     'utilizadores': () => {
                         ut_init();
+                    },
+                    'lumen': () => {
+                        lmn_init();
                     },
                     'cultos': () => {
                         cu_init();

@@ -388,13 +388,24 @@
     }
     // ── FIM SUPABASE ───────────────────────────────────────────────
 
+    // ── VERIFICAR PERMISSAO ───────────────────────────────────────────────
     async function verificarPermissao(flags = []) {
-        const tipo    = currentUser.tipo    || '';
-        const isAdmin = currentUser.e_admin === true || tipo === 'admin';
+        // 1. Verificar o objeto em cache (rápido)
+        const tipo    = currentUser.tipo || '';
+        const isAdmin = currentUser.e_admin === true || currentUser.e_admin === 'true' || tipo === 'admin';
         if (isAdmin) return true;
         if (flags.includes('e_presbitero') && tipo === 'presbitero') return true;
         if (flags.includes('e_lider')      && tipo === 'lider')      return true;
 
+        // 2. Verificar diretamente na tabela usuarios (fonte de verdade)
+        try {
+            const rows = await sb(`usuarios?id=eq.${currentUser.id}&select=e_admin,tipo`);
+            const u = rows?.[0];
+            if (u?.e_admin === true || u?.tipo === 'admin') return true;
+            if (flags.includes('e_presbitero') && (u?.tipo === 'presbitero' || u?.tipo === 'lider')) return true;
+        } catch(e) { console.warn('verificarPermissao usuarios:', e); }
+
+        // 3. Verificar via tabela membros (se tiver membro_id)
         if (currentUser.membro_id) {
             try {
                 const cols = ['e_admin', ...flags].join(',');
@@ -407,7 +418,6 @@
 
         return false;
     }
-
     // ── INIT ───────────────────────────────────────────────────
     async function initold() {
         renderUserBar();
@@ -689,7 +699,13 @@
                 }),
             });
             const idx = agendamentos.findIndex(a => a.id === id);
-            if (idx !== -1) { agendamentos[idx].status = 'aprovado'; agendamentos[idx].aprovado_por = currentUser.id; agendamentos[idx].aprovado_em = new Date().toISOString(); }
+            
+            if (idx !== -1) { 
+                agendamentos[idx].status = 'aprovado'; 
+                agendamentos[idx].aprovado_por = currentUser.id; 
+                agendamentos[idx].aprovado_em = new Date().toISOString(); 
+            }
+            
             card.querySelector('.pedido-actions').outerHTML = `<div class="pedido-done aprovado">Aprovado com sucesso!</div>`;
             card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-aprovado';
             card.querySelector('.pedido-status-badge').textContent = 'aprovado';
@@ -727,7 +743,7 @@
                 body: JSON.stringify({
                     status:        'recusado',
                     motivo_recusa: motivo || null,
-                    aprovado_por:  currentUser.id,
+                    aprovado_por:  null,
                     aprovado_em:   new Date().toISOString(),
                 }),
             });

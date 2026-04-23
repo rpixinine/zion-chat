@@ -569,10 +569,17 @@
                 if (!up.ok) throw await up.json();
 
                 document.getElementById('proc-txt').textContent='A registar a assinatura…';
-                await fetch(`${SUPA_URL}/rest/v1/lumen_termos?id=eq.${ta_termoSel.id}`, {
-                    method:'PATCH',
-                    headers: { apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}`, 'Content-Type':'application/json', Prefer:'return=minimal' },
-                    body: JSON.stringify({ assinado_em:new Date().toISOString(), pdf_url:path, cargo_funcao:cargo, doc_identidade:docId, localidade:local, link_ativo:false })
+                await fetch(`${SUPA_URL}/rest/v1/rpc/assinar_termo_lumen`, {
+                    method: 'POST',
+                    headers: { apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}`, 'Content-Type':'application/json' },
+                    body: JSON.stringify({
+                        p_id:             ta_termoSel.id,
+                        p_assinado_em:    new Date().toISOString(),
+                        p_pdf_url:        path,
+                        p_cargo_funcao:   cargo,
+                        p_doc_identidade: docId,
+                        p_localidade:     local
+                    })
                 });
 
                 ta_pdfUrl = path;

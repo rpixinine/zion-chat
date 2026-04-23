@@ -1780,14 +1780,34 @@
         }
 
         function membroTemLumem() {
-            const lumem = _ministerios.find(m => m.nome.toLowerCase().trim() === 'lumem');
+            // Normaliza para comparação sem acento e sem espaço
+            const norm = s => (s||'').toLowerCase().trim()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+            const lumem = _ministerios.find(m => norm(m.nome) === 'lumem');
+
+            // Debug — remove depois de confirmar que funciona
+            console.log('[Lumem] ministério encontrado:', lumem);
+            console.log('[Lumem] _editMins:', _editMins);
+
             if (!lumem) return false;
 
-            return _editMins.some(em => {
-                if (em.ministerio_id === lumem.id) return true;
-                const min = _ministerios.find(m => m.id === em.ministerio_id);
-                return min?.parent_id === lumem.id;
+            // Coleciona todos os IDs descendentes do Lumem (filhos + netos)
+            const descendentes = new Set();
+            descendentes.add(lumem.id);
+            // filhos
+            _ministerios.forEach(m => { if (m.parent_id === lumem.id) descendentes.add(m.id); });
+            // netos
+            _ministerios.forEach(m => {
+                const pai = _ministerios.find(x => x.id === m.parent_id);
+                if (pai && pai.parent_id === lumem.id) descendentes.add(m.id);
             });
+
+            console.log('[Lumem] IDs descendentes:', [...descendentes]);
+
+            const temAcesso = _editMins.some(em => descendentes.has(em.ministerio_id));
+            console.log('[Lumem] temAcesso:', temAcesso);
+            return temAcesso;
         }
 
         function inicializarDocInputs() {

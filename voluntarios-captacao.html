@@ -543,7 +543,9 @@
 
         async function carregarMinisterios() {
             try {
-                const data = await sbGet('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&convite=eq.false&order=nome');
+                const LUMEN_ID = '150578ea-303e-4350-825a-4e6d34c98154';
+
+                const data = await sbGet('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&order=nome');
                 const todos = data || [];
 
                 // IDs dos AEs
@@ -558,14 +560,25 @@
                         .map(m => [m.id, m.nome])
                 );
 
-                // Netos dos AEs (filhos dos filhos) — estes são as "areas"
-                ministerios = todos
+                // Netos dos AEs — lógica original
+                const areasAE = todos
                     .filter(m => m.parent_id && midMap[m.parent_id])
                     .map(m => ({
                         id:    m.id,
                         nome:  m.nome,
-                        grupo: midMap[m.parent_id],  // Gestão / Multimédia / Operação
-                    }))
+                        grupo: midMap[m.parent_id],
+                    }));
+
+                // Filhos diretos do Lumen
+                const areasLumen = todos
+                    .filter(m => m.parent_id === LUMEN_ID)
+                    .map(m => ({
+                        id:    m.id,
+                        nome:  m.nome,
+                        grupo: 'Lumen',
+                    }));
+
+                ministerios = [...areasAE, ...areasLumen]
                     .sort((a, b) =>
                         a.grupo.localeCompare(b.grupo, 'pt') ||
                         a.nome.localeCompare(b.nome, 'pt')

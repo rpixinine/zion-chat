@@ -360,8 +360,6 @@
 </div>
 
 <script>
-    ZionAuth.protect();
-    const currentUser = ZionAuth.getUser();
     const SUPA_URL    = window.SUPABASE_URL      || '';
     const SUPA_KEY    = window.SUPABASE_ANON_KEY || '';
 
@@ -369,6 +367,8 @@
     let agendamentos = [];
     let abaAtiva     = 'pendente';
     let pedidoParaRejeitar = null;
+    let currentUser = null
+
 
     // ── SUPABASE ───────────────────────────────────────────────
     async function sb(path, opts = {}) {
@@ -699,13 +699,13 @@
                 }),
             });
             const idx = agendamentos.findIndex(a => a.id === id);
-            
-            if (idx !== -1) { 
-                agendamentos[idx].status = 'aprovado'; 
-                agendamentos[idx].aprovado_por = currentUser.id; 
-                agendamentos[idx].aprovado_em = new Date().toISOString(); 
+
+            if (idx !== -1) {
+                agendamentos[idx].status = 'aprovado';
+                agendamentos[idx].aprovado_por = currentUser.id;
+                agendamentos[idx].aprovado_em = new Date().toISOString();
             }
-            
+
             card.querySelector('.pedido-actions').outerHTML = `<div class="pedido-done aprovado">Aprovado com sucesso!</div>`;
             card.querySelector('.pedido-status-badge').className = 'pedido-status-badge sb-aprovado';
             card.querySelector('.pedido-status-badge').textContent = 'aprovado';
@@ -826,7 +826,12 @@
     function closeModalOutside(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-    init();
+    (async function() {
+        const session = await ZionAuth.protect();
+        if (!session) return;
+        currentUser = await ZionAuth.getUser();
+        init();
+    })();
 </script>
 <script>
     if ('serviceWorker' in navigator) {

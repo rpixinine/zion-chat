@@ -246,7 +246,8 @@
             <div class="suc-title">Termo Assinado!</div>
             <div id="ok-msg" style="font-size:13px;color:var(--text-muted);line-height:1.8"></div>
             <div style="margin-top:24px;max-width:320px;margin-left:auto;margin-right:auto">
-                <button class="btn-primary" onclick="ta_verPDF()">Ver o meu Termo (PDF)</button>
+                <button class="btn-primary" onclick="ta_salvarPDF()">💾 Guardar PDF no dispositivo</button>
+                <button class="btn-secondary" style="margin-top:8px" onclick="ta_verPDF()">Ver online</button>
             </div>
         </div>
     </div>
@@ -274,7 +275,8 @@
         var ta_termoSel=null, ta_membroSel=null;
         var ta_termos=[], ta_membros=[];
         var ta_declStates=[false,false,false];
-        var ta_sigHas=false, ta_pdfUrl=null;
+        var ta_sigHas=false, ta_pdfUrl=null, ta_pdfBlob=null;
+
 
         /* ── SUPABASE ── */
         async function sb(path, opts={}) {
@@ -553,6 +555,7 @@
             try {
                 document.getElementById('proc-txt').textContent='A gerar o PDF…';
                 const pdfBlob = await gerarPDF(cargo, docId, local);
+                ta_pdfBlob = pdfBlob;
 
                 document.getElementById('proc-txt').textContent='A guardar o documento…';
                 const ts   = Date.now();
@@ -715,6 +718,18 @@
                 const d=await r.json();
                 window.open(`${SUPA_URL}/storage/v1${d.signedURL}`,'_blank');
             } catch(e){ alert('Erro ao abrir o PDF. Tenta novamente.'); }
+        };
+
+        window.ta_salvarPDF = function() {
+            if (!ta_pdfBlob) return;
+            const url  = URL.createObjectURL(ta_pdfBlob);
+            const link = document.createElement('a');
+            link.href     = url;
+            link.download = `Termo_Lumen_${ta_sem}S${ta_ano}_${ta_membroSel?.nome?.replace(/\s+/g,'_')||'termo'}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
         };
 
         window.ta_voltar = function() {

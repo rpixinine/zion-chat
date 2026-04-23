@@ -184,6 +184,8 @@
         var lmn_selIds   = new Set();
         var lmn_filtro   = '';
         var lmn_selMemId = null;
+        var lmn_links    = [];
+
 
         /* ── HELPERS ── */
         function lmn_t(m, t) { if (window.toast) window.toast(m, t || 'ok'); }
@@ -249,9 +251,10 @@
                 const memIds = [...new Set((assocs||[]).map(a=>a.membro_id))];
                 if (!memIds.length) { lmn_membros=[]; lmn_termos=[]; lmn_renderSide(); return; }
 
-                [lmn_membros, lmn_termos] = await Promise.all([
-                    lmn_sb(`membros?id=in.(${memIds.join(',')})&ativo=eq.true&select=id,nome,foto_url,genero,email,telefone,nif,zona,nacionalidade,resenha_livro_url,antecedentes_br_url,antecedentes_pt_url,cursos_concluidos&order=nome`),
+                [lmn_membros, lmn_termos, lmn_links] = await Promise.all([
+                    lmn_sb(`membros?id=in.(${memIds.join(',')})&ativo=eq.true&select=id,nome,foto_url,genero,email,telefone,nif,zona,nacionalidade,resenha_livro_url,antecedentes_br_url,antecedentes_pt_url,cursos_concluidos,profissao,data_nascimento,escolaridade,estado_civil,historia,link_id&order=nome`),
                     lmn_sb(`lumen_termos?membro_id=in.(${memIds.join(',')})&select=*&order=ano.desc,semestre.desc`).catch(()=>[]),
+                    lmn_sb(`links?select=id,nome,zona,dia&ativo=eq.true&order=nome`).catch(()=>[]),
                 ]);
 
                 // Attach ministry info to each member
@@ -448,6 +451,17 @@
         </div>
       </div>
 
+      <!-- Links -->
+      <div>
+        <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">LINKs</div>
+        ${(()=>{
+                const lk = lmn_links?.find(x=>x.id===m.link_id);
+                return lk
+                    ? `<div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:var(--primary-faint);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600">${[lk.nome,lk.zona,lk.dia].filter(Boolean).join(' · ')}</div>`
+                    : '<div style="font-size:12px;color:var(--text-faint);font-style:italic">Sem link associado</div>';
+            })()}
+      </div>
+
       <!-- Cursos -->
       <div>
         <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">CURSOS (${cursos.length})</div>
@@ -460,6 +474,32 @@
                 }).join('')}</div>`
                 : '<div style="font-size:12px;color:var(--text-faint);font-style:italic">Nenhum curso registado</div>'}
       </div>
+
+      <!-- Dados Pessoais -->
+      <div>
+        <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">DADOS PESSOAIS</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[
+                ['Género',        m.genero ? (m.genero==='masculino'?'Masculino':'Feminino') : null],
+                ['Data Nasc.',    m.data_nascimento ? (()=>{ const d=new Date(m.data_nascimento+'T00:00:00'); const anos=Math.floor((new Date()-d)/31557600000); return d.toLocaleDateString('pt-PT')+` (${anos} anos)`; })() : null],
+                ['Estado Civil',  m.estado_civil ? m.estado_civil.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()) : null],
+                ['Profissão',     m.profissao || null],
+                ['Escolaridade',  m.escolaridade ? m.escolaridade.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()) : null],
+                ['Zona',          m.zona || null],
+            ].map(([lbl,val])=> val ? `
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+            <div style="font-size:9px;font-family:var(--font-title);letter-spacing:1px;color:var(--text-faint);margin-bottom:3px;text-transform:uppercase">${lbl}</div>
+            <div style="font-size:12px;font-weight:600">${val}</div>
+          </div>` : '').join('')}
+        </div>
+      </div>
+
+      <!-- História -->
+      ${m.historia ? `
+      <div>
+        <div style="font-family:var(--font-title);font-size:9px;letter-spacing:2px;color:var(--text-faint);margin-bottom:8px">HISTÓRIA</div>
+        <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap">${m.historia}</div>
+      </div>` : ''}
 
       <!-- Termos -->
       <div>

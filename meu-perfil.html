@@ -1785,6 +1785,7 @@
                 document.getElementById('btn-guardar-cad').textContent='Criar o Meu Registo';
                 return;
             }
+            // DEPOIS — Idiomas e nacionalidade ficam fora do criar_membro
             const body={
                 nome:gv('c_nome'), email, telefone:tel, nif,
                 genero:gv('c_genero'), data_nascimento:gv('c_data_nascimento'),
@@ -1793,8 +1794,6 @@
                 rua:gv('c_rua'), numero:gv('c_numero'), complemento:gv('c_complemento'),
                 bairro:gv('c_bairro'), cidade:gv('c_cidade'), codigo_postal:gv('c_codigo_postal'),
                 pais:gv('c_pais')||'Portugal', zona:gv('c_zona'), historia:gv('c_historia'),
-                'Idiomas':     JSON.stringify(_cadIdiomas),
-                nacionalidade: JSON.stringify(_cadNacs),
                 ativo:true,
                 foi_batizado:        document.getElementById('c_foi_batizado')?.checked        || false,
                 fez_processo_raizes: document.getElementById('c_fez_processo_raizes')?.checked || false,
@@ -1804,21 +1803,25 @@
             if(_cadConjugePending&&_cadConjugePending!==false)body.conjuge_id=_cadConjugePending;
             if(_cadLinkPending&&_cadLinkPending!==false)body.link_id=_cadLinkPending;
 
-            // ← USA RPC em vez de POST directo
             let novoIdRaw = await sb('rpc/criar_membro', {
                 method: 'POST',
                 body: JSON.stringify({ p_dados: body })
             });
-            // RPC pode retornar string, array com string, ou objeto com .id
             let novoId = Array.isArray(novoIdRaw) ? novoIdRaw[0] : novoIdRaw;
             if (novoId && typeof novoId === 'object') novoId = novoId.id || novoId;
             if (!novoId) throw new Error('RPC criar_membro nao retornou ID. Resposta: ' + JSON.stringify(novoIdRaw));
+            
+            const patchInicial = {};
+            if (_cadIdiomas.length)  patchInicial['Idiomas']     = _cadIdiomas;
+            if (_cadNacs.length)     patchInicial.nacionalidade   = _cadNacs;
 
-            const fotoUrl=await uploadFoto('cad', novoId);
-            if(fotoUrl){
+            const fotoUrl = await uploadFoto('cad', novoId);
+            if (fotoUrl) patchInicial.foto_url = fotoUrl;
+
+            if (Object.keys(patchInicial).length) {
                 await sb('rpc/atualizar_perfil', {
                     method: 'POST',
-                    body: JSON.stringify({ p_id: novoId, p_dados: { foto_url: fotoUrl } })
+                    body: JSON.stringify({ p_id: novoId, p_dados: patchInicial })
                 });
             }
 

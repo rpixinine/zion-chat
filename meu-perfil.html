@@ -817,6 +817,55 @@
             <textarea class="form-textarea" id="c_historia" placeholder="Partilha um pouco da tua historia..."></textarea>
         </div>
 
+        <!-- logo antes de:  <button class="btn-save" id="btn-guardar-cad" ... -->
+
+        <div id="doc-section-wrapper-cad" style="display:none">
+            <div class="form-section">Documentos</div>
+            <div class="notice" style="margin-bottom:14px">
+                Os documentos são guardados de forma segura e apenas acessíveis pela administração.
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Resenha do Livro</label>
+                <div class="doc-row">
+                    <div class="doc-status" id="doc-status-cad-resenha_livro_url"></div>
+                    <input type="file" accept="application/pdf" id="doc-file-cad-resenha_livro_url" style="display:none"
+                           onchange="docHandleUploadCad(this,'resenha_livro_url')">
+                    <button class="btn-inline" onclick="document.getElementById('doc-file-cad-resenha_livro_url').click()">📎 PDF</button>
+                </div>
+            </div>
+
+            <div class="form-group" id="doc-field-cad-antecedentes-br" style="display:none">
+                <label class="form-label">Antecedentes Criminais (Brasil)</label>
+                <div class="doc-row">
+                    <div class="doc-status" id="doc-status-cad-antecedentes_br_url"></div>
+                    <input type="file" accept="application/pdf" id="doc-file-cad-antecedentes_br_url" style="display:none"
+                           onchange="docHandleUploadCad(this,'antecedentes_br_url')">
+                    <button class="btn-inline" onclick="document.getElementById('doc-file-cad-antecedentes_br_url').click()">📎 PDF</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Antecedentes Criminais (Portugal)</label>
+                <div class="doc-row">
+                    <div class="doc-status" id="doc-status-cad-antecedentes_pt_url"></div>
+                    <input type="file" accept="application/pdf" id="doc-file-cad-antecedentes_pt_url" style="display:none"
+                           onchange="docHandleUploadCad(this,'antecedentes_pt_url')">
+                    <button class="btn-inline" onclick="document.getElementById('doc-file-cad-antecedentes_pt_url').click()">📎 PDF</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Termo de Compromisso</label>
+                <div class="doc-row">
+                    <div class="doc-status" id="doc-status-cad-termo_compromisso_url"></div>
+                    <input type="file" accept="application/pdf" id="doc-file-cad-termo_compromisso_url" style="display:none"
+                           onchange="docHandleUploadCad(this,'termo_compromisso_url')">
+                    <button class="btn-inline" onclick="document.getElementById('doc-file-cad-termo_compromisso_url').click()">📎 PDF</button>
+                </div>
+            </div>
+        </div>
+
         <button class="btn-save" id="btn-guardar-cad" onclick="pGuardar('cad')">Criar o Meu Registo</button>
         <div style="margin-top:10px"><button class="btn-secondary" onclick="pVoltar()">Voltar</button></div>
     </div>
@@ -903,6 +952,7 @@
         // Cadastro state
         let _cadMins=[], _cadIdiomas=[], _cadNacs=[];
         let _cadConjugePending=undefined, _cadLinkPending=undefined, _cadFotoBlob=null;
+        let _cadDocs = {};   // { campo: File }
 
         // Em vez de usar anon key:
         async function sb(path, opts={}) {
@@ -1086,7 +1136,7 @@
             document.getElementById('foto-preview-cad').style.display='none';
             document.getElementById('foto-placeholder-cad').style.display='';
             document.getElementById('foto-url-cad').value='';
-            _cadMins=[]; _cadIdiomas=[]; _cadNacs=[];
+            _cadMins=[]; _cadIdiomas=[]; _cadNacs=[]; _cadDocs = {};
             _cadConjugePending=undefined; _cadLinkPending=undefined; _cadFotoBlob=null;
             limparMsg('cadastro');
             document.getElementById('btn-guardar-cad').disabled=false;
@@ -1095,6 +1145,13 @@
             renderConjuge('cad'); renderConjugeSel('cad');
             renderLink('cad'); renderLinkSel('cad');
             renderIdiomasChips('cad'); renderNacChips('cad');
+
+            DOC_CAMPOS.forEach(c => {
+                const statusEl = document.getElementById(`doc-status-cad-${c}`);
+                if (statusEl) statusEl.innerHTML = '<span class="doc-missing">Nenhum documento anexado.</span>';
+                const fi = document.getElementById(`doc-file-cad-${c}`);
+                if (fi) fi.value = '';
+            });
         }
 
         // IDIOMAS
@@ -1116,7 +1173,7 @@
             if(!list.length){el.innerHTML='<span class="info-empty">Nenhuma nacionalidade adicionada.</span>';return;}
 
             el.innerHTML=list.map((n,idx)=>`<span class="chip">${n}<button class="chip-remove" onclick="pRemNac('${ctx}',${idx})">x</button></span>`).join('');
-            if (ctx === 'edit') atualizarCampoBR();
+            atualizarCampoBR(ctx);
         }
         window.pAddNac=function(ctx){const sel=document.getElementById(`nac-sel-${ctx}`);if(!sel||!sel.value)return;const list=getNacs(ctx);if(list.includes(sel.value)){sel.value='';return;}list.push(sel.value);sel.value='';renderNacChips(ctx);};
         window.pRemNac=function(ctx,idx){getNacs(ctx).splice(idx,1);renderNacChips(ctx);};
@@ -1332,7 +1389,7 @@
             renderMinSel(ctx);
             const pe=document.getElementById(`min-papel-${ctx}`);
             if(pe)pe.value='';
-            if (ctx === 'edit') inicializarDocInputs();
+            inicializarDocInputs(ctx);
 
         };
 
@@ -1351,7 +1408,7 @@
             getMins(ctx).splice(idx, 1);
             renderMinChips(ctx);
             renderMinSel(ctx);
-            if (ctx === 'edit') inicializarDocInputs();
+            inicializarDocInputs(ctx);
 
         };
 
@@ -1764,6 +1821,34 @@
                     body: JSON.stringify({ p_id: novoId, p_dados: { foto_url: fotoUrl } })
                 });
             }
+
+            // Upload dos documentos pendentes (Lumen)
+            for (const campo of DOC_CAMPOS) {
+                const file = _cadDocs[campo];
+                if (!file) continue;
+                try {
+                    const path = `${novoId}/${campo}.pdf`;
+                    const r = await fetch(`${SUPA_URL}/storage/v1/object/${DOC_BUCKET}/${path}`, {
+                        method: 'POST',
+                        headers: {
+                            apikey: SUPA_KEY,
+                            Authorization: `Bearer ${SUPA_KEY}`,
+                            'Content-Type': 'application/pdf',
+                            'Cache-Control': '3600',
+                            'x-upsert': 'true'
+                        },
+                        body: file
+                    });
+                    if (!r.ok) throw await r.json();
+                    await sb('rpc/atualizar_perfil', {
+                        method: 'POST',
+                        body: JSON.stringify({ p_id: novoId, p_dados: { [campo]: path } })
+                    });
+                } catch(e) {
+                    console.error(`Upload doc ${campo} falhou`, e);
+                }
+            }
+
             for(const min of _cadMins){
                 try{ await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:novoId,ministerio_id:min.ministerio_id,papel:min.papel||null,ativo:true})}); }catch{}
             }
@@ -1798,7 +1883,7 @@
             }
         }
 
-        function membroTemLumem() {
+        function membroTemLumem(ctx) {
             const LUMEN_ID = '150578ea-303e-4350-825a-4e6d34c98154';
             const lumem = _ministerios.find(m => m.id === LUMEN_ID);
             if (!lumem) return false;
@@ -1811,24 +1896,64 @@
                 if (pai && pai.parent_id === lumem.id) descendentes.add(m.id);
             });
 
-            return _editMins.some(em => descendentes.has(em.ministerio_id));
+            const mins = ctx === 'edit' ? _editMins : _cadMins;
+            return mins.some(em => descendentes.has(em.ministerio_id));
         }
 
-        function inicializarDocInputs() {
-            const temAcesso = membroTemLumem();
-            const secDoc = document.getElementById('doc-section-wrapper');
-            if (secDoc) secDoc.style.display = temAcesso ? 'block' : 'none';
-            if (!temAcesso) return;
+        function inicializarDocInputs(ctx) {
+            ctx = ctx || 'edit';
+            const temAcesso = membroTemLumem(ctx);
 
-            DOC_CAMPOS.forEach(c => renderDocStatus(c, _membroSel[c] || null));
-            atualizarCampoBR();
+            if (ctx === 'edit') {
+                const secDoc = document.getElementById('doc-section-wrapper');
+                if (secDoc) secDoc.style.display = temAcesso ? 'block' : 'none';
+                if (!temAcesso) return;
+                DOC_CAMPOS.forEach(c => renderDocStatus(c, _membroSel[c] || null));
+                atualizarCampoBR('edit');
+            } else {
+                const secDoc = document.getElementById('doc-section-wrapper-cad');
+                if (secDoc) secDoc.style.display = temAcesso ? 'block' : 'none';
+                if (!temAcesso) return;
+                DOC_CAMPOS.forEach(c => renderDocStatusCad(c));
+                atualizarCampoBR('cad');
+            }
         }
 
-        function atualizarCampoBR() {
-            const isBR = _editNacs.some(n => n.toLowerCase().includes('brasileira'));
-            const el = document.getElementById('doc-field-antecedentes-br');
-            if (el) el.style.display = isBR ? 'block' : 'none';
+        function atualizarCampoBR(ctx) {
+            ctx = ctx || 'edit';
+            if (ctx === 'edit') {
+                const isBR = _editNacs.some(n => n.toLowerCase().includes('brasileira'));
+                const el = document.getElementById('doc-field-antecedentes-br');
+                if (el) el.style.display = isBR ? 'block' : 'none';
+            } else {
+                const isBR = _cadNacs.some(n => n.toLowerCase().includes('brasileira'));
+                const el = document.getElementById('doc-field-cad-antecedentes-br');
+                if (el) el.style.display = isBR ? 'block' : 'none';
+            }
         }
+
+        function renderDocStatusCad(campo) {
+            const el = document.getElementById(`doc-status-cad-${campo}`);
+            if (!el) return;
+            if (_cadDocs[campo]) {
+                el.innerHTML = `<span class="doc-ok">✅ ${_cadDocs[campo].name}</span>`;
+            } else {
+                el.innerHTML = '<span class="doc-missing">Nenhum documento anexado.</span>';
+            }
+        }
+
+        window.docHandleUploadCad = function(input, campo) {
+            const file = input.files?.[0];
+            if (!file) return;
+            input.value = '';
+            if (file.type !== 'application/pdf') {
+                const el = document.getElementById(`doc-status-cad-${campo}`);
+                if (el) el.innerHTML = `<span class="doc-error">❌ Apenas ficheiros PDF são aceites.</span>`;
+                return;
+            }
+            _cadDocs[campo] = file;
+            renderDocStatusCad(campo);
+        };
 
         window.docHandleUpload = async function(input, campo) {
             const file = input.files?.[0];
@@ -1892,7 +2017,7 @@
             _membroSel=null;
             _editMins=[];_editFilhos=[];_editCursos=[];_editIdiomas=[];_editNacs=[];_editFotoBlob=null;
             _editConjugePending=undefined;_editLinkPending=undefined;
-            _cadMins=[];_cadIdiomas=[];_cadNacs=[];_cadFotoBlob=null;
+            _cadMins=[];_cadIdiomas=[];_cadNacs=[];_cadFotoBlob=null;_cadDocs={};
             _cadConjugePending=undefined;_cadLinkPending=undefined;
             document.getElementById('not-found-box').style.display='none';
             document.getElementById('id-input').value='';

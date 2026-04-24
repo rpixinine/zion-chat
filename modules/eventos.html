@@ -824,6 +824,7 @@
         let evRelFiltPilar   = '';
         let evRelFiltArea    = '';
         let evRelFiltSubArea = '';
+        let evAllMinMap = {};
 
         const ST = {
             aberto: {label: 'Aberto', cls: 'badge-green'},
@@ -844,17 +845,33 @@
         const _sb = window.sb;
 
         /* ── HELPERS ──────────────────────────────────────────────────────────── */
+        function _defaultTipos() {
+            return [
+                { nome: 'Reuniao de Lideres',      autoAdd: 'lideres'     },
+                { nome: 'Reunião de Voluntários',  autoAdd: 'voluntarios' },
+                { nome: 'Prestação de Contas',     autoAdd: 'dizimistas'  },
+                { nome: 'Culto Especial'   },
+                { nome: 'Conferencia'      },
+                { nome: 'Retiro'           },
+                { nome: 'Treinamento'      },
+                { nome: 'Workshop'         },
+                { nome: 'Conferencia de Jovens' },
+                { nome: 'Encontro de Casais'    },
+                { nome: 'Culto de Oracao'       },
+                { nome: 'Seminario'             },
+                { nome: 'Outro'                 },
+            ];
+        }
+
         function getTipos() {
             try {
                 const s = localStorage.getItem('zion_tipos_evento');
-                return s ? JSON.parse(s) : [
-                    'Reuniao de Lideres', 'Reunião de Voluntários', 'Prestação de Contas',
-                    'Culto Especial', 'Conferencia', 'Retiro',
-                    'Treinamento', 'Workshop', 'Conferencia de Jovens', 'Encontro de Casais',
-                    'Culto de Oracao', 'Seminario', 'Outro'
-                ];
+                if (!s) return _defaultTipos();
+                const raw = JSON.parse(s);
+                // Migra formato antigo (strings) para objetos
+                return raw.map(t => typeof t === 'string' ? { nome: t } : t);
             } catch {
-                return [];
+                return _defaultTipos();
             }
         }
 
@@ -914,7 +931,9 @@
         function evOnTipoChange(tipo) {
             const v = document.getElementById('fe_valor');
             if (!v || v.value) return;
-            if (tipo === 'Workshop') v.value = '10.00';
+            const tc = getTipos().find(t => t.nome === tipo);
+            if (tc?.valorSugerido) v.value = tc.valorSugerido;
+            else if (tipo === 'Workshop') v.value = '10.00'; // compat
         }
 
         /* ── LINK PÚBLICO ────────────────────────────────────────────────────── */
@@ -1394,7 +1413,8 @@
         function evRenderSide() {
             const tipos = getTipos();
             const sel = document.getElementById('ev-filtro-tipo');
-            if (sel) sel.innerHTML = '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${t}" ${evFiltroTipo === t ? 'selected' : ''}>${t}</option>`).join('');
+
+            if (sel) sel.innerHTML = '<option value="">Todos os tipos</option>' +  tipos.map(t => `<option value="${t.nome}" ${evFiltroTipo === t.nome ? 'selected' : ''}>${t.nome}</option>`).join('');
 
             let lista = [...evEventos].sort((a, b) => new Date(b.data_inicio) - new Date(a.data_inicio));
             if (evFiltroQ) lista = lista.filter(e => (e.titulo || '').toLowerCase().includes(evFiltroQ.toLowerCase()));
@@ -1550,23 +1570,30 @@
         /* ════════════════════════════════════════════════════════════════════════
            ACOES
         ════════════════════════════════════════════════════════════════════════ */
+
         async function evIniciar(id) {
             const ev = evEventos.find(e => e.id === id);
             if (!ev) return;
 
-            const isL  = ev.tipo === 'Reuniao de Lideres' || ev.tipo === 'Reunião de Líderes';
-            const isV  = ev.tipo === 'Reunião de Voluntários';
-            const isPC = ev.tipo === 'Prestação de Contas';
-            const isAuto = isL || isV || isPC;
+            const tipoConfig     = getTipos().find(t => t.nome === ev.tipo) || {};
+            const autoAdd        = tipoConfig.autoAdd        || null;
+            const ministerioId   = tipoConfig.ministerioId   || null;
+            const ministerioNome = tipoConfig.ministerioNome || null;
 
-            const autoMsg = isL  ? ' Todos os líderes serão adicionados automaticamente.'
-                : isV  ? ' Todos os voluntários serão adicionados automaticamente.'
-                    : isPC ? ' Todos os dizimistas serão adicionados automaticamente.'
-                        : '';
+            const isL   = autoAdd === 'lideres';
+            const isV   = autoAdd === 'voluntarios';
+            const isPC  = autoAdd === 'dizimistas';
+            const isMin = autoAdd === 'ministerio' && ministerioId;
+
+            const autoMsg = isL   ? ' Todos os líderes serão adicionados automaticamente.'
+                : isV   ? ' Todos os voluntários serão adicionados automaticamente.'
+                    : isPC  ? ' Todos os dizimistas serão adicionados automaticamente.'
+                        : isMin ? ` Todos os membros de "${ministerioNome}" serão adicionados automaticamente.`
+                            : '';
 
             if (!confirm(`Iniciar "${ev.titulo}"?${autoMsg}`)) return;
 
-            await _sb(`eventos?id=eq.${id}`, {method: 'PATCH', body: JSON.stringify({status: 'em_curso'})});
+            await _sb(`eventos?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'em_curso' }) });
 
             let membros = [];
 
@@ -1576,18 +1603,22 @@
                 membros = await _sb('membros?select=id,nome&e_voluntario=eq.true&ativo=eq.true').catch(() => []) || [];
             } else if (isPC) {
                 membros = await _sb('membros?select=id,nome&e_dizimista=eq.true&ativo=eq.true').catch(() => []) || [];
+            } else if (isMin) {
+                // ← NOVA LÓGICA: qualquer ministério configurado no tipo
+                const rows = await _sb(
+                    `membro_ministerios?select=membro_id,membros(id,nome)&ministerio_id=eq.${ministerioId}&ativo=eq.true`
+                ).catch(() => []) || [];
+                membros = rows.map(r => r.membros).filter(Boolean);
             }
 
             if (membros.length) {
-                /* Evita duplicados — busca quem já está na lista */
                 const jaExistem = await _sb(
                     `evento_presencas?evento_id=eq.${id}&select=membro_id`
                 ).catch(() => []) || [];
                 const jaIds = new Set(jaExistem.map(p => p.membro_id));
-
                 const novos = membros
                     .filter(m => !jaIds.has(m.id))
-                    .map(m => ({evento_id: id, membro_id: m.id, status: 'pendente'}));
+                    .map(m => ({ evento_id: id, membro_id: m.id, status: 'pendente' }));
 
                 if (novos.length) {
                     await _sb('evento_presencas', {
@@ -1596,9 +1627,12 @@
                     }).catch(err => alert('Aviso: alguns membros podem não ter sido adicionados. ' + (err?.message || '')));
                 }
 
-                if (window.toast) {
-                    toast(`${membros.length} ${isL ? 'líderes' : isV ? 'voluntários' : 'dizimistas'} adicionados`, 'ok');
-                }
+                const label = isL ? 'líderes'
+                    : isV  ? 'voluntários'
+                        : isPC ? 'dizimistas'
+                            : `membros de "${ministerioNome}"`;
+
+                if (window.toast) toast(`${membros.length} ${label} adicionados`, 'ok');
             }
 
             await evRecarregar();
@@ -1782,22 +1816,58 @@
             evRenderPresBody();
         }
 
+        async function evCarregarMinisteriosMembros() {
+            if (!window.membros?.length) { evAllMinMap = {}; return; }
+
+            evAllMinMap = {};
+            const mIds = window.membros.map(m => m.id);
+
+            // Batches de 200 para não exceder o limite de URL
+            const batchSize = 200;
+            for (let i = 0; i < mIds.length; i += batchSize) {
+                const batch = mIds.slice(i, i + batchSize);
+                const rows = await _sb(
+                    `membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)` +
+                    `&membro_id=in.(${batch.join(',')})&ativo=eq.true`
+                ).catch(() => []) || [];
+
+                rows.forEach(v => {
+                    if (!evAllMinMap[v.membro_id]) evAllMinMap[v.membro_id] = [];
+                    evAllMinMap[v.membro_id].push({
+                        ministerioId: v.ministerios?.id   || null,
+                        nome:         v.ministerios?.nome || '—',
+                        tipo:         v.ministerios?.tipo || '—',
+                        papel:        v.papel             || '',
+                    });
+                });
+            }
+        }
+
+
         async function evVerPresencas(id) {
             evView = 'presencas';
             evAtivo = evEventos.find(e => e.id === id) || evAtivo;
-            evPresencas = await _sb(`evento_presencas?select=*,membros(id,nome,telefone,foto_url,e_lider,e_voluntario)&evento_id=eq.${id}&order=created_at`) || [];
+            evPresencas = await _sb(
+                `evento_presencas?select=*,membros(id,nome,telefone,foto_url,e_lider,e_voluntario)` +
+                `&evento_id=eq.${id}&order=created_at`
+            ) || [];
 
             if (!window.membros?.length) {
-                window.membros = await _sb('membros?select=id,nome,foto_url,e_lider,e_voluntario&ativo=eq.true&order=nome').catch(() => []) || [];
+                window.membros = await _sb(
+                    'membros?select=id,nome,foto_url,e_lider,e_voluntario&ativo=eq.true&order=nome'
+                ).catch(() => []) || [];
             }
 
+            // evLidMin — ministérios dos membros já no evento (para badges e relatório)
             const mIds = evPresencas.map(p => p.membro_id).filter(Boolean);
             evLidMin = {};
             if (mIds.length) {
-
-                const vs = await _sb(`membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)&membro_id=in.(${mIds.join(',')})&ativo=eq.true`).catch(() => []) || [];
+                const vs = await _sb(
+                    `membro_ministerios?select=membro_id,papel,ministerios(id,nome,tipo)` +
+                    `&membro_id=in.(${mIds.join(',')})&ativo=eq.true`
+                ).catch(() => []) || [];
                 const allMinsV = await _sb('ministerios?select=id,nome,parent_id&limit=1000').catch(() => []) || [];
-                const { pilarMap: pilarMapV, areaMap: areaMapV } = _buildHierarchyMaps(allMinsV);  // ← destructuring correcto
+                const { pilarMap, areaMap } = _buildHierarchyMaps(allMinsV);
 
                 vs.forEach(v => {
                     if (!evLidMin[v.membro_id]) evLidMin[v.membro_id] = [];
@@ -1805,13 +1875,19 @@
                         papel: v.papel,
                         nome:  v.ministerios?.nome || '—',
                         tipo:  v.ministerios?.tipo || '—',
-                        pilar: pilarMapV[v.ministerios?.id] || v.ministerios?.nome || '—',
-                        area:  areaMapV[v.ministerios?.id]  || v.ministerios?.nome || '—'  // ← campo area
+                        pilar: pilarMap[v.ministerios?.id] || v.ministerios?.nome || '—',
+                        area:  areaMap[v.ministerios?.id]  || v.ministerios?.nome || '—',
                     });
                 });
             }
+
+            // evAllMinMap — ministérios de TODOS os membros (para filtro do painel de add)
+            await evCarregarMinisteriosMembros();
+
             evRenderPresencas();
         }
+
+
 
         /* Render COMPLETO — monta header fixo + #ev-pres-body */
         function evRenderPresencas() {
@@ -1849,7 +1925,8 @@
                 <span class="badge badge-gray">Total: ${tot}</span>
             </div>
         </div>
-        ${emC ? `<div class="ev-pres-add" style="padding:12px">
+        ${emC ? `
+<div class="ev-pres-add" style="padding:12px">
     <div class="ev-pres-add-title">Adicionar manualmente</div>
 
     <!-- Filtros -->
@@ -1865,25 +1942,28 @@
         <select class="ev-filtro-select" style="flex:1;min-width:110px"
                 onchange="evAddSetFiltro('tipo',this.value)">
             <option value="">Todos os tipos</option>
-            <option value="lider"     ${evAddFiltroTipo==='lider'     ?'selected':''}>Líderes</option>
-            <option value="voluntario"${evAddFiltroTipo==='voluntario'?'selected':''}>Voluntários</option>
-            <option value="outro"     ${evAddFiltroTipo==='outro'     ?'selected':''}>Outros</option>
+            <option value="lider"      ${evAddFiltroTipo==='lider'      ?'selected':''}>Líderes</option>
+            <option value="voluntario" ${evAddFiltroTipo==='voluntario' ?'selected':''}>Voluntários</option>
+            <option value="outro"      ${evAddFiltroTipo==='outro'      ?'selected':''}>Outros</option>
         </select>
 
         <select class="ev-filtro-select" style="flex:1;min-width:110px" id="ev-add-filtro-area"
                 onchange="evAddSetFiltro('area',this.value)">
             <option value="">Todas as áreas</option>
-            ${[...new Set((window.membros||[]).flatMap(m => {
-                try { return m._areas || []; } catch { return []; }
-            }))].sort().map(a => `<option value="${a}" ${evAddFiltroArea===a?'selected':''}>${a}</option>`).join('')}
+            ${[...new Set(Object.values(evAllMinMap).flatMap(mins => mins.map(m => m.nome)))].sort()
+                .map(a => `<option value="${a}" ${evAddFiltroArea===a?'selected':''}>${a}</option>`).join('')}
         </select>
     </div>
 
     <!-- Lista filtrada -->
     <div id="ev-add-lista" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);
          border-radius:8px;background:var(--bg-input)">
-        <!-- preenchido por evRenderAddLista() -->
     </div>
+
+    <!-- Botão bulk (fica oculto quando não há filtro activo) -->
+    <button class="ev-btn primary" id="ev-add-bulk-btn"
+            style="display:none;width:100%;margin-top:6px;font-size:9px;padding:8px"
+            onclick="void(0)">+ Adicionar todos</button>
 
     <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span id="ev-add-sel-nome" style="flex:1;font-size:11px;color:var(--primary-dark);font-weight:600"></span>
@@ -2090,6 +2170,47 @@
             }
         }
 
+        async function evAddTodos(ids) {
+            if (!ids?.length || !evAtivo) return;
+
+            const jaAdd    = new Set(evPresencas.map(p => p.membro_id).filter(Boolean));
+            const novosIds = ids.filter(id => !jaAdd.has(id));
+
+            if (!novosIds.length) {
+                alert('Todos esses membros já estão na lista de presenças.');
+                return;
+            }
+
+            const label = evAddFiltroArea ? `do ministério "${evAddFiltroArea}"`
+                : evAddFiltroTipo === 'lider'      ? 'líderes'
+                    : evAddFiltroTipo === 'voluntario' ? 'voluntários'
+                        : 'filtrados';
+
+            if (!confirm(`Adicionar ${novosIds.length} membro(s) ${label} ao evento?`)) return;
+
+            const bulkBtn = document.getElementById('ev-add-bulk-btn');
+            if (bulkBtn) { bulkBtn.disabled = true; bulkBtn.textContent = 'A adicionar...'; }
+
+            try {
+                const payload = novosIds.map(id => ({
+                    evento_id: evAtivo.id,
+                    membro_id: id,
+                    status:    'pendente',
+                }));
+
+                await _sb('evento_presencas', { method: 'POST', body: JSON.stringify(payload) });
+
+                // Limpa filtros e recarrega
+                evAddFiltroQ = ''; evAddFiltroTipo = ''; evAddFiltroArea = '';
+                if (window.toast) toast(`${novosIds.length} membros adicionados`, 'ok');
+                await evVerPresencas(evAtivo.id);
+
+            } catch (err) {
+                alert('Erro ao adicionar: ' + (err?.message || JSON.stringify(err)));
+                if (bulkBtn) { bulkBtn.disabled = false; }
+            }
+        }
+
         async function evFinalizarEntradas() {
             if (!evAtivo) return;
             if (!confirm('Pendentes serao marcados como faltaram.')) return;
@@ -2145,26 +2266,44 @@
             const container = document.getElementById('ev-add-lista');
             if (!container) return;
 
-            const jaAdd  = new Set(evPresencas.map(p => p.membro_id).filter(Boolean));
-            let lista    = (window.membros || []).filter(m => !jaAdd.has(m.id));
+            const jaAdd = new Set(evPresencas.map(p => p.membro_id).filter(Boolean));
+            let lista   = (window.membros || []).filter(m => !jaAdd.has(m.id));
 
-            /* Filtro nome */
+            // Filtro nome
             if (evAddFiltroQ) {
                 const q = evAddFiltroQ.toLowerCase();
                 lista = lista.filter(m => m.nome.toLowerCase().includes(q));
             }
 
-            /* Filtro tipo */
-            if (evAddFiltroTipo === 'lider')      lista = lista.filter(m => m.e_lider);
+            // Filtro tipo (lider / voluntario / outro)
+            if      (evAddFiltroTipo === 'lider')      lista = lista.filter(m => m.e_lider);
             else if (evAddFiltroTipo === 'voluntario') lista = lista.filter(m => m.e_voluntario);
-            else if (evAddFiltroTipo === 'outro') lista = lista.filter(m => !m.e_lider && !m.e_voluntario);
+            else if (evAddFiltroTipo === 'outro')      lista = lista.filter(m => !m.e_lider && !m.e_voluntario);
 
-            /* Filtro área — usa minMap carregado */
+            // Filtro área — FIX: usa evAllMinMap em vez de m._areas (que não existia)
             if (evAddFiltroArea) {
-                lista = lista.filter(m => {
-                    const mins = evLidMin[m.id] || [];
-                    return mins.some(mn => mn.nome === evAddFiltroArea || mn.area === evAddFiltroArea);
-                });
+                lista = lista.filter(m =>
+                    (evAllMinMap[m.id] || []).some(mn => mn.nome === evAddFiltroArea)
+                );
+            }
+
+            // ── Botão "Adicionar todos" ──────────────────────────────────────
+            const bulkBtn  = document.getElementById('ev-add-bulk-btn');
+            const temFiltro = evAddFiltroQ || evAddFiltroTipo || evAddFiltroArea;
+            if (bulkBtn) {
+                if (temFiltro && lista.length > 0) {
+                    bulkBtn.style.display  = '';
+                    bulkBtn.disabled       = false;
+                    const label = evAddFiltroArea ? `"${evAddFiltroArea}"`
+                        : evAddFiltroTipo === 'lider'      ? 'Líderes'
+                            : evAddFiltroTipo === 'voluntario' ? 'Voluntários'
+                                : 'filtrados';
+                    bulkBtn.textContent = `+ Adicionar todos ${label} (${lista.length})`;
+                    const ids = lista.map(m => m.id);
+                    bulkBtn.onclick = () => evAddTodos(ids);
+                } else {
+                    bulkBtn.style.display = 'none';
+                }
             }
 
             if (!lista.length) {
@@ -2175,22 +2314,24 @@
             const selId = document.getElementById('ev-add-mb-hidden')?.value || '';
 
             container.innerHTML = lista.map(m => {
-                const papel = m.e_lider ? 'Líder' : m.e_voluntario ? 'Voluntário' : '';
+                const papel    = m.e_lider ? 'Líder' : m.e_voluntario ? 'Voluntário' : '';
                 const papelCor = m.e_lider
                     ? 'color:#1565c0;background:rgba(25,118,210,.1)'
                     : m.e_voluntario
                         ? 'color:#2e7d32;background:rgba(46,125,50,.1)'
                         : '';
-                const mins   = evLidMin[m.id] || [];
-                const areas  = [...new Set(mins.map(mn => mn.nome))].slice(0, 2).join(', ') || '—';
-                const ini    = (m.nome || '?')[0].toUpperCase();
-                const foto   = m.foto_url
-                    ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.textContent='${ini}'">`
+                // FIX: usa evAllMinMap para mostrar áreas
+                const mins  = evAllMinMap[m.id] || [];
+                const areas = [...new Set(mins.map(mn => mn.nome))].slice(0, 2).join(', ') || '—';
+                const ini   = (m.nome || '?')[0].toUpperCase();
+                const foto  = m.foto_url
+                    ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"
+                    onerror="this.parentElement.textContent='${ini}'">`
                     : ini;
-                const isSel  = selId === m.id;
+                const isSel = selId === m.id;
 
                 return `<div class="ev-add-linha" data-id="${m.id}"
-            onclick="evAddSelMembro('${m.id}','${m.nome.replace(/'/g,"\\'")}')"
+            onclick="evAddSelMembro('${m.id}','${m.nome.replace(/'/g, "\\'")}')"
             style="display:flex;align-items:center;gap:8px;padding:7px 10px;
                    cursor:pointer;border:1px solid transparent;border-radius:6px;
                    transition:background .1s;margin:2px;
@@ -2204,18 +2345,15 @@
                             white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                     ${m.nome}
                     ${papel ? `<span style="font-size:8px;padding:1px 6px;border-radius:8px;
-                                font-weight:700;margin-left:5px;${papelCor}">${papel}</span>` : ''}
+                                 font-weight:700;margin-left:5px;${papelCor}">${papel}</span>` : ''}
                 </div>
                 <div style="font-size:10px;color:var(--text-faint);
-                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                    ${areas}
-                </div>
+                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${areas}</div>
             </div>
             ${isSel ? `<span style="color:var(--primary);font-size:14px">✓</span>` : ''}
         </div>`;
             }).join('');
         }
-
 
 
         function evAbrirMotivo(presId, nome) {
@@ -2738,7 +2876,7 @@
                 return new Date(v).toISOString().slice(0, 16);
             };
             const tipos = getTipos(),
-                tOpts = tipos.map(t => `<option value="${t}" ${fv('tipo') === t ? 'selected' : ''}>${t}</option>`).join('');
+                tOpts = tipos.map(t => `<option value="${t.nome}" ${fv('tipo') === t.nome ? 'selected' : ''}>${t.nome}</option>`).join('');
             const body = `<div class="form-grid"><div class="msg-form" id="form-msg"></div>
         <div class="ev-form-section">Identificacao</div>
         <div class="form-group form-full"><label class="form-label">Titulo *</label><input class="form-input" id="fe_titulo" type="text" placeholder="Nome do evento" value="${fv('titulo')}"></div>
@@ -2822,72 +2960,190 @@
         /* ════════════════════════════════════════════════════════════════════════
            TIPOS DE EVENTO
         ════════════════════════════════════════════════════════════════════════ */
+
         function evRenderSideTipos() {
             const lista = getTipos();
-            document.getElementById('ev-list').innerHTML = '<div style="padding:8px 6px 2px;font-size:10px;color:var(--text-faint)">' + lista.length + ' tipo(s)</div>' +
-                lista.map((t, i) => `<div class="ev-list-item ${evTipoIdx === i ? 'active' : ''}" onclick="evSelTipo(${i})" id="evt-item-${i}">
+
+            const _autoLabel = t => {
+                if (t.autoAdd === 'lideres')
+                    return '<div class="ev-list-sub" style="color:var(--primary-dark)">⚡ Auto: Líderes</div>';
+                if (t.autoAdd === 'voluntarios')
+                    return '<div class="ev-list-sub" style="color:#2e7d32">⚡ Auto: Voluntários</div>';
+                if (t.autoAdd === 'dizimistas')
+                    return '<div class="ev-list-sub" style="color:#e65100">⚡ Auto: Dizimistas</div>';
+                if (t.autoAdd === 'ministerio' && t.ministerioNome)
+                    return `<div class="ev-list-sub" style="color:#7b1fa2">⚡ Auto: ${t.ministerioNome}</div>`;
+                return '';
+            };
+
+            document.getElementById('ev-list').innerHTML =
+                '<div style="padding:8px 6px 2px;font-size:10px;color:var(--text-faint)">' + lista.length + ' tipo(s)</div>' +
+                lista.map((t, i) => `
+            <div class="ev-list-item ${evTipoIdx === i ? 'active' : ''}" onclick="evSelTipo(${i})" id="evt-item-${i}">
                 <div class="ev-list-avatar" style="border-radius:6px;font-size:10px">${i + 1}</div>
-                <div class="ev-list-info"><div class="ev-list-nome">${t}</div>
-            ${(t === 'Reuniao de Lideres' || t === 'Reunião de Líderes')
-            ? '<div class="ev-list-sub" style="color:var(--primary-dark)">⚡ Auto-adiciona líderes</div>'
-            : t === 'Reunião de Voluntários'
-            ? '<div class="ev-list-sub" style="color:#2e7d32">⚡ Auto-adiciona voluntários</div>'
-            : t === 'Prestação de Contas'
-            ? '<div class="ev-list-sub" style="color:#e65100">⚡ Auto-adiciona dizimistas</div>'
-            : ''}
+                <div class="ev-list-info">
+                    <div class="ev-list-nome">${t.nome}</div>
+                    ${_autoLabel(t)}
                 </div>
             </div>`).join('');
         }
 
+
         function evSelTipo(idx) {
             evTipoIdx = idx;
-            document.querySelectorAll('[id^="evt-item-"]').forEach((el, i) => el.classList.toggle('active', i === idx));
+            document.querySelectorAll('[id^="evt-item-"]').forEach((el, i) =>
+                el.classList.toggle('active', i === idx)
+            );
 
-            const lista = getTipos(), t = lista[idx];
-const isL  = t === 'Reuniao de Lideres' || t === 'Reunião de Líderes';
-const isV  = t === 'Reunião de Voluntários';
-const isPC = t === 'Prestação de Contas';
-const isAuto = isL || isV || isPC;
+            const lista = getTipos();
+            const t = lista[idx];
+            const isFixedBuiltin = t.autoAdd === 'lideres' || t.autoAdd === 'voluntarios' || t.autoAdd === 'dizimistas';
 
-            document.getElementById('ev-panel-inner').innerHTML = `<div style="animation:fadeIn .2s ease">
+            const _autoInfo = () => {
+                if (t.autoAdd === 'lideres')
+                    return `<div style="font-size:12px;color:var(--primary-dark);background:var(--primary-faint);
+                        padding:8px 12px;border-radius:8px;margin-bottom:10px">
+                        Ao iniciar, todos os <strong>líderes</strong> são adicionados automaticamente.</div>`;
+                if (t.autoAdd === 'voluntarios')
+                    return `<div style="font-size:12px;color:#2e7d32;background:rgba(46,125,50,.1);
+                        padding:8px 12px;border-radius:8px;margin-bottom:10px">
+                        Ao iniciar, todos os <strong>voluntários</strong> são adicionados automaticamente.</div>`;
+                if (t.autoAdd === 'dizimistas')
+                    return `<div style="font-size:12px;color:#e65100;background:rgba(230,81,0,.08);
+                        padding:8px 12px;border-radius:8px;margin-bottom:10px">
+                        Ao iniciar, todos os membros com <strong>e_dizimista = true</strong> são adicionados automaticamente.</div>`;
+                if (t.autoAdd === 'ministerio' && t.ministerioNome)
+                    return `<div style="font-size:12px;color:#7b1fa2;background:rgba(123,31,162,.08);
+                        padding:8px 12px;border-radius:8px;margin-bottom:10px">
+                        Ao iniciar, todos os membros do ministério <strong>${t.ministerioNome}</strong> são adicionados automaticamente.</div>`;
+                return `<div style="font-size:12px;color:var(--text-faint);padding:8px 12px;border-radius:8px;
+                    background:var(--bg-input);margin-bottom:10px">Sem auto-adição configurada.</div>`;
+            };
+
+            document.getElementById('ev-panel-inner').innerHTML = `
+        <div style="animation:fadeIn .2s ease">
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
-                <div style="font-size:18px;font-weight:700;margin-bottom:6px">${t}</div>
-                    ${isL  ? `<div style="font-size:12px;color:var(--primary-dark);background:var(--primary-faint);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os <strong>líderes</strong> são adicionados automaticamente.</div>` : ''}
-                    ${isV  ? `<div style="font-size:12px;color:#2e7d32;background:rgba(46,125,50,.1);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os <strong>voluntários</strong> são adicionados automaticamente.</div>` : ''}
-                    ${isPC ? `<div style="font-size:12px;color:#e65100;background:rgba(230,81,0,.08);padding:8px 12px;border-radius:8px;margin-bottom:10px">Ao iniciar um evento com este tipo, todos os membros com <strong>e_dizimista = true</strong> são adicionados automaticamente.</div>` : ''}
+                <div style="font-size:18px;font-weight:700;margin-bottom:10px">${t.nome}</div>
+                ${_autoInfo()}
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${!isAuto ? `<button class="ev-btn" onclick="evAbrirFormTipo(${idx})">Editar Nome</button>` : ''}
+                    <button class="ev-btn" onclick="evAbrirFormTipo(${idx})">Editar</button>
                     ${idx > 0 ? `<button class="ev-btn" onclick="evMoverTipo(${idx},-1)">Subir</button>` : ''}
                     ${idx < lista.length - 1 ? `<button class="ev-btn" onclick="evMoverTipo(${idx},1)">Descer</button>` : ''}
-            ${!isAuto ? `<button class="ev-btn danger" onclick="evRemoverTipo(${idx})">Remover</button>` : ''}
+                    ${!isFixedBuiltin ? `<button class="ev-btn danger" onclick="evRemoverTipo(${idx})">Remover</button>` : ''}
                 </div>
             </div>
-            <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;color:var(--text-faint)">Posicao: <strong>${idx + 1}</strong> de <strong>${lista.length}</strong></div>
+            <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;
+                        padding:12px;font-size:12px;color:var(--text-faint)">
+                Posição: <strong>${idx + 1}</strong> de <strong>${lista.length}</strong>
+            </div>
         </div>`;
         }
 
-        function evAbrirFormTipo(idx) {
-            const lista = getTipos(), isN = idx === null, v = isN ? '' : lista[idx];
+
+        async function evAbrirFormTipo(idx) {
+            const lista = getTipos();
+            const isN   = idx === null;
+            const t     = isN ? {} : lista[idx];
+
+            // Carrega lista de ministérios para o seletor
+            const mins = await _sb('ministerios?select=id,nome&order=nome&limit=500').catch(() => []) || [];
+
+            const autoOpts = [
+                { value: '',            label: '— Sem auto-add —'                 },
+                { value: 'lideres',     label: '👑 Todos os Líderes'              },
+                { value: 'voluntarios', label: '🙋 Todos os Voluntários'          },
+                { value: 'dizimistas',  label: '💰 Todos os Dizimistas'           },
+                { value: 'ministerio',  label: '🏛 Membros de um Ministério...'   },
+            ];
+
+            const minOpts = mins.map(m =>
+                `<option value="${m.id}" data-nome="${m.nome}" ${t.ministerioId === m.id ? 'selected' : ''}>${m.nome}</option>`
+            ).join('');
+
             document.getElementById('drawer-title').textContent = isN ? 'Novo Tipo' : 'Editar Tipo';
-            document.getElementById('drawer-body').innerHTML = `<div class="form-grid"><div class="msg-form" id="form-msg"></div><div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="ft_nome" type="text" placeholder="Ex: Encontro de Jovens" value="${v}"></div><div class="form-actions"><button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button><button class="btn-save" onclick="evSalvarTipo(${idx})">Guardar</button></div></div>`;
+            document.getElementById('drawer-body').innerHTML = `
+        <div class="form-grid">
+            <div class="msg-form" id="form-msg"></div>
+
+            <div class="form-group form-full">
+                <label class="form-label">Nome *</label>
+                <input class="form-input" id="ft_nome" type="text"
+                       placeholder="Ex: Team Time Lumen" value="${t.nome || ''}">
+            </div>
+
+            <div class="form-group form-full">
+                <label class="form-label">Auto-adicionar membros ao iniciar</label>
+                <select class="form-select" id="ft_autoadd" onchange="evTipoAutoAddChange(this.value)">
+                    ${autoOpts.map(o =>
+                `<option value="${o.value}" ${(t.autoAdd || '') === o.value ? 'selected' : ''}>${o.label}</option>`
+            ).join('')}
+                </select>
+                <div style="font-size:10px;color:var(--text-faint);margin-top:5px">
+                    Quando o evento for iniciado, os membros do grupo selecionado são adicionados automaticamente à lista de presenças.
+                </div>
+            </div>
+
+            <div class="form-group form-full" id="ft_min_wrap"
+                 style="display:${t.autoAdd === 'ministerio' ? '' : 'none'}">
+                <label class="form-label">Ministério / Área</label>
+                <select class="form-select" id="ft_ministerio">
+                    <option value="">— Seleciona —</option>
+                    ${minOpts}
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn-cancel-form" onclick="closeDrawer()">Cancelar</button>
+                <button class="btn-save" onclick="evSalvarTipo(${idx})">Guardar</button>
+            </div>
+        </div>`;
+
             document.getElementById('overlay').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
 
+        // Helper para mostrar/esconder o seletor de ministério
+        function evTipoAutoAddChange(val) {
+            const wrap = document.getElementById('ft_min_wrap');
+            if (wrap) wrap.style.display = val === 'ministerio' ? '' : 'none';
+        }
+
+
         function evSalvarTipo(idx) {
             const nome = document.getElementById('ft_nome')?.value?.trim();
             if (!nome) {
-                document.getElementById('form-msg').textContent = 'Nome obrigatorio.';
+                document.getElementById('form-msg').textContent = 'Nome obrigatório.';
                 document.getElementById('form-msg').className = 'msg-form error';
                 return;
             }
+
+            const autoAdd  = document.getElementById('ft_autoadd')?.value   || '';
+            const minEl    = document.getElementById('ft_ministerio');
+            const ministerioId   = (autoAdd === 'ministerio' && minEl?.value) ? minEl.value : undefined;
+            const ministerioNome = ministerioId
+                ? (minEl.options[minEl.selectedIndex]?.dataset?.nome || minEl.options[minEl.selectedIndex]?.text)
+                : undefined;
+
+            // Monta o objeto do tipo — apenas inclui campos com valor
+            const entry = { nome };
+            if (autoAdd)        entry.autoAdd        = autoAdd;
+            if (ministerioId)   entry.ministerioId   = ministerioId;
+            if (ministerioNome) entry.ministerioNome = ministerioNome;
+
             const lista = getTipos();
-            if (idx === null) lista.splice(lista.length - 1, 0, nome); else lista[idx] = nome;
+            if (idx === null) {
+                // Insere antes do último ("Outro")
+                lista.splice(lista.length - 1, 0, entry);
+            } else {
+                lista[idx] = entry;
+            }
+
             saveTipos(lista);
             closeDrawer();
             evRenderSideTipos();
             if (idx !== null) evSelTipo(idx);
         }
+
 
         function evRemoverTipo(idx) {
             const lista = getTipos();
@@ -3986,6 +4242,9 @@ const isAuto = isL || isV || isPC;
             evSilentRefresh,
             evRelSetFiltPilar, evRelSetFiltArea, evRelSetFiltSubArea,
             evRelLimparFiltros,
+            evCarregarMinisteriosMembros,
+            evTipoAutoAddChange,
+            evAddTodos,
 
         });
 

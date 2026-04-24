@@ -614,6 +614,26 @@
                     <option value="feminino">Mulher</option>
                 </select>
             </div>
+            <div class="relmb-filters-row">
+                <div class="relmb-filter-group" style="flex:1;min-width:160px">
+                    <div class="relmb-filter-label">Ministério / Área / Pilar</div>
+                    <select class="relmb-select" id="relmb-min" onchange="relmb_aplicar()" style="width:100%">
+                        <option value="">Todos os ministérios</option>
+                    </select>
+                </div>
+                <div class="relmb-filter-group" style="flex:1;min-width:140px">
+                    <div class="relmb-filter-label">Link</div>
+                    <select class="relmb-select" id="relmb-link" onchange="relmb_aplicar()" style="width:100%">
+                        <option value="">Todos os links</option>
+                    </select>
+                </div>
+                <div class="relmb-filter-group" style="flex:1;min-width:160px">
+                    <div class="relmb-filter-label">Curso ZAO</div>
+                    <select class="relmb-select" id="relmb-curso" onchange="relmb_aplicar()" style="width:100%">
+                        <option value="">Todos os cursos</option>
+                    </select>
+                </div>
+            </div>
             <div class="relmb-filter-group">
                 <div class="relmb-filter-label">Estado</div>
                 <select class="relmb-select" id="relmb-estado" onchange="relmb_aplicar()" style="width:110px">
@@ -712,6 +732,7 @@
         let _sortKey = 'nome';
         let _sortDir = 'asc';
         let _listaAtual = [];
+        let _mins_all = [];
 
         const FUNCOES_MAP = {
             e_lider: {l: 'Lider', badge: 'teal'},
@@ -733,15 +754,54 @@
             acesso_pdv: {l: 'PDV', badge: 'orange'},
         };
 
+        // Retorna um Set com o próprio ID + todos os IDs descendentes (BFS)
+        function _getDescendants(minId) {
+            const result = new Set([minId]);
+            const queue = [minId];
+            while (queue.length) {
+                const pid = queue.shift();
+                _mins_all
+                    .filter(m => m.parent_id === pid)
+                    .forEach(child => { result.add(child.id); queue.push(child.id); });
+            }
+            return result;
+        }
+
+// Constrói <option> com indentação baseada na profundidade do nó
+        function _buildMinSelect() {
+            const sel = document.getElementById('relmb-min');
+            if (!sel) return;
+            const prev = sel.value;
+
+            // monta árvore: raízes = nós sem parent_id (ou parent_id inexistente)
+            const idSet = new Set(_mins_all.map(m => m.id));
+            const roots = _mins_all.filter(m => !m.parent_id || !idSet.has(m.parent_id));
+
+            function renderNodes(nodes, depth) {
+                return nodes.map(node => {
+                    const prefix = depth > 0 ? ('— '.repeat(depth)) : '';
+                    const tipoLabel = node.tipo ? ` · ${node.tipo}` : '';
+                    const children = _mins_all.filter(m => m.parent_id === node.id);
+                    return `<option value="${node.id}">${prefix}${node.nome}${tipoLabel}</option>`
+                        + renderNodes(children, depth + 1);
+                }).join('');
+            }
+
+            sel.innerHTML = '<option value="">Todos os ministérios</option>' + renderNodes(roots, 0);
+            if (prev) sel.value = prev;   // mantém seleção após re-render
+        }
+
         async function relmb_init() {
             _mostrarLoading(true);
             try {
-                const [mems, mins, links, rels] = await Promise.all([
+                const [mems, mins, links, rels, minsAll] = await Promise.all([
                     sb('membros?select=*&order=nome'),
-                    sb('membro_ministerios?select=id,membro_id,papel,ministerios(id,nome,tipo)&ativo=eq.true').catch(() => []),
+                    sb('membro_ministerios?select=id,membro_id,papel,ministerios(id,nome,tipo,parent_id)&ativo=eq.true').catch(() => []),
                     sb('links?select=id,nome&ativo=eq.true').catch(() => []),
                     sb('membros_filhos?select=pai_id,filho_id').catch(() => []),
+                    sb('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&order=nome').catch(() => []),
                 ]);
+
                 _membros = mems || [];
                 _links_map = {};
                 (links || []).forEach(l => _links_map[l.id] = l.nome);
@@ -749,12 +809,48 @@
                 (mins || []).forEach(v => {
                     if (!_mins_cache[v.membro_id]) _mins_cache[v.membro_id] = [];
                     _mins_cache[v.membro_id].push({
-                        nome: v.ministerios?.nome || '—',
-                        tipo: v.ministerios?.tipo || '',
+                        id:    v.ministerios?.id   || null,   // ← NOVO
+                        nome:  v.ministerios?.nome || '—',
+                        tipo:  v.ministerios?.tipo || '',
                         papel: v.papel || ''
                     });
                 });
                 _familia = {};
+                // ── Ministérios: hierarquia ──────────────────────────
+                _mins_all = minsAll || [];
+                _buildMinSelect();
+
+// ── Links: popular select ────────────────────────────
+                const selLink = document.getElementById('relmb-link');
+                if (selLink) {
+                    const prevLink = selLink.value;
+                    selLink.innerHTML = '<option value="">Todos os links</option>'
+                        + (links || [])
+                            .slice()
+                            .sort((a, b) => a.nome.localeCompare(b.nome))
+                            .map(l => `<option value="${l.id}" ${prevLink === l.id ? 'selected' : ''}>${l.nome}</option>`)
+                            .join('');
+                }
+
+// ── Cursos: extrair nomes únicos dos membros ─────────
+                const cursosSet = new Map(); // key=nome normalizado, value=nome display
+                (_membros || []).forEach(m => {
+                    let ca = [];
+                    try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+                    ca.forEach(r => {
+                        const nome = r.nome || r.curso_id || '';
+                        if (nome) cursosSet.set(nome.toLowerCase().trim(), nome);
+                    });
+                });
+                const selCurso = document.getElementById('relmb-curso');
+                if (selCurso) {
+                    const prevCurso = selCurso.value;
+                    const cursosOrdenados = [...cursosSet.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+                    selCurso.innerHTML = '<option value="">Todos os cursos</option>'
+                        + cursosOrdenados.map(([, nome]) =>
+                            `<option value="${nome}" ${prevCurso === nome ? 'selected' : ''}>${nome}</option>`
+                        ).join('');
+                }
                 _membros.forEach(m => {
                     const conjuge = m.conjuge_id ? _membros.find(x => x.id === m.conjuge_id) || null : null;
                     const filhosIds = (rels || []).filter(r => r.pai_id === m.id).map(r => r.filho_id);
@@ -792,6 +888,28 @@
             _filtros.forEach(k => {
                 lista = lista.filter(m => m[k] === true);
             });
+            // ── Filtro: Ministério (com descendentes) ────────────
+            const minSel = document.getElementById('relmb-min')?.value || '';
+            if (minSel) {
+                const minIds = _getDescendants(minSel);
+                lista = lista.filter(m =>
+                    (_mins_cache[m.id] || []).some(mv => minIds.has(mv.id))
+                );
+            }
+
+            // ── Filtro: Link ─────────────────────────────────────
+            const linkSel = document.getElementById('relmb-link')?.value || '';
+            if (linkSel) lista = lista.filter(m => String(m.link_id) === String(linkSel));
+
+            // ── Filtro: Curso ────────────────────────────────────
+            const cursoSel = document.getElementById('relmb-curso')?.value || '';
+            if (cursoSel) {
+                lista = lista.filter(m => {
+                    let ca = [];
+                    try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+                    return ca.some(r => (r.nome || r.curso_id || '') === cursoSel);
+                });
+            }
             lista.sort((a, b) => {
                 const va = (a[_sortKey] || '').toString().toLowerCase();
                 const vb = (b[_sortKey] || '').toString().toLowerCase();
@@ -896,6 +1014,13 @@
             document.getElementById('relmb-zona').value = '';
             document.getElementById('relmb-genero').value = '';
             document.getElementById('relmb-estado').value = 'ativo';
+            
+            const selMin = document.getElementById('relmb-min');
+            if (selMin) selMin.value = '';
+            const selLinkEl = document.getElementById('relmb-link');
+            if (selLinkEl) selLinkEl.value = '';
+            const selCursoEl = document.getElementById('relmb-curso');
+            if (selCursoEl) selCursoEl.value = '';
             _filtros.clear();
             document.querySelectorAll('#relmb-chips .relmb-chip.active').forEach(c => c.classList.remove('active'));
             relmb_aplicar();

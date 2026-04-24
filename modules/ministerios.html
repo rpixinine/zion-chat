@@ -331,6 +331,11 @@
             <input type="checkbox" id="min-f-ativo" checked style="width:auto">
         </div>
 
+        <div class="crud-group" style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+            <label style="margin:0">Entrada por Convite</label>
+            <input type="checkbox" id="min-f-convite" checked style="width:auto">
+        </div>
+
         <div class="form-msg" id="min-f-msg"></div>
         <div style="display:flex;gap:8px;margin-top:14px;margin-bottom:20px">
             <button class="btn-sm" style="flex:1" onclick="min_fecharFormMin()">Cancelar</button>
@@ -794,6 +799,7 @@
         document.getElementById('min-f-tipo').value  = m?.tipo || '';
         document.getElementById('min-f-desc').value  = m?.descricao || '';
         document.getElementById('min-f-ativo').checked = m ? m.ativo!==false : true;
+        document.getElementById('min-f-convite').checked = m ? m.convite!==false : true;
         const msg = document.getElementById('min-f-msg'); msg.textContent=''; msg.className='form-msg';
         min_popularParents(id, m?.parent_id||'');
         min_renderPapeisLista();
@@ -844,6 +850,7 @@
         const tipo     = document.getElementById('min-f-tipo').value || null;
         const descricao= document.getElementById('min-f-desc').value.trim() || null;
         const ativo    = document.getElementById('min-f-ativo').checked;
+        const convite    = document.getElementById('min-f-convite').checked;
         const parent_id= document.getElementById('min-f-parent').value || null;
         const liderId  = document.getElementById('min-f-lider').value || null;
         const btn      = document.getElementById('min-f-save');
@@ -853,10 +860,10 @@
         try {
             let minId = min_formEditId;
             if (min_formEditId) {
-                await min_sb(`ministerios?id=eq.${min_formEditId}`,{method:'PATCH',body:JSON.stringify({slug,nome,tipo,descricao,ativo,parent_id})});
+                await min_sb(`ministerios?id=eq.${min_formEditId}`,{method:'PATCH',body:JSON.stringify({slug,nome,tipo,descricao,ativo,parent_id,convite})});
                 const idx=min_mins.findIndex(m=>m.id===min_formEditId);
-                if (idx>=0) Object.assign(min_mins[idx],{nome,tipo,descricao,ativo,parent_id});
-                if (min_minAtivo?.id===min_formEditId) Object.assign(min_minAtivo,{nome,tipo,ativo,parent_id});
+                if (idx>=0) Object.assign(min_mins[idx],{nome,tipo,descricao,ativo,parent_id,convite});
+                if (min_minAtivo?.id===min_formEditId) Object.assign(min_minAtivo,{nome,tipo,ativo,parent_id,convite});
                 min_t('Ministério actualizado');
             } else {
                 const res = await min_sb('ministerios',{method:'POST',body:JSON.stringify({slug,nome,tipo,descricao,ativo:true,parent_id})});

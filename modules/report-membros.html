@@ -624,7 +624,10 @@
                 <div class="relmb-filter-group" style="flex:1;min-width:140px">
                     <div class="relmb-filter-label">Link</div>
                     <select class="relmb-select" id="relmb-link" onchange="relmb_aplicar()" style="width:100%">
-                        <option value="">Todos os links</option>
+                        <option value="">Todos (com e sem link)</option>
+                        <option value="__com__">Com link</option>
+                        <option value="__sem__">Sem link</option>
+                        <option value="" disabled>──────────────</option>
                     </select>
                 </div>
                 <div class="relmb-filter-group" style="flex:1;min-width:160px">
@@ -820,19 +823,23 @@
                 _mins_all = minsAll || [];
                 _buildMinSelect();
 
-// ── Links: popular select ────────────────────────────
+                // ── Links: popular select ────────────────────────────
                 const selLink = document.getElementById('relmb-link');
                 if (selLink) {
                     const prevLink = selLink.value;
-                    selLink.innerHTML = '<option value="">Todos os links</option>'
-                        + (links || [])
-                            .slice()
-                            .sort((a, b) => a.nome.localeCompare(b.nome))
-                            .map(l => `<option value="${l.id}" ${prevLink === l.id ? 'selected' : ''}>${l.nome}</option>`)
-                            .join('');
+                    const linksOrdenados = (links || []).slice().sort((a, b) => a.nome.localeCompare(b.nome));
+                    selLink.innerHTML =
+                        '<option value="">Todos (com e sem link)</option>' +
+                        '<option value="__com__">Com link (qualquer)</option>' +
+                        '<option value="__sem__">Sem link</option>' +
+                        '<option value="" disabled>──────────────</option>' +
+                        linksOrdenados.map(l =>
+                            `<option value="${l.id}" ${prevLink === l.id ? 'selected' : ''}>${l.nome}</option>`
+                        ).join('');
+                    if (prevLink) selLink.value = prevLink;
                 }
 
-// ── Cursos: extrair nomes únicos dos membros ─────────
+                // ── Cursos: extrair nomes únicos dos membros ─────────
                 const cursosSet = new Map(); // key=nome normalizado, value=nome display
                 (_membros || []).forEach(m => {
                     let ca = [];
@@ -899,7 +906,9 @@
 
             // ── Filtro: Link ─────────────────────────────────────
             const linkSel = document.getElementById('relmb-link')?.value || '';
-            if (linkSel) lista = lista.filter(m => String(m.link_id) === String(linkSel));
+            if (linkSel === '__com__')  lista = lista.filter(m => !!m.link_id);
+            else if (linkSel === '__sem__') lista = lista.filter(m => !m.link_id);
+            else if (linkSel) lista = lista.filter(m => String(m.link_id) === String(linkSel));
 
             // ── Filtro: Curso ────────────────────────────────────
             const cursoSel = document.getElementById('relmb-curso')?.value || '';
@@ -1014,7 +1023,7 @@
             document.getElementById('relmb-zona').value = '';
             document.getElementById('relmb-genero').value = '';
             document.getElementById('relmb-estado').value = 'ativo';
-            
+
             const selMin = document.getElementById('relmb-min');
             if (selMin) selMin.value = '';
             const selLinkEl = document.getElementById('relmb-link');

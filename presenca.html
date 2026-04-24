@@ -17,7 +17,11 @@
     <meta name="apple-mobile-web-app-title" content="Zion Lisboa">
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
+    <script src="auth.js"></script>
+
     <style>
         :root {
             --navy:       #02161e;
@@ -676,7 +680,7 @@
 
 </div>
 
-<div class="footer">Zion Lisboa · Sistema de Gestão</div>
+<div class="footer">Zion Lisboa · Cheki-in de Evento</div>
 
 <!-- jsQR — biblioteca leve para leitura de QR Code via canvas -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -684,81 +688,77 @@
 <script>
     (function () {
 
-        const SUPA_URL = window.SUPABASE_URL  || '';
+        const SUPA_URL = window.SUPABASE_URL   || '';
         const SUPA_KEY = window.SUPABASE_ANON_KEY || '';
 
-        let _evento       = null;
+        let _evento        = null;
         let _participantes = [];
-        let _membroSel    = null;
-        let _presencaSel  = null;
-        let _modo         = 'manual';  // 'manual' | 'qr'
-        let _qrStream     = null;
-        let _qrAnimId     = null;
-        let _qrProcessing = false;     // evita processar múltiplos frames seguidos
+        let _membroSel     = null;
+        let _presencaSel   = null;
+        let _modo          = 'manual';
+        let _qrStream      = null;
+        let _qrAnimId      = null;
+        let _qrProcessing  = false;
 
-        /* ── Supabase helper ──────────────────────────────────── */
-        async function sb(path, opts = {}) {
-            const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-                ...opts,
+        /* ── RPC helper (sem auth — funções SECURITY DEFINER) ─────── */
+        async function rpc(fn, params = {}) {
+            const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
+                method: 'POST',
                 headers: {
                     apikey: SUPA_KEY,
-                    Authorization: `Bearer ${SUPA_KEY}`,
-                    'Content-Type': 'application/json',
-                    Prefer: 'return=representation',
-                    ...opts.headers
-                }
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
             });
-            if (!r.ok) { const e = await r.json().catch(() => {}); throw e; }
-            const t = await r.text();
-            return t ? JSON.parse(t) : [];
+            const txt = await r.text();
+            const data = txt ? JSON.parse(txt) : null;
+            if (!r.ok) throw data || { message: `HTTP ${r.status}` };
+            return data;
         }
 
-        /* ── INIT ─────────────────────────────────────────────── */
+        /* ── INIT ─────────────────────────────────────────────────── */
         async function init() {
             const p     = new URLSearchParams(window.location.search);
             const evId  = p.get('e');
             const token = p.get('t');
+
             if (!evId || !token) return fatal('Link incompleto. Usa o QR Code do evento.');
 
             try {
-                const evs = await sb(`eventos?id=eq.${evId}&select=*`);
-                _evento = evs?.[0];
-                if (!_evento)                    return fatal('Evento não encontrado.');
-                if (_evento.qr_token !== token)  return fatal('Token inválido. Usa o QR Code oficial do evento.');
-                if (_evento.status !== 'em_curso') return fatal(
-                    `Este evento está ${_evento.status === 'concluido' ? 'concluído' : 'não iniciado ou cancelado'}. As presenças só podem ser registadas durante o evento.`
-                );
+                const res = await rpc('checkin_init', {
+                    p_evento_id: evId,
+                    p_token:     token
+                });
+
+                if (!res?.ok) return fatal(res?.msg || 'Erro ao carregar evento.');
+
+                _evento        = res.evento;
+                _participantes = res.participantes || [];
 
                 document.getElementById('ev-titulo').textContent = _evento.titulo || '—';
                 const d = _evento.data_inicio
                     ? new Date(_evento.data_inicio).toLocaleDateString('pt-PT',
-                        { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })
+                        { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
                     : '';
-                document.getElementById('ev-data').textContent = d + (_evento.local ? ' · ' + _evento.local : '');
-
-                _participantes = await sb(
-                    `evento_presencas?select=*,membros(id,nome,telefone,email,foto_url,nif,e_lider,e_presbitero,e_voluntario,professor)&evento_id=eq.${evId}`
-                ) || [];
+                document.getElementById('ev-data').textContent =
+                    d + (_evento.local ? ' · ' + _evento.local : '');
 
                 mostrar('nif');
 
             } catch (e) {
+                console.error('[init]', e);
                 fatal('Erro ao carregar. Tenta novamente ou pede ajuda a um responsável.');
-                console.error(e);
             }
         }
 
-        /* ── TROCAR MODO ──────────────────────────────────────── */
+        /* ── TROCAR MODO ──────────────────────────────────────────── */
         function setModo(modo) {
             _modo = modo;
-
             document.getElementById('tab-manual').classList.toggle('active', modo === 'manual');
-            document.getElementById('tab-qr').classList.toggle('active', modo === 'qr');
+            document.getElementById('tab-qr').classList.toggle('active',     modo === 'qr');
             document.getElementById('painel-manual').style.display = modo === 'manual' ? '' : 'none';
             document.getElementById('painel-qr').style.display     = modo === 'qr'     ? '' : 'none';
-
             limparMsg('nif');
-
             if (modo === 'qr') {
                 iniciarCamera();
             } else {
@@ -767,7 +767,7 @@
             }
         }
 
-        /* ── CÂMARA ───────────────────────────────────────────── */
+        /* ── CÂMARA ───────────────────────────────────────────────── */
         async function iniciarCamera() {
             pararCamera();
             _qrProcessing = false;
@@ -777,13 +777,12 @@
             const statusEl  = document.getElementById('qr-status-txt');
             const video     = document.getElementById('qr-video');
 
-            errEl.style.display   = 'none';
-            videoWrap.style.display = '';
-            statusEl.textContent  = 'A iniciar câmara...';
-            statusEl.className    = 'qr-status-txt';
+            errEl.style.display      = 'none';
+            videoWrap.style.display  = '';
+            statusEl.textContent     = 'A iniciar câmara...';
+            statusEl.className       = 'qr-status-txt';
 
             try {
-                // Prefere câmara traseira em mobile (environment)
                 _qrStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1280 } }
                 });
@@ -791,7 +790,6 @@
                 await video.play();
                 statusEl.textContent = 'Aponta a câmara para o QR Code do participante';
                 tickQR();
-
             } catch (err) {
                 videoWrap.style.display = 'none';
                 errEl.style.display     = '';
@@ -808,13 +806,12 @@
             if (_qrAnimId) { cancelAnimationFrame(_qrAnimId); _qrAnimId = null; }
             if (_qrStream) { _qrStream.getTracks().forEach(t => t.stop()); _qrStream = null; }
             const video = document.getElementById('qr-video');
-            if (video) { video.srcObject = null; }
+            if (video) video.srcObject = null;
         }
 
-        /* ── LOOP DE LEITURA QR ───────────────────────────────── */
+        /* ── LOOP QR ──────────────────────────────────────────────── */
         function tickQR() {
             if (_modo !== 'qr') return;
-
             const video  = document.getElementById('qr-video');
             const canvas = document.getElementById('qr-canvas');
 
@@ -826,20 +823,18 @@
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
                 if (window.jsQR) {
-                    const code = jsQR(imgData.data, imgData.width, imgData.height, {
-                        inversionAttempts: 'dontInvert'
-                    });
+                    const code = jsQR(imgData.data, imgData.width, imgData.height,
+                        { inversionAttempts: 'dontInvert' });
                     if (code?.data) {
                         onQRLido(code.data.trim());
-                        return; // para o loop enquanto processa
+                        return;
                     }
                 }
             }
-
             _qrAnimId = requestAnimationFrame(tickQR);
         }
 
-        /* ── QR LIDO ──────────────────────────────────────────── */
+        /* ── QR LIDO ──────────────────────────────────────────────── */
         async function onQRLido(dado) {
             if (_qrProcessing) return;
             _qrProcessing = true;
@@ -850,13 +845,11 @@
             statusEl.className   = 'qr-status-txt';
             limparMsg('nif');
 
-            // O QR contém o email (ou telemóvel) do inscrito — mesmo identificador do email de confirmação
             const resultado = await procurarParticipante(dado);
 
             if (!resultado.ok) {
                 statusEl.textContent = resultado.msg;
                 statusEl.className   = 'qr-status-txt err';
-                // Reinicia câmara após 2.5s para nova leitura
                 setTimeout(() => {
                     _qrProcessing = false;
                     if (_modo === 'qr') iniciarCamera();
@@ -874,7 +867,6 @@
                 return;
             }
 
-            // Encontrou — vai para confirmação
             _presencaSel = resultado.pres;
             _membroSel   = resultado.pres.membros;
             renderMembro();
@@ -882,11 +874,10 @@
             _qrProcessing = false;
         }
 
-        /* ── BUSCA MANUAL ─────────────────────────────────────── */
+        /* ── BUSCA MANUAL ─────────────────────────────────────────── */
         async function pBuscar() {
             const input = document.getElementById('nif-input');
-            const raw   = input.value.trim();
-            const clean = raw.replace(/\s/g, '');
+            const clean = input.value.trim().replace(/\s/g, '');
             limparMsg('nif');
             input.classList.remove('invalid');
 
@@ -921,193 +912,46 @@
             btn.disabled = false; btn.textContent = 'Confirmar';
         }
 
-        /* ── LÓGICA DE PROCURA (partilhada entre manual e QR) ─── */
-        async function procurarParticipanteOld(dado) {
-            try {
-                const isEmail  = dado.includes('@');
-                const telClean = dado.replace(/\D/g, '');
-                let pres = null;
-
-                if (isEmail) {
-                    pres = _participantes.find(p =>
-                        (p.membros?.email || '').toLowerCase().trim() === dado.toLowerCase()
-                    );
-                } else {
-                    pres = _participantes.find(p => {
-                        const mNif = (p.membros?.nif      || '').replace(/\D/g, '');
-                        const mTel = (p.membros?.telefone || '').replace(/\D/g, '');
-                        if (mNif && mNif === telClean) return true;
-                        if (telClean.length >= 9 && mTel.length >= 9
-                            && mTel.slice(-9) === telClean.slice(-9)) return true;
-                        return false;
-                    });
-                }
-
-                if (!pres || !pres.membros) {
-                    return { ok: false, msg: 'Participante não encontrado. Verifica os dados ou fala com um responsável.' };
-                }
-
-                if (pres.status === 'presente') {
-                    return { ok: true, jaPresente: true, pres };
-                }
-
-                return { ok: true, jaPresente: false, pres };
-
-            } catch (e) {
-                console.error(e);
-                return { ok: false, msg: 'Erro ao verificar. Tenta novamente.' };
-            }
-        }
-
+        /* ── LÓGICA DE PROCURA ────────────────────────────────────── */
         async function procurarParticipante(dado) {
             try {
                 const isPagoEvento = Number(_evento.valor) > 0 && !_evento.gratuito;
                 const isEmail      = dado.includes('@');
                 const telClean     = dado.replace(/\D/g, '');
 
-                // ── DEBUG — apaga depois de confirmar que está a funcionar ──
-                console.log('[procurar] dado:', dado, '| isPago:', isPagoEvento);
-                console.log('[procurar] _participantes:', _participantes.length, _participantes.map(p => ({
-                    nome: p.membros?.nome,
-                    email: p.membros?.email,
-                    telefone: p.membros?.telefone,
-                    nif: p.membros?.nif
-                })));
-
-                // ════════════════════════════════════════════════════════════
-                // EVENTO PAGO — fonte de verdade: evento_inscricoes (status=pago)
-                // ════════════════════════════════════════════════════════════
+                // ── EVENTO PAGO → chama RPC (acede a evento_inscricoes)
                 if (isPagoEvento) {
-                    let inscricoes = [];
-                    try {
-                        inscricoes = await sb(
-                            `evento_inscricoes?evento_id=eq.${_evento.id}&status=eq.pago&select=id,nome,email,telemovel,status,membro_id`
-                        ) || [];
-                    } catch (e) {
-                        console.error('Erro ao buscar inscricoes pagas:', e);
-                        return { ok: false, msg: 'Erro ao verificar inscrição. Tenta novamente.' };
+                    // Verifica primeiro no array em memória (evita chamada desnecessária)
+                    const jaExisteLocal = buscarNoArray(dado, isEmail, telClean);
+                    if (jaExisteLocal) {
+                        if (jaExisteLocal.status === 'presente')
+                            return { ok: true, jaPresente: true, pres: jaExisteLocal };
+                        return { ok: true, jaPresente: false, pres: jaExisteLocal };
                     }
 
-                    console.log('[procurar] inscricoes pagas:', inscricoes.length, inscricoes.map(i => ({nome:i.nome, email:i.email, tel:i.telemovel})));
-
-                    let insc = null;
-                    if (isEmail) {
-                        insc = inscricoes.find(i =>
-                            (i.email || '').toLowerCase().trim() === dado.toLowerCase().trim()
-                        );
-                    } else {
-                        insc = inscricoes.find(i => {
-                            const iTel = (i.telemovel || '').replace(/\D/g, '');
-                            return telClean.length >= 9 && iTel.length >= 9
-                                && iTel.slice(-9) === telClean.slice(-9);
-                        });
-                    }
-
-                    // Fallback: pesquisa por nome nas inscrições pagas
-                    if (!insc && dado.length >= 3 && !isEmail && telClean.length < 9) {
-                        const q = dado.toLowerCase().trim();
-                        const matches = inscricoes.filter(i =>
-                            (i.nome || '').toLowerCase().includes(q)
-                        );
-                        if (matches.length === 1) {
-                            insc = matches[0];
-                        } else if (matches.length > 1) {
-                            return {
-                                ok: false,
-                                msg: `Encontrados ${matches.length} inscritos com "${dado}". Sê mais específico.`
-                            };
-                        }
-                    }
-
-                    if (!insc) {
-                        return {
-                            ok: false,
-                            msg: 'Inscrição paga não encontrada. Confirma os dados ou verifica o pagamento na secretaria.'
-                        };
-                    }
-
-                    // Verifica se já tem presença na lista
-                    const jaExiste = _participantes.find(p =>
-                        insc.membro_id
-                            ? p.membro_id === insc.membro_id
-                            : (p.membros?.email || '').toLowerCase() === (insc.email || '').toLowerCase()
-                    );
-
-                    if (jaExiste) {
-                        if (jaExiste.status === 'presente') return { ok: true, jaPresente: true, pres: jaExiste };
-                        return { ok: true, jaPresente: false, pres: jaExiste };
-                    }
-
-                    // Cria entrada em evento_presencas na hora
-                    const payload = { evento_id: _evento.id, status: 'pendente' };
-                    if (insc.membro_id) payload.membro_id = insc.membro_id;
-
-                    const criado = await sb('evento_presencas', {
-                        method: 'POST',
-                        body: JSON.stringify([payload])
+                    const res = await rpc('checkin_buscar_pago', {
+                        p_evento_id: _evento.id,
+                        p_token:     new URLSearchParams(window.location.search).get('t'),
+                        p_dado:      dado
                     });
-                    const novaP = criado?.[0];
-                    if (!novaP) return { ok: false, msg: 'Erro ao criar registo de presença.' };
 
-                    const presSimulada = {
-                        ...novaP,
-                        membros: {
-                            id:           insc.membro_id || null,
-                            nome:         insc.nome,
-                            email:        insc.email,
-                            telefone:     insc.telemovel,
-                            foto_url:     null,
-                            nif:          null,
-                            e_lider:      false,
-                            e_presbitero: false,
-                            e_voluntario: false,
-                            professor:    false,
-                        }
-                    };
-                    _participantes.push(presSimulada);
-                    return { ok: true, jaPresente: false, pres: presSimulada };
-                }
+                    if (!res?.ok) return { ok: false, msg: res?.msg || 'Erro ao verificar.' };
 
-                // ════════════════════════════════════════════════════════════
-                // EVENTO GRATUITO — fonte de verdade: evento_presencas + membros
-                // ════════════════════════════════════════════════════════════
-                let pres = null;
-
-                if (isEmail) {
-                    pres = _participantes.find(p =>
-                        (p.membros?.email || '').toLowerCase().trim() === dado.toLowerCase().trim()
-                    );
-                } else {
-                    pres = _participantes.find(p => {
-                        const mNif = (p.membros?.nif      || '').replace(/\D/g, '');
-                        const mTel = (p.membros?.telefone || '').replace(/\D/g, '');
-                        if (mNif && mNif === telClean && telClean.length >= 8) return true;
-                        if (telClean.length >= 9 && mTel.length >= 9
-                            && mTel.slice(-9) === telClean.slice(-9)) return true;
-                        return false;
-                    });
-                }
-
-                if (!pres && dado.length >= 3) {
-                    const q = dado.toLowerCase().trim();
-                    const matches = _participantes.filter(p =>
-                        (p.membros?.nome || '').toLowerCase().includes(q)
-                    );
-                    if (matches.length === 1) {
-                        // Só aceita se for resultado único para evitar enganos
-                        pres = matches[0];
-                    } else if (matches.length > 1) {
-                        return {
-                            ok: false,
-                            msg: `Encontrados ${matches.length} participantes com "${dado}". Sê mais específico.`
-                        };
+                    // Adiciona ao array local para evitar duplicados na mesma sessão
+                    const pres = res.presenca;
+                    if (!_participantes.find(p => p.id === pres.id)) {
+                        _participantes.push(pres);
                     }
+                    if (pres.status === 'presente') return { ok: true, jaPresente: true, pres };
+                    return { ok: true, jaPresente: false, pres };
                 }
+
+                // ── EVENTO GRATUITO → array já carregado no init (sem chamada extra)
+                const pres = buscarNoArray(dado, isEmail, telClean);
 
                 if (!pres) {
                     return { ok: false, msg: 'Participante não encontrado. Verifica os dados ou fala com um responsável.' };
                 }
-
                 if (pres.status === 'presente') return { ok: true, jaPresente: true, pres };
                 return { ok: true, jaPresente: false, pres };
 
@@ -1117,16 +961,48 @@
             }
         }
 
+        /* ── Busca no array local (_participantes) ────────────────── */
+        function buscarNoArray(dado, isEmail, telClean) {
+            if (isEmail) {
+                return _participantes.find(p =>
+                    (p.membros?.email || '').toLowerCase().trim() === dado.toLowerCase().trim()
+                ) || null;
+            }
 
-        /* ── RENDER CARD MEMBRO ───────────────────────────────── */
+            // NIF ou telemóvel
+            let found = _participantes.find(p => {
+                const mNif = (p.membros?.nif      || '').replace(/\D/g, '');
+                const mTel = (p.membros?.telefone || '').replace(/\D/g, '');
+                if (mNif && mNif === telClean && telClean.length >= 8) return true;
+                if (telClean.length >= 9 && mTel.length >= 9
+                    && mTel.slice(-9) === telClean.slice(-9)) return true;
+                return false;
+            }) || null;
+
+            // Fallback por nome (mínimo 3 chars, resultado único)
+            if (!found && dado.length >= 3 && telClean.length < 9) {
+                const q = dado.toLowerCase().trim();
+                const matches = _participantes.filter(p =>
+                    (p.membros?.nome || '').toLowerCase().includes(q)
+                );
+                if (matches.length === 1) found = matches[0];
+                // se > 1 não assumimos nenhum (retorna null, o chamador trata)
+            }
+
+            return found;
+        }
+
+        /* ── RENDER CARD MEMBRO ───────────────────────────────────── */
         function renderMembro() {
             const m = _membroSel;
             const fotoEl = document.getElementById('m-foto');
+            const inicial = (m.nome || '?')[0];
+
             if (m.foto_url) {
                 fotoEl.innerHTML = `<img src="${m.foto_url}" alt="${m.nome}"
-                onerror="this.parentElement.textContent='${(m.nome || '?')[0]}'">`;
+                    onerror="this.parentElement.textContent='${inicial}'">`;
             } else {
-                fotoEl.textContent = (m.nome || '?')[0];
+                fotoEl.textContent = inicial;
             }
             document.getElementById('m-nome').textContent = m.nome || '—';
 
@@ -1139,12 +1015,12 @@
             document.getElementById('m-badges').innerHTML = bs.join('');
 
             limparMsg('presenca');
-            document.getElementById('p_motivo_falta').value = '';
-            document.getElementById('btn-presente').disabled = false;
-            document.getElementById('btn-faltei').disabled   = false;
+            document.getElementById('p_motivo_falta').value   = '';
+            document.getElementById('btn-presente').disabled  = false;
+            document.getElementById('btn-faltei').disabled    = false;
         }
 
-        /* ── MARCAR PRESENÇA / FALTA ──────────────────────────── */
+        /* ── MARCAR PRESENÇA / FALTA ──────────────────────────────── */
         async function pMarcar(tipo) {
             const isPresente = tipo === 'presente';
             const motivo     = document.getElementById('p_motivo_falta')?.value?.trim() || '';
@@ -1158,20 +1034,29 @@
             limparMsg('presenca');
 
             try {
-                const patch = { status, registado_em: new Date().toISOString() };
-                if (motivo) patch.motivo = motivo;
-
-                await sb(`evento_presencas?id=eq.${_presencaSel.id}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify(patch)
+                const res = await rpc('checkin_marcar', {
+                    p_presenca_id: _presencaSel.id,
+                    p_token:       new URLSearchParams(window.location.search).get('t'),
+                    p_status:      status,
+                    p_motivo:      motivo || null
                 });
 
+                if (!res?.ok) {
+                    setMsg('presenca', 'error', res?.msg || 'Erro ao registar. Pede ajuda a um responsável.');
+                    btnP.disabled = false; btnF.disabled = false;
+                    if (isPresente) btnP.textContent = 'Clique, para confirmar';
+                    else            btnF.textContent = 'Clique, para marcar a sua falta';
+                    return;
+                }
+
+                // Actualiza array local
                 const idx = _participantes.findIndex(p => p.id === _presencaSel.id);
                 if (idx >= 0) {
                     _participantes[idx].status = status;
                     if (motivo) _participantes[idx].motivo = motivo;
                 }
 
+                // Ecrã de confirmação
                 const icon  = document.getElementById('conf-icon');
                 const title = document.getElementById('conf-title');
                 const msg   = document.getElementById('conf-msg');
@@ -1193,33 +1078,29 @@
                 mostrar('confirmado');
 
             } catch (e) {
+                console.error('[pMarcar]', e);
                 setMsg('presenca', 'error', 'Erro ao registar. Pede ajuda a um responsável.');
-                console.error(e);
                 btnP.disabled = false; btnF.disabled = false;
-                if (isPresente) btnP.textContent = '✓  Estou Presente';
-                else            btnF.textContent = 'Registar Falta';
+                if (isPresente) btnP.textContent = 'Clique, para confirmar';
+                else            btnF.textContent = 'Clique, para marcar a sua falta';
             }
         }
 
-        /* ── VOLTAR PARA NIF (após confirmação, para próximo check-in) */
+        /* ── VOLTAR PARA NIF ──────────────────────────────────────── */
         function voltarParaNif() {
             _membroSel   = null;
             _presencaSel = null;
             mostrar('nif');
-            // Retoma câmara se estava em modo QR
-            if (_modo === 'qr') {
-                setTimeout(() => iniciarCamera(), 100);
-            }
+            if (_modo === 'qr') setTimeout(() => iniciarCamera(), 100);
         }
 
-        /* ── UI HELPERS ───────────────────────────────────────── */
+        /* ── UI HELPERS ───────────────────────────────────────────── */
         function fatal(msg) {
             hide('view-loading');
             document.getElementById('erro-msg').textContent = msg;
             show('view-erro');
-            ['nif','presenca','confirmado'].forEach(s => {
-                const el = document.getElementById('step-' + s);
-                if (el) el.classList.remove('active');
+            ['nif', 'presenca', 'confirmado'].forEach(s => {
+                document.getElementById('step-' + s)?.classList.remove('active');
             });
             pararCamera();
         }
@@ -1227,26 +1108,21 @@
         function mostrar(step) {
             hide('view-loading');
             hide('view-erro');
-            ['nif','presenca','confirmado'].forEach(s => {
-                const el = document.getElementById('step-' + s);
-                if (el) el.classList.remove('active');
+            ['nif', 'presenca', 'confirmado'].forEach(s => {
+                document.getElementById('step-' + s)?.classList.remove('active');
             });
-            const el = document.getElementById('step-' + step);
-            if (el) el.classList.add('active');
+            document.getElementById('step-' + step)?.classList.add('active');
 
-            if (step === 'nif') {
-                if (_modo === 'manual') {
-                    const inp = document.getElementById('nif-input');
-                    if (inp) { inp.value = ''; inp.classList.remove('invalid'); }
-                    setTimeout(() => inp?.focus(), 80);
-                }
+            if (step === 'nif' && _modo === 'manual') {
+                const inp = document.getElementById('nif-input');
+                if (inp) { inp.value = ''; inp.classList.remove('invalid'); }
+                setTimeout(() => inp?.focus(), 80);
             }
-            // Para câmara se sair do step de identificação
             if (step !== 'nif') pararCamera();
         }
 
-        function show(id)  { const el = document.getElementById(id); if (el) el.style.display = ''; }
-        function hide(id)  { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+        function show(id) { const el = document.getElementById(id); if (el) el.style.display = ''; }
+        function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
         function setMsg(id, tipo, txt) {
             const el = document.getElementById('msg-' + id);
             if (el) { el.innerHTML = txt; el.className = 'msg show ' + tipo; }
@@ -1256,7 +1132,7 @@
             if (el) { el.textContent = ''; el.className = 'msg'; }
         }
 
-        /* ── EXPORTS ──────────────────────────────────────────── */
+        /* ── EXPORTS ──────────────────────────────────────────────── */
         window.pBuscar       = pBuscar;
         window.pMarcar       = pMarcar;
         window.setModo       = setModo;

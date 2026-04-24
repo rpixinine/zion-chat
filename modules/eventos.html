@@ -825,6 +825,7 @@
         let evRelFiltArea    = '';
         let evRelFiltSubArea = '';
         let evAllMinMap = {};
+        let _evMinisteriosTree = [];
 
         const ST = {
             aberto: {label: 'Aberto', cls: 'badge-green'},
@@ -1588,7 +1589,7 @@
             const autoMsg = isL   ? ' Todos os líderes serão adicionados automaticamente.'
                 : isV   ? ' Todos os voluntários serão adicionados automaticamente.'
                     : isPC  ? ' Todos os dizimistas serão adicionados automaticamente.'
-                        : isMin ? ` Todos os membros de "${ministerioNome}" serão adicionados automaticamente.`
+                        : isMin ? ` Todos os membros de "${ministerioNome}" (incluindo sub-áreas) serão adicionados automaticamente.`
                             : '';
 
             if (!confirm(`Iniciar "${ev.titulo}"?${autoMsg}`)) return;
@@ -1599,16 +1600,38 @@
 
             if (isL) {
                 membros = await _sb('membros?select=id,nome&e_lider=eq.true&ativo=eq.true').catch(() => []) || [];
+
             } else if (isV) {
                 membros = await _sb('membros?select=id,nome&e_voluntario=eq.true&ativo=eq.true').catch(() => []) || [];
+
             } else if (isPC) {
                 membros = await _sb('membros?select=id,nome&e_dizimista=eq.true&ativo=eq.true').catch(() => []) || [];
+
             } else if (isMin) {
-                // ← NOVA LÓGICA: qualquer ministério configurado no tipo
+                // Carrega árvore completa para calcular descendentes
+                const allMins = _evMinisteriosTree.length
+                    ? _evMinisteriosTree
+                    : await _sb('ministerios?select=id,nome,parent_id&limit=1000').catch(() => []) || [];
+                if (!_evMinisteriosTree.length) _evMinisteriosTree = allMins;
+
+                // IDs do ministério seleccionado + todos os filhos/netos (recursivo)
+                const allIds = _getDescendantIds(ministerioId, allMins);
+
+                // Query para todos os IDs de uma vez
                 const rows = await _sb(
-                    `membro_ministerios?select=membro_id,membros(id,nome)&ministerio_id=eq.${ministerioId}&ativo=eq.true`
+                    `membro_ministerios?select=membro_id,membros(id,nome)` +
+                    `&ministerio_id=in.(${allIds.join(',')})&ativo=eq.true`
                 ).catch(() => []) || [];
-                membros = rows.map(r => r.membros).filter(Boolean);
+
+                // Deduplica (o mesmo membro pode estar em múltiplas sub-áreas)
+                const seen = new Set();
+                membros = rows
+                    .map(r => r.membros)
+                    .filter(m => {
+                        if (!m || seen.has(m.id)) return false;
+                        seen.add(m.id);
+                        return true;
+                    });
             }
 
             if (membros.length) {
@@ -1623,7 +1646,7 @@
                 if (novos.length) {
                     await _sb('evento_presencas', {
                         method: 'POST',
-                        body: JSON.stringify(novos)
+                        body:   JSON.stringify(novos)
                     }).catch(err => alert('Aviso: alguns membros podem não ter sido adicionados. ' + (err?.message || '')));
                 }
 
@@ -1631,13 +1654,13 @@
                     : isV  ? 'voluntários'
                         : isPC ? 'dizimistas'
                             : `membros de "${ministerioNome}"`;
-
                 if (window.toast) toast(`${membros.length} ${label} adicionados`, 'ok');
             }
 
             await evRecarregar();
             evSelEvento(id);
         }
+
 
         async function evConcluir(id) {
             if (!confirm('Concluir evento? Pendentes serao marcados como faltaram.')) return;
@@ -1819,11 +1842,15 @@
         async function evCarregarMinisteriosMembros() {
             if (!window.membros?.length) { evAllMinMap = {}; return; }
 
+            // Carrega árvore completa (necessária para hierarquia e recursão)
+            _evMinisteriosTree = await _sb(
+                'ministerios?select=id,nome,parent_id&order=nome&limit=1000'
+            ).catch(() => []) || [];
+
             evAllMinMap = {};
             const mIds = window.membros.map(m => m.id);
-
-            // Batches de 200 para não exceder o limite de URL
             const batchSize = 200;
+
             for (let i = 0; i < mIds.length; i += batchSize) {
                 const batch = mIds.slice(i, i + batchSize);
                 const rows = await _sb(
@@ -1843,6 +1870,46 @@
             }
         }
 
+        function _buildMinSelectHtml(mins, selectedId = null, emptyLabel = '— Seleciona —') {
+            const byId    = Object.fromEntries(mins.map(m => [m.id, m]));
+            const roots   = mins.filter(m => !m.parent_id);
+            const children = pid => mins.filter(m => m.parent_id === pid);
+
+            let html = `<option value="">${emptyLabel}</option>`;
+
+            function addNode(m, depth) {
+                const isSel  = selectedId === m.id ? 'selected' : '';
+                const prefix = depth === 0 ? '▸ '
+                    : depth === 1 ? '\u3000'          // 　(espaço ideográfico)
+                        : '\u3000\u3000↳ ';
+                const label  = depth === 0 ? m.nome.toUpperCase() : m.nome;
+                const weight = depth === 0 ? 'font-weight:700;color:var(--primary-dark)' : '';
+
+                html += `<option value="${m.id}" ${isSel} style="${weight}">${prefix}${label}</option>`;
+                children(m.id).forEach(child => addNode(child, depth + 1));
+            }
+
+            roots.forEach(r => addNode(r, 0));
+            return html;
+        }
+
+        function _getDescendantIds(ministerioId, allMins) {
+            const result = new Set([ministerioId]);
+            const queue  = [ministerioId];
+
+            while (queue.length) {
+                const pid = queue.shift();
+                allMins
+                    .filter(m => m.parent_id === pid)
+                    .forEach(m => {
+                        if (!result.has(m.id)) {
+                            result.add(m.id);
+                            queue.push(m.id);
+                        }
+                    });
+            }
+            return [...result];
+        }
 
         async function evVerPresencas(id) {
             evView = 'presencas';
@@ -1929,7 +1996,6 @@
 <div class="ev-pres-add" style="padding:12px">
     <div class="ev-pres-add-title">Adicionar manualmente</div>
 
-    <!-- Filtros -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         <input
             style="flex:2;min-width:120px;padding:6px 10px;border-radius:8px;
@@ -1947,20 +2013,16 @@
             <option value="outro"      ${evAddFiltroTipo==='outro'      ?'selected':''}>Outros</option>
         </select>
 
-        <select class="ev-filtro-select" style="flex:1;min-width:110px" id="ev-add-filtro-area"
+        <!-- Seletor hierárquico — value = ID do ministério -->
+        <select class="ev-filtro-select" style="flex:1;min-width:130px" id="ev-add-filtro-area"
                 onchange="evAddSetFiltro('area',this.value)">
-            <option value="">Todas as áreas</option>
-            ${[...new Set(Object.values(evAllMinMap).flatMap(mins => mins.map(m => m.nome)))].sort()
-                .map(a => `<option value="${a}" ${evAddFiltroArea===a?'selected':''}>${a}</option>`).join('')}
+            ${_buildMinSelectHtml(_evMinisteriosTree, evAddFiltroArea || null, 'Todas as áreas')}
         </select>
     </div>
 
-    <!-- Lista filtrada -->
     <div id="ev-add-lista" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);
-         border-radius:8px;background:var(--bg-input)">
-    </div>
+         border-radius:8px;background:var(--bg-input)"></div>
 
-    <!-- Botão bulk (fica oculto quando não há filtro activo) -->
     <button class="ev-btn primary" id="ev-add-bulk-btn"
             style="display:none;width:100%;margin-top:6px;font-size:9px;padding:8px"
             onclick="void(0)">+ Adicionar todos</button>
@@ -2275,30 +2337,36 @@
                 lista = lista.filter(m => m.nome.toLowerCase().includes(q));
             }
 
-            // Filtro tipo (lider / voluntario / outro)
+            // Filtro tipo
             if      (evAddFiltroTipo === 'lider')      lista = lista.filter(m => m.e_lider);
             else if (evAddFiltroTipo === 'voluntario') lista = lista.filter(m => m.e_voluntario);
             else if (evAddFiltroTipo === 'outro')      lista = lista.filter(m => !m.e_lider && !m.e_voluntario);
 
-            // Filtro área — FIX: usa evAllMinMap em vez de m._areas (que não existia)
+            // Filtro área — por ID, inclui descendentes
             if (evAddFiltroArea) {
+                const descIds = new Set(_getDescendantIds(evAddFiltroArea, _evMinisteriosTree));
                 lista = lista.filter(m =>
-                    (evAllMinMap[m.id] || []).some(mn => mn.nome === evAddFiltroArea)
+                    (evAllMinMap[m.id] || []).some(mn => descIds.has(mn.ministerioId))
                 );
             }
 
             // ── Botão "Adicionar todos" ──────────────────────────────────────
-            const bulkBtn  = document.getElementById('ev-add-bulk-btn');
+            const bulkBtn   = document.getElementById('ev-add-bulk-btn');
             const temFiltro = evAddFiltroQ || evAddFiltroTipo || evAddFiltroArea;
+
             if (bulkBtn) {
                 if (temFiltro && lista.length > 0) {
-                    bulkBtn.style.display  = '';
-                    bulkBtn.disabled       = false;
-                    const label = evAddFiltroArea ? `"${evAddFiltroArea}"`
+                    const minNome = evAddFiltroArea
+                        ? (_evMinisteriosTree.find(m => m.id === evAddFiltroArea)?.nome || '—')
+                        : null;
+                    const label = minNome                                    ? `"${minNome}"`
                         : evAddFiltroTipo === 'lider'      ? 'Líderes'
                             : evAddFiltroTipo === 'voluntario' ? 'Voluntários'
                                 : 'filtrados';
-                    bulkBtn.textContent = `+ Adicionar todos ${label} (${lista.length})`;
+
+                    bulkBtn.style.display  = '';
+                    bulkBtn.disabled       = false;
+                    bulkBtn.textContent    = `+ Adicionar todos ${label} (${lista.length})`;
                     const ids = lista.map(m => m.id);
                     bulkBtn.onclick = () => evAddTodos(ids);
                 } else {
@@ -2320,18 +2388,19 @@
                     : m.e_voluntario
                         ? 'color:#2e7d32;background:rgba(46,125,50,.1)'
                         : '';
-                // FIX: usa evAllMinMap para mostrar áreas
-                const mins  = evAllMinMap[m.id] || [];
-                const areas = [...new Set(mins.map(mn => mn.nome))].slice(0, 2).join(', ') || '—';
-                const ini   = (m.nome || '?')[0].toUpperCase();
-                const foto  = m.foto_url
+
+                // Áreas do membro (usa evAllMinMap)
+                const mins   = evAllMinMap[m.id] || [];
+                const areas  = [...new Set(mins.map(mn => mn.nome))].slice(0, 2).join(', ') || '—';
+                const ini    = (m.nome || '?')[0].toUpperCase();
+                const foto   = m.foto_url
                     ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"
                     onerror="this.parentElement.textContent='${ini}'">`
                     : ini;
-                const isSel = selId === m.id;
+                const isSel  = selId === m.id;
 
                 return `<div class="ev-add-linha" data-id="${m.id}"
-            onclick="evAddSelMembro('${m.id}','${m.nome.replace(/'/g, "\\'")}')"
+            onclick="evAddSelMembro('${m.id}','${m.nome.replace(/'/g,"\\'")}')"
             style="display:flex;align-items:center;gap:8px;padding:7px 10px;
                    cursor:pointer;border:1px solid transparent;border-radius:6px;
                    transition:background .1s;margin:2px;
@@ -3045,20 +3114,21 @@
             const isN   = idx === null;
             const t     = isN ? {} : lista[idx];
 
-            // Carrega lista de ministérios para o seletor
-            const mins = await _sb('ministerios?select=id,nome&order=nome&limit=500').catch(() => []) || [];
+            // Carrega ministérios (usa cache se disponível)
+            const mins = _evMinisteriosTree.length
+                ? _evMinisteriosTree
+                : await _sb('ministerios?select=id,nome,parent_id&order=nome&limit=1000').catch(() => []) || [];
+            if (!_evMinisteriosTree.length) _evMinisteriosTree = mins;
 
             const autoOpts = [
-                { value: '',            label: '— Sem auto-add —'                 },
-                { value: 'lideres',     label: '👑 Todos os Líderes'              },
-                { value: 'voluntarios', label: '🙋 Todos os Voluntários'          },
-                { value: 'dizimistas',  label: '💰 Todos os Dizimistas'           },
-                { value: 'ministerio',  label: '🏛 Membros de um Ministério...'   },
+                { value: '',            label: '— Sem auto-add —'                },
+                { value: 'lideres',     label: '👑 Todos os Líderes'             },
+                { value: 'voluntarios', label: '🙋 Todos os Voluntários'         },
+                { value: 'dizimistas',  label: '💰 Todos os Dizimistas'          },
+                { value: 'ministerio',  label: '🏛 Membros de um Ministério/Área'},
             ];
 
-            const minOpts = mins.map(m =>
-                `<option value="${m.id}" data-nome="${m.nome}" ${t.ministerioId === m.id ? 'selected' : ''}>${m.nome}</option>`
-            ).join('');
+            const minOpts = _buildMinSelectHtml(mins, t.ministerioId || null);
 
             document.getElementById('drawer-title').textContent = isN ? 'Novo Tipo' : 'Editar Tipo';
             document.getElementById('drawer-body').innerHTML = `
@@ -3075,11 +3145,12 @@
                 <label class="form-label">Auto-adicionar membros ao iniciar</label>
                 <select class="form-select" id="ft_autoadd" onchange="evTipoAutoAddChange(this.value)">
                     ${autoOpts.map(o =>
-                `<option value="${o.value}" ${(t.autoAdd || '') === o.value ? 'selected' : ''}>${o.label}</option>`
+                `<option value="${o.value}" ${(t.autoAdd||'') === o.value ? 'selected' : ''}>${o.label}</option>`
             ).join('')}
                 </select>
-                <div style="font-size:10px;color:var(--text-faint);margin-top:5px">
-                    Quando o evento for iniciado, os membros do grupo selecionado são adicionados automaticamente à lista de presenças.
+                <div style="font-size:10px;color:var(--text-faint);margin-top:5px;line-height:1.5">
+                    Ao iniciar o evento, os membros do grupo são adicionados automaticamente.<br>
+                    Selecionar um ministério pai inclui <strong>todos os filhos e sub-áreas</strong>.
                 </div>
             </div>
 
@@ -3087,9 +3158,11 @@
                  style="display:${t.autoAdd === 'ministerio' ? '' : 'none'}">
                 <label class="form-label">Ministério / Área</label>
                 <select class="form-select" id="ft_ministerio">
-                    <option value="">— Seleciona —</option>
                     ${minOpts}
                 </select>
+                <div style="font-size:10px;color:var(--text-faint);margin-top:4px">
+                    ▸ = Nível raiz &nbsp;·&nbsp; 　= Sub-área &nbsp;·&nbsp; 　　↳ = Sub-sub-área
+                </div>
             </div>
 
             <div class="form-actions">
@@ -3102,7 +3175,6 @@
             document.body.style.overflow = 'hidden';
         }
 
-        // Helper para mostrar/esconder o seletor de ministério
         function evTipoAutoAddChange(val) {
             const wrap = document.getElementById('ft_min_wrap');
             if (wrap) wrap.style.display = val === 'ministerio' ? '' : 'none';
@@ -4245,6 +4317,8 @@
             evCarregarMinisteriosMembros,
             evTipoAutoAddChange,
             evAddTodos,
+            _buildMinSelectHtml,
+            _getDescendantIds,
 
         });
 

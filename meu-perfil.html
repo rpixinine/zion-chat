@@ -791,7 +791,7 @@
                     <option value="Voluntario">Voluntário</option>
                     <option value="Membro">Membro</option>
                 </select>
-                <button class="btn-inline" onclick="pAddMin('cad')">+</button>
+                <button class="btn-inline" onclick="pAddMin('cad')">Adicionar</button>
             </div>
         </div>
 
@@ -1659,8 +1659,15 @@
             const btn=document.getElementById(`btn-guardar-${ctx}`);
             if(!btn)return;
             btn.disabled=true; btn.textContent='A guardar...';
-            try { if(ctx==='edit')await guardarEdit(); else await guardarCadastro(); }
-            catch(e){ setMsg(ctx==='edit'?'perfil':'cadastro','error','Erro ao guardar. Tenta novamente.'); console.error(e); btn.disabled=false; btn.textContent=ctx==='edit'?'Guardar Alteracoes':'Criar o Meu Registo'; }
+            try {
+                if(ctx==='edit') await guardarEdit(); else await guardarCadastro();
+            } catch(e){
+                const detail = e?.message || e?.hint || e?.details || (typeof e === 'string' ? e : JSON.stringify(e));
+                setMsg(ctx==='edit'?'perfil':'cadastro','error','Erro ao guardar: ' + (detail || 'Tenta novamente.'));
+                console.error('ERRO guardar:', e);
+                btn.disabled=false;
+                btn.textContent=ctx==='edit'?'Guardar Alteracoes':'Criar o Meu Registo';
+            }
         };
 
         async function guardarEdit(){
@@ -1741,11 +1748,14 @@
             if(_cadLinkPending&&_cadLinkPending!==false)body.link_id=_cadLinkPending;
 
             // ← USA RPC em vez de POST directo
-            const novoId = await sb('rpc/criar_membro', {
+            let novoIdRaw = await sb('rpc/criar_membro', {
                 method: 'POST',
                 body: JSON.stringify({ p_dados: body })
             });
-            if(!novoId) throw new Error('Erro ao criar membro');
+            // RPC pode retornar string, array com string, ou objeto com .id
+            let novoId = Array.isArray(novoIdRaw) ? novoIdRaw[0] : novoIdRaw;
+            if (novoId && typeof novoId === 'object') novoId = novoId.id || novoId;
+            if (!novoId) throw new Error('RPC criar_membro nao retornou ID. Resposta: ' + JSON.stringify(novoIdRaw));
 
             const fotoUrl=await uploadFoto('cad', novoId);
             if(fotoUrl){

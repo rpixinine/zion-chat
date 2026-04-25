@@ -113,30 +113,19 @@ function rgpdLerFormulario() {
 async function rgpdSalvarConsentimento(membroId, consent) {
     if (!membroId || !window.sb) return;
     try {
-        var patch = {
-            consentimento_dados:  consent.dados,
-            consentimento_versao: consent.versao,
-            consentimento_canal:  'self',
-            finalidades:          consent.finalidades,
-        };
-        if (consent.dados) patch.consentimento_data = new Date().toISOString();
-
-        await window.sb('rpc/atualizar_perfil', {
+        // Uma única RPC que grava tudo numa transacção
+        const res = await window.sb('rpc/rgpd_guardar_consentimento', {
             method: 'POST',
-            body:   JSON.stringify({ p_id: membroId, p_dados: patch })
-        });
-
-        await window.sb('rpc/rgpd_gravar_log', {
-            method: 'POST',
-            body:   JSON.stringify({
+            body: JSON.stringify({
                 p_membro_id:   membroId,
-                p_acao:        consent.dados ? 'concedido' : 'pendente_sem_consentimento',
+                p_dados:       consent.dados,
                 p_versao:      consent.versao,
                 p_canal:       'self',
                 p_finalidades: consent.finalidades,
                 p_notas:       'Registado via perfil público'
             })
-        }).catch(function() {});
+        });
+        console.log('[RGPD] Consentimento gravado:', res);
     } catch(e) {
         console.error('[RGPD] Erro ao guardar consentimento:', e);
     }

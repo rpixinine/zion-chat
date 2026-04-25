@@ -2608,10 +2608,9 @@
     }
 
     async function sl_notificar(agId, estado, motivo) {
+        // notificação interna (já existia)
         try {
-            var a = sl_ags.find(function (x) {
-                return x.id === agId;
-            });
+            var a = sl_ags.find(function (x) { return x.id === agId; });
             await sb('notificacoes', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -2622,8 +2621,23 @@
                     lida: false,
                 }),
             });
-        } catch (_) {
+        } catch (_) {}
+
+        try {
+            var apiBase = window.API_URL || window.location.origin;
+            await fetch(apiBase + '/api/auth/sala-agendamento-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agendamento_id: agId,
+                    estado:         estado,
+                    motivo:         motivo || null,
+                }),
+            });
+        } catch (e) {
+            console.warn('[sala-status email]', e?.message);
         }
+        // ───────────────────────────────────────────────────────
     }
 
     // ── UTILS ─────────────────────────────────────────────────────────────────────

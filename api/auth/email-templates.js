@@ -330,7 +330,7 @@ export function emailConfirmacaoInscricao({nome, evento, data, local, valor, pos
 
 // ── Email: Boas-vindas ao App — Acesso inicial ────────────────────────────────
 export function emailBoasVindasApp({ nome, email }) {
-    const primeiroNome = (nome || 'Irmão').split(' ')[0];
+    const primeiroNome = (nome || 'Caro Membro').split(' ')[0];
     const appUrl = 'https://chat.zionlisboa.pt';
     const senhaDefault = 'Zion@Lisboa777';
 
@@ -482,6 +482,111 @@ export function emailBoasVindasApp({ nome, email }) {
             corpo,
             rodape: `Este email foi enviado porque tens registo na Zion Lisboa.
                      O teu email de acesso &eacute; <strong>${email}</strong>.`
+        })
+    };
+}
+
+// ── Email: Agendamento de Sala — Aprovado / Recusado ─────────────────────────
+export function emailAgendamentoSala({ nome, sala, data, horaIni, horaFim, estado, motivo }) {
+    const primeiroNome = (nome || '').split(' ')[0];
+    const aprovado = estado === 'aprovado';
+
+    const corEstado  = aprovado ? '#2e7d32' : '#c62828';
+    const bgEstado   = aprovado ? '#e8f5e9' : '#ffebee';
+    const icone      = aprovado ? '✓' : '✗';
+    const labelEstado = aprovado ? 'Aprovado' : 'Recusado';
+
+    const corpo = `
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:15px;color:#0a2020;">
+        Olá, <strong>${primeiroNome}</strong>
+      </p>
+      <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:14px;color:#4a6a6a;line-height:1.7;">
+        O teu pedido de agendamento da sala <strong style="color:#007078;">${sala}</strong>
+        foi <strong style="color:${corEstado};">${labelEstado.toLowerCase()}</strong>.
+      </p>
+
+      <!-- Badge de estado -->
+      <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 22px;">
+        <tr>
+          <td align="center" bgcolor="${bgEstado}"
+              style="background-color:${bgEstado};border:2px solid ${corEstado};
+                     border-radius:8px;padding:12px 28px;">
+            <p style="margin:0;font-family:Georgia,serif;font-size:18px;
+                      font-weight:700;color:${corEstado};letter-spacing:1px;">
+              ${icone} ${labelEstado}
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Detalhes do agendamento -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:${motivo ? '16px' : '24px'};border-radius:10px;
+                    overflow:hidden;border:1px solid #d0e8e8;">
+        <tr>
+          <td bgcolor="#007078" style="background-color:#007078;padding:12px 20px;">
+            <p style="margin:0;font-family:Georgia,serif;font-size:13px;font-weight:700;
+                      color:#ffffff;letter-spacing:.5px;text-transform:uppercase;">
+              Detalhes do Agendamento
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td bgcolor="#f5fafa" style="background-color:#f5fafa;padding:16px 20px;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;width:80px;">🏠 Sala</td>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;
+                           color:#0a2020;font-weight:600;">${sala}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;">📅 Data</td>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;
+                           color:#0a2020;font-weight:600;">${data}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;
+                           color:#7a9a9a;">🕐 Horário</td>
+                <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;
+                           color:#0a2020;font-weight:600;">${horaIni} – ${horaFim}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Motivo da recusa (só aparece se recusado e tiver motivo) -->
+      ${!aprovado && motivo ? `
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="margin-bottom:24px;border-left:3px solid #e53935;background-color:#fff8f8;" bgcolor="#fff8f8">
+        <tr>
+          <td style="padding:12px 16px;">
+            <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:10px;
+                      letter-spacing:1px;text-transform:uppercase;color:#c62828;">Motivo</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;
+                      color:#5a0000;line-height:1.6;">${motivo}</p>
+          </td>
+        </tr>
+      </table>` : ''}
+
+      <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#7a9a9a;
+                line-height:1.6;text-align:center;">
+        ${aprovado
+        ? 'Aparece no espaço na hora marcada. Deixa-o limpo e organizado após o uso.'
+        : 'Podes efectuar um novo pedido com outro horário se necessário.'
+    }
+        <br>Tens dúvidas? Fala connosco no próximo culto.
+      </p>
+    `;
+
+    return {
+        subject: `Agendamento ${labelEstado} — ${sala}`,
+        html: emailBase({
+            titulo: `Agendamento ${labelEstado}`,
+            corpo,
+            rodape: `Este email foi enviado em resposta ao teu pedido de agendamento da sala <strong>${sala}</strong>.`
         })
     };
 }

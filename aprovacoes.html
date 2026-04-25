@@ -538,6 +538,28 @@
     }
 
     // ── HELPER: pode reabrir? ──────────────────────────────────
+
+    async function enviarEmailStatus(agendamentoId, estado, motivo) {
+        try {
+            const apiBase = window.API_URL || window.location.origin;
+            const res = await fetch(`${apiBase}/api/auth/sala-agendamento-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agendamento_id: agendamentoId,
+                    estado:         estado,
+                    motivo:         motivo || null,
+                }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                console.warn('[email status]', err?.error || res.status);
+            }
+        } catch (e) {
+            console.warn('[email status] Erro de rede:', e?.message);
+        }
+    }
+    
     // Regra: pedido rejeitado, e faltam mais de 24h para o horário marcado
     function podeReabrir(agend) {
         if (agend.status !== 'recusado') return false;
@@ -698,6 +720,11 @@
                     aprovado_em:  new Date().toISOString(),
                 }),
             });
+
+            // ── NOVO: email ao solicitante ──────────────────────
+            enviarEmailStatus(id, 'aprovado', null);
+            // ───────────────────────────────────────────────────
+
             const idx = agendamentos.findIndex(a => a.id === id);
 
             if (idx !== -1) {
@@ -747,6 +774,11 @@
                     aprovado_em:   new Date().toISOString(),
                 }),
             });
+
+            // ── NOVO: email ao solicitante ──────────────────────
+            enviarEmailStatus(id, 'recusado', motivo || null);
+            // ───────────────────────────────────────────────────
+
             const idx = agendamentos.findIndex(a => a.id === id);
             if (idx !== -1) { agendamentos[idx].status = 'recusado'; agendamentos[idx].motivo_recusa = motivo || null; }
             const card = document.getElementById(`card-${id}`);

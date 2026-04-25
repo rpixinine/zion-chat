@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="rgpd_membros_patch.js"></script>
 
 
     <style>
@@ -605,7 +606,7 @@
             </div>
         </div>
         </div>
-
+        <div id="rgpd-bloco-edit"></div>
         <button class="btn-save" id="btn-guardar-edit" onclick="pGuardar('edit')">Guardar Alteracoes</button>
         <div style="margin-top:10px"><button class="btn-secondary" onclick="pVoltar()">Voltar</button></div>
     </div>
@@ -865,7 +866,7 @@
                 </div>
             </div>
         </div>
-
+        <div id="rgpd-bloco-cad"></div>
         <button class="btn-save" id="btn-guardar-cad" onclick="pGuardar('cad')">Criar o Meu Registo</button>
         <div style="margin-top:10px"><button class="btn-secondary" onclick="pVoltar()">Voltar</button></div>
     </div>
@@ -1125,8 +1126,15 @@
             renderCursos('edit'); renderCursoSel('edit');
             renderConjuge('edit'); renderConjugeSel('edit');
             renderLink('edit'); renderLinkSel('edit');
-            renderIdiomasChips('edit'); renderNacChips('edit');
+            renderIdiomasChips('edit');
+            renderNacChips('edit');
             inicializarDocInputs();
+
+            // ← RGPD: injeta bloco de consentimento com dados actuais do membro
+            const rgpdBloco = document.getElementById('rgpd-bloco-edit');
+            if (rgpdBloco && window.rgpdConsentimentoHtml) {
+                rgpdBloco.innerHTML = window.rgpdConsentimentoHtml(_membroSel);
+            }
         }
 
         function resetarCadastro() {
@@ -1152,6 +1160,12 @@
                 const fi = document.getElementById(`doc-file-cad-${c}`);
                 if (fi) fi.value = '';
             });
+
+            // ← RGPD: injeta bloco de consentimento limpo (sem membro existente)
+            const rgpdBlocoCad = document.getElementById('rgpd-bloco-cad');
+            if (rgpdBlocoCad && window.rgpdConsentimentoHtml) {
+                rgpdBlocoCad.innerHTML = window.rgpdConsentimentoHtml(null);
+            }
         }
 
         // IDIOMAS
@@ -1758,6 +1772,12 @@
                 body: JSON.stringify({ p_id: _membroSel.id, p_dados: body })
             });
 
+            // ← RGPD: lê formulário de consentimento e grava na BD + log de auditoria
+            if (window.rgpdLerFormulario && window.rgpdSalvarConsentimento) {
+                const consent = window.rgpdLerFormulario();
+                await window.rgpdSalvarConsentimento(_membroSel.id, consent);
+            }
+
             Object.assign(_membroSel,body);
             const idx=_membros.findIndex(m=>m.id===_membroSel.id);
             if(idx>=0)Object.assign(_membros[idx],{nome:body.nome||_membros[idx].nome,foto_url:body.foto_url||_membros[idx].foto_url});
@@ -1765,6 +1785,7 @@
             const ci=document.getElementById('conf-icon');  if(ci)ci.textContent='✓';
             const cm=document.getElementById('conf-msg');   if(cm)cm.innerHTML=`Os dados de <strong>${_membroSel.nome}</strong> foram guardados com sucesso.`;
             mostrar('confirmado');
+
         }
 
         async function guardarCadastro(){
@@ -1810,10 +1831,23 @@
             let novoId = Array.isArray(novoIdRaw) ? novoIdRaw[0] : novoIdRaw;
             if (novoId && typeof novoId === 'object') novoId = novoId.id || novoId;
             if (!novoId) throw new Error('RPC criar_membro nao retornou ID. Resposta: ' + JSON.stringify(novoIdRaw));
-            
+
             const patchInicial = {};
             if (_cadIdiomas.length)  patchInicial['Idiomas']     = _cadIdiomas;
             if (_cadNacs.length)     patchInicial.nacionalidade   = _cadNacs;
+
+            // ← RGPD: lê consentimento do formulário e inclui no patch
+            let _cadConsent = null;
+            if (window.rgpdLerFormulario) {
+                _cadConsent = window.rgpdLerFormulario();
+                patchInicial.consentimento_dados  = _cadConsent.dados;
+                patchInicial.consentimento_versao = _cadConsent.versao;
+                patchInicial.consentimento_canal  = 'self';
+                patchInicial.finalidades          = _cadConsent.finalidades;
+                if (_cadConsent.dados) {
+                    patchInicial.consentimento_data = new Date().toISOString();
+                }
+            }
 
             const fotoUrl = await uploadFoto('cad', novoId);
             if (fotoUrl) patchInicial.foto_url = fotoUrl;
@@ -1855,6 +1889,11 @@
             for(const min of _cadMins){
                 try{ await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:novoId,ministerio_id:min.ministerio_id,papel:min.papel||null,ativo:true})}); }catch{}
             }
+            // ← RGPD: regista log de auditoria do consentimento
+            if (_cadConsent && window.rgpdSalvarConsentimento) {
+                await window.rgpdSalvarConsentimento(novoId, _cadConsent).catch(() => {});
+            }
+
             _membros.push({id:novoId,...body,foto_url:fotoUrl||null});
             const ct=document.getElementById('conf-title'); if(ct)ct.textContent='Registo Criado';
             const ci=document.getElementById('conf-icon');  if(ci)ci.textContent='✓';
@@ -2032,6 +2071,8 @@
         document.querySelectorAll('.form-input,.form-select').forEach(el=>{el.addEventListener('input',()=>el.classList.remove('invalid'));el.addEventListener('change',()=>el.classList.remove('invalid'));});
 
         window.pBuscar=pBuscar; window.pLimparBusca=pLimparBusca; window.pIrCadastro=pIrCadastro;
+        window.sb = sb;
+
         init();
     })();
 </script>

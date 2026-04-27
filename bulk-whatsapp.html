@@ -20,7 +20,6 @@
 
     <style>
         body { background: var(--bg-page, #02161e); }
-
         .page { max-width: 740px; margin: 0 auto; padding: 40px 20px 80px; }
 
         .page-header { text-align: center; margin-bottom: 32px; }
@@ -46,6 +45,59 @@
             color: #25D366; margin-bottom: 16px;
         }
 
+        /* ── Canal selector ── */
+        .canal-selector {
+            display: flex; gap: 10px; margin-bottom: 0;
+        }
+        .canal-btn {
+            flex: 1; padding: 14px 10px; border-radius: 12px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03);
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            transition: all .2s; text-align: center;
+        }
+        .canal-btn:hover { border-color: rgba(37,211,102,.3); }
+        .canal-btn.active {
+            border-color: #25D366; background: rgba(37,211,102,.08);
+        }
+        .canal-btn.active.meta {
+            border-color: #0084ff; background: rgba(0,132,255,.08);
+        }
+        .canal-icon { font-size: 22px; }
+        .canal-nome {
+            font-family: var(--font-title); font-size: 9px; letter-spacing: 2px;
+            text-transform: uppercase; color: rgba(255,255,255,.6);
+        }
+        .canal-btn.active .canal-nome { color: #25D366; }
+        .canal-btn.active.meta .canal-nome { color: #0084ff; }
+        .canal-desc { font-size: 10px; color: rgba(255,255,255,.30); line-height: 1.4; }
+
+        /* Painel Meta extra */
+        .meta-options {
+            display: none; margin-top: 14px;
+            background: rgba(0,132,255,.05); border: 1px solid rgba(0,132,255,.15);
+            border-radius: 10px; padding: 14px;
+        }
+        .meta-options.visible { display: block; }
+        .meta-opt-label {
+            font-family: var(--font-title); font-size: 8px; letter-spacing: 2px;
+            text-transform: uppercase; color: rgba(0,132,255,.7); margin-bottom: 10px;
+        }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+        .toggle-row span { font-size: 12px; color: rgba(255,255,255,.60); }
+        .toggle { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute; inset: 0; background: rgba(255,255,255,.12);
+            border-radius: 999px; cursor: pointer; transition: background .2s;
+        }
+        .toggle-slider::before {
+            content: ''; position: absolute; left: 3px; top: 3px;
+            width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s;
+        }
+        .toggle input:checked + .toggle-slider { background: #0084ff; }
+        .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+        .toggle-hint { font-size: 10px; color: rgba(255,255,255,.28); margin-top: 6px; line-height: 1.5; }
+
         /* ── Filtros dropdown ── */
         .filter-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
         .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 110px; }
@@ -54,12 +106,10 @@
             text-transform: uppercase; color: rgba(255,255,255,.3);
         }
         .filter-select {
-            background: rgba(255,255,255,.05);
-            border: 1px solid rgba(255,255,255,.12); border-radius: 8px;
-            padding: 8px 28px 8px 10px; font-size: 12px; color: rgba(255,255,255,.75);
-            outline: none; cursor: pointer; width: 100%;
-            font-family: Lato, sans-serif; transition: border-color .2s;
-            appearance: none;
+            background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+            border-radius: 8px; padding: 8px 28px 8px 10px; font-size: 12px;
+            color: rgba(255,255,255,.75); outline: none; cursor: pointer; width: 100%;
+            font-family: Lato, sans-serif; transition: border-color .2s; appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.3)'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 10px center;
             background-color: rgba(255,255,255,.05);
@@ -67,12 +117,10 @@
         .filter-select:focus { border-color: #25D366; }
         .filter-select option { background: #071c26; color: #fff; }
 
-        /* ── Search ── */
         .search-bar { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
         .search-input {
-            flex: 1; background: rgba(255,255,255,.05);
-            border: 1px solid rgba(255,255,255,.12); border-radius: 10px;
-            padding: 10px 14px; font-size: 13px; color: #fff; outline: none;
+            flex: 1; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #fff; outline: none;
         }
         .search-input::placeholder { color: rgba(255,255,255,.25); }
         .search-input:focus { border-color: #25D366; }
@@ -80,14 +128,13 @@
         .btn-load {
             padding: 10px 16px; background: rgba(37,211,102,.12);
             border: 1px solid rgba(37,211,102,.3); border-radius: 10px;
-            color: #25D366; font-family: var(--font-title);
-            font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
-            cursor: pointer; white-space: nowrap; transition: background .2s;
+            color: #25D366; font-family: var(--font-title); font-size: 9px;
+            letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+            white-space: nowrap; transition: background .2s;
         }
         .btn-load:hover { background: rgba(37,211,102,.22); }
         .btn-load:disabled { opacity: .4; cursor: default; }
 
-        /* ── Select bar ── */
         .select-bar {
             display: flex; align-items: center; justify-content: space-between;
             padding: 10px 14px; background: rgba(255,255,255,.03);
@@ -103,7 +150,6 @@
         .btn-clear-all  { color: rgba(255,255,255,.35); border: 1px solid rgba(255,255,255,.10); }
         .btn-clear-all:hover { background: rgba(255,255,255,.05); }
 
-        /* ── Member List ── */
         .members-list {
             max-height: 340px; overflow-y: auto;
             border: 1px solid rgba(255,255,255,.07); border-radius: 10px;
@@ -135,9 +181,8 @@
         .member-item.selected .m-check { background: #25D366; border-color: #25D366; color: #fff; }
 
         .m-avatar {
-            width: 32px; height: 32px; flex-shrink: 0;
-            background: rgba(37,211,102,.15); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; flex-shrink: 0; background: rgba(37,211,102,.15);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-family: var(--font-title); font-size: 10px; color: #25D366;
         }
 
@@ -166,14 +211,19 @@
             background: rgba(37,211,102,.05); border: 1px solid rgba(37,211,102,.12);
             border-radius: 10px; padding: 10px 14px;
         }
+        .greeting-row.meta-mode {
+            background: rgba(0,132,255,.05); border-color: rgba(0,132,255,.15);
+        }
         .greeting-label { font-size: 13px; color: rgba(255,255,255,.5); white-space: nowrap; flex-shrink: 0; }
         .greeting-select {
-            background: transparent; border: none;
-            font-size: 13px; color: #25D366; outline: none; cursor: pointer;
-            font-family: Lato, sans-serif; font-weight: 700;
+            background: transparent; border: none; font-size: 13px; color: #25D366;
+            outline: none; cursor: pointer; font-family: Lato, sans-serif; font-weight: 700;
             appearance: none; padding-right: 20px;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2325D366'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 0px center;
+        }
+        .greeting-select.meta-mode { color: #0084ff;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%230084ff'/%3E%3C/svg%3E");
         }
         .greeting-select option { background: #071c26; color: #fff; }
 
@@ -185,33 +235,34 @@
             transition: border-color .2s;
         }
         .msg-textarea:focus { border-color: #25D366; }
+        .msg-textarea.meta-mode:focus { border-color: #0084ff; }
         .msg-textarea::placeholder { color: rgba(255,255,255,.25); }
+        .msg-textarea:disabled { opacity: .4; cursor: not-allowed; }
 
-        .msg-footer {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-top: 6px; flex-wrap: wrap; gap: 8px;
-        }
+        .msg-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; flex-wrap: wrap; gap: 8px; }
         .msg-hint { font-size: 11px; color: rgba(255,255,255,.28); }
         .char-count { font-size: 11px; color: rgba(255,255,255,.30); }
         .char-count.warn { color: #ffc107; }
 
-        /* ── Preview ── */
         .preview-box {
             display: none; margin-top: 14px;
             background: rgba(37,211,102,.05); border: 1px solid rgba(37,211,102,.15);
             border-radius: 12px; padding: 14px;
         }
         .preview-box.visible { display: block; }
+        .preview-box.meta-mode { background: rgba(0,132,255,.05); border-color: rgba(0,132,255,.15); }
         .preview-label {
             font-family: var(--font-title); font-size: 8px; letter-spacing: 2px;
             text-transform: uppercase; color: rgba(37,211,102,.6); margin-bottom: 8px;
         }
+        .preview-label.meta-mode { color: rgba(0,132,255,.7); }
         .preview-bubble {
             background: #1a3a26; border-radius: 0 10px 10px 10px;
             padding: 10px 14px; font-size: 13px; color: rgba(255,255,255,.85);
             line-height: 1.6; white-space: pre-wrap; display: inline-block;
             max-width: 100%; word-break: break-word;
         }
+        .preview-bubble.meta-mode { background: #0a2040; }
 
         /* ── Acções ── */
         .actions { display: flex; gap: 12px; margin-top: 8px; }
@@ -219,18 +270,21 @@
             flex: 1; padding: 13px; background: none;
             border: 1px solid rgba(37,211,102,.35); border-radius: 10px;
             color: #25D366; font-family: var(--font-title); font-size: 9px;
-            letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: background .2s;
+            letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all .2s;
         }
         .btn-dry:hover { background: rgba(37,211,102,.08); }
         .btn-dry:disabled { opacity: .4; cursor: default; }
+        .btn-dry.meta-mode { border-color: rgba(0,132,255,.35); color: #0084ff; }
+        .btn-dry.meta-mode:hover { background: rgba(0,132,255,.08); }
+
         .btn-send {
-            flex: 2; padding: 13px; background: #25D366;
-            border: none; border-radius: 10px; color: #fff;
-            font-family: var(--font-title); font-size: 9px;
+            flex: 2; padding: 13px; background: #25D366; border: none; border-radius: 10px;
+            color: #fff; font-family: var(--font-title); font-size: 9px;
             letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: opacity .2s;
         }
         .btn-send:hover { opacity: .85; }
         .btn-send:disabled { opacity: .35; cursor: default; }
+        .btn-send.meta-mode { background: #0084ff; }
 
         /* ── Resultado ── */
         .result-box { display: none; border-radius: 12px; overflow: hidden; margin-top: 16px; }
@@ -257,9 +311,6 @@
         .dry-item-msg  { font-size: 12px; color: rgba(255,255,255,.80); white-space: pre-wrap; background: #1a3a26; border-radius: 0 8px 8px 8px; padding: 8px 10px; }
         .log-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 7px; font-size: 12px; }
         .log-item.fail { background: rgba(252,138,138,.08); color: #fc8a8a; }
-        .log-icon { font-size: 13px; flex-shrink: 0; }
-        .log-name { flex: 1; }
-        .log-err  { font-size: 10px; color: #fc8a8a; }
 
         .spinner {
             display: inline-block; width: 14px; height: 14px;
@@ -273,17 +324,10 @@
         .auth-guard-title { font-family: var(--font-title); font-size: 1.2rem; color: #fff; margin-bottom: 12px; }
         .auth-guard-sub   { font-size: 13px; color: rgba(255,255,255,.45); margin-bottom: 24px; }
 
-        .info-banner {
-            background: rgba(255,193,7,.06); border: 1px solid rgba(255,193,7,.20);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
-            font-size: 12px; color: rgba(255,255,255,.60); line-height: 1.7;
-        }
-        .info-banner strong { color: #ffc107; }
-        .info-banner code { background: rgba(255,193,7,.10); color: #ffc107; padding: 1px 5px; border-radius: 4px; font-size: 11px; word-break: break-all; }
-
         @media (max-width: 500px) {
             .actions { flex-direction: column; }
             .filter-row { flex-direction: column; }
+            .canal-selector { flex-direction: column; }
         }
     </style>
 </head>
@@ -294,16 +338,43 @@
     <div class="page-header">
         <div class="wa-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L0 24l6.335-1.51A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.367l-.36-.214-3.728.888.922-3.632-.235-.375A9.818 9.818 0 112 12 9.818 9.818 0 0121.818 12 9.818 9.818 0 0112 21.818z"/></svg>
-            Sandbox Twilio
+            WhatsApp em Massa
         </div>
         <div class="page-title">WhatsApp em Massa</div>
         <div class="page-sub">Selecciona os membros e escreve a mensagem para enviar via WhatsApp.</div>
     </div>
 
-    <div class="info-banner">
-        ⚠️ <strong>Para receber respostas</strong>, configura em
-        <strong>Twilio Console → Messaging → Sandbox Settings</strong>:<br>
-        <code>WHEN A MESSAGE COMES IN → https://zion-lisboa.vercel.app/api/auth/twilio-webhook</code>
+    <!-- ── CANAL ── -->
+    <div class="card">
+        <div class="card-title">Canal de Envio</div>
+        <div class="canal-selector">
+            <div class="canal-btn active" id="canal-twilio" onclick="setCanal('twilio')">
+                <div class="canal-icon">📱</div>
+                <div class="canal-nome">Twilio Sandbox</div>
+                <div class="canal-desc">Testes. Destinatários têm de fazer join ao sandbox.</div>
+            </div>
+            <div class="canal-btn meta" id="canal-meta" onclick="setCanal('meta')">
+                <div class="canal-icon">🔵</div>
+                <div class="canal-nome">Meta Cloud API</div>
+                <div class="canal-desc">Produção. Qualquer número, sem restrições.</div>
+            </div>
+        </div>
+
+        <!-- Opções extra quando Meta está activo -->
+        <div class="meta-options" id="meta-options">
+            <div class="meta-opt-label">Opções Meta</div>
+            <div class="toggle-row">
+                <span>Usar template aprovado (fora da janela 24h)</span>
+                <label class="toggle">
+                    <input type="checkbox" id="meta-use-template" onchange="onMsgChange()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="toggle-hint">
+                ⚠️ Sem template: só funciona se o membro tiver enviado uma mensagem nas últimas 24h.<br>
+                ✅ Com template: funciona sempre, mas o texto é fixo (definido no Meta Business Manager).
+            </div>
+        </div>
     </div>
 
     <!-- ── MEMBROS ── -->
@@ -317,7 +388,6 @@
             <button class="btn-load" id="btn-load" onclick="carregarMembros()">Carregar</button>
         </div>
 
-        <!-- Filtros em dropdown — aparecem após carregar -->
         <div id="filtros-wrap" style="display:none">
             <div class="filter-row">
                 <div class="filter-group">
@@ -364,8 +434,7 @@
     <div class="card">
         <div class="card-title">Mensagem</div>
 
-        <!-- Saudação fixa com toggle de variável -->
-        <div class="greeting-row">
+        <div class="greeting-row" id="greeting-row">
             <span class="greeting-label">Olá</span>
             <select class="greeting-select" id="greeting-var" onchange="onMsgChange()">
                 <option value="{{nome}}">{{nome}}</option>
@@ -379,12 +448,12 @@
                   oninput="onMsgChange()" onkeyup="onMsgChange()"></textarea>
 
         <div class="msg-footer">
-            <div class="msg-hint">A saudação "Olá {{nome}}," é adicionada automaticamente no início.</div>
+            <div class="msg-hint" id="msg-hint">A saudação "Olá {{nome}}," é adicionada automaticamente no início.</div>
             <div class="char-count" id="char-count">0 / 1600 chars</div>
         </div>
 
         <div class="preview-box" id="preview-box">
-            <div class="preview-label">👁 Preview — como vai aparecer no WhatsApp</div>
+            <div class="preview-label" id="preview-label">👁 Preview — como vai aparecer no WhatsApp</div>
             <div class="preview-bubble" id="preview-bubble"></div>
             <div style="font-size:10px;color:rgba(37,211,102,.5);margin-top:6px;" id="preview-nome"></div>
         </div>
@@ -394,18 +463,17 @@
     <div class="card">
         <p style="font-size:13px;color:rgba(255,255,255,.50);margin:0 0 16px;line-height:1.7;">
             Usa <strong style="color:#ffc107">Simular</strong> primeiro para confirmar antes de
-            <strong style="color:#25D366">Enviar</strong>.
+            <strong id="enviar-label" style="color:#25D366">Enviar</strong>.
         </p>
         <div class="actions">
             <button class="btn-dry"  id="btn-simular" onclick="correr(true)">🔍 Simular</button>
             <button class="btn-send" id="btn-enviar"  onclick="confirmarEnvio()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:5px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L0 24l6.335-1.51A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.367l-.36-.214-3.728.888.922-3.632-.235-.375A9.818 9.818 0 112 12 9.818 9.818 0 0121.818 12 9.818 9.818 0 0112 21.818z"/></svg>
-                Enviar WhatsApp
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:5px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L0 24l6.335-1.51A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.367l-.36-.214-3.728.888.922-3.632-.235-.375A9.818 9.818 0 112 12 9.818 9.818 0 0121.818 12 9.818 9.818 0 0112 21.818z"/></svg>
+                <span id="btn-enviar-text">Enviar via Twilio</span>
             </button>
         </div>
     </div>
 
-    <!-- ── RESULTADO ── -->
     <div class="result-box" id="result-box">
         <div class="result-header" id="result-header"></div>
         <div class="result-body"   id="result-body"></div>
@@ -424,6 +492,7 @@
 </div>
 
 <script>
+    // ── Auth ──────────────────────────────────────────────────────────────────
     (async function () {
         const session = await ZionAuth.protect();
         if (!session) return;
@@ -435,11 +504,64 @@
         }
     })();
 
+    // ── Estado ────────────────────────────────────────────────────────────────
     let todosMembros         = [];
     let membrosFiltrados     = [];
     let selecionados         = new Set();
     let ministeriosPorMembro = {};
+    let canalActivo          = 'twilio'; // 'twilio' | 'meta'
 
+    // ── Canal ─────────────────────────────────────────────────────────────────
+    function setCanal(canal) {
+        canalActivo = canal;
+        const isMeta = canal === 'meta';
+
+        // Botões
+        document.getElementById('canal-twilio').classList.toggle('active', !isMeta);
+        document.getElementById('canal-meta').classList.toggle('active', isMeta);
+
+        // Opções meta
+        document.getElementById('meta-options').classList.toggle('visible', isMeta);
+
+        // Cores modo
+        ['greeting-row','greeting-var'].forEach(id => {
+            document.getElementById(id).classList.toggle('meta-mode', isMeta);
+        });
+        ['msg-body','preview-box','preview-bubble','preview-label'].forEach(id => {
+            document.getElementById(id).classList.toggle('meta-mode', isMeta);
+        });
+        ['btn-simular','btn-send','btn-enviar'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('meta-mode', isMeta);
+        });
+
+        // Texto do botão
+        document.getElementById('btn-enviar-text').textContent = isMeta ? 'Enviar via Meta' : 'Enviar via Twilio';
+        document.getElementById('enviar-label').style.color    = isMeta ? '#0084ff' : '#25D366';
+
+        // Textarea: bloqueia se meta + template
+        atualizarModoMensagem();
+        atualizarPreview();
+    }
+
+    function atualizarModoMensagem() {
+        const isMeta     = canalActivo === 'meta';
+        const useTemplate= isMeta && document.getElementById('meta-use-template').checked;
+        const textarea   = document.getElementById('msg-body');
+        const hint       = document.getElementById('msg-hint');
+
+        textarea.disabled = useTemplate;
+
+        if (useTemplate) {
+            hint.textContent = '⚠️ Com template activo, o texto enviado é o do template aprovado no Meta Business Manager.';
+        } else if (isMeta) {
+            hint.textContent = 'Modo texto livre — só funciona se o membro tiver escrito nas últimas 24h.';
+        } else {
+            hint.textContent = 'A saudação "Olá {{nome}}," é adicionada automaticamente no início.';
+        }
+    }
+
+    // ── Carregar membros ───────────────────────────────────────────────────────
     async function carregarMembros() {
         const btn = document.getElementById('btn-load');
         btn.disabled = true;
@@ -470,7 +592,6 @@
                 });
             }
 
-            // Preenche dropdown de zonas
             const zonas   = [...new Set(todosMembros.map(m => m.zona).filter(Boolean))].sort();
             const selZona = document.getElementById('filter-zona');
             selZona.innerHTML = '<option value="todas">Todas</option>';
@@ -490,6 +611,7 @@
         }
     }
 
+    // ── Filtros ────────────────────────────────────────────────────────────────
     function aplicarFiltros() {
         const q      = (document.getElementById('search-input').value || '').toLowerCase().trim();
         const tipo   = document.getElementById('filter-tipo').value;
@@ -497,12 +619,12 @@
         const zona   = document.getElementById('filter-zona').value;
 
         membrosFiltrados = todosMembros.filter(m => {
-            if (tipo === 'voluntario' && !m.e_voluntario)    return false;
-            if (tipo === 'lider'      && !m.e_lider)          return false;
-            if (tipo === 'presbitero' && !m.e_presbitero)     return false;
-            if (tipo === 'sem-tel'    && m.telefone?.trim())   return false;
+            if (tipo === 'voluntario' && !m.e_voluntario)   return false;
+            if (tipo === 'lider'      && !m.e_lider)         return false;
+            if (tipo === 'presbitero' && !m.e_presbitero)    return false;
+            if (tipo === 'sem-tel'    && m.telefone?.trim())  return false;
             if (genero !== 'todos'    && (m.genero || '').toUpperCase() !== genero) return false;
-            if (zona !== 'todas'      && m.zona !== zona)     return false;
+            if (zona !== 'todas'      && m.zona !== zona)    return false;
             if (q) {
                 const areas = (ministeriosPorMembro[m.id] || []).join(' ').toLowerCase();
                 const txt   = `${m.nome} ${m.telefone || ''} ${areas} ${m.zona || ''}`.toLowerCase();
@@ -515,6 +637,7 @@
         atualizarPreview();
     }
 
+    // ── Render lista ───────────────────────────────────────────────────────────
     function renderLista() {
         const el = document.getElementById('members-list');
 
@@ -534,16 +657,17 @@
             const ini    = (m.nome || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
             const areas  = (ministeriosPorMembro[m.id] || []).slice(0, 2);
 
-            const tagVol   = m.e_voluntario ? '<span class="m-badge voluntario">Vol</span>' : '';
-            const tagLider = m.e_lider      ? '<span class="m-badge lider">Líder</span>'    : '';
-            const tagPresb = m.e_presbitero ? '<span class="m-badge presbitero">Presb</span>' : '';
-            const tagSemTel= !temTel        ? '<span class="m-badge sem-tel">Sem tel.</span>' : '';
-            const tagGen   = m.genero === 'M' ? '<span class="m-badge masc">♂</span>' :
+            const tagVol    = m.e_voluntario ? '<span class="m-badge voluntario">Vol</span>'     : '';
+            const tagLider  = m.e_lider      ? '<span class="m-badge lider">Líder</span>'        : '';
+            const tagPresb  = m.e_presbitero ? '<span class="m-badge presbitero">Presb</span>'   : '';
+            const tagSemTel = !temTel        ? '<span class="m-badge sem-tel">Sem tel.</span>'   : '';
+            const tagGen    = m.genero === 'M' ? '<span class="m-badge masc">♂</span>' :
                 m.genero === 'F' ? '<span class="m-badge fem">♀</span>' : '';
-            const tagsArea = areas.map(a => `<span class="m-badge area">${a}</span>`).join('');
+            const tagsArea  = areas.map(a => `<span class="m-badge area">${a}</span>`).join('');
 
             return `
-            <div class="member-item${sel ? ' selected' : ''}${!temTel ? ' sem-tel' : ''}" ${temTel ? `onclick="toggleMembro('${m.id}')"` : ''}>
+            <div class="member-item${sel ? ' selected' : ''}${!temTel ? ' sem-tel' : ''}"
+                 ${temTel ? `onclick="toggleMembro('${m.id}')"` : ''}>
               <div class="m-check">${sel ? '✓' : ''}</div>
               <div class="m-avatar">${ini}</div>
               <div class="m-info">
@@ -558,10 +682,7 @@
         atualizarContador();
     }
 
-    function toggleMembro(id) {
-        selecionados.has(id) ? selecionados.delete(id) : selecionados.add(id);
-        renderLista(); atualizarPreview();
-    }
+    function toggleMembro(id) { selecionados.has(id) ? selecionados.delete(id) : selecionados.add(id); renderLista(); atualizarPreview(); }
     function selectAll()  { membrosFiltrados.filter(m => m.telefone?.trim()).forEach(m => selecionados.add(m.id)); renderLista(); atualizarPreview(); }
     function clearAll()   { selecionados.clear(); renderLista(); atualizarPreview(); }
     function atualizarContador() {
@@ -572,6 +693,9 @@
 
     // ── Mensagem ──────────────────────────────────────────────────────────────
     function getMensagemCompleta() {
+        const isMeta      = canalActivo === 'meta';
+        const useTemplate = isMeta && document.getElementById('meta-use-template').checked;
+        if (useTemplate) return '[TEMPLATE]'; // sinal para não usar texto livre
         const varSaudacao = document.getElementById('greeting-var').value;
         const corpo       = document.getElementById('msg-body').value.trim();
         if (!corpo) return '';
@@ -579,6 +703,7 @@
     }
 
     function onMsgChange() {
+        atualizarModoMensagem();
         const total = getMensagemCompleta().length;
         const cc    = document.getElementById('char-count');
         cc.textContent = `${total} / 1600 chars`;
@@ -587,29 +712,46 @@
     }
 
     function atualizarPreview() {
-        const template = getMensagemCompleta();
-        const box      = document.getElementById('preview-box');
-        if (!template || !selecionados.size) { box.classList.remove('visible'); return; }
+        const isMeta      = canalActivo === 'meta';
+        const useTemplate = isMeta && document.getElementById('meta-use-template').checked;
+        const template    = getMensagemCompleta();
+        const box         = document.getElementById('preview-box');
+
+        if (!selecionados.size || (!template && !useTemplate)) { box.classList.remove('visible'); return; }
+
         const primeiro = todosMembros.find(m => selecionados.has(m.id));
         if (!primeiro) { box.classList.remove('visible'); return; }
-        const msg = personalizar(template, primeiro.nome);
-        document.getElementById('preview-bubble').textContent = msg;
-        document.getElementById('preview-nome').textContent   = `Exemplo com: ${primeiro.nome}`;
+
+        if (useTemplate) {
+            document.getElementById('preview-bubble').textContent =
+                `[Será enviado o template aprovado no Meta]\nO nome "${primeiroNome(primeiro.nome)}" será passado como variável se o template tiver {{1}}.`;
+        } else {
+            document.getElementById('preview-bubble').textContent = personalizar(template, primeiro.nome);
+        }
+
+        document.getElementById('preview-nome').textContent = `Exemplo com: ${primeiro.nome}`;
         box.classList.add('visible');
     }
 
     function personalizar(template, nome) {
-        const primeiroNome = (nome || '').trim().split(/\s+/)[0];
-        return template
-            .replace(/\{\{nome\}\}/gi, primeiroNome)
-            .replace(/\{\{nome_completo\}\}/gi, nome);
+        const p = primeiroNome(nome);
+        return template.replace(/\{\{nome\}\}/gi, p).replace(/\{\{nome_completo\}\}/gi, nome);
+    }
+
+    function primeiroNome(nome) {
+        return (nome || '').trim().split(/\s+/)[0];
     }
 
     // ── Envio ─────────────────────────────────────────────────────────────────
     async function correr(forceDry = false) {
-        const msg = getMensagemCompleta();
-        if (!selecionados.size) { alert('Selecciona pelo menos um membro.'); return; }
-        if (!msg)               { alert('Escreve a mensagem antes de enviar.'); return; }
+        const isMeta      = canalActivo === 'meta';
+        const useTemplate = isMeta && document.getElementById('meta-use-template').checked;
+        const msg         = getMensagemCompleta();
+
+        if (!selecionados.size)            { alert('Selecciona pelo menos um membro.'); return; }
+        if (!useTemplate && !document.getElementById('msg-body').value.trim()) {
+            alert('Escreve a mensagem antes de enviar.'); return;
+        }
 
         const btnSim = document.getElementById('btn-simular');
         const btnEnv = document.getElementById('btn-enviar');
@@ -628,16 +770,28 @@
             return;
         }
 
+        // URL da Edge Function conforme canal
+        const fnUrl = isMeta
+            ? `${SUPABASE_URL}/functions/v1/send-whatsapp-meta`
+            : `${SUPABASE_URL}/functions/v1/send-whatsapp`;
+
         try {
             const token = await ZionAuth.getToken();
-            const res = await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
-                method: 'POST',
+            const res   = await fetch(fnUrl, {
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ recipients, message: msg, dryRun: forceDry })
+                body:    JSON.stringify({
+                    recipients,
+                    message:     useTemplate ? '' : msg,
+                    dryRun:      forceDry,
+                    useTemplate: useTemplate,
+                })
             });
+
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-            mostrarResultado(data, forceDry);
+            mostrarResultado(data, forceDry, isMeta);
+
         } catch (err) {
             mostrarErroGeral('Erro: ' + err.message);
         } finally {
@@ -647,18 +801,23 @@
     }
 
     function confirmarEnvio() {
-        if (!selecionados.size)     { alert('Selecciona pelo menos um membro.'); return; }
-        if (!getMensagemCompleta()) { alert('Escreve a mensagem antes de enviar.'); return; }
-        const n = selecionados.size;
-        if (confirm(`📱 Confirmas o envio para ${n} membro${n > 1 ? 's' : ''}?\n\nCada pessoa recebe uma mensagem personalizada separada.`)) {
+        const isMeta      = canalActivo === 'meta';
+        const useTemplate = isMeta && document.getElementById('meta-use-template').checked;
+        if (!selecionados.size) { alert('Selecciona pelo menos um membro.'); return; }
+        if (!useTemplate && !document.getElementById('msg-body').value.trim()) { alert('Escreve a mensagem antes de enviar.'); return; }
+        const n   = selecionados.size;
+        const via = isMeta ? 'Meta Cloud API' : 'Twilio Sandbox';
+        if (confirm(`📱 Confirmas o envio via ${via} para ${n} membro${n > 1 ? 's' : ''}?\n\nCada pessoa recebe uma mensagem personalizada separada.`)) {
             correr(false);
         }
     }
 
-    function mostrarResultado(data, isDry) {
+    // ── Resultado ─────────────────────────────────────────────────────────────
+    function mostrarResultado(data, isDry, isMeta) {
         const box = document.getElementById('result-box');
         const hdr = document.getElementById('result-header');
         const bdy = document.getElementById('result-body');
+        const cor = isMeta ? '#0084ff' : '#25D366';
 
         if (isDry) {
             hdr.className   = 'result-header dry';
@@ -680,12 +839,12 @@
             hdr.textContent = temErros ? '⚠️ Envio concluído com erros' : '✓ Envio concluído';
             let html = `
                 <div class="stat-row"><span class="stat-label">Total</span><span class="stat-val">${data.total}</span></div>
-                <div class="stat-row"><span class="stat-label">Enviados</span><span class="stat-val green">${data.enviados}</span></div>`;
+                <div class="stat-row"><span class="stat-label">Enviados</span><span class="stat-val" style="color:${cor}">${data.enviados}</span></div>`;
             if (data.erros) html += `<div class="stat-row"><span class="stat-label">Com erro</span><span class="stat-val red">${data.erros}</span></div>`;
             if (data.results?.some(r => !r.success)) {
                 html += `<div style="margin-top:10px;display:flex;flex-direction:column;gap:4px;">` +
                     data.results.filter(r => !r.success).map(r =>
-                        `<div class="log-item fail"><span class="log-icon">✕</span><span class="log-name">${r.nome}</span><span class="log-err">${r.error || 'Erro desconhecido'}</span></div>`
+                        `<div class="log-item fail"><span>✕</span><span style="flex:1">${r.nome}</span><span style="font-size:10px;color:#fc8a8a">${r.error || 'Erro desconhecido'}</span></div>`
                     ).join('') + `</div>`;
             }
             bdy.innerHTML = html;

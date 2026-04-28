@@ -443,24 +443,21 @@
     const TIPO_LBL  = {pilar:'Pilar',ae:'AE',ministerio:'Ministério',link:'Link',office:'Office'};
 
     const PAPEIS_FIXOS = [
-        // Liderança
-        {slug:'LiderPilar',         nome:'Líder Pilar',     fixo:true},
-        {slug:'Presbitério',        nome:'Presbitério',     fixo:true},
-        {slug:'lider',              nome:'Líder',           fixo:true},
-        {slug:'LiderArea',          nome:'Líder Área',      fixo:true},
-        {slug:'LiderEquipa',        nome:'Líder Equipa',    fixo:true},
-        {slug:'LiderLink',          nome:'Líder Link',      fixo:true},
-        {slug:'Co-liderArea',       nome:'Co-líder Área',   fixo:true},
-        {slug:'Co-liderMinisterio', nome:'Co-líder Min.',   fixo:true},
-        // Serviço
-        {slug:'Coordenacao',        nome:'Coordenação',     fixo:true},
-        {slug:'Core',               nome:'Core',            fixo:true},
-        {slug:'Office',             nome:'Office',          fixo:true},
-        {slug:'Auxiliar',           nome:'Auxiliar',        fixo:true},
-        {slug:'aprendiz',           nome:'Em Treinamento',  fixo:true},
-        // Base
-        {slug:'Voluntario',         nome:'Voluntário',      fixo:true},
-        {slug:'membro',             nome:'Membro',          fixo:true},
+        {slug:'lider',               nome:'Líder',           fixo:true},
+        {slug:'LiderPilar',          nome:'Líder Pilar',     fixo:true},
+        {slug:'LiderArea',           nome:'Líder Área',      fixo:true},
+        {slug:'LiderEquipa',         nome:'Líder Equipa',    fixo:true},
+        {slug:'LiderLink',           nome:'Líder Link',      fixo:true},
+        {slug:'Presbitério',         nome:'Presbitério',     fixo:true},
+        {slug:'Co-liderArea',        nome:'Co-líder Área',   fixo:true},
+        {slug:'Co-liderMinisterio',  nome:'Co-líder Min.',   fixo:true},
+        {slug:'Coordenacao',         nome:'Coordenação',     fixo:true},
+        {slug:'Core',                nome:'Core',            fixo:true},
+        {slug:'Office',              nome:'Office',          fixo:true},
+        {slug:'Auxiliar',            nome:'Auxiliar',        fixo:true},
+        {slug:'aprendiz',            nome:'Em Treinamento',  fixo:true},
+        {slug:'Voluntario',          nome:'Voluntário',      fixo:true},
+        {slug:'membro',              nome:'Membro',          fixo:true},
     ];
 
     /* ── PAPÉIS ── */
@@ -493,7 +490,7 @@
             return 'badge-gray';
         if (papel === 'aprendiz')
             return 'badge-aprendiz';
-        return 'badge-voluntario';
+        return 'badge-voluntario'; 
     }
 
     function min_papeis_options(selected) {
@@ -1029,9 +1026,20 @@
     }
 
     async function min_alterPapel(id, p) {
-        await min_sb(`ministerio_membros?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({papel:p})}).catch(console.error);
-        min_t('Papel actualizado');
+        try {
+            await min_sb(`ministerio_membros?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({papel: p})
+            });
+            // actualizar também em memória
+            const mem = min_minMems.find(m => m.id === id);
+            if (mem) mem.papel = p;
+            min_t('Papel actualizado');
+        } catch(e) {
+            min_t('Erro ao guardar papel: ' + e.message, 'err');
+        }
     }
+
     async function min_remMem(id) {
         if (!confirm('Remover voluntário do ministério?')) return;
         await min_sb(`ministerio_membros?id=eq.${id}`,{method:'DELETE'});
@@ -1129,7 +1137,7 @@
         </tr>`).join('')}</tbody>
     </table></div>`;
     }
-    
+
     async function min_togDisp(mId, cId, dId, btn) {
         if (!min_minAtivo) return;
         const n=!btn.classList.contains('on');
@@ -1144,7 +1152,7 @@
             if (r?.[0]){min_dispMap[k]=r[0];btn.setAttribute('onclick',`min_togDisp('${mId}','${cId}','${r[0].id}',this)`);}
         }
     }
-    
+
     async function min_inativarVoluntarioDisp(membroId, nome) {
         if (!min_minAtivo) return;
         if (!confirm(`Marcar ${nome||'este voluntário'} como indisponível em todos os cultos deste ministério?`)) return;

@@ -441,10 +441,26 @@
     const MESES_ABV = ['','JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
     const DIAS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
     const TIPO_LBL  = {pilar:'Pilar',ae:'AE',ministerio:'Ministério',link:'Link',office:'Office'};
+
     const PAPEIS_FIXOS = [
-        {slug:'lider',    nome:'Líder',       fixo:true},
-        {slug:'membro',   nome:'Voluntário',  fixo:true},
-        {slug:'aprendiz', nome:'Aprendiz',    fixo:false}
+        // Liderança
+        {slug:'LiderPilar',         nome:'Líder Pilar',     fixo:true},
+        {slug:'Presbitério',        nome:'Presbitério',     fixo:true},
+        {slug:'lider',              nome:'Líder',           fixo:true},
+        {slug:'LiderArea',          nome:'Líder Área',      fixo:true},
+        {slug:'LiderEquipa',        nome:'Líder Equipa',    fixo:true},
+        {slug:'LiderLink',          nome:'Líder Link',      fixo:true},
+        {slug:'Co-liderArea',       nome:'Co-líder Área',   fixo:true},
+        {slug:'Co-liderMinisterio', nome:'Co-líder Min.',   fixo:true},
+        // Serviço
+        {slug:'Coordenacao',        nome:'Coordenação',     fixo:true},
+        {slug:'Core',               nome:'Core',            fixo:true},
+        {slug:'Office',             nome:'Office',          fixo:true},
+        {slug:'Auxiliar',           nome:'Auxiliar',        fixo:true},
+        {slug:'aprendiz',           nome:'Em Treinamento',  fixo:true},
+        // Base
+        {slug:'Voluntario',         nome:'Voluntário',      fixo:true},
+        {slug:'membro',             nome:'Membro',          fixo:true},
     ];
 
     /* ── PAPÉIS ── */
@@ -458,13 +474,28 @@
             min_papeis = [...PAPEIS_FIXOS];
         }
     }
+
     function min_savePapeis() {
         const custom = min_papeis.filter(p => !p.fixo);
         localStorage.setItem('zion_min_papeis', JSON.stringify(custom));
     }
+
     function min_papel_nome(slug) {
         return min_papeis.find(p => p.slug === slug)?.nome || slug;
     }
+
+    function min_badgeClass(papel) {
+        if (['lider','LiderPilar','LiderArea','LiderEquipa','LiderLink','Presbitério'].includes(papel))
+            return 'badge-lider';
+        if (['Co-liderArea','Co-liderMinisterio','Coordenacao'].includes(papel))
+            return 'badge-extra';
+        if (['Core','Office','Auxiliar'].includes(papel))
+            return 'badge-gray';
+        if (papel === 'aprendiz')
+            return 'badge-aprendiz';
+        return 'badge-voluntario';
+    }
+
     function min_papeis_options(selected) {
         return min_papeis.map(p => `<option value="${p.slug}" ${p.slug===selected?'selected':''}>${p.nome}</option>`).join('');
     }
@@ -1089,7 +1120,7 @@
         </tr></thead>
         <tbody>${min_minMems.map(m=>`<tr>
             <td>${m.membros?.nome||'—'}</td>
-            <td><span class="badge ${m.papel==='lider'?'badge-lider':m.papel==='aprendiz'?'badge-aprendiz':'badge-voluntario'}">${min_papel_nome(m.papel)}</span></td>
+            <td><span class="badge ${min_badgeClass(m.papel)}">${min_papel_nome(m.papel)}</span></td>
             ${cults.map(c=>{
             const k=m.membro_id+'_'+c.id, d=min_dispMap[k], on=d?d.disponivel:true;
             return `<td><button class="disp-toggle ${on?'on':''}" title="${on?'Disponível':'Indisponível'}" onclick="min_togDisp('${m.membro_id}','${c.id}','${d?.id||''}',this)"></button></td>`;
@@ -1098,6 +1129,7 @@
         </tr>`).join('')}</tbody>
     </table></div>`;
     }
+    
     async function min_togDisp(mId, cId, dId, btn) {
         if (!min_minAtivo) return;
         const n=!btn.classList.contains('on');
@@ -1112,6 +1144,7 @@
             if (r?.[0]){min_dispMap[k]=r[0];btn.setAttribute('onclick',`min_togDisp('${mId}','${cId}','${r[0].id}',this)`);}
         }
     }
+    
     async function min_inativarVoluntarioDisp(membroId, nome) {
         if (!min_minAtivo) return;
         if (!confirm(`Marcar ${nome||'este voluntário'} como indisponível em todos os cultos deste ministério?`)) return;

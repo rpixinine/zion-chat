@@ -1688,6 +1688,8 @@
     var sl_tab = 'salas';
     var sl_editSerie = false;
     var sl_selectedAgs = new Set();
+    var sl_filterSala = '';
+    var sl_filterPessoa = '';
 
 
     // Foto state temporário durante edição
@@ -1929,6 +1931,8 @@
         sl_isNovo = false;
         sl_fotoFile = null;
         sl_fotoBase64 = null;
+        sl_filterSala = '';
+        sl_filterPessoa = '';
         sl_selectedAgs = new Set();
         document.getElementById('sl-tab-salas')?.classList.toggle('active', tab === 'salas');
         document.getElementById('sl-tab-aprovacoes')?.classList.toggle('active', tab === 'aprovacoes');
@@ -1988,22 +1992,81 @@
         var pendentes = sl_ags.filter(function (a) {
             return a.status === 'pendente';
         });
-        if (count) count.textContent = pendentes.length;
 
-        if (!pendentes.length) {
-            sl_selectedAgs = new Set();
-            list.innerHTML = '<div style="padding:20px;color:var(--text-faint);font-size:12px;text-align:center">Nenhum pedido pendente.</div>';
-            return;
-        }
+        // ── Aplicar filtros ──────────────────────────────────────
+        var filtrados = pendentes.filter(function (a) {
+            if (sl_filterSala && a.sala_id !== sl_filterSala) return false;
+            if (sl_filterPessoa && (a.solicitante_nome || '') !== sl_filterPessoa) return false;
+            return true;
+        });
 
-        var allSelected = pendentes.length > 0 && pendentes.every(function (a) {
+        if (count) count.textContent = filtrados.length + (pendentes.length !== filtrados.length ? '/' + pendentes.length : '');
+
+        // ── Opções dinâmicas para os selects ─────────────────────
+        var salasComPendentes = [];
+        pendentes.forEach(function (a) {
+            if (a.sala_id && !salasComPendentes.find(function (s) { return s.id === a.sala_id; })) {
+                var sala = sl_salas.find(function (s) { return s.id === a.sala_id; });
+                if (sala) salasComPendentes.push(sala);
+            }
+        });
+
+        var pessoasComPendentes = [];
+        pendentes.forEach(function (a) {
+            var nome = (a.solicitante_nome || '').trim();
+            if (nome && pessoasComPendentes.indexOf(nome) === -1) pessoasComPendentes.push(nome);
+        });
+        pessoasComPendentes.sort();
+
+        var temFiltro = sl_filterSala || sl_filterPessoa;
+
+        // ── Barra de filtros ──────────────────────────────────────
+        var filterBar =
+            '<div style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-main);display:flex;flex-direction:column;gap:6px">' +
+
+            // Linha 1: selects
+            '<div style="display:flex;gap:6px">' +
+            '<select style="flex:1;min-width:0;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text-main);outline:none" ' +
+            'onchange="sl_filterSala=this.value;sl_renderList()" id="sl-filter-sala">' +
+            '<option value="">Todas as salas</option>' +
+            salasComPendentes.map(function (s) {
+                return '<option value="' + s.id + '"' + (sl_filterSala === s.id ? ' selected' : '') + '>' + sl_esc(s.nome) + '</option>';
+            }).join('') +
+            '</select>' +
+
+            '<select style="flex:1;min-width:0;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text-main);outline:none" ' +
+            'onchange="sl_filterPessoa=this.value;sl_renderList()" id="sl-filter-pessoa">' +
+            '<option value="">Todas as pessoas</option>' +
+            pessoasComPendentes.map(function (p) {
+                return '<option value="' + sl_esc(p) + '"' + (sl_filterPessoa === p ? ' selected' : '') + '>' + sl_esc(p) + '</option>';
+            }).join('') +
+            '</select>' +
+
+            (temFiltro
+                ? '<button title="Limpar filtros" onclick="sl_filterSala=\'\';sl_filterPessoa=\'\';sl_renderList()" ' +
+                'style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px;color:var(--text-faint)">✕</button>'
+                : '') +
+            '</div>' +
+
+            // Linha 2: tag de resultado se houver filtro
+            (temFiltro
+                ? '<div style="font-size:10px;color:var(--primary-dark);font-family:var(--font-title);letter-spacing:0.5px">' +
+                '🔍 ' + filtrados.length + ' de ' + pendentes.length + ' pedidos' +
+                (sl_filterSala ? ' · ' + sl_esc((sl_salas.find(function(s){return s.id===sl_filterSala;})||{}).nome||'') : '') +
+                (sl_filterPessoa ? ' · ' + sl_esc(sl_filterPessoa) : '') +
+                '</div>'
+                : '') +
+
+            '</div>';
+
+        // ── Bulk actions ──────────────────────────────────────────
+        var allSelected = filtrados.length > 0 && filtrados.every(function (a) {
             return sl_selectedAgs.has(a.id);
         });
-        var nSelected = pendentes.filter(function (a) {
+        var nSelected = filtrados.filter(function (a) {
             return sl_selectedAgs.has(a.id);
         }).length;
 
-        // Barra de selecção em massa
         var bulkBar =
             '<div style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-main);display:flex;flex-direction:column;gap:6px">' +
             '<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);cursor:pointer">' +
@@ -2019,7 +2082,17 @@
                 : '') +
             '</div>';
 
-        var itens = pendentes.map(function (a) {
+        // ── Sem resultados ────────────────────────────────────────
+        if (!filtrados.length) {
+            list.innerHTML = filterBar + bulkBar +
+                '<div style="padding:20px;color:var(--text-faint);font-size:12px;text-align:center">' +
+                (temFiltro ? 'Nenhum pedido com este filtro.' : 'Nenhum pedido pendente.') +
+                '</div>';
+            return;
+        }
+
+        // ── Itens ─────────────────────────────────────────────────
+        var itens = filtrados.map(function (a) {
             var ativa = sl_activoAgId === a.id;
             var checked = sl_selectedAgs.has(a.id);
             var sala = sl_salas.find(function (s) { return s.id === a.sala_id; });
@@ -2030,13 +2103,13 @@
                 'onclick="event.stopPropagation()">' +
                 '<div style="flex:1;min-width:0" onclick="sl_selecionarAg(\'' + a.id + '\')">' +
                 '<div class="sl-pend-nome">' + sl_esc(a.titulo || 'Pedido de sala') + '</div>' +
-                '<div class="sl-pend-sub">' + (sala ? sala.nome : '—') + ' · ' + sl_fmtData(a.data_inicio) + '</div>' +
+                '<div class="sl-pend-sub">' + (sala ? sl_esc(sala.nome) : '—') + ' · ' + sl_fmtData(a.data_inicio) + '</div>' +
                 '<div class="sl-pend-sub">' + sl_esc(a.solicitante_nome || '') + '</div>' +
                 '</div>' +
                 '</div>';
         }).join('');
 
-        list.innerHTML = bulkBar + itens;
+        list.innerHTML = filterBar + bulkBar + itens;
     }
 
     // ── SELECIONAR ────────────────────────────────────────────────────────────────
@@ -3822,11 +3895,16 @@
 
     window.sl_toggleSelectAll = function () {
         var pendentes = sl_ags.filter(function (a) { return a.status === 'pendente'; });
-        var allSelected = pendentes.every(function (a) { return sl_selectedAgs.has(a.id); });
+        var filtrados = pendentes.filter(function (a) {
+            if (sl_filterSala && a.sala_id !== sl_filterSala) return false;
+            if (sl_filterPessoa && (a.solicitante_nome || '') !== sl_filterPessoa) return false;
+            return true;
+        });
+        var allSelected = filtrados.every(function (a) { return sl_selectedAgs.has(a.id); });
         if (allSelected) {
-            sl_selectedAgs = new Set();
+            filtrados.forEach(function (a) { sl_selectedAgs.delete(a.id); });
         } else {
-            pendentes.forEach(function (a) { sl_selectedAgs.add(a.id); });
+            filtrados.forEach(function (a) { sl_selectedAgs.add(a.id); });
         }
         sl_renderList();
     };

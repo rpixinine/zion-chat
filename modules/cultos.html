@@ -912,16 +912,14 @@
     async function cu_autoInativar() {
         var hoje = new Date().toISOString().split('T')[0];
         var expirados = cu.cultos.filter(function (c) {
-            return c.data_especifica && c.data_especifica < hoje && c.ativo === true;
+            // só inativar cultos únicos com data já passada
+            var freq = c.frequencia || (c.recorrente ? 'semanal' : 'unica');
+            return freq === 'unica' && c.data_especifica && c.data_especifica < hoje && c.ativo === true;
         });
         if (!expirados.length) return;
-        console.log('[Cultos] Auto-inativando ' + expirados.length + ' culto(s) expirado(s)...');
         for (var c of expirados) {
             try {
-                await sb('cultos?id=eq.' + c.id, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ativo: false})
-                });
+                await sb('cultos?id=eq.' + c.id, {method: 'PATCH', body: JSON.stringify({ativo: false})});
                 c.ativo = false;
             } catch (e) {
                 console.warn('[Cultos] Erro ao auto-inativar ' + c.id, e);
@@ -1026,12 +1024,16 @@
                 var horaStr = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '—';
                 var diaAb = c.dia_semana ? c.dia_semana.slice(0, 3).toUpperCase() : 'ESP';
                 var active = cu.cultoId === c.id ? ' active' : '';
-                var sub = c.data_especifica
-                    ? 'Data: ' + c.data_especifica
-                    : [c.hora_inicio ? c.hora_inicio.slice(0, 5) : null,
-                        c.hora_fim ? c.hora_fim.slice(0, 5) : null]
-                        .filter(Boolean).join(' – ')
-                    + (c.recorrente ? ' · Recorrente' : '');
+
+                var freq = c.frequencia || (c.recorrente ? 'semanal' : 'unica');
+                var semLbl = ['','1ª','2ª','3ª','4ª','5ª'];
+                var sub = freq === 'unica'
+                    ? 'Único · ' + (c.data_especifica || '')
+                    : freq === 'mensal'
+                        ? 'Mensal · ' + (semLbl[c.semana_do_mes] || '') + ' ' + (c.dia_semana || '')
+                        : (c.hora_inicio ? c.hora_inicio.slice(0,5) : '') +
+                        (c.hora_fim ? ' – ' + c.hora_fim.slice(0,5) : '') +
+                        ' · Semanal';
 
                 html +=
                     '<div class="cu-item cu-dia-' + idx + (ativo ? '' : ' inativo') + active +

@@ -1445,10 +1445,10 @@
     .sl-ev-popup {
         position: fixed;
         z-index: 1000;
-        background: var(--bg-card);
+        background: #1a2332;
         border: 1px solid var(--border);
         border-radius: 12px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55);
         padding: 14px 16px;
         min-width: 240px;
         max-width: 300px;
@@ -1687,6 +1687,7 @@
     var sl_isNovo = false;
     var sl_tab = 'salas';
     var sl_editSerie = false;
+    var sl_selectedAgs = new Set();
 
 
     // Foto state temporário durante edição
@@ -1928,6 +1929,7 @@
         sl_isNovo = false;
         sl_fotoFile = null;
         sl_fotoBase64 = null;
+        sl_selectedAgs = new Set();
         document.getElementById('sl-tab-salas')?.classList.toggle('active', tab === 'salas');
         document.getElementById('sl-tab-aprovacoes')?.classList.toggle('active', tab === 'aprovacoes');
         document.getElementById('sl-tab-agenda')?.classList.toggle('active', tab === 'agenda');
@@ -1981,26 +1983,60 @@
         }).join('');
     }
 
+
     function sl_renderListAprovacoes(list, count) {
         var pendentes = sl_ags.filter(function (a) {
             return a.status === 'pendente';
         });
         if (count) count.textContent = pendentes.length;
+
         if (!pendentes.length) {
+            sl_selectedAgs = new Set();
             list.innerHTML = '<div style="padding:20px;color:var(--text-faint);font-size:12px;text-align:center">Nenhum pedido pendente.</div>';
             return;
         }
-        list.innerHTML = pendentes.map(function (a) {
+
+        var allSelected = pendentes.length > 0 && pendentes.every(function (a) {
+            return sl_selectedAgs.has(a.id);
+        });
+        var nSelected = pendentes.filter(function (a) {
+            return sl_selectedAgs.has(a.id);
+        }).length;
+
+        // Barra de selecção em massa
+        var bulkBar =
+            '<div style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-main);display:flex;flex-direction:column;gap:6px">' +
+            '<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);cursor:pointer">' +
+            '<input type="checkbox" id="sl-check-all" ' + (allSelected ? 'checked' : '') + ' onchange="sl_toggleSelectAll()">' +
+            'Selecionar todos' +
+            (nSelected ? ' <span style="color:var(--primary-dark);font-weight:700">(' + nSelected + ' selec.)</span>' : '') +
+            '</label>' +
+            (nSelected > 0
+                ? '<div style="display:flex;gap:6px">' +
+                '<button class="sl-btn approve" style="flex:1;font-size:10px;padding:5px 0" onclick="sl_aprovarSelecionados()">✓ Aprovar (' + nSelected + ')</button>' +
+                '<button class="sl-btn danger"  style="flex:1;font-size:10px;padding:5px 0" onclick="sl_rejeitarSelecionados()">✕ Rejeitar (' + nSelected + ')</button>' +
+                '</div>'
+                : '') +
+            '</div>';
+
+        var itens = pendentes.map(function (a) {
             var ativa = sl_activoAgId === a.id;
-            var sala = sl_salas.find(function (s) {
-                return s.id === a.sala_id;
-            });
-            return '<div class="sl-pend-item' + (ativa ? ' active' : '') + '" onclick="sl_selecionarAg(\'' + a.id + '\')">' +
-                '<div class="sl-pend-nome">' + (a.titulo || 'Pedido de sala') + '</div>' +
+            var checked = sl_selectedAgs.has(a.id);
+            var sala = sl_salas.find(function (s) { return s.id === a.sala_id; });
+            return '<div class="sl-pend-item' + (ativa ? ' active' : '') + '" style="display:flex;align-items:flex-start;gap:8px">' +
+                '<input type="checkbox" ' + (checked ? 'checked' : '') + ' ' +
+                'style="margin-top:3px;flex-shrink:0;cursor:pointer" ' +
+                'onchange="sl_toggleSelectAg(\'' + a.id + '\',this.checked)" ' +
+                'onclick="event.stopPropagation()">' +
+                '<div style="flex:1;min-width:0" onclick="sl_selecionarAg(\'' + a.id + '\')">' +
+                '<div class="sl-pend-nome">' + sl_esc(a.titulo || 'Pedido de sala') + '</div>' +
                 '<div class="sl-pend-sub">' + (sala ? sala.nome : '—') + ' · ' + sl_fmtData(a.data_inicio) + '</div>' +
-                '<div class="sl-pend-sub">' + (a.solicitante_nome || '') + '</div>' +
+                '<div class="sl-pend-sub">' + sl_esc(a.solicitante_nome || '') + '</div>' +
+                '</div>' +
                 '</div>';
         }).join('');
+
+        list.innerHTML = bulkBar + itens;
     }
 
     // ── SELECIONAR ────────────────────────────────────────────────────────────────
@@ -3778,6 +3814,84 @@
         sl_cal.popupEl = null;
     };
 
+    window.sl_toggleSelectAg = function (id, checked) {
+        if (checked) sl_selectedAgs.add(id);
+        else sl_selectedAgs.delete(id);
+        sl_renderList();
+    };
+
+    window.sl_toggleSelectAll = function () {
+        var pendentes = sl_ags.filter(function (a) { return a.status === 'pendente'; });
+        var allSelected = pendentes.every(function (a) { return sl_selectedAgs.has(a.id); });
+        if (allSelected) {
+            sl_selectedAgs = new Set();
+        } else {
+            pendentes.forEach(function (a) { sl_selectedAgs.add(a.id); });
+        }
+        sl_renderList();
+    };
+
+    window.sl_aprovarSelecionados = async function () {
+        var ids = Array.from(sl_selectedAgs);
+        if (!ids.length) return;
+        if (!confirm('Aprovar ' + ids.length + ' agendamento(s)?')) return;
+
+        var userId = localStorage.getItem('zion_id') || null;
+        var erros = 0;
+
+        for (var i = 0; i < ids.length; i++) {
+            try {
+                await sb('sala_agendamentos?id=eq.' + ids[i], {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: 'aprovado', aprovado_por: userId, aprovado_em: new Date().toISOString() }),
+                });
+                await sl_notificar(ids[i], 'aprovado', null);
+            } catch (_) { erros++; }
+        }
+
+        sl_selectedAgs = new Set();
+        await sl_reloadAgs();
+        sl_updateBadge();
+        sl_renderList();
+        sl_showEmpty();
+
+        if (erros) alert(erros + ' agendamento(s) não puderam ser aprovados.');
+    };
+
+    window.sl_rejeitarSelecionados = async function () {
+        var ids = Array.from(sl_selectedAgs);
+        if (!ids.length) return;
+        var motivo = prompt('Motivo da recusa para todos (opcional):');
+        if (motivo === null) return;
+        if (!confirm('Rejeitar ' + ids.length + ' agendamento(s)?')) return;
+
+        var userId = localStorage.getItem('zion_id') || null;
+        var erros = 0;
+
+        for (var i = 0; i < ids.length; i++) {
+            try {
+                await sb('sala_agendamentos?id=eq.' + ids[i], {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        status: 'recusado',
+                        aprovado_por: null,
+                        aprovado_em: new Date().toISOString(),
+                        motivo_recusa: motivo || null,
+                    }),
+                });
+                await sl_notificar(ids[i], 'recusado', motivo);
+            } catch (_) { erros++; }
+        }
+
+        sl_selectedAgs = new Set();
+        await sl_reloadAgs();
+        sl_updateBadge();
+        sl_renderList();
+        sl_showEmpty();
+
+        if (erros) alert(erros + ' agendamento(s) não puderam ser rejeitados.');
+    };
+
     // ── EXPOSE ────────────────────────────────────────────────────────────────────
     window.sl_init = sl_init;
     window.sl_setTab = sl_setTab;
@@ -3814,6 +3928,10 @@
     window.sl_onRecTipoChange = sl_onRecTipoChange;
     window.sl_atualizarContadorRec = sl_atualizarContadorRec;
     window.sl_eliminarAg = sl_eliminarAg;
+    window.sl_toggleSelectAg = sl_toggleSelectAg;
+    window.sl_toggleSelectAll = sl_toggleSelectAll;
+    window.sl_aprovarSelecionados = sl_aprovarSelecionados;
+    window.sl_rejeitarSelecionados = sl_rejeitarSelecionados;
 
     sl_init();
 </script>

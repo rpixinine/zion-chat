@@ -696,7 +696,7 @@
         min_renderSide();
         const [mems, cults] = await Promise.all([
             min_sb(`ministerio_membros?ministerio_id=eq.${id}&select=*,membros(id,nome,genero)&ativo=eq.true&order=papel,created_at`).catch(()=>[]),
-            min_sb(`ministerio_cultos?ministerio_id=eq.${id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo,frequencia,semana_do_mes,data_especifica,campus:campus(id,nome))`)
+            min_sb(`ministerio_cultos?ministerio_id=eq.${id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo,frequencia,semana_do_mes,data_especifica,ordem,campus:campus(id,nome))`)
         ]);
         min_minMems = mems || [];
         min_minCults = (cults || []).filter(mc => mc.cultos?.ativo !== false);
@@ -1125,7 +1125,7 @@
         try {
             await min_sb('ministerio_cultos',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,culto_id:cId,vagas:1})});
             //min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo)`).catch(()=>[]);
-            min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo,frequencia,semana_do_mes,data_especifica,campus:campus(id,nome))`).catch(()=>[]);
+            min_minCults=await min_sb(`ministerio_cultos?ministerio_id=eq.${min_minAtivo.id}&select=*,cultos(id,nome,dia_semana,hora_inicio,hora_fim,ativo,frequencia,semana_do_mes,data_especifica,ordem,campus:campus(id,nome))`).catch(()=>[]);
             min_minCults=(min_minCults||[]).filter(mc=>mc.cultos?.ativo!==false);
             min_renderCults(); min_t('Culto adicionado');
         } catch(e) { min_t('Erro ao adicionar culto: '+e.message,'err'); if(btn){btn.disabled=false;btn.textContent='Adicionar';} }

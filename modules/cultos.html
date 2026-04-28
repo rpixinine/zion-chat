@@ -842,6 +842,10 @@
 </div>
 
 <script>
+
+    /* ── Supabase helper ─────────────────────────────── */
+    const sb = window.sb;
+
     // ── ESTADO ────────────────────────────────────────────────────────────────────
     var cu = {
         campus: [],
@@ -1544,11 +1548,28 @@
             var v = c ? c[k] : undefined;
             return (v === undefined || v === null) ? (d !== undefined ? d : '') : v;
         };
+
+        // Derivar frequencia dos dados antigos se não existir
+        var freq = fv('frequencia') || (
+            fv('recorrente', true) ? 'semanal' : 'unica'
+        );
+
         var diaOpts = '<option value="">Selecionar...</option>' +
             DIAS_OPCOES.map(function (d) {
                 return '<option value="' + d + '" ' + (fv('dia_semana') === d ? 'selected' : '') + '>' + d + '</option>';
             }).join('');
-        var id = c ? c.id : '';
+
+        var semanaOpts = [
+            ['1','1ª semana (ex: 1º Sábado)'],
+            ['2','2ª semana (ex: 2º Sábado)'],
+            ['3','3ª semana'],
+            ['4','4ª semana'],
+            ['5','5ª semana (se existir)'],
+        ].map(function(o) {
+            return '<option value="' + o[0] + '" ' + (String(fv('semana_do_mes')) === o[0] ? 'selected' : '') + '>' + o[1] + '</option>';
+        }).join('');
+
+        var id   = c ? c.id : '';
         var ativo = c ? (c.ativo !== false) : true;
 
         return '<div class="cu-form">' +
@@ -1560,31 +1581,45 @@
             '<label class="cu-label">Nome *</label>' +
             '<input class="cu-input" id="cf-nome" type="text" value="' + fv('nome') + '" placeholder="Ex: Culto de Domingo">' +
             '</div>' +
-            '<div class="cu-field">' +
+
+            // Frequência
+            '<div class="cu-field full">' +
+            '<label class="cu-label">Frequência</label>' +
+            '<select class="cu-select" id="cf-frequencia" onchange="cu_onFreqChange()">' +
+            '<option value="semanal"' + (freq==='semanal' ? ' selected' : '') + '>Semanal (todas as semanas)</option>' +
+            '<option value="mensal"'  + (freq==='mensal'  ? ' selected' : '') + '>Mensal (1x por mês, numa semana específica)</option>' +
+            '<option value="unica"'   + (freq==='unica'   ? ' selected' : '') + '>Único (data específica)</option>' +
+            '</select>' +
+            '</div>' +
+
+            // Dia da semana (semanal + mensal)
+            '<div class="cu-field" id="cf-row-dia" style="' + (freq==='unica' ? 'display:none' : '') + '">' +
             '<label class="cu-label">Dia da Semana</label>' +
             '<select class="cu-select" id="cf-dia">' + diaOpts + '</select>' +
             '</div>' +
-            '<div class="cu-field">' +
-            '<label class="cu-label">Data Especifica</label>' +
-            '<input class="cu-input" id="cf-data" type="date" value="' + fv('data_especifica') + '" title="So para cultos de data unica">' +
+
+            // Semana do mês (só mensal)
+            '<div class="cu-field" id="cf-row-semana" style="' + (freq!=='mensal' ? 'display:none' : '') + '">' +
+            '<label class="cu-label">Semana do Mês</label>' +
+            '<select class="cu-select" id="cf-semana-mes"><option value="">Selecionar...</option>' + semanaOpts + '</select>' +
+            '</div>' +
+
+            // Data específica (só unica)
+            '<div class="cu-field" id="cf-row-data" style="' + (freq!=='unica' ? 'display:none' : '') + '">' +
+            '<label class="cu-label">Data Específica</label>' +
+            '<input class="cu-input" id="cf-data" type="date" value="' + fv('data_especifica') + '">' +
             '</div>' +
             '</div>' +
 
-            '<div class="cu-section-title">Horario</div>' +
+            '<div class="cu-section-title">Horário</div>' +
             '<div class="cu-field-grid">' +
             '<div class="cu-field">' +
-            '<label class="cu-label">Hora de Inicio</label>' +
+            '<label class="cu-label">Hora de Início</label>' +
             '<input class="cu-input" id="cf-inicio" type="time" value="' + fv('hora_inicio') + '">' +
             '</div>' +
             '<div class="cu-field">' +
             '<label class="cu-label">Hora de Fim</label>' +
             '<input class="cu-input" id="cf-fim" type="time" value="' + fv('hora_fim') + '">' +
-            '</div>' +
-            '<div class="cu-field">' +
-            '<label class="cu-toggle-row">' +
-            '<input type="checkbox" id="cf-recorrente" ' + (fv('recorrente', true) ? 'checked' : '') + '>' +
-            'Recorrente (todas as semanas)' +
-            '</label>' +
             '</div>' +
             '<div class="cu-field">' +
             '<label class="cu-toggle-row">' +
@@ -1594,11 +1629,11 @@
             '</div>' +
             '</div>' +
 
-            '<div class="cu-section-title">Descricao</div>' +
+            '<div class="cu-section-title">Descrição</div>' +
             '<div class="cu-field-grid">' +
             '<div class="cu-field full">' +
-            '<label class="cu-label">Descricao / Notas</label>' +
-            '<textarea class="cu-textarea" id="cf-descricao" placeholder="Informacoes adicionais...">' + fv('descricao') + '</textarea>' +
+            '<label class="cu-label">Notas</label>' +
+            '<textarea class="cu-textarea" id="cf-descricao" placeholder="Informações adicionais...">' + fv('descricao') + '</textarea>' +
             '</div>' +
             '</div>' +
 
@@ -1608,11 +1643,19 @@
                 (ativo ? 'Inativar' : 'Ativar') + '</button>' : '') +
             '<button class="cu-btn-cancel" onclick="cu_selecionarCampus(\'' + cu.campusId + '\')">Cancelar</button>' +
             '<button class="cu-btn-save" id="cu-btn-save" onclick="cu_guardarCulto(\'' + id + '\')">' +
-            (c ? 'Guardar Alteracoes' : 'Criar Culto') +
+            (c ? 'Guardar Alterações' : 'Criar Culto') +
             '</button>' +
             '</div>' +
             '</div>';
     }
+
+    // Mostrar/ocultar campos conforme frequência
+    window.cu_onFreqChange = function() {
+        var freq = document.getElementById('cf-frequencia')?.value;
+        document.getElementById('cf-row-dia').style.display    = freq === 'unica'   ? 'none' : '';
+        document.getElementById('cf-row-semana').style.display = freq === 'mensal'  ? '' : 'none';
+        document.getElementById('cf-row-data').style.display   = freq === 'unica'   ? '' : 'none';
+    };
 
     // ── GUARDAR CULTO ─────────────────────────────────────────────────────────────
     window.cu_guardarCulto = async function (id) {
@@ -1635,16 +1678,19 @@
             return;
         }
 
+        var freq = document.getElementById('cf-frequencia')?.value || 'semanal';
         var body = {
-            nome: nome,
-            campus_id: cu.campusId,
-            dia_semana: get('dia'),
-            data_especifica: get('data'),
-            hora_inicio: get('inicio'),
-            hora_fim: get('fim'),
-            recorrente: chk('recorrente'),
-            descricao: get('descricao'),
-            ativo: chk('ativo'),
+            nome:            nome,
+            campus_id:       cu.campusId,
+            frequencia:      freq,
+            dia_semana:      freq !== 'unica' ? get('dia') : null,
+            semana_do_mes:   freq === 'mensal' ? (parseInt(document.getElementById('cf-semana-mes')?.value)||null) : null,
+            data_especifica: freq === 'unica'  ? get('data') : null,
+            recorrente:      freq === 'semanal',
+            hora_inicio:     get('inicio'),
+            hora_fim:        get('fim'),
+            descricao:       get('descricao'),
+            ativo:           chk('ativo'),
         };
 
         var btn = document.getElementById('cu-btn-save');

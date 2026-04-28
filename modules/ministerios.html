@@ -611,7 +611,9 @@
         const map = {}; items.forEach(m => { map[m.id] = {...m, _ch:[]}; });
         const roots = [];
         items.forEach(m => { if (m.parent_id && map[m.parent_id]) map[m.parent_id]._ch.push(map[m.id]); else roots.push(map[m.id]); });
-        function sortAlpha(ns) { ns.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')); ns.forEach(n=>sortAlpha(n._ch)); }
+        function sortAlpha(ns) {
+            ns.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')); ns.forEach(n=>sortAlpha(n._ch));
+        }
         sortAlpha(roots); return roots;
     }
     function min_countDesc(node) { return node._ch.reduce((acc,c)=>acc+1+min_countDesc(c),0); }
@@ -1338,7 +1340,11 @@
         const [a,m]=min_escMes.split('-').map(Number);
         const dias=todosDiasMes(a,m);
         const cults=min_minCults.map(mc=>({...mc.cultos,vagas:mc.vagas||1,mc_id:mc.id})).filter(Boolean)
-            .sort((a,b)=>(a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+            .sort((a,b)=>{
+                const oA=a.ordem??999, oB=b.ordem??999;
+                if(oA!==oB) return oA-oB;
+                return (a.hora_inicio||'').localeCompare(b.hora_inicio||'');
+            });
         if (!dias.length||!cults.length){el.innerHTML=`<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:12px">Nenhum culto configurado</div>`;return;}
         const cultDatas=cults.map(c=>({c, datas: min_cultoDatasNoMes(c, dias, min_escMes)}));
         const todasDatas=[...new Set(cultDatas.flatMap(cd=>cd.datas.map(d=>d.iso)))].sort();
@@ -1421,7 +1427,11 @@
         const cults = min_minCults
             .map(mc => ({...mc.cultos, vagas: mc.vagas||1}))
             .filter(Boolean)
-            .sort((a,b) => (a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+            .sort((a,b) => {
+                const oA=a.ordem??999, oB=b.ordem??999;
+                if(oA!==oB) return oA-oB;
+                return (a.hora_inicio||'').localeCompare(b.hora_inicio||'');
+            });
 
         const dias      = todosDiasMes(a, m);
         const novas     = [];

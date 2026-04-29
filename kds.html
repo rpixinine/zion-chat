@@ -852,6 +852,28 @@
         document.getElementById('yt-wave2').style.display   = ytMuted ? 'none' : '';
     }
 
+    // ── Receber sinais via Supabase ──
+    let _ultimoSinalId = null;
+
+    async function verificarSinais() {
+        try {
+            const sinais = await sb(
+                'kds_sinais?select=id,tipo,created_at&order=created_at.desc&limit=1'
+            );
+            if (!sinais.length) return;
+            const s = sinais[0];
+            const idade = (Date.now() - new Date(s.created_at)) / 1000;
+            if (s.id === _ultimoSinalId || idade > 30) return;
+            _ultimoSinalId = s.id;
+            if (s.tipo === 'chamar_todos') {
+                _prontosList.forEach(p => anunciarPedido(p.numero, p.nome_cliente || 'Anónimo'));
+            }
+        } catch(e) { console.error('verificarSinais:', e); }
+    }
+
+    setInterval(verificarSinais, 3000);
+    verificarSinais();
+
     // ── Arranque ──
     carregar();
     setInterval(carregar, 8000);

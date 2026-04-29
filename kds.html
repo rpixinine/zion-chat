@@ -250,8 +250,29 @@
            ÁREA DE COZINHA — colunas
         ══════════════════════════════════════════════════ */
         .area-cozinha {
-            flex: 1; display: grid; grid-template-columns: 1fr 1px 1fr; overflow: hidden;
+            flex: 1; display: grid;
+            grid-template-columns: 1fr 1px 1fr 1px minmax(300px, 36%);
+            overflow: hidden;
         }
+
+        /* Adiciona estes novos: */
+        .coluna-yt { display: flex; flex-direction: column; overflow: hidden; background: #000; position: relative; }
+        .coluna-yt iframe { flex: 1; width: 100%; height: 100%; border: none; display: block; }
+        .yt-controls {
+            position: absolute; bottom: 12px; right: 12px; z-index: 10;
+            display: flex; gap: 8px;
+        }
+        .btn-yt {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            color: rgba(255,255,255,0.7); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-yt:hover { background: rgba(0,0,0,0.85); border-color: rgba(255,255,255,0.5); color: #fff; }
+        .btn-yt.muted { color: rgba(255,255,255,0.35); }
+
         .coluna-sep { background: var(--border); }
         .coluna { display: flex; flex-direction: column; overflow: hidden; }
 
@@ -518,6 +539,31 @@
             <div class="coluna-count" id="count-pronto">0</div>
         </div>
         <div class="cards-grid" id="grid-pronto"></div>
+    </div>
+    <div class="coluna-sep"></div>
+    <div class="coluna-yt" id="coluna-yt">
+        <iframe id="yt-frame"
+                src="https://www.youtube.com/embed/XuZAl-ZPEcA?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1"
+                allow="autoplay; encrypted-media"
+                allowfullscreen>
+        </iframe>
+        <div class="yt-controls">
+            <button class="btn-yt" id="btn-yt-canal" onclick="trocarCanal()" title="Trocar canal">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                    <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                </svg>
+            </button>
+            <button class="btn-yt muted" id="btn-yt-som" onclick="toggleYtSom()" title="Som">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <line x1="23" y1="9" x2="17" y2="15" id="yt-mute-x1"/>
+                    <line x1="17" y1="9" x2="23" y2="15" id="yt-mute-x2"/>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" id="yt-wave1" style="display:none"/>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"  id="yt-wave2" style="display:none"/>
+                </svg>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -812,17 +858,12 @@
     }
 
     async function fetchRSS(feedUrl, label, count = 5) {
-        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
-        const r = await fetch(proxy, { cache: 'no-store' });
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}&count=${count}`;
+        const r = await fetch(url);
         const d = await r.json();
-        const xml = new DOMParser().parseFromString(d.contents, 'text/xml');
-        return [...xml.querySelectorAll('item')]
-            .slice(0, count)
-            .map(it => ({
-                tipo: 'news',
-                label,
-                texto: it.querySelector('title')?.textContent?.trim() || ''
-            }))
+        if (d.status !== 'ok') throw new Error(d.message || 'rss error');
+        return (d.items || [])
+            .map(it => ({ tipo: 'news', label, texto: it.title?.trim() || '' }))
             .filter(it => it.texto.length > 4);
     }
 
@@ -831,11 +872,12 @@
 
         // — Tempo: Open-Meteo —
         try {
-            const url = 'https://api.open-meteo.com/v1/forecast' +
+            const d = await fetch(
+                'https://api.open-meteo.com/v1/forecast' +
                 '?latitude=38.72&longitude=-9.14' +
                 '&current=temperature_2m,relative_humidity_2m,weather_code' +
-                '&timezone=Europe%2FLisbon';
-            const d = await fetch(url).then(r => r.json());
+                '&timezone=Europe%2FLisbon'
+            ).then(r => r.json());
             const c = d.current;
             items.push({ tipo: 'meteo', label: 'TEMPO', html:
                     `Lisboa &mdash; ${wmoDesc(c.weather_code)}&nbsp;` +
@@ -844,11 +886,11 @@
             });
         } catch(e) { console.warn('Ticker tempo:', e); }
 
-        // — Notícias: 3 fontes em paralelo —
+        // — Notícias: 3 feeds via rss2json —
         const feeds = [
-            { url: 'https://observador.pt/feed/',              label: 'OBSERVADOR', count: 5 },
+            { url: 'https://observador.pt/feed/',                  label: 'OBSERVADOR', count: 5 },
             { url: 'https://feeds.publico.pt/publico/rss/ultimas', label: 'PÚBLICO',    count: 4 },
-            { url: 'https://sicnoticias.pt/rss',               label: 'SIC',        count: 4 },
+            { url: 'https://sicnoticias.pt/rss',                   label: 'SIC',        count: 4 },
         ];
 
         const resultados = await Promise.allSettled(
@@ -856,17 +898,20 @@
         );
 
         resultados.forEach((res, i) => {
-            if (res.status === 'fulfilled') {
-                items.push(...res.value);
-            } else {
-                console.warn(`Ticker feed ${feeds[i].label}:`, res.reason);
-            }
+            if (res.status === 'fulfilled') items.push(...res.value);
+            else console.warn(`Feed ${feeds[i].label} falhou:`, res.reason?.message);
         });
 
-        // Embaralha as notícias para não vir sempre na mesma ordem
-        const tempo = items.filter(i => i.tipo === 'meteo');
-        const news  = items.filter(i => i.tipo === 'news').sort(() => Math.random() - 0.5);
-        const lista = [...tempo, ...news];
+        // — Se nenhum feed funcionou, fica só com o tempo —
+        const news = items.filter(i => i.tipo === 'news');
+        if (!news.length) {
+            console.warn('Ticker: nenhum feed de notícias funcionou');
+        }
+
+        const lista = [
+            ...items.filter(i => i.tipo === 'meteo'),
+            ...news.sort(() => Math.random() - 0.5)
+        ];
 
         if (!lista.length) return;
 
@@ -881,10 +926,9 @@
         }
 
         const track = document.getElementById('ticker-track');
-        const html  = makeItems(lista) +
+        track.innerHTML = makeItems(lista) +
             '<span style="display:inline-block;width:80px"></span>' +
             makeItems(lista);
-        track.innerHTML = html;
         track.classList.remove('animating');
         void track.offsetWidth;
         const dur = Math.max(40, Math.round((track.scrollWidth / 2) / 110));
@@ -894,6 +938,34 @@
 
     carregarTicker();
     setInterval(carregarTicker, 10 * 60 * 1000);
+
+
+    // ── YouTube ──
+    const YT_CANAIS = ['XuZAl-ZPEcA', 'YDvsBbKfLPA'];
+    let ytCanalIdx = 0;
+    let ytMuted    = true;
+
+    function ytSrc() {
+        return `https://www.youtube.com/embed/${YT_CANAIS[ytCanalIdx]}` +
+            `?autoplay=1&mute=${ytMuted ? 1 : 0}&controls=0&rel=0&modestbranding=1`;
+    }
+
+    function trocarCanal() {
+        ytCanalIdx = (ytCanalIdx + 1) % YT_CANAIS.length;
+        document.getElementById('yt-frame').src = ytSrc();
+        showToast(`Canal ${ytCanalIdx + 1} de ${YT_CANAIS.length}`);
+    }
+
+    function toggleYtSom() {
+        ytMuted = !ytMuted;
+        document.getElementById('yt-frame').src = ytSrc();
+        const btn = document.getElementById('btn-yt-som');
+        btn.classList.toggle('muted', ytMuted);
+        document.getElementById('yt-mute-x1').style.display = ytMuted ? '' : 'none';
+        document.getElementById('yt-mute-x2').style.display = ytMuted ? '' : 'none';
+        document.getElementById('yt-wave1').style.display   = ytMuted ? 'none' : '';
+        document.getElementById('yt-wave2').style.display   = ytMuted ? 'none' : '';
+    }
 
     // ══════════════════════════════════════════
     // CARREGAR DADOS — substitui linha anterior

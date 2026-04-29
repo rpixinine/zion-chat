@@ -797,64 +797,7 @@
     };
 
     // ══ TICKER: TEMPO + NOTÍCIAS ══
-    // ══ TICKER: TEMPO + NOTÍCIAS ══
-    async function carregarTicker() {
-        const items = [];
 
-        // — Tempo: Open-Meteo (sem API key, CORS OK) —
-        try {
-            const url = 'https://api.open-meteo.com/v1/forecast' +
-                '?latitude=38.72&longitude=-9.14' +
-                '&current=temperature_2m,relative_humidity_2m,weather_code' +
-                '&timezone=Europe%2FLisbon';
-            const d = await fetch(url).then(r => r.json());
-            const c = d.current;
-            const desc = wmoDesc(c.weather_code);
-            const temp = Math.round(c.temperature_2m);
-            const hum  = c.relative_humidity_2m;
-            items.push({ tipo: 'meteo', html:
-                    `Lisboa &mdash; ${desc} &nbsp;<span class="ticker-temp">${temp}°C</span>&nbsp; <span style="opacity:.6">Humidade ${hum}%</span>`
-            });
-        } catch(e) { console.warn('Ticker tempo:', e); }
-
-        // — Notícias: Observador RSS via rss2json —
-        try {
-            const rss = 'https://observador.pt/feed/';
-            const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}&count=7`;
-            const d   = await fetch(url).then(r => r.json());
-            if (d.status === 'ok') {
-                (d.items || []).forEach(it => {
-                    items.push({ tipo: 'news', texto: it.title });
-                });
-            }
-        } catch(e) { console.warn('Ticker noticias:', e); }
-
-        if (!items.length) return;
-
-        function makeItems(list) {
-            return list.map((it, i) =>
-                `<span class="ticker-item">` +
-                `<span class="ticker-tag ${it.tipo}">${it.tipo === 'meteo' ? 'TEMPO' : 'PT'}</span>` +
-                (it.html || it.texto || '') +
-                `</span>` +
-                (i < list.length - 1 ? '<span class="ticker-sep"></span>' : '')
-            ).join('');
-        }
-
-        const html = makeItems(items)
-            + '<span style="display:inline-block;width:80px"></span>'
-            + makeItems(items);
-
-        const track = document.getElementById('ticker-track');
-        track.innerHTML = html;
-        track.classList.remove('animating');
-        void track.offsetWidth; // força reflow para reiniciar animação
-        const dur = Math.max(30, Math.round((track.scrollWidth / 2) / 120));
-        track.style.setProperty('--ticker-dur', dur + 's');
-        track.classList.add('animating');
-    }
-
-    // Descrições WMO → texto PT
     function wmoDesc(code) {
         const m = {
             0:'Céu limpo', 1:'Maioritariamente limpo', 2:'Parcialmente nublado', 3:'Nublado',
@@ -868,8 +811,89 @@
         return m[code] || 'Variável';
     }
 
+    async function fetchRSS(feedUrl, label, count = 5) {
+        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
+        const r = await fetch(proxy, { cache: 'no-store' });
+        const d = await r.json();
+        const xml = new DOMParser().parseFromString(d.contents, 'text/xml');
+        return [...xml.querySelectorAll('item')]
+            .slice(0, count)
+            .map(it => ({
+                tipo: 'news',
+                label,
+                texto: it.querySelector('title')?.textContent?.trim() || ''
+            }))
+            .filter(it => it.texto.length > 4);
+    }
+
+    async function carregarTicker() {
+        const items = [];
+
+        // — Tempo: Open-Meteo —
+        try {
+            const url = 'https://api.open-meteo.com/v1/forecast' +
+                '?latitude=38.72&longitude=-9.14' +
+                '&current=temperature_2m,relative_humidity_2m,weather_code' +
+                '&timezone=Europe%2FLisbon';
+            const d = await fetch(url).then(r => r.json());
+            const c = d.current;
+            items.push({ tipo: 'meteo', label: 'TEMPO', html:
+                    `Lisboa &mdash; ${wmoDesc(c.weather_code)}&nbsp;` +
+                    `<span class="ticker-temp">${Math.round(c.temperature_2m)}°C</span>&nbsp;` +
+                    `<span style="opacity:.55">Humidade ${c.relative_humidity_2m}%</span>`
+            });
+        } catch(e) { console.warn('Ticker tempo:', e); }
+
+        // — Notícias: 3 fontes em paralelo —
+        const feeds = [
+            { url: 'https://observador.pt/feed/',              label: 'OBSERVADOR', count: 5 },
+            { url: 'https://feeds.publico.pt/publico/rss/ultimas', label: 'PÚBLICO',    count: 4 },
+            { url: 'https://sicnoticias.pt/rss',               label: 'SIC',        count: 4 },
+        ];
+
+        const resultados = await Promise.allSettled(
+            feeds.map(f => fetchRSS(f.url, f.label, f.count))
+        );
+
+        resultados.forEach((res, i) => {
+            if (res.status === 'fulfilled') {
+                items.push(...res.value);
+            } else {
+                console.warn(`Ticker feed ${feeds[i].label}:`, res.reason);
+            }
+        });
+
+        // Embaralha as notícias para não vir sempre na mesma ordem
+        const tempo = items.filter(i => i.tipo === 'meteo');
+        const news  = items.filter(i => i.tipo === 'news').sort(() => Math.random() - 0.5);
+        const lista = [...tempo, ...news];
+
+        if (!lista.length) return;
+
+        function makeItems(list) {
+            return list.map((it, i) =>
+                `<span class="ticker-item">` +
+                `<span class="ticker-tag ${it.tipo}">${it.label}</span>` +
+                (it.html || it.texto) +
+                `</span>` +
+                (i < list.length - 1 ? '<span class="ticker-sep"></span>' : '')
+            ).join('');
+        }
+
+        const track = document.getElementById('ticker-track');
+        const html  = makeItems(lista) +
+            '<span style="display:inline-block;width:80px"></span>' +
+            makeItems(lista);
+        track.innerHTML = html;
+        track.classList.remove('animating');
+        void track.offsetWidth;
+        const dur = Math.max(40, Math.round((track.scrollWidth / 2) / 110));
+        track.style.setProperty('--ticker-dur', dur + 's');
+        track.classList.add('animating');
+    }
+
     carregarTicker();
-    setInterval(carregarTicker, 10 * 60 * 1000); // atualiza a cada 10 min
+    setInterval(carregarTicker, 10 * 60 * 1000);
 
     // ══════════════════════════════════════════
     // CARREGAR DADOS — substitui linha anterior

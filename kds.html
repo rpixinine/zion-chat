@@ -729,6 +729,22 @@
         window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
+    // ── BroadcastChannel — recebe chamada do keola ──
+    const kdsChannel = new BroadcastChannel('zion_kds');
+    kdsChannel.onmessage = (e) => {
+        if (e.data?.tipo === 'chamar_todos') {
+            // Pega prontos actuais e anuncia todos na fila
+            const prontos = [...document.querySelectorAll('#grid-pronto .pedido-card')];
+            if (!prontos.length) return;
+            // Lê directamente do último render — percorre os cards
+            prontos.forEach(card => {
+                const num  = card.querySelector('.card-numero')?.textContent?.replace('#','').trim();
+                const nome = card.querySelector('.card-nome')?.textContent?.trim();
+                if (num && nome) anunciarPedido(parseInt(num, 10), nome);
+            });
+        }
+    };
+
     // ══════════════════════════════════════════
     // CARREGAR DADOS — substitui linha anterior
     // ══════════════════════════════════════════

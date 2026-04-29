@@ -401,6 +401,45 @@
             .card-nome { font-size: 28px; }
             .card-itens { font-size: 20px; }
         }
+
+        /* ══ TICKER ══ */
+        .ticker-wrap {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            height: 38px; display: flex; align-items: center;
+            overflow: hidden; position: relative; flex-shrink: 0;
+        }
+        .ticker-label {
+            background: var(--primary); color: #fff;
+            font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+            text-transform: uppercase; padding: 0 14px; height: 100%;
+            display: flex; align-items: center; flex-shrink: 0; z-index: 2; white-space: nowrap;
+        }
+        .ticker-fade {
+            width: 24px; height: 100%;
+            background: linear-gradient(90deg, var(--primary), transparent);
+            flex-shrink: 0;
+        }
+        .ticker-overflow { overflow: hidden; flex: 1; display: flex; align-items: center; }
+        .ticker-track {
+            display: inline-flex; align-items: center; white-space: nowrap;
+            gap: 0; will-change: transform;
+        }
+        .ticker-track.animating { animation: tickerScroll var(--ticker-dur, 60s) linear infinite; }
+        @keyframes tickerScroll {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .ticker-item { display: inline-flex; align-items: center; gap: 8px; padding: 0 28px 0 0; font-size: 13px; color: var(--text-muted); }
+        .ticker-sep   { width: 4px; height: 4px; border-radius: 50%; background: var(--border-md); flex-shrink: 0; margin-right: 28px; }
+        .ticker-tag {
+            font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+        }
+        .ticker-tag.meteo { background: var(--primary-faint); color: var(--primary-light); border: 1px solid var(--border); }
+        .ticker-tag.news  { background: rgba(192,144,64,0.13); color: var(--gold); border: 1px solid rgba(192,144,64,0.28); }
+        .ticker-temp { font-weight: 700; color: var(--text-main); }
+
     </style>
 </head>
 <body>
@@ -438,6 +477,17 @@
     </div>
 </div>
 <div class="gold-stripe"></div>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+    <div class="ticker-label">AO VIVO</div>
+    <div class="ticker-fade"></div>
+    <div class="ticker-overflow">
+        <div class="ticker-track" id="ticker-track">
+            <span class="ticker-item" style="color:var(--text-faint)">A carregar...</span>
+        </div>
+    </div>
+</div>
 
 <!-- PAINEL CLIENTE — faixa de chamada -->
 <div class="painel-cliente">
@@ -745,6 +795,59 @@
             });
         }
     };
+
+    // ══ TICKER: TEMPO + NOTÍCIAS ══
+    async function carregarTicker() {
+        const items = [];
+
+        // — Tempo (wttr.in — sem API key) —
+        try {
+            const r = await fetch('https://wttr.in/Lisboa?format=j1');
+            const d = await r.json();
+            const c = d.current_condition[0];
+            const desc = c.weatherDesc[0].value;
+            const temp = c.temp_C;
+            const hum  = c.humidity;
+            items.push({ tipo: 'meteo', html:
+                    `Lisboa &mdash; ${desc} &nbsp;<span class="ticker-temp">${temp}°C</span>&nbsp; <span style="opacity:.6">Humidade ${hum}%</span>`
+            });
+        } catch(e) { console.warn('Ticker tempo:', e); }
+
+        // — Notícias RTP (via rss2json — sem API key para feeds públicos) —
+        try {
+            const rss = 'https://feeds.rtp.pt/rtp-noticias';
+            const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}&count=6`;
+            const r   = await fetch(url);
+            const d   = await r.json();
+            (d.items || []).forEach(it => {
+                items.push({ tipo: 'news', html: it.title });
+            });
+        } catch(e) { console.warn('Ticker noticias:', e); }
+
+        if (!items.length) return;
+
+        // Monta HTML — duplica para loop contínuo
+        function makeItems(list) {
+            return list.map((it, i) =>
+                `<span class="ticker-item"><span class="ticker-tag ${it.tipo}">${it.tipo === 'meteo' ? 'TEMPO' : 'RTP'}</span>${it.html}</span>`
+                + (i < list.length - 1 ? '<span class="ticker-sep"></span>' : '')
+            ).join('');
+        }
+        const html = makeItems(items) + '<span style="display:inline-block;width:60px"></span>'
+            + makeItems(items); // duplicado para loop sem corte
+
+        const track = document.getElementById('ticker-track');
+        track.innerHTML = html;
+
+        // Ajusta velocidade ao comprimento do texto (~120px/s)
+        const w = track.scrollWidth / 2;
+        const dur = Math.max(30, Math.round(w / 120));
+        track.style.setProperty('--ticker-dur', dur + 's');
+        track.classList.add('animating');
+    }
+
+    carregarTicker();
+    setInterval(carregarTicker, 10 * 60 * 1000); // atualiza a cada 10 min
 
     // ══════════════════════════════════════════
     // CARREGAR DADOS — substitui linha anterior

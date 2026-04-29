@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visão Geral · Escalas</title>
+  <script src="config.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:   #02161e;
+      --navy2:  #031f2a;
+      --navy3:  #041c27;
+      --teal:   #009098;
+      --teal-d: #007078;
+      --teal-f: rgba(0,144,152,0.10);
+      --beige:  #d8c3a5;
+      --text:   #e8eef0;
+      --muted:  #7a9aa8;
+      --border: rgba(255,255,255,0.08);
+      --card:   rgba(255,255,255,0.03);
+      --red:    #e53935;
+      --green:  #43a047;
+      --orange: #fb8c00;
+      --blue:   #1e88e5;
+      --radius: 12px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:var(--navy);color:var(--text);font-family:'Lato',sans-serif;font-size:14px}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,144,152,0.15) 0%,transparent 65%)}
+
+    /* ── PAGE ── */
+    .page{position:relative;z-index:1;min-height:100vh;padding:0 0 60px}
+
+    /* ── HEADER ── */
+    .site-hd{
+      padding:18px 24px 16px;
+      background:linear-gradient(135deg,var(--teal-d) 0%,var(--teal) 100%);
+      display:flex;align-items:center;gap:14px;
+      box-shadow:0 4px 24px rgba(0,0,0,0.4)
+    }
+    .site-hd-logo{height:32px;width:auto;object-fit:contain}
+    .site-hd-logo-text{font-family:'Cinzel',serif;font-size:18px;font-weight:700;letter-spacing:3px;color:#fff;display:none}
+    .site-hd-info{flex:1;min-width:0}
+    .site-hd-title{font-family:'Cinzel',serif;font-size:14px;letter-spacing:2px;color:#fff;font-weight:600}
+    .site-hd-sub{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.65);margin-top:2px}
+    .site-hd-date{font-size:11px;color:rgba(255,255,255,0.6);margin-left:auto;text-align:right;flex-shrink:0}
+
+    /* ── MAIN TABS ── */
+    .main-tabs{display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2);position:sticky;top:0;z-index:50}
+    .main-tab{
+      flex:1;padding:14px 10px;text-align:center;
+      font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+      color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+      transition:all 0.2s;user-select:none
+    }
+    .main-tab:hover{color:var(--text)}
+    .main-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+    .main-tab-badge{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:16px;height:16px;background:var(--teal);color:#fff;
+      border-radius:50%;font-size:8px;font-family:'Lato',sans-serif;font-weight:700;
+      letter-spacing:0;margin-left:5px;vertical-align:middle
+    }
+
+    .tab-pane{display:none;padding:20px 16px}
+    .tab-pane.active{display:block}
+
+    /* ── CULTO TABS (sub-abas) ── */
+    .culto-tabs-wrap{
+      display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;
+      padding:14px 16px;background:var(--card);
+      border:1px solid var(--border);border-radius:var(--radius)
+    }
+    .culto-tab{
+      padding:7px 14px;border-radius:20px;
+      border:1px solid var(--border);background:transparent;
+      font-size:11px;cursor:pointer;color:var(--muted);
+      transition:all 0.15s;white-space:nowrap;font-family:'Lato',sans-serif
+    }
+    .culto-tab:hover{border-color:var(--teal);color:var(--teal)}
+    .culto-tab.on{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600}
+
+    /* ── ÁREA CARD ── */
+    .area-section{margin-bottom:24px}
+    .area-hd{
+      display:flex;align-items:center;gap:10px;
+      padding:12px 16px;
+      background:linear-gradient(90deg,rgba(0,144,152,0.12) 0%,transparent 100%);
+      border-left:3px solid var(--teal);border-radius:0 8px 8px 0;
+      margin-bottom:12px
+    }
+    .area-hd-nome{font-family:'Cinzel',serif;font-size:13px;letter-spacing:1px;color:var(--text);flex:1}
+    .area-hd-tipo{
+      font-size:9px;font-family:'Cinzel',serif;letter-spacing:0.5px;
+      padding:2px 8px;border-radius:20px;flex-shrink:0
+    }
+    .tipo-ae{background:rgba(123,31,162,0.15);color:#ce93d8;border:1px solid rgba(123,31,162,0.25)}
+    .tipo-pilar{background:var(--teal-f);color:var(--teal);border:1px solid rgba(0,144,152,0.25)}
+    .tipo-ministerio{background:rgba(21,101,192,0.12);color:#90caf9;border:1px solid rgba(21,101,192,0.25)}
+    .tipo-link{background:rgba(46,125,50,0.12);color:#a5d6a7;border:1px solid rgba(46,125,50,0.25)}
+
+    .area-lider{
+      display:flex;align-items:center;gap:6px;
+      font-size:11px;color:var(--muted);flex-shrink:0
+    }
+    .area-lider-nome{color:rgba(255,255,255,0.75);font-weight:600}
+    .wap-link{
+      display:inline-flex;align-items:center;color:#25D366;
+      text-decoration:none;opacity:0.85;transition:opacity 0.15s
+    }
+    .wap-link:hover{opacity:1}
+
+    /* ── CULTO GROUP dentro de área ── */
+    .culto-group{
+      background:var(--card);border:1px solid var(--border);
+      border-radius:10px;overflow:hidden;margin-bottom:10px
+    }
+    .culto-group-hd{
+      display:flex;align-items:center;gap:8px;
+      padding:10px 14px;
+      background:rgba(0,0,0,0.15);
+      border-bottom:1px solid var(--border)
+    }
+    .culto-group-nome{font-weight:700;font-size:13px;color:var(--text);flex:1}
+    .culto-group-hora{font-size:11px;color:var(--muted)}
+    .campus-tag{
+      font-size:9px;font-family:'Cinzel',serif;letter-spacing:0.5px;
+      padding:2px 8px;border-radius:20px;
+      background:rgba(21,101,192,0.12);color:#90caf9;
+      border:1px solid rgba(21,101,192,0.2);flex-shrink:0
+    }
+    .culto-vagas{
+      font-size:10px;color:var(--muted);
+      padding:2px 8px;border-radius:20px;
+      background:rgba(255,255,255,0.04);border:1px solid var(--border)
+    }
+
+    /* ── VOLUNTÁRIO ROW ── */
+    .vol-row{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 14px;border-bottom:1px solid var(--border)
+    }
+    .vol-row:last-child{border-bottom:none}
+    .vol-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--muted)}
+    .vol-dot.checkin{background:var(--green)}
+    .vol-dot.confirmado{background:var(--teal)}
+    .vol-dot.ausente{background:rgba(255,255,255,0.2)}
+    .vol-nome{flex:1;font-size:13px;font-weight:600;color:var(--text)}
+    .vol-papel{font-size:10px;color:var(--muted);font-family:'Cinzel',serif;letter-spacing:0.3px}
+    .vol-badges{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+    .badge{
+      font-size:10px;padding:2px 9px;border-radius:20px;
+      font-family:'Cinzel',serif;letter-spacing:0.5px;white-space:nowrap
+    }
+    .badge-ok{background:rgba(67,160,71,0.15);border:1px solid rgba(67,160,71,0.3);color:#a5d6a7}
+    .badge-atrasado{background:rgba(251,140,0,0.12);border:1px solid rgba(251,140,0,0.3);color:#ffcc80}
+    .badge-confirmado{background:rgba(0,144,152,0.12);border:1px solid rgba(0,144,152,0.25);color:var(--teal)}
+    .badge-ausente{background:rgba(229,57,53,0.10);border:1px solid rgba(229,57,53,0.2);color:#ef9a9a}
+    .badge-aguard{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted)}
+
+    /* ── STATS BAR ── */
+    .stats-bar{
+      display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap
+    }
+    .stat-box{
+      flex:1;min-width:80px;
+      padding:12px 14px;border-radius:10px;text-align:center;
+      border:1px solid var(--border)
+    }
+    .stat-box.s-total{background:var(--card)}
+    .stat-box.s-ok{background:rgba(67,160,71,0.08);border-color:rgba(67,160,71,0.2)}
+    .stat-box.s-conf{background:rgba(0,144,152,0.08);border-color:rgba(0,144,152,0.2)}
+    .stat-box.s-aus{background:rgba(229,57,53,0.06);border-color:rgba(229,57,53,0.15)}
+    .stat-num{font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:var(--text)}
+    .stat-box.s-ok .stat-num{color:var(--green)}
+    .stat-box.s-conf .stat-num{color:var(--teal)}
+    .stat-box.s-aus .stat-num{color:var(--red)}
+    .stat-lbl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:'Cinzel',serif;margin-top:2px}
+
+    /* ── DATA HEADER ── */
+    .date-hd{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 16px;margin-bottom:14px;
+      background:rgba(0,144,152,0.07);
+      border:1px solid rgba(0,144,152,0.18);
+      border-radius:10px
+    }
+    .date-hd-label{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--teal);flex:1}
+    .date-hd-diff{font-size:11px;color:var(--muted);font-style:italic}
+
+    /* ── EMPTY ── */
+    .empty-box{
+      text-align:center;padding:40px 20px;
+      color:var(--muted)
+    }
+    .empty-title{font-family:'Cinzel',serif;font-size:14px;color:var(--teal);margin-bottom:6px}
+
+    /* ── LOADER ── */
+    .loader{text-align:center;padding:60px 20px;color:var(--muted)}
+    .spinner{
+      display:inline-block;width:30px;height:30px;
+      border:2px solid var(--border);border-top-color:var(--teal);
+      border-radius:50%;animation:spin 0.7s linear infinite;margin-bottom:12px
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── REFRESH BTN ── */
+    .refresh-btn{
+      position:fixed;bottom:20px;right:20px;
+      width:46px;height:46px;border-radius:50%;
+      background:var(--teal-d);border:none;
+      color:#fff;font-size:18px;cursor:pointer;
+      box-shadow:0 4px 16px rgba(0,0,0,0.4);
+      z-index:100;transition:background 0.15s;
+      display:flex;align-items:center;justify-content:center
+    }
+    .refresh-btn:hover{background:var(--teal)}
+
+    /* ── MÊS NAV ── */
+    .mes-nav{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:16px;padding:10px 14px;
+      background:var(--card);border:1px solid var(--border);border-radius:10px
+    }
+    .mes-nav-titulo{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--teal)}
+    .mes-nav-btn{
+      padding:5px 14px;border-radius:8px;
+      border:1px solid var(--border);background:transparent;
+      color:var(--muted);font-size:12px;cursor:pointer;
+      font-family:'Lato',sans-serif;transition:all 0.15s
+    }
+    .mes-nav-btn:hover{border-color:var(--teal);color:var(--teal)}
+
+    /* ── PILAR SECTION ── */
+    .pilar-section{margin-bottom:32px}
+    .pilar-hd{
+      display:flex;align-items:center;gap:8px;
+      padding:8px 14px;margin-bottom:16px;
+      border-bottom:2px solid rgba(0,144,152,0.3)
+    }
+    .pilar-nome{font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);flex:1}
+    .pilar-count{font-size:10px;color:var(--muted);background:var(--card);padding:2px 8px;border-radius:20px}
+
+    /* scrollbar */
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(0,144,152,0.3);border-radius:3px}
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="site-hd">
+    <img class="site-hd-logo" src="assets/logo-zion-branca.svg" alt="Zion Lisboa"
+         onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
+    <span id="logo-fb" class="site-hd-logo-text" style="display:none">ZION</span>
+    <div class="site-hd-info">
+      <div class="site-hd-title">Visão Geral · Escalas</div>
+      <div class="site-hd-sub">Painel do Líder Geral</div>
+    </div>
+    <div class="site-hd-date" id="hd-date"></div>
+  </div>
+
+  <div class="main-tabs">
+    <div class="main-tab active" id="mtab-proxima" onclick="switchMainTab('proxima')">
+      Próxima&nbsp;<span class="main-tab-badge" id="badge-proxima" style="display:none"></span>
+    </div>
+    <div class="main-tab" id="mtab-mes" onclick="switchMainTab('mes')">
+      Este Mês&nbsp;<span class="main-tab-badge" id="badge-mes" style="display:none"></span>
+    </div>
+  </div>
+
+  <div class="tab-pane active" id="pane-proxima">
+    <div class="loader"><div class="spinner"></div><br>A carregar escalas…</div>
+  </div>
+  <div class="tab-pane" id="pane-mes"></div>
+</div>
+
+<button class="refresh-btn" onclick="location.reload()" title="Actualizar">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <polyline points="23 4 23 10 17 10"/>
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+  </svg>
+</button>
+
+<script>
+  const SB_URL = window.SUPABASE_URL;
+  const SB_KEY = window.SUPABASE_ANON_KEY;
+
+  /* ── sb helper ── */
+  function sb(path, opts) {
+    return fetch(SB_URL + '/rest/v1/' + path, {
+      headers: {
+        'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'return=representation',
+        ...(opts?.headers || {})
+      }, ...opts
+    }).then(async r => {
+      const d = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(d?.message || d?.error || r.statusText);
+      return d;
+    });
+  }
+
+  /* ── Utils ── */
+  function hojeISO() { return new Date().toISOString().split('T')[0]; }
+  function addDias(iso, n) {
+    const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n);
+    return d.toISOString().split('T')[0];
+  }
+  function addMeses(ym, n) {
+    const [a, m] = ym.split('-');
+    const d = new Date(parseInt(a), parseInt(m) - 1 + n, 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  const DIAS_PT  = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  const DIAS_ABV = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const MESES_PT = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  function dataLbl(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return DIAS_PT[d.getDay()] + ', ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+  }
+  function diffLbl(iso) {
+    const hoje = hojeISO();
+    if (iso === hoje) return 'hoje';
+    const d = Math.round((new Date(iso+'T00:00:00') - new Date(hoje+'T00:00:00')) / 86400000);
+    if (d === 1) return 'amanhã';
+    if (d === 7) return 'semana que vem';
+    return 'em ' + d + ' dias';
+  }
+  function mesLbl(ym) {
+    const [a,m] = ym.split('-');
+    return MESES_PT[parseInt(m)] + ' ' + a;
+  }
+  function fimMes(ym) {
+    const [a, m] = ym.split('-').map(Number);
+    return ym + '-' + String(new Date(a, m, 0).getDate()).padStart(2,'0');
+  }
+
+  /* ── ESTADO ── */
+  var EG = {
+    ministerios: [], lideresMap: {}, /* ministerioId → [{nome,telefone}] */
+    escala: [], checkins: [],
+    cultosMap: {}, /* cultoId → {id,nome,hora_inicio,campus} */
+    minCultsMap: {}, /* ministerioId → [{cultoId,...}] */
+    mesMes: ''
+  };
+
+  /* ── SWITCH TAB ── */
+  function switchMainTab(tab) {
+    ['proxima','mes'].forEach(t => {
+      document.getElementById('mtab-'+t).classList.toggle('active', t===tab);
+      document.getElementById('pane-'+t).classList.toggle('active', t===tab);
+    });
+    if (tab === 'mes' && !document.getElementById('pane-mes').dataset.loaded) {
+      renderMes();
+    }
+  }
+
+  /* ── INIT ── */
+  async function init() {
+    const hoje = hojeISO();
+    EG.mesMes  = hoje.slice(0, 7);
+    document.getElementById('hd-date').innerHTML =
+            dataLbl(hoje) + '<br><span style="font-size:10px;opacity:.7">' + hojeISO() + '</span>';
+
+    try {
+      /* 1. Ministérios activos */
+      const mins = await sb('ministerios?select=*&ativo=eq.true&order=nome');
+      EG.ministerios = mins || [];
+
+      /* 2. Líderes de cada ministério */
+      const lideresRaw = await sb(
+              'ministerio_membros?papel=eq.lider&ativo=eq.true&select=ministerio_id,membros:membros_publico(id,nome,telefone)'
+      ).catch(() => []);
+      EG.lideresMap = {};
+      (lideresRaw || []).forEach(l => {
+        if (!l.membros) return;
+        if (!EG.lideresMap[l.ministerio_id]) EG.lideresMap[l.ministerio_id] = [];
+        EG.lideresMap[l.ministerio_id].push(l.membros);
+      });
+
+      /* 3. Escala — próximos 30 dias */
+      const fim30 = addDias(hoje, 30);
+      const escRaw = await sb(
+              `ministerio_escala?data=gte.${hoje}&data=lte.${fim30}` +
+              `&select=*,membros:membros_publico(id,nome),culto:cultos(id,nome,hora_inicio,campus:campus(id,nome))` +
+              `&order=data,ministerio_id,culto_id`
+      ).catch(() => []);
+      EG.escala = escRaw || [];
+
+      /* 4. Cultos map */
+      EG.cultosMap = {};
+      EG.escala.forEach(e => { if (e.culto) EG.cultosMap[e.culto_id] = e.culto; });
+
+      /* 5. Check-ins — próximos 30 dias */
+      const ciRaw = await sb(
+              `ministerio_checkin?data=gte.${hoje}&data=lte.${fim30}` +
+              `&select=id,membro_id,ministerio_id,culto_id,data,status,atrasado,hora_checkin`
+      ).catch(() => []);
+      EG.checkins = ciRaw || [];
+
+      renderProxima();
+
+    } catch(e) {
+      document.getElementById('pane-proxima').innerHTML =
+              `<div class="empty-box"><div class="empty-title">Erro ao carregar</div><div>${e.message}</div></div>`;
+    }
+  }
+
+  /* ══════════════════════════════════
+     RENDER PROXIMA
+  ══════════════════════════════════ */
+  function renderProxima() {
+    const el = document.getElementById('pane-proxima');
+    const hoje = hojeISO();
+
+    /* Encontrar a próxima data com escalas */
+    const datas = [...new Set(EG.escala.map(e => e.data))].sort();
+    const proxData = datas.find(d => d >= hoje) || null;
+
+    if (!proxData) {
+      el.innerHTML = `<div class="empty-box">
+            <div class="empty-title">Sem Escalas</div>
+            <div>Não há escalas registadas para os próximos dias.</div>
+        </div>`;
+      return;
+    }
+
+    /* Todos os cultos desse dia */
+    const escDia = EG.escala.filter(e => e.data === proxData);
+    const ciDia  = EG.checkins.filter(c => c.data === proxData);
+
+    /* Estatísticas globais */
+    const totalVols = escDia.length;
+    const totalOk   = ciDia.filter(c => c.status === 'presente' || c.atrasado).length;
+    const totalConf = ciDia.filter(c => c.status === 'pre_confirmado').length;
+    const totalAus  = totalVols - ciDia.filter(c =>
+            c.status === 'presente' || c.atrasado || c.status === 'pre_confirmado'
+    ).length;
+
+    /* Agrupar por culto único (culto_id) para sub-abas */
+    const cultosNoDia = [...new Map(
+            escDia.map(e => [e.culto_id, e.culto])
+    ).entries()].map(([id, c]) => ({ id, ...c }))
+            .sort((a,b) => (a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+
+    /* Badge */
+    const badge = document.getElementById('badge-proxima');
+    if (totalVols > 0) {
+      badge.textContent = totalVols;
+      badge.style.display = 'inline-flex';
+    }
+
+    let html = '';
+
+    /* Data header */
+    html += `<div class="date-hd">
+        <div class="date-hd-label">${dataLbl(proxData)}</div>
+        <div class="date-hd-diff">${diffLbl(proxData)}</div>
+    </div>`;
+
+    /* Stats */
+    html += `<div class="stats-bar">
+        <div class="stat-box s-total"><div class="stat-num">${totalVols}</div><div class="stat-lbl">Escalados</div></div>
+        <div class="stat-box s-ok"><div class="stat-num">${totalOk}</div><div class="stat-lbl">Check-in</div></div>
+        <div class="stat-box s-conf"><div class="stat-num">${totalConf}</div><div class="stat-lbl">Confirmados</div></div>
+        <div class="stat-box s-aus"><div class="stat-num">${totalAus}</div><div class="stat-lbl">Aguardam</div></div>
+    </div>`;
+
+    /* Sub-abas de cultos */
+    if (cultosNoDia.length > 1) {
+      html += `<div class="culto-tabs-wrap" id="prox-culto-tabs">
+            <div class="culto-tab on" onclick="proxSelCulto(null,this)">Todos</div>
+            ${cultosNoDia.map(c =>
+              `<div class="culto-tab" onclick="proxSelCulto('${c.id}',this)">
+                    ${c.nome || '—'}
+                    ${c.campus?.nome ? `<span style="font-size:9px;opacity:.7"> · ${c.campus.nome}</span>` : ''}
+                    <span style="font-size:10px;opacity:.6"> ${(c.hora_inicio||'').slice(0,5)}</span>
+                </div>`
+      ).join('')}
+        </div>`;
+    }
+
+    /* Conteúdo por área */
+    html += `<div id="prox-corpo">${buildCorpo(escDia, ciDia, null)}</div>`;
+
+    el.innerHTML = html;
+
+    /* guardar estado para filtro */
+    el._escDia = escDia;
+    el._ciDia  = ciDia;
+  }
+
+  function proxSelCulto(cultoId, btn) {
+    document.querySelectorAll('#prox-culto-tabs .culto-tab').forEach(el => el.classList.remove('on'));
+    btn.classList.add('on');
+    const el  = document.getElementById('pane-proxima');
+    const corp = document.getElementById('prox-corpo');
+    if (corp) corp.innerHTML = buildCorpo(el._escDia, el._ciDia, cultoId);
+  }
+
+  /* ══════════════════════════════════
+     BUILD CORPO (partilhado)
+     agrupa por pilar → área → culto
+  ══════════════════════════════════ */
+  function buildCorpo(escDia, ciDia, filtroCultoId) {
+    const esc = filtroCultoId ? escDia.filter(e => e.culto_id === filtroCultoId) : escDia;
+    if (!esc.length) return `<div class="empty-box"><div class="empty-title">Sem entradas</div></div>`;
+
+    /* Construir mapa pilar → filhos */
+    const minMap = {};
+    EG.ministerios.forEach(m => { minMap[m.id] = m; });
+
+    /* Agrupar escala por ministério */
+    const porMin = {};
+    esc.forEach(e => {
+      if (!porMin[e.ministerio_id]) porMin[e.ministerio_id] = [];
+      porMin[e.ministerio_id].push(e);
+    });
+
+    /* Agrupar ministérios por pilar */
+    const pilares = EG.ministerios.filter(m => m.tipo === 'pilar');
+    const semPilar = [];
+
+    function getPilar(min) {
+      let cur = min;
+      while (cur) {
+        if (cur.tipo === 'pilar') return cur;
+        cur = minMap[cur.parent_id];
+      }
+      return null;
+    }
+
+    /* Ministérios com escala neste dia */
+    const minsComEsc = Object.keys(porMin).map(id => minMap[id]).filter(Boolean);
+
+    /* Agrupar por pilar */
+    const porPilar = {};
+    minsComEsc.forEach(m => {
+      const p = getPilar(m);
+      const key = p ? p.id : '__sem_pilar__';
+      if (!porPilar[key]) porPilar[key] = { pilar: p, mins: [] };
+      porPilar[key].mins.push(m);
+    });
+
+    let html = '';
+
+    Object.values(porPilar).forEach(({ pilar, mins }) => {
+      html += `<div class="pilar-section">`;
+      if (pilar) {
+        html += `<div class="pilar-hd">
+                <div class="pilar-nome">${pilar.nome}</div>
+                <div class="pilar-count">${mins.length} área${mins.length>1?'s':''}</div>
+            </div>`;
+      }
+
+      /* Ordenar áreas pelo nome */
+      mins.sort((a,b) => a.nome.localeCompare(b.nome, 'pt'));
+
+      mins.forEach(min => {
+        const escMin = porMin[min.id] || [];
+        const liders = EG.lideresMap[min.id] || [];
+        html += buildAreaSection(min, escMin, ciDia, liders);
+      });
+
+      html += `</div>`;
+    });
+
+    return html || `<div class="empty-box"><div class="empty-title">Sem dados</div></div>`;
+  }
+
+  function buildAreaSection(min, escMin, ciDia, liders) {
+    const tipoCls = { ae:'tipo-ae', pilar:'tipo-pilar', ministerio:'tipo-ministerio', link:'tipo-link' };
+    const tipoLbl = { ae:'AE', pilar:'Pilar', ministerio:'Ministério', link:'Link', office:'Office' };
+    const cls = tipoCls[min.tipo] || 'tipo-ministerio';
+    const lbl = tipoLbl[min.tipo] || (min.tipo ? min.tipo.toUpperCase() : '');
+
+    /* Líder */
+    let liderHtml = '';
+    if (liders.length) {
+      const l = liders[0];
+      const tel = (l.telefone||'').replace(/\D/g,'');
+      liderHtml = `<div class="area-lider">
+            <span style="font-size:10px;color:var(--muted)">Líder:</span>
+            <span class="area-lider-nome">${l.nome}</span>
+            ${tel ? `<a class="wap-link" href="https://wa.me/${tel}" target="_blank">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+            </a>` : ''}
+        </div>`;
+    }
+
+    /* Agrupar por culto */
+    const porCulto = {};
+    escMin.forEach(e => {
+      if (!porCulto[e.culto_id]) porCulto[e.culto_id] = { culto: e.culto, vols: [] };
+      porCulto[e.culto_id].vols.push(e);
+    });
+
+    let cultosHtml = '';
+    Object.values(porCulto).sort((a,b) =>
+            (a.culto?.hora_inicio||'').localeCompare(b.culto?.hora_inicio||'')
+    ).forEach(({ culto, vols }) => {
+      const campus = culto?.campus?.nome;
+      cultosHtml += `<div class="culto-group">
+            <div class="culto-group-hd">
+                <div class="culto-group-nome">${culto?.nome || '—'}</div>
+                <div class="culto-group-hora">${(culto?.hora_inicio||'').slice(0,5)}</div>
+                ${campus ? `<div class="campus-tag">${campus}</div>` : ''}
+                <div class="culto-vagas">${vols.length} escalados</div>
+            </div>`;
+
+      vols.forEach(e => {
+        const ci = ciDia.find(c =>
+                c.membro_id === e.membro_id &&
+                c.culto_id  === e.culto_id &&
+                c.ministerio_id === e.ministerio_id
+        );
+        const st = ci?.status;
+        const atrasado = ci?.atrasado;
+
+        let dotCls = 'ausente', badges = '';
+        if (st === 'presente' && !atrasado) {
+          dotCls = 'checkin';
+          badges += `<span class="badge badge-ok">✓ Check-in</span>`;
+        } else if (st === 'presente' && atrasado) {
+          dotCls = 'checkin';
+          badges += `<span class="badge badge-atrasado">⏱ Atrasado</span>`;
+        } else if (st === 'pre_confirmado') {
+          dotCls = 'confirmado';
+          badges += `<span class="badge badge-confirmado">✓ Confirmado</span>`;
+        } else {
+          badges += `<span class="badge badge-aguard">Aguardando</span>`;
+        }
+
+        const papelMap = {
+          lider:'Líder', membro:'Voluntário', aprendiz:'Em Treinamento',
+          Voluntario:'Voluntário', LiderArea:'Líder Área', LiderEquipa:'Líder Equipa'
+        };
+        const papelNome = papelMap[e.papel_escala] || e.papel_escala || '';
+
+        cultosHtml += `<div class="vol-row">
+                <div class="vol-dot ${dotCls}"></div>
+                <div class="vol-nome">${e.membros?.nome || '—'}</div>
+                ${papelNome && papelNome !== 'servindo' ? `<div class="vol-papel">${papelNome}</div>` : ''}
+                <div class="vol-badges">${badges}</div>
+            </div>`;
+      });
+
+      cultosHtml += `</div>`;
+    });
+
+    return `<div class="area-section">
+        <div class="area-hd">
+            <div class="area-hd-nome">${min.nome}</div>
+            ${lbl ? `<div class="area-hd-tipo ${cls}">${lbl}</div>` : ''}
+            ${liderHtml}
+        </div>
+        ${cultosHtml}
+    </div>`;
+  }
+
+  /* ══════════════════════════════════
+     RENDER MÊS
+  ══════════════════════════════════ */
+  function renderMes() {
+    const el = document.getElementById('pane-mes');
+    el.dataset.loaded = '1';
+    buildMesContent();
+  }
+
+  function buildMesContent() {
+    const el = document.getElementById('pane-mes');
+    const hoje = hojeISO();
+    const ini  = EG.mesMes + '-01';
+    const fim  = fimMes(EG.mesMes);
+
+    /* Escala do mês */
+    const escMes = EG.escala.filter(e => e.data >= ini && e.data <= fim);
+    const ciMes  = EG.checkins.filter(c => c.data >= ini && c.data <= fim);
+
+    /* Agrupar por data */
+    const porData = {};
+    escMes.forEach(e => {
+      if (!porData[e.data]) porData[e.data] = [];
+      porData[e.data].push(e);
+    });
+
+    const datas = Object.keys(porData).sort();
+
+    /* Cultos do mês para sub-abas */
+    const cultosDoMes = [...new Map(
+            escMes.map(e => [e.culto_id, e.culto])
+    ).entries()].map(([id, c]) => ({ id, ...c }))
+            .sort((a,b) => (a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+
+    const badgeMes = document.getElementById('badge-mes');
+    badgeMes.textContent = escMes.length;
+    badgeMes.style.display = escMes.length ? 'inline-flex' : 'none';
+
+    let html = `<div class="mes-nav">
+        <button class="mes-nav-btn" onclick="navMes(-1)">← Ant.</button>
+        <div class="mes-nav-titulo">${mesLbl(EG.mesMes)}</div>
+        <button class="mes-nav-btn" onclick="navMes(1)">Prox. →</button>
+    </div>`;
+
+    /* Sub-abas de cultos */
+    if (cultosDoMes.length > 1) {
+      html += `<div class="culto-tabs-wrap" id="mes-culto-tabs">
+            <div class="culto-tab on" onclick="mesSelCulto(null,this)">Todos os cultos</div>
+            ${cultosDoMes.map(c =>
+              `<div class="culto-tab" onclick="mesSelCulto('${c.id}',this)">
+                    ${c.nome || '—'}
+                    ${c.campus?.nome ? `<span style="font-size:9px;opacity:.7"> · ${c.campus.nome}</span>` : ''}
+                </div>`
+      ).join('')}
+        </div>`;
+    }
+
+    html += `<div id="mes-corpo">${buildMesCorpo(datas, porData, ciMes, null, hoje)}</div>`;
+
+    el.innerHTML = html;
+    el._porData = porData;
+    el._ciMes   = ciMes;
+    el._datas   = datas;
+    el._hoje    = hoje;
+  }
+
+  function buildMesCorpo(datas, porData, ciMes, filtroCultoId, hoje) {
+    if (!datas.length) return `<div class="empty-box"><div class="empty-title">Sem escalas neste mês</div></div>`;
+
+    let html = '';
+    datas.forEach(data => {
+      const esc = filtroCultoId
+              ? (porData[data] || []).filter(e => e.culto_id === filtroCultoId)
+              : (porData[data] || []);
+      if (!esc.length) return;
+
+      const ci = ciMes.filter(c => c.data === data);
+      const isPast = data < hoje;
+      html += `<div style="${isPast ? 'opacity:0.65' : ''}">
+            <div class="date-hd" style="${isPast ? 'border-color:rgba(255,255,255,0.12)' : ''}">
+                <div class="date-hd-label">${dataLbl(data)}</div>
+                <div class="date-hd-diff" style="${isPast ? 'color:var(--muted)' : ''}">
+                    ${isPast ? 'passado' : diffLbl(data)}
+                </div>
+            </div>
+            ${buildCorpo(esc, ci, null)}
+        </div>`;
+    });
+
+    return html || `<div class="empty-box"><div class="empty-title">Sem dados para este filtro</div></div>`;
+  }
+
+  function mesSelCulto(cultoId, btn) {
+    document.querySelectorAll('#mes-culto-tabs .culto-tab').forEach(el => el.classList.remove('on'));
+    btn.classList.add('on');
+    const el = document.getElementById('pane-mes');
+    const corp = document.getElementById('mes-corpo');
+    if (corp) corp.innerHTML = buildMesCorpo(el._datas, el._porData, el._ciMes, cultoId, el._hoje);
+  }
+
+  function navMes(n) {
+    EG.mesMes = addMeses(EG.mesMes, n);
+    buildMesContent();
+  }
+
+  /* ── START ── */
+  init();
+</script>
+</body>
+</html>

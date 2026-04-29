@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lançador — Zion Keola</title>
+    <title>Zion Church - Keola</title>
 
     <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
@@ -403,7 +403,7 @@
 <div class="header">
     <div class="header-logo">Zion Lisboa</div>
     <div class="header-divider"></div>
-    <div class="header-sub">Keola · Lançador</div>
+    <div class="header-sub">Keola · Mostrar Pedido</div>
     <div class="header-right">
         <div class="header-clock" id="clock">--:--</div>
         <div class="header-divider"></div>
@@ -413,6 +413,14 @@
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             KDS
         </a>
+        <button class="btn-kds-link" id="btn-chamar-todos" onclick="chamarTodos()" title="Chamar todos os prontos pelo KDS">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+            Chamar Todos
+        </button>
         <button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema">
             <span class="icon-moon">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
@@ -778,6 +786,19 @@
         document.getElementById('input-numero').value = n;
         document.getElementById('input-nome').focus();
         await carregar();
+    }
+
+    // ── BroadcastChannel — envia para o KDS ──
+    const keolaCh = new BroadcastChannel('zion_kds');
+
+    function chamarTodos() {
+        const prontos = _pedidosActivos.filter(p => p.status === 'pronto');
+        if (!prontos.length) {
+            showToast('Nenhum pedido pronto para chamar', true);
+            return;
+        }
+        keolaCh.postMessage({ tipo: 'chamar_todos' });
+        showToast(`📢 A chamar ${prontos.length} pedido(s) pelo KDS…`);
     }
 
     init();

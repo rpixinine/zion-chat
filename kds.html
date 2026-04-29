@@ -726,11 +726,27 @@
     async function processarFila() {
         if (processandoFila || !filaChamada.length) return;
         processandoFila = true;
+
+        // Muta o YouTube antes de começar
+        const frame = document.getElementById('yt-frame');
+        const srcOriginal = frame.src;
+        if (!ytMuted) {
+            frame.src = ytSrc().replace('mute=0', 'mute=1');
+        }
+
         while (filaChamada.length > 0) {
             const { numero } = filaChamada.shift();
             await tocarBips();
             await falarPedido(numero);
         }
+
+        // Restaura o YouTube depois
+        if (!ytMuted) {
+            // Pequena pausa para não cortar o áudio abruptamente
+            await new Promise(r => setTimeout(r, 600));
+            frame.src = srcOriginal;
+        }
+
         processandoFila = false;
     }
 

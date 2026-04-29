@@ -797,53 +797,75 @@
     };
 
     // ══ TICKER: TEMPO + NOTÍCIAS ══
+    // ══ TICKER: TEMPO + NOTÍCIAS ══
     async function carregarTicker() {
         const items = [];
 
-        // — Tempo (wttr.in — sem API key) —
+        // — Tempo: Open-Meteo (sem API key, CORS OK) —
         try {
-            const r = await fetch('https://wttr.in/Lisboa?format=j1');
-            const d = await r.json();
-            const c = d.current_condition[0];
-            const desc = c.weatherDesc[0].value;
-            const temp = c.temp_C;
-            const hum  = c.humidity;
+            const url = 'https://api.open-meteo.com/v1/forecast' +
+                '?latitude=38.72&longitude=-9.14' +
+                '&current=temperature_2m,relative_humidity_2m,weather_code' +
+                '&timezone=Europe%2FLisbon';
+            const d = await fetch(url).then(r => r.json());
+            const c = d.current;
+            const desc = wmoDesc(c.weather_code);
+            const temp = Math.round(c.temperature_2m);
+            const hum  = c.relative_humidity_2m;
             items.push({ tipo: 'meteo', html:
                     `Lisboa &mdash; ${desc} &nbsp;<span class="ticker-temp">${temp}°C</span>&nbsp; <span style="opacity:.6">Humidade ${hum}%</span>`
             });
         } catch(e) { console.warn('Ticker tempo:', e); }
 
-        // — Notícias RTP (via rss2json — sem API key para feeds públicos) —
+        // — Notícias: Observador RSS via rss2json —
         try {
-            const rss = 'https://feeds.rtp.pt/rtp-noticias';
-            const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}&count=6`;
-            const r   = await fetch(url);
-            const d   = await r.json();
-            (d.items || []).forEach(it => {
-                items.push({ tipo: 'news', html: it.title });
-            });
+            const rss = 'https://observador.pt/feed/';
+            const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}&count=7`;
+            const d   = await fetch(url).then(r => r.json());
+            if (d.status === 'ok') {
+                (d.items || []).forEach(it => {
+                    items.push({ tipo: 'news', texto: it.title });
+                });
+            }
         } catch(e) { console.warn('Ticker noticias:', e); }
 
         if (!items.length) return;
 
-        // Monta HTML — duplica para loop contínuo
         function makeItems(list) {
             return list.map((it, i) =>
-                `<span class="ticker-item"><span class="ticker-tag ${it.tipo}">${it.tipo === 'meteo' ? 'TEMPO' : 'RTP'}</span>${it.html}</span>`
-                + (i < list.length - 1 ? '<span class="ticker-sep"></span>' : '')
+                `<span class="ticker-item">` +
+                `<span class="ticker-tag ${it.tipo}">${it.tipo === 'meteo' ? 'TEMPO' : 'PT'}</span>` +
+                (it.html || it.texto || '') +
+                `</span>` +
+                (i < list.length - 1 ? '<span class="ticker-sep"></span>' : '')
             ).join('');
         }
-        const html = makeItems(items) + '<span style="display:inline-block;width:60px"></span>'
-            + makeItems(items); // duplicado para loop sem corte
+
+        const html = makeItems(items)
+            + '<span style="display:inline-block;width:80px"></span>'
+            + makeItems(items);
 
         const track = document.getElementById('ticker-track');
         track.innerHTML = html;
-
-        // Ajusta velocidade ao comprimento do texto (~120px/s)
-        const w = track.scrollWidth / 2;
-        const dur = Math.max(30, Math.round(w / 120));
+        track.classList.remove('animating');
+        void track.offsetWidth; // força reflow para reiniciar animação
+        const dur = Math.max(30, Math.round((track.scrollWidth / 2) / 120));
         track.style.setProperty('--ticker-dur', dur + 's');
         track.classList.add('animating');
+    }
+
+    // Descrições WMO → texto PT
+    function wmoDesc(code) {
+        const m = {
+            0:'Céu limpo', 1:'Maioritariamente limpo', 2:'Parcialmente nublado', 3:'Nublado',
+            45:'Nevoeiro', 48:'Nevoeiro com geada',
+            51:'Chuvisco leve', 53:'Chuvisco moderado', 55:'Chuvisco intenso',
+            61:'Chuva leve', 63:'Chuva moderada', 65:'Chuva intensa',
+            71:'Neve leve', 73:'Neve moderada', 75:'Neve intensa',
+            80:'Aguaceiros leves', 81:'Aguaceiros moderados', 82:'Aguaceiros intensos',
+            95:'Trovoada', 96:'Trovoada com granizo', 99:'Trovoada forte com granizo'
+        };
+        return m[code] || 'Variável';
     }
 
     carregarTicker();

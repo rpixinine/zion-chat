@@ -130,6 +130,28 @@
             color: var(--text-muted); transition: all 0.2s; flex-shrink: 0;
         }
         .theme-toggle:hover { background: var(--primary-faint); border-color: var(--primary); color: var(--primary-dark); }
+
+        .audio-toggle {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 1px solid var(--border); background: var(--bg-panel);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: var(--text-faint); transition: all 0.2s; flex-shrink: 0;
+            position: relative;
+        }
+        .audio-toggle:hover { background: var(--primary-faint); border-color: var(--primary); }
+        .audio-toggle .icon-mute-x   { display: block; }
+        .audio-toggle .icon-sound-waves { display: none; }
+        .audio-toggle.ativo { color: var(--green); border-color: var(--green); background: rgba(76,175,125,0.10); }
+        .audio-toggle.ativo .icon-mute-x    { display: none; }
+        .audio-toggle.ativo .icon-sound-waves { display: block; }
+        /* Ponto indicador quando bloqueado */
+        .audio-toggle::after {
+            content: ''; position: absolute; top: 5px; right: 5px;
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--red); border: 1px solid var(--bg-card);
+        }
+        .audio-toggle.ativo::after { display: none; }
+
         .theme-toggle .icon-sun  { display: none; }
         .theme-toggle .icon-moon { display: block; }
         [data-theme="light"] .theme-toggle .icon-sun  { display: block; }
@@ -394,6 +416,17 @@
         <div class="header-divider"></div>
         <div class="header-update" id="ultimo-update">—</div>
         <div class="header-divider"></div>
+
+        <button class="audio-toggle" id="btn-audio" onclick="desbloquearAudio()" title="Ativar som">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15" class="icon-mute-x"/>
+                <line x1="17" y1="9" x2="23" y2="15" class="icon-mute-x"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" class="icon-sound-waves"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"  class="icon-sound-waves"/>
+            </svg>
+        </button>
+
         <button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema">
             <span class="icon-moon">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
@@ -559,14 +592,16 @@
 
         // Detecta prontos novos
         const idsAgora = new Set(prontos.map(p => p.id));
+
         prontos.forEach(p => {
             if (!idsProntoAntes.has(p.id)) {
                 todosNovos.add(p.id);
                 showToast(`Pedido #${String(p.numero).padStart(2,'0')} pronto — ${p.nome_cliente || 'Anónimo'}`);
-                // Remove o estado "novo" após 12 s (para parar de piscar)
+                anunciarPedido(p.numero, p.nome_cliente || 'Anónimo');
                 setTimeout(() => { todosNovos.delete(p.id); renderChamada(prontos); }, 12000);
             }
         });
+
         idsProntoAntes = idsAgora;
 
         document.getElementById('count-prep').textContent   = emPrep.length;
@@ -578,6 +613,7 @@
 
         document.getElementById('ultimo-update').textContent =
             new Date().toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
     }
 
     async function mudarStatus(id, novoStatus) {
@@ -600,6 +636,102 @@
         _toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
     }
 
+    // ══════════════════════════════════════════
+    // SISTEMA DE ÁUDIO
+    // ══════════════════════════════════════════
+    let audioCtx = null;
+    let audioDesbloqueado = false;
+    let filaChamada = [];
+    let processandoFila = false;
+
+    function desbloquearAudio() {
+        if (audioDesbloqueado) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Toca buffer silencioso para desbloquear o contexto
+        const buf = audioCtx.createBuffer(1, 1, 22050);
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
+        audioDesbloqueado = true;
+        const btn = document.getElementById('btn-audio');
+        btn.classList.add('ativo');
+        btn.title = 'Som ativo';
+        showToast('🔊 Som ativado');
+    }
+
+    function numParaTexto(n) {
+        const u = ['','um','dois','três','quatro','cinco','seis','sete','oito','nove',
+            'dez','onze','doze','treze','catorze','quinze','dezasseis','dezassete','dezoito','dezanove'];
+        const d = ['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+        if (n === 0) return 'zero';
+        if (n < 20) return u[n];
+        const dez = Math.floor(n / 10), uni = n % 10;
+        return d[dez] + (uni ? ' e ' + u[uni] : '');
+    }
+
+    function tocarBips() {
+        return new Promise(resolve => {
+            if (!audioDesbloqueado || !audioCtx) { resolve(); return; }
+            const tempos = [0, 0.22]; // 2 bips
+            tempos.forEach((t, i) => {
+                const osc  = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime + t);
+                gain.gain.setValueAtTime(0, audioCtx.currentTime + t);
+                gain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + t + 0.01);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + t + 0.13);
+                osc.start(audioCtx.currentTime + t);
+                osc.stop(audioCtx.currentTime + t + 0.14);
+                if (i === tempos.length - 1) osc.onended = () => setTimeout(resolve, 120);
+            });
+        });
+    }
+
+    function falarPedido(numero, nome) {
+        return new Promise(resolve => {
+            if (!audioDesbloqueado || !window.speechSynthesis) { resolve(); return; }
+            window.speechSynthesis.cancel();
+            const texto = `Pedido ${numParaTexto(numero)}, ${nome}`;
+            const utter = new SpeechSynthesisUtterance(texto);
+            utter.lang  = 'pt-PT';
+            utter.rate  = 0.92;
+            utter.pitch = 1.05;
+            // Tenta encontrar voz PT
+            const vozes = window.speechSynthesis.getVoices();
+            const vozPT = vozes.find(v => v.lang === 'pt-PT') || vozes.find(v => v.lang.startsWith('pt')) || null;
+            if (vozPT) utter.voice = vozPT;
+            utter.onend   = resolve;
+            utter.onerror = resolve;
+            window.speechSynthesis.speak(utter);
+        });
+    }
+
+    async function processarFila() {
+        if (processandoFila || filaChamada.length === 0) return;
+        processandoFila = true;
+        while (filaChamada.length > 0) {
+            const { numero, nome } = filaChamada.shift();
+            await tocarBips();
+            await falarPedido(numero, nome);
+        }
+        processandoFila = false;
+    }
+
+    function anunciarPedido(numero, nome) {
+        if (!audioDesbloqueado) return;
+        filaChamada.push({ numero, nome });
+        processarFila();
+    }
+
+    // Carrega vozes assim que disponíveis (alguns browsers carregam async)
+    if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // ══════════════════════════════════════════
+    // CARREGAR DADOS — substitui linha anterior
+    // ══════════════════════════════════════════
     carregar();
     setInterval(carregar, 8000);
 </script>

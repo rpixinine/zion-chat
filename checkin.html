@@ -1077,7 +1077,7 @@
             CI.preGrupos = Object.values(pm).sort((a,b) =>
                 a.data.localeCompare(b.data) || (a.culto?.hora_inicio||'').localeCompare(b.culto?.hora_inicio||'')
             );
-            if (CI.preGrupos.length === 1) CI.preGrupoSel = CI.preGrupos[0];
+            if (CI.preGrupos.length >= 1) CI.preGrupoSel = CI.preGrupos[0];
 
             /* Badge aba pré */
             const pendentes = CI.preGrupos.reduce((acc, g) =>
@@ -1740,21 +1740,52 @@
             );
             if (jaFeito?.length) {
                 ciPreShowMsg('Já confirmaste a tua presença para este evento.', 'ok');
-                btn.disabled = false; btn.textContent = 'Confirmar que estarei presente'; return;
+                btn.disabled = false; btn.textContent = 'Confirmar que estarei presente';
+                return;
             }
 
             await sb('ministerio_checkin', {
                 method: 'POST',
                 body: JSON.stringify({
-                    ministerio_id: CI.ministerioId, membro_id: CI.preMembroSel,
-                    culto_id: g.culto?.id, data: g.data,
-                    status: 'pre_confirmado', atrasado: false, minutos_atraso: 0, notificado_lider: false
+                    ministerio_id:    CI.ministerioId,
+                    membro_id:        CI.preMembroSel,
+                    culto_id:         g.culto?.id,
+                    data:             g.data,
+                    status:           'pre_confirmado',
+                    atrasado:         false,
+                    minutos_atraso:   0,
+                    notificado_lider: false
                 })
             });
 
-            CI.checkins.push({ membro_id: CI.preMembroSel, culto_id: g.culto?.id, data: g.data, status: 'pre_confirmado' });
-            ciShowSucessoPre(mem.nome);
-            if (CI.lideres.length) setTimeout(() => ciWapPre(mem.nome, g), 1500);
+            // Actualizar o array local
+            CI.checkins.push({
+                membro_id: CI.preMembroSel,
+                culto_id:  g.culto?.id,
+                data:      g.data,
+                status:    'pre_confirmado'
+            });
+
+            // Actualizar badge da aba
+            const pendentesRestantes = CI.preGrupos.reduce((acc, pg) =>
+                    acc + pg.escalados.filter(e => !CI.checkins.some(c =>
+                        c.membro_id === e.membro_id && c.culto_id === pg.culto?.id && c.data === pg.data
+                    )).length, 0
+            );
+            const badge = document.getElementById('tab-pre-badge');
+            if (badge) {
+                if (pendentesRestantes > 0) { badge.textContent = pendentesRestantes; badge.classList.add('show'); }
+                else badge.classList.remove('show');
+            }
+
+            // Re-renderizar o painel com o ✓ actualizado (sem esconder nada)
+            ciRenderPreGrupo();
+
+            // Mostrar mensagem de sucesso inline
+            ciPreShowMsg(`✓ ${mem.nome} confirmado! Até ${diffLabel(g.data)}.`, 'ok');
+
+            // WhatsApp ao líder
+            if (CI.lideres.length) setTimeout(() => ciWapPre(mem.nome, g), 800);
 
         } catch (e) {
             ciPreShowMsg(e.message, 'err');
@@ -1762,7 +1793,7 @@
             if (b) { b.disabled = false; b.textContent = 'Confirmar que estarei presente'; }
         }
     }
-
+    
     /* ═══════════════════════════════════════════
        TELAS DE SUCESSO
     ═══════════════════════════════════════════ */

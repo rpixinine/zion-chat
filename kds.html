@@ -727,12 +727,8 @@
         if (processandoFila || !filaChamada.length) return;
         processandoFila = true;
 
-        // Muta o YouTube antes de começar
-        const frame = document.getElementById('yt-frame');
-        const srcOriginal = frame.src;
-        if (!ytMuted) {
-            frame.src = ytSrc().replace('mute=0', 'mute=1');
-        }
+        // Muta o YouTube via API sem recarregar
+        if (!ytMuted) ytMuteFrame();
 
         while (filaChamada.length > 0) {
             const { numero } = filaChamada.shift();
@@ -740,11 +736,10 @@
             await falarPedido(numero);
         }
 
-        // Restaura o YouTube depois
+        // Restaura som sem recarregar
         if (!ytMuted) {
-            // Pequena pausa para não cortar o áudio abruptamente
             await new Promise(r => setTimeout(r, 600));
-            frame.src = srcOriginal;
+            ytUnmuteFrame();
         }
 
         processandoFila = false;
@@ -848,15 +843,29 @@
     let ytCanalIdx = 0;
     let ytMuted    = true;
 
-    function ytSrc() {
-        return `https://www.youtube.com/embed/${YT_CANAIS[ytCanalIdx]}` +
-            `?autoplay=1&mute=${ytMuted ? 1 : 0}&controls=0&rel=0&modestbranding=1`;
+    function ytSrc(id) {
+        const videoId = id || YT_CANAIS[ytCanalIdx];
+        return `https://www.youtube.com/embed/${videoId}` +
+            `?autoplay=1&mute=${ytMuted ? 1 : 0}&controls=0&rel=0&modestbranding=1&enablejsapi=1`;
     }
+
     function trocarCanal() {
         ytCanalIdx = (ytCanalIdx + 1) % YT_CANAIS.length;
         document.getElementById('yt-frame').src = ytSrc();
         showToast(`Canal ${ytCanalIdx + 1} de ${YT_CANAIS.length}`);
     }
+
+    function ytMuteFrame() {
+        document.getElementById('yt-frame').contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*'
+        );
+    }
+    function ytUnmuteFrame() {
+        document.getElementById('yt-frame').contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*'
+        );
+    }
+
     function toggleYtSom() {
         ytMuted = !ytMuted;
         document.getElementById('yt-frame').src = ytSrc();
@@ -913,7 +922,7 @@
                 const match = yt_url.match(/(?:v=|youtu\.be\/)([^&\?\/]+)/);
                 if (match) {
                     const id = match[1];
-                    frame.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=${ytMuted ? 1 : 0}&controls=0&rel=0&modestbranding=1`;
+                    frame.src = ytSrc(id); 
                     showToast('▶ A transmitir culto ao vivo');
                 } else {
                     console.warn('URL inválido:', yt_url);

@@ -1075,7 +1075,7 @@
             }
             patch.duvida = ajuda;
 
-            await sb('visitantes_hub', { method: 'POST', body: JSON.stringify(patch) });
+            await sbRpc('registar_atendimento_hub', patch);
 
             const nome = _membro?.nome || (document.getElementById('nf-nome')?.value || '').trim() || 'O membro';
             mostrarSucesso(nome, 'Membro', patch.pergunta1 || '—');
@@ -1127,7 +1127,7 @@
                 duvida:    ajuda,
             };
 
-            await sb('visitantes_hub', { method: 'POST', body: JSON.stringify(patch) });
+            await sbRpc('registar_atendimento_hub', patch);
 
             mostrarSucesso(nome, 'Visitante', patch.duvida);
 
@@ -1265,6 +1265,21 @@
         });
         if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
         const t = await r.text(); return t ? JSON.parse(t) : [];
+    }
+
+    /* Chama uma função RPC (SECURITY DEFINER) — contorna o RLS */
+    async function sbRpc(fn, params) {
+        const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+            method: 'POST',
+            headers: {
+                apikey: SB_KEY,
+                Authorization: `Bearer ${SB_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(params),
+        });
+        if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
+        const t = await r.text(); return t ? JSON.parse(t) : null;
     }
 
     function iniciais(nome) {

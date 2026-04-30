@@ -1048,7 +1048,6 @@
                 ).catch(() => [])
             ]);
 
-            console.log('[DEBUG escala raw]', JSON.stringify(escAll?.slice(0,3), null, 2));
 
             CI.checkins  = checkinsRaw || [];
             CI.membros   = membrosRaw  || [];
@@ -1069,7 +1068,6 @@
                     const c = e.cultos; if (!c) return;
                     if (!m[c.id]) m[c.id] = { ...c, escalados: [] };
                     m[c.id].escalados.push(e);
-                    console.log('[DEBUG escalado]', e.membros_publico?.nome, '| papel_escala:', e.papel_escala, '| raw e:', JSON.stringify(e, null, 2));
                 });
                 CI.cultos = Object.values(m).sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio));
                 if (CI.cultos.length === 1) CI.cultSel = CI.cultos[0];
@@ -1194,8 +1192,10 @@
                     const notasPart = e.notas ? ` · <em style="color:var(--muted);font-size:10px">${e.notas}</em>` : '';
 
                     return `<span class="prox-tag ${conf ? 'confirmado' : ''}">
-                    ${e.membros_publico?.nome || '—'}${papelMap[papel]}${conf ? ' ✓' : ''}${notasPart}
-                </span>`;
+                        ${e.membros_publico?.nome || '—'}${conf ? ' ✓' : ''}
+                        ${papel !== 'servindo' ? `&nbsp;·&nbsp;<em style="font-size:10px;font-style:normal;opacity:0.8">${papel === 'aprendiz' ? 'Aprendiz' : 'Extra'}</em>` : ''}
+                        ${e.notas ? `&nbsp;·&nbsp;<em style="color:var(--muted);font-size:10px">${e.notas}</em>` : ''}
+                    </span>`;
                 }).join('');
 
                 const campusPart = p.culto?.campus?.nome
@@ -1264,7 +1264,6 @@
 
         /* Painel de escala */
         const membHtml = escalados.map(e => {
-            console.log('[ESCALA]', e.membros_publico?.nome, '→ papel_escala:', e.papel_escala);
             const ci = CI.checkins.find(c =>
                 c.membro_id === e.membro_id && c.culto_id === CI.cultSel.id && c.data === hoje
             );
@@ -1419,7 +1418,9 @@
 
         html += buildProximas();
         el.innerHTML = html;
-        if (CI.preGrupoSel) ciRenderPreGrupo();
+        if (CI.preGrupoSel) {
+            setTimeout(() => ciRenderPreGrupo(), 0);
+        }
     }
 
     function ciRenderPreGrupo() {

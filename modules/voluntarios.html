@@ -498,8 +498,9 @@
 
 <!-- ✦ Sub-tabs ✦ -->
 <div class="ins-subtab-bar">
-  <button class="ins-subtab ${_ins_subTab==='lista'?'active':''}" onclick="vl_setInscSubTab('lista')">Lista</button>
-  <button class="ins-subtab ${_ins_subTab==='config'?'active':''}" onclick="vl_setInscSubTab('config')">
+  <button class="ins-subtab ${_ins_subTab==='lista'?'active':''}"    onclick="vl_setInscSubTab('lista')">Lista</button>
+  <button class="ins-subtab ${_ins_subTab==='por_area'?'active':''}" onclick="vl_setInscSubTab('por_area')">Por Área</button>
+  <button class="ins-subtab ${_ins_subTab==='config'?'active':''}"   onclick="vl_setInscSubTab('config')">
     Configurar Multi-Área${_ins_multi_ids.size?`<span class="ins-multi-badge">${_ins_multi_ids.size}</span>`:''}
   </button>
   ${multiCount?`<span style="margin-left:auto;padding:8px 12px;font-size:9px;color:#7c3aed;font-family:var(--font-title);letter-spacing:1px">${multiCount} elegíveis ＋ área</span>`:''}
@@ -507,7 +508,7 @@
 
 <div id="vl-alert-ins"></div>
 
-<div id="ins-filtros-wrap" style="${_ins_subTab!=='lista'?'display:none':''}">
+<div id="ins-filtros-wrap" style="${_ins_subTab==='lista'?'':'display:none'}">
   <div class="vl-filter-bar">
     <input class="vl-input" id="ins-q" placeholder="Pesquisar nome..." oninput="vl_filtrarInscricoes()" style="min-width:140px;max-width:200px">
     <select class="vl-select" id="ins-status" onchange="vl_filtrarInscricoes()" style="min-width:130px">
@@ -528,6 +529,7 @@
 <div id="ins-tabela-wrap"></div>`;
 
             if(_ins_subTab==='lista')  vl_filtrarInscricoes();
+            if(_ins_subTab==='por_area') vl_renderPorArea();   // ← linha nova
             if(_ins_subTab==='config') vl_renderConfigMulti();
         }
 
@@ -642,6 +644,113 @@
         async function vl_distribuirTodos(campanhaId){const pendentes=await sb(`voluntarios_inscricoes?campanha_id=eq.${campanhaId}&status=eq.pendente&select=id`).catch(()=>[]);if(!pendentes.length){alert('Nenhuma inscrição pendente.');return;}if(!confirm(`Distribuir ${pendentes.length} inscrição(ões)?`))return;const prazo=new Date(Date.now()+7*24*60*60*1000).toISOString();for(const ins of pendentes){const areas=await sb(`voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem&limit=1`).catch(()=>[]);const a1=areas?.[0];if(!a1)continue;await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:ins.id,ministerio_id:a1.ministerio_id,prazo_contato:prazo})}).catch(()=>{});await sb(`voluntarios_inscricoes?id=eq.${ins.id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});}const el=document.getElementById('vl-alert-ins');if(el){el.innerHTML='<div class="vl-alert vl-alert-s">Inscrições distribuídas.</div>';setTimeout(()=>el.innerHTML='',4000);}vl_renderInscricoes();}
         async function vl_abrirDistribuir(inscricaoId){const areas=await sb(`voluntarios_areas_interesse?inscricao_id=eq.${inscricaoId}&select=ordem,ministerios(id,nome)&order=ordem`).catch(()=>[]);const prazoDefault=new Date(Date.now()+7*24*60*60*1000).toISOString().slice(0,10);const opts=(areas||[]).map(a=>`<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`).join('');const ov=document.createElement('div');ov.className='vl-modal-overlay';ov.innerHTML=`<div class="vl-modal"><div class="vl-modal-title">Distribuir Inscrição</div><div class="vl-field"><label class="vl-label">Ministério de destino</label><select class="vl-select" id="vl-dist-min">${opts}</select></div><div class="vl-field"><label class="vl-label">Prazo do líder</label><input type="date" class="vl-input" id="vl-dist-prazo" value="${prazoDefault}" min="${new Date().toISOString().slice(0,10)}"></div><div id="vl-dist-alert"></div><div class="vl-modal-footer"><button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button><button class="vl-btn vl-btn-p" onclick="vl_confirmarDistribuir('${inscricaoId}',this)">Confirmar</button></div></div>`;document.body.appendChild(ov);}
         async function vl_confirmarDistribuir(id,btn){const min=document.getElementById('vl-dist-min')?.value,prazo=document.getElementById('vl-dist-prazo')?.value;const alEl=document.getElementById('vl-dist-alert');if(!min||!prazo){if(alEl)alEl.innerHTML='<div class="vl-alert vl-alert-e">Preencha todos os campos.</div>';return;}btn.disabled=true;btn.textContent='A guardar...';try{await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:id,ministerio_id:min,prazo_contato:new Date(prazo).toISOString()})});await sb(`voluntarios_inscricoes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});btn.closest('.vl-modal-overlay').remove();vl_renderInscricoes();}catch(e){if(alEl)alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message||'Verifique se já existe atribuição.'}</div>`;btn.disabled=false;btn.textContent='Confirmar';}}
+
+
+        function vl_renderPorArea() {
+            const tabEl = document.getElementById('ins-tabela-wrap');
+            if (!tabEl) return;
+
+            // Agrupa todas as atribuições por ministério
+            const grupos = {};
+            const semAtrib = [];
+
+            _ins_cache.forEach(function(ins) {
+                if (!ins._atribuicoes || ins._atribuicoes.length === 0) {
+                    if (ins.status !== 'aprovado' && ins.status !== 'recusado') semAtrib.push(ins);
+                    return;
+                }
+                ins._atribuicoes.forEach(function(atrib) {
+                    const mid = atrib.ministerio_id;
+                    if (!grupos[mid]) grupos[mid] = { nome: atrib.ministerios?.nome || '—', items: [] };
+                    grupos[mid].items.push({ ins: ins, atrib: atrib });
+                });
+            });
+
+            const totalGrupos  = Object.keys(grupos).length;
+            const totalDistrib = Object.values(grupos).reduce(function(s,g){ return s + g.items.length; }, 0);
+
+            if (!totalGrupos && !semAtrib.length) {
+                tabEl.innerHTML = '<div class="vl-empty"><div class="vl-empty-icon">—</div>Nenhuma distribuição registada.</div>';
+                return;
+            }
+
+            let html = '<div class="vl-stat-row" style="margin-bottom:14px">'
+                + '<div class="vl-stat"><div class="vl-stat-num">' + totalGrupos + '</div><div class="vl-stat-label">Áreas envolvidas</div></div>'
+                + '<div class="vl-stat"><div class="vl-stat-num">' + totalDistrib + '</div><div class="vl-stat-label">Total distribuídos</div></div>'
+                + '<div class="vl-stat"><div class="vl-stat-num" style="color:' + (semAtrib.length > 0 ? '#b45309' : 'var(--primary-dark)') + '">' + semAtrib.length + '</div><div class="vl-stat-label">Sem atribuição</div></div>'
+                + '</div>';
+
+            // Ordena por nome de área
+            Object.entries(grupos)
+                .sort(function(a,b){ return a[1].nome.localeCompare(b[1].nome); })
+                .forEach(function(entry) {
+                    var nome   = entry[1].nome;
+                    var items  = entry[1].items;
+                    var aguardando  = items.filter(function(x){ return x.atrib.status === 'aguardando'; }).length;
+                    var contatado   = items.filter(function(x){ return x.atrib.status === 'contatado'; }).length;
+                    var semRetorno  = items.filter(function(x){ return x.atrib.status === 'sem_retorno'; }).length;
+
+                    var rowsHtml = '';
+                    items.forEach(function(item) {
+                        var ins   = item.ins;
+                        var atrib = item.atrib;
+                        var m     = ins._membro;
+                        var a1    = ins._areas.find(function(a){ return a.ordem === 1; });
+                        var multiTag    = ins._atribuicoes.length > 1 ? ' <span style="font-size:8px;padding:1px 5px;border-radius:20px;background:#7c3aed;color:#fff;font-family:var(--font-title)">+área</span>' : '';
+                        var statusLabel = { aguardando:'Aguarda', contatado:'Contactado', sem_retorno:'Sem retorno' }[atrib.status] || atrib.status;
+                        var badgeColor  = { aguardando:'#b45309', contatado:'#15803d', sem_retorno:'#9f1239' }[atrib.status] || '#6b7280';
+                        rowsHtml += '<tr>'
+                            + '<td style="font-size:12px;font-weight:600">' + (m ? m.nome : '—') + multiTag + '</td>'
+                            + '<td style="font-size:10px;color:var(--text-faint)">' + (a1 ? (a1.ministerios?.nome || '—') : '—') + '</td>'
+                            + '<td><span class="vl-badge vl-b-' + ins.status + '">' + ins.status.replace(/_/g,' ') + '</span></td>'
+                            + '<td><span class="vl-badge" style="background:' + badgeColor + '">' + statusLabel + '</span></td>'
+                            + '<td style="font-size:10px">' + (atrib.prazo_contato ? fmtD(atrib.prazo_contato) : '—') + '</td>'
+                            + '<td style="font-size:10px">' + (atrib.data_contato  ? fmtD(atrib.data_contato)  : '—') + '</td>'
+                            + '</tr>';
+                    });
+
+                    html += '<div class="vl-card" style="margin-bottom:10px;padding:0;overflow:hidden">'
+                        + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 14px;background:var(--bg-input);border-bottom:1px solid var(--border)">'
+                        +   '<div style="flex:1;font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--primary-dark)">' + nome + '</div>'
+                        +   '<span class="vl-badge vl-b-pendente">' + items.length + ' total</span>'
+                        +   (aguardando ? ' <span class="vl-badge vl-b-em_atribuicao">' + aguardando + ' aguarda</span>' : '')
+                        +   (contatado  ? ' <span class="vl-badge vl-b-aprovado">' + contatado + ' contactado</span>'   : '')
+                        +   (semRetorno ? ' <span class="vl-badge vl-b-sem_retorno">' + semRetorno + ' sem retorno</span>' : '')
+                        + '</div>'
+                        + '<table class="vl-table">'
+                        +   '<thead><tr><th>Nome</th><th>1ª Escolha</th><th>Estado Inscrição</th><th>Atribuição</th><th>Prazo</th><th>Contactado em</th></tr></thead>'
+                        +   '<tbody>' + rowsHtml + '</tbody>'
+                        + '</table>'
+                        + '</div>';
+                });
+
+            // Secção sem atribuição
+            if (semAtrib.length) {
+                var rowsSem = '';
+                semAtrib.forEach(function(ins) {
+                    var a1      = ins._areas.find(function(a){ return a.ordem === 1; });
+                    var isMulti = _ins_multi_ids.has(a1 ? a1.ministerio_id : null);
+                    var multiTag = isMulti ? ' <span style="font-size:8px;padding:1px 5px;border-radius:20px;background:#7c3aed;color:#fff;font-family:var(--font-title)">multi</span>' : '';
+                    rowsSem += '<tr>'
+                        + '<td style="font-size:12px;font-weight:600">' + (ins._membro ? ins._membro.nome : '—') + multiTag + '</td>'
+                        + '<td style="font-size:10px;color:var(--text-faint)">' + (a1 ? (a1.ministerios?.nome || '—') : '—') + '</td>'
+                        + '<td><span class="vl-badge vl-b-' + ins.status + '">' + ins.status.replace(/_/g,' ') + '</span></td>'
+                        + '<td style="font-size:10px">' + fmtD(ins.created_at) + '</td>'
+                        + '</tr>';
+                });
+                html += '<div class="vl-card" style="margin-bottom:10px;padding:0;overflow:hidden;border-color:rgba(180,83,9,0.3)">'
+                    + '<div style="padding:11px 14px;background:rgba(180,83,9,0.07);border-bottom:1px solid rgba(180,83,9,0.2)">'
+                    +   '<span style="font-family:var(--font-title);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#b45309">Sem Atribuição (' + semAtrib.length + ')</span>'
+                    + '</div>'
+                    + '<table class="vl-table">'
+                    +   '<thead><tr><th>Nome</th><th>1ª Escolha</th><th>Estado</th><th>Data Inscrição</th></tr></thead>'
+                    +   '<tbody>' + rowsSem + '</tbody>'
+                    + '</table>'
+                    + '</div>';
+            }
+
+            tabEl.innerHTML = html;
+        }
 
         /* ── ✦ Config Multi-Área ── */
         async function vl_renderConfigMulti(){
@@ -925,6 +1034,7 @@
         window.vl_salvarConfigMulti=vl_salvarConfigMulti;
         window.vl_abrirDistribuirExtra=vl_abrirDistribuirExtra;
         window.vl_confirmarDistribuirExtra=vl_confirmarDistribuirExtra;
+        window.vl_renderPorArea = vl_renderPorArea;
 
         vl_init();
     })();

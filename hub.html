@@ -772,112 +772,112 @@
 </div><!-- /page -->
 
 <script>
-(function () {
+    (function () {
 
-    /* ═══════════════════════════════════════
-       CONFIG
-    ═══════════════════════════════════════ */
-    const SB_URL = window.SUPABASE_URL      || '';
-    const SB_KEY = window.SUPABASE_ANON_KEY || '';
+        /* ═══════════════════════════════════════
+           CONFIG
+        ═══════════════════════════════════════ */
+        const SB_URL = window.SUPABASE_URL      || '';
+        const SB_KEY = window.SUPABASE_ANON_KEY || '';
 
-    const AREAS = [
-        'Alcance','Altomonte','Areas Executivas','Escola Zao','Flow',
-        'Intercessao','Jornada','Links','Lumen','Ministracao','Raizes','Rise','Vox'
-    ];
+        const AREAS = [
+            'Alcance','Altomonte','Areas Executivas','Escola Zao','Flow',
+            'Intercessao','Jornada','Links','Lumen','Ministracao','Raizes','Rise','Vox'
+        ];
 
-    /* ── Mensagem WhatsApp ── */
-    const WA_MSG = `Ola, percebemos que nao tem cadastro ainda na base de membros. Poderia se cadastrar no link abaixo para nos ajudar a ter o acompanhamento de nossos membros?\n\nhttps://portal.zionlisboa.pt/meu-perfil`;
+        /* ── Mensagem WhatsApp ── */
+        const WA_MSG = `Ola, percebemos que nao tem cadastro ainda na base de membros. Poderia se cadastrar no link abaixo para nos ajudar a ter o acompanhamento de nossos membros?\n\nhttps://portal.zionlisboa.pt/meu-perfil`;
 
-    /* ── Progresso por fluxo ── */
-    const PROGRESS = {
-        membro:    [{ lbl: 'Tipo' }, { lbl: 'Identificacao' }, { lbl: 'Perguntas' }],
-        visitante: [{ lbl: 'Tipo' }, { lbl: 'Formulario' }],
-    };
+        /* ── Progresso por fluxo ── */
+        const PROGRESS = {
+            membro:    [{ lbl: 'Tipo' }, { lbl: 'Identificacao' }, { lbl: 'Perguntas' }],
+            visitante: [{ lbl: 'Tipo' }, { lbl: 'Formulario' }],
+        };
 
-    const SCREEN_IDX = {
-        membro:    { 's-tipo': 1, 's-membro-id': 2, 's-membro-q': 3 },
-        visitante: { 's-tipo': 1, 's-visitante': 2 },
-    };
+        const SCREEN_IDX = {
+            membro:    { 's-tipo': 1, 's-membro-id': 2, 's-membro-q': 3 },
+            visitante: { 's-tipo': 1, 's-visitante': 2 },
+        };
 
-    /* ── Estado ── */
-    let _tipo            = null;  // 'membro' | 'visitante'
-    let _membro          = null;  // objeto selecionado
-    let _naoEncontrado   = false; // pesquisou e nao encontrou
-    let _searchResults   = [];
-    let _selectedAreas   = new Set();
-    let _currentScreen   = 's-tipo';
-
-
-    /* ══════════════════════════════════════
-       INIT
-    ══════════════════════════════════════ */
-    function init() {
-        renderAreas();
-        renderProgress('membro', 1); // estado inicial neutro
-    }
+        /* ── Estado ── */
+        let _tipo            = null;  // 'membro' | 'visitante'
+        let _membro          = null;  // objeto selecionado
+        let _naoEncontrado   = false; // pesquisou e nao encontrou
+        let _searchResults   = [];
+        let _selectedAreas   = new Set();
+        let _currentScreen   = 's-tipo';
 
 
-    /* ══════════════════════════════════════
-       NAVEGAÇÃO
-    ══════════════════════════════════════ */
-    window.irPara = function (screenId) {
-        document.getElementById(_currentScreen).classList.remove('active');
-        document.getElementById(screenId).classList.add('active');
-        _currentScreen = screenId;
-        atualizarProgress();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+        /* ══════════════════════════════════════
+           INIT
+        ══════════════════════════════════════ */
+        function init() {
+            renderAreas();
+            renderProgress('membro', 1); // estado inicial neutro
+        }
 
 
-    /* ══════════════════════════════════════
-       STEP 1 — TIPO
-    ══════════════════════════════════════ */
-    window.selecionarTipo = function (tipo) {
-        _tipo = tipo;
-        document.getElementById('tc-membro').classList.toggle('selected',    tipo === 'membro');
-        document.getElementById('tc-visitante').classList.toggle('selected', tipo === 'visitante');
-
-        // Auto-avança
-        setTimeout(() => {
-            irPara(tipo === 'membro' ? 's-membro-id' : 's-visitante');
-        }, 160);
-    };
+        /* ══════════════════════════════════════
+           NAVEGAÇÃO
+        ══════════════════════════════════════ */
+        window.irPara = function (screenId) {
+            document.getElementById(_currentScreen).classList.remove('active');
+            document.getElementById(screenId).classList.add('active');
+            _currentScreen = screenId;
+            atualizarProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
 
 
-    /* ══════════════════════════════════════
-       STEP 2M — MEMBRO: IDENTIFICAÇÃO
-    ══════════════════════════════════════ */
-    window.pesquisarMembro = async function () {
-        const q = (document.getElementById('search-input').value || '').trim();
-        if (!q) return;
+        /* ══════════════════════════════════════
+           STEP 1 — TIPO
+        ══════════════════════════════════════ */
+        window.selecionarTipo = function (tipo) {
+            _tipo = tipo;
+            document.getElementById('tc-membro').classList.toggle('selected',    tipo === 'membro');
+            document.getElementById('tc-visitante').classList.toggle('selected', tipo === 'visitante');
 
-        _naoEncontrado = false;
-        _membro = null;
-        document.getElementById('membro-sel-wrap').style.display = 'none';
-        document.getElementById('not-found-block').style.display = 'none';
-        clearMsg('msg-membro-id');
+            // Auto-avança
+            setTimeout(() => {
+                irPara(tipo === 'membro' ? 's-membro-id' : 's-visitante');
+            }, 160);
+        };
 
-        const resultsEl = document.getElementById('search-results');
-        resultsEl.className = 'search-results show';
-        resultsEl.innerHTML = '<div class="searching-msg"><span class="spinner-inline"></span>A pesquisar...</div>';
 
-        try {
-            const enc = encodeURIComponent(`%${q}%`);
-            const data = await sb(
-                `membros?or=(nome.ilike.${enc},email.ilike.${enc},telefone.ilike.${enc},nif.ilike.${enc})&limit=8&select=id,nome,email,telefone,nif`,
-                { method: 'GET' }
-            );
-            _searchResults = data || [];
+        /* ══════════════════════════════════════
+           STEP 2M — MEMBRO: IDENTIFICAÇÃO
+        ══════════════════════════════════════ */
+        window.pesquisarMembro = async function () {
+            const q = (document.getElementById('search-input').value || '').trim();
+            if (!q) return;
 
-            if (!_searchResults.length) {
-                resultsEl.innerHTML = '<div class="result-empty">Nenhum membro encontrado com esses dados.</div>';
-                _naoEncontrado = true;
-                document.getElementById('not-found-block').style.display = 'block';
-                atualizarBotaoWa();
-                return;
-            }
+            _naoEncontrado = false;
+            _membro = null;
+            document.getElementById('membro-sel-wrap').style.display = 'none';
+            document.getElementById('not-found-block').style.display = 'none';
+            clearMsg('msg-membro-id');
 
-            resultsEl.innerHTML = _searchResults.map((m, idx) => `
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.className = 'search-results show';
+            resultsEl.innerHTML = '<div class="searching-msg"><span class="spinner-inline"></span>A pesquisar...</div>';
+
+            try {
+                const enc = encodeURIComponent(`%${q}%`);
+                const data = await sb(
+                    `membros?or=(nome.ilike.${enc},email.ilike.${enc},telefone.ilike.${enc},nif.ilike.${enc})&limit=8&select=id,nome,email,telefone,nif`,
+                    { method: 'GET' }
+                );
+                _searchResults = data || [];
+
+                if (!_searchResults.length) {
+                    resultsEl.innerHTML = '<div class="result-empty">Nenhum membro encontrado com esses dados.</div>';
+                    _naoEncontrado = true;
+                    document.getElementById('not-found-block').style.display = 'block';
+                    atualizarBotaoWa();
+                    return;
+                }
+
+                resultsEl.innerHTML = _searchResults.map((m, idx) => `
                 <div class="result-item" onclick="selecionarMembro(${idx})">
                     <div class="result-avatar">${iniciais(m.nome)}</div>
                     <div class="result-info">
@@ -890,264 +890,264 @@
                 </div>
             `).join('');
 
-        } catch (e) {
-            console.error(e);
-            resultsEl.innerHTML = '<div class="result-empty">Erro ao pesquisar. Verifica a ligacao e tenta novamente.</div>';
-        }
-    };
+            } catch (e) {
+                console.error(e);
+                resultsEl.innerHTML = '<div class="result-empty">Erro ao pesquisar. Verifica a ligacao e tenta novamente.</div>';
+            }
+        };
 
-    window.selecionarMembro = function (idx) {
-        const m = _searchResults[idx];
-        if (!m) return;
-        _membro = m;
-        _naoEncontrado = false;
+        window.selecionarMembro = function (idx) {
+            const m = _searchResults[idx];
+            if (!m) return;
+            _membro = m;
+            _naoEncontrado = false;
 
-        document.getElementById('search-results').className = 'search-results';
-        document.getElementById('not-found-block').style.display = 'none';
+            document.getElementById('search-results').className = 'search-results';
+            document.getElementById('not-found-block').style.display = 'none';
 
-        const wrap = document.getElementById('membro-sel-wrap');
-        wrap.style.display = 'block';
-        document.getElementById('sel-avatar').textContent = iniciais(m.nome);
-        document.getElementById('sel-nome').textContent   = m.nome || '–';
-        document.getElementById('sel-meta').textContent   =
-            [m.email, m.telefone].filter(Boolean).join(' · ') || 'Sem contacto';
+            const wrap = document.getElementById('membro-sel-wrap');
+            wrap.style.display = 'block';
+            document.getElementById('sel-avatar').textContent = iniciais(m.nome);
+            document.getElementById('sel-nome').textContent   = m.nome || '–';
+            document.getElementById('sel-meta').textContent   =
+                [m.email, m.telefone].filter(Boolean).join(' · ') || 'Sem contacto';
 
-        clearMsg('msg-membro-id');
-    };
+            clearMsg('msg-membro-id');
+        };
 
-    window.limparMembro = function () {
-        _membro = null;
-        document.getElementById('membro-sel-wrap').style.display = 'none';
-        document.getElementById('search-input').value = '';
-        document.getElementById('search-results').className = 'search-results';
-        _searchResults = [];
-    };
+        window.limparMembro = function () {
+            _membro = null;
+            document.getElementById('membro-sel-wrap').style.display = 'none';
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-results').className = 'search-results';
+            _searchResults = [];
+        };
 
-    window.atualizarBotaoWa = function () {
-        const nome = (document.getElementById('nf-nome')?.value || '').trim();
-        const tel  = limpaTel(document.getElementById('nf-telefone')?.value || '');
-        const btn  = document.getElementById('btn-wa');
-        if (!btn) return;
-
-        if (tel.length >= 9) {
-            const msg = encodeURIComponent(WA_MSG);
-            btn.href = `https://wa.me/${tel}?text=${msg}`;
-            btn.classList.remove('disabled');
-        } else {
-            btn.href = '#';
-            btn.classList.add('disabled');
-        }
-    };
-
-    function limpaTel(t) {
-        let d = t.replace(/\D/g, '');
-        if (d.startsWith('00')) d = d.slice(2);
-        if (!d.startsWith('351') && d.length <= 9) d = '351' + d;
-        return d;
-    }
-
-    window.avancarDeMembro = function () {
-        clearMsg('msg-membro-id');
-
-        if (_membro) {
-            irPara('s-membro-q');
-            return;
-        }
-
-        if (_naoEncontrado) {
+        window.atualizarBotaoWa = function () {
             const nome = (document.getElementById('nf-nome')?.value || '').trim();
-            const tel  = (document.getElementById('nf-telefone')?.value || '').trim();
-            if (!nome) {
-                setMsg('msg-membro-id', 'err', 'Preenche o nome antes de continuar.');
-                return;
+            const tel  = limpaTel(document.getElementById('nf-telefone')?.value || '');
+            const btn  = document.getElementById('btn-wa');
+            if (!btn) return;
+
+            if (tel.length >= 9) {
+                const msg = encodeURIComponent(WA_MSG);
+                btn.href = `https://wa.me/${tel}?text=${msg}`;
+                btn.classList.remove('disabled');
+            } else {
+                btn.href = '#';
+                btn.classList.add('disabled');
             }
-            if (!tel) {
-                setMsg('msg-membro-id', 'err', 'Preenche o telemovel antes de continuar.');
-                return;
-            }
-            irPara('s-membro-q');
-            return;
+        };
+
+        function limpaTel(t) {
+            let d = t.replace(/\D/g, '');
+            if (d.startsWith('00')) d = d.slice(2);
+            if (!d.startsWith('351') && d.length <= 9) d = '351' + d;
+            return d;
         }
 
-        setMsg('msg-membro-id', 'err', 'Pesquisa e seleciona o membro antes de continuar.');
-    };
-
-
-    /* ══════════════════════════════════════
-       STEP 3M — MEMBRO: AREAS (multi-select)
-    ══════════════════════════════════════ */
-    function renderAreas() {
-        const grid = document.getElementById('areas-grid');
-        if (!grid) return;
-        grid.innerHTML = AREAS.map(a => `
-            <div class="area-chip" data-value="${escHtml(a)}" onclick="toggleArea(this)">${escHtml(a)}</div>
-        `).join('');
-    }
-
-    window.toggleArea = function (el) {
-        const val = el.dataset.value;
-        if (_selectedAreas.has(val)) {
-            _selectedAreas.delete(val);
-            el.classList.remove('selected');
-        } else {
-            _selectedAreas.add(val);
-            el.classList.add('selected');
-        }
-        const count = document.getElementById('areas-count');
-        if (count) {
-            count.textContent = _selectedAreas.size === 0
-                ? 'Nenhuma area selecionada'
-                : `${_selectedAreas.size} area${_selectedAreas.size > 1 ? 's' : ''} selecionada${_selectedAreas.size > 1 ? 's' : ''}`;
-        }
-    };
-
-
-    /* ══════════════════════════════════════
-       STEP 2V — VISITANTE: CAMPOS CONDICIONAIS
-    ══════════════════════════════════════ */
-    window.toggleOutro = function (selectId, targetId) {
-        const val = document.getElementById(selectId)?.value;
-        const target = document.getElementById(targetId);
-        if (!target) return;
-        target.classList.toggle('show', val === 'Outro');
-    };
-
-    window.toggleIgreja = function () {
-        const val = document.getElementById('v-igreja')?.value;
-        const target = document.getElementById('v-igreja-nome');
-        if (!target) return;
-        target.classList.toggle('show', val === 'Sim');
-    };
-
-    function resolveSelect(selectId, outroWrapId) {
-        const sel = document.getElementById(selectId);
-        if (!sel) return '';
-        const val = sel.value;
-        if (val === 'Outro') {
-            const inp = document.querySelector(`#${outroWrapId} input`);
-            const txt = (inp?.value || '').trim();
-            return txt ? `Outro: ${txt}` : 'Outro';
-        }
-        return val;
-    }
-
-    function resolveIgreja() {
-        const val = document.getElementById('v-igreja')?.value || '';
-        if (val === 'Sim') {
-            const nome = (document.querySelector('#v-igreja-nome input')?.value || '').trim();
-            return nome ? `Sim: ${nome}` : 'Sim';
-        }
-        return val;
-    }
-
-
-    /* ══════════════════════════════════════
-       GUARDAR — MEMBRO
-    ══════════════════════════════════════ */
-    window.guardarMembro = async function () {
-        const ajuda = (document.getElementById('membro-ajuda')?.value || '').trim();
-        if (!ajuda) {
-            document.getElementById('membro-ajuda')?.classList.add('invalid');
-            setMsg('msg-membro-q', 'err', 'Descreve como podemos ajudar antes de guardar.');
-            return;
-        }
-        document.getElementById('membro-ajuda')?.classList.remove('invalid');
-        clearMsg('msg-membro-q');
-
-        const btn = document.getElementById('btn-guardar-membro');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-inline"></span>A guardar...';
-
-        try {
-            const patch = { tipo_pessoa: 'membro' };
+        window.avancarDeMembro = function () {
+            clearMsg('msg-membro-id');
 
             if (_membro) {
-                patch.membro_id   = _membro.id;
-                patch.nome_membro = _membro.nome;
+                irPara('s-membro-q');
+                return;
+            }
+
+            if (_naoEncontrado) {
+                const nome = (document.getElementById('nf-nome')?.value || '').trim();
+                const tel  = (document.getElementById('nf-telefone')?.value || '').trim();
+                if (!nome) {
+                    setMsg('msg-membro-id', 'err', 'Preenche o nome antes de continuar.');
+                    return;
+                }
+                if (!tel) {
+                    setMsg('msg-membro-id', 'err', 'Preenche o telemovel antes de continuar.');
+                    return;
+                }
+                irPara('s-membro-q');
+                return;
+            }
+
+            setMsg('msg-membro-id', 'err', 'Pesquisa e seleciona o membro antes de continuar.');
+        };
+
+
+        /* ══════════════════════════════════════
+           STEP 3M — MEMBRO: AREAS (multi-select)
+        ══════════════════════════════════════ */
+        function renderAreas() {
+            const grid = document.getElementById('areas-grid');
+            if (!grid) return;
+            grid.innerHTML = AREAS.map(a => `
+            <div class="area-chip" data-value="${escHtml(a)}" onclick="toggleArea(this)">${escHtml(a)}</div>
+        `).join('');
+        }
+
+        window.toggleArea = function (el) {
+            const val = el.dataset.value;
+            if (_selectedAreas.has(val)) {
+                _selectedAreas.delete(val);
+                el.classList.remove('selected');
             } else {
-                // Nao encontrado: usar dados manuais
-                patch.nome     = (document.getElementById('nf-nome')?.value || '').trim() || null;
-                patch.telefone = (document.getElementById('nf-telefone')?.value || '').trim() || null;
+                _selectedAreas.add(val);
+                el.classList.add('selected');
             }
-
-            if (_selectedAreas.size) {
-                patch.pergunta1 = [..._selectedAreas].join(', ');
+            const count = document.getElementById('areas-count');
+            if (count) {
+                count.textContent = _selectedAreas.size === 0
+                    ? 'Nenhuma area selecionada'
+                    : `${_selectedAreas.size} area${_selectedAreas.size > 1 ? 's' : ''} selecionada${_selectedAreas.size > 1 ? 's' : ''}`;
             }
-            patch.duvida = ajuda;
+        };
 
-            await sbRpc('registar_atendimento_hub', patch);
 
-            const nome = _membro?.nome || (document.getElementById('nf-nome')?.value || '').trim() || 'O membro';
-            mostrarSucesso(nome, 'Membro', patch.pergunta1 || '—');
+        /* ══════════════════════════════════════
+           STEP 2V — VISITANTE: CAMPOS CONDICIONAIS
+        ══════════════════════════════════════ */
+        window.toggleOutro = function (selectId, targetId) {
+            const val = document.getElementById(selectId)?.value;
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            target.classList.toggle('show', val === 'Outro');
+        };
 
-        } catch (e) {
-            console.error(e);
-            setMsg('msg-membro-q', 'err', 'Erro ao guardar. Verifica a ligacao e tenta novamente.');
-            btn.disabled = false;
-            btn.textContent = 'Guardar Registo';
+        window.toggleIgreja = function () {
+            const val = document.getElementById('v-igreja')?.value;
+            const target = document.getElementById('v-igreja-nome');
+            if (!target) return;
+            target.classList.toggle('show', val === 'Sim');
+        };
+
+        function resolveSelect(selectId, outroWrapId) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return '';
+            const val = sel.value;
+            if (val === 'Outro') {
+                const inp = document.querySelector(`#${outroWrapId} input`);
+                const txt = (inp?.value || '').trim();
+                return txt ? `Outro: ${txt}` : 'Outro';
+            }
+            return val;
         }
-    };
 
-
-    /* ══════════════════════════════════════
-       GUARDAR — VISITANTE
-    ══════════════════════════════════════ */
-    window.guardarVisitante = async function () {
-        const nome = (document.getElementById('v-nome')?.value || '').trim();
-        const tel  = (document.getElementById('v-tel')?.value || '').trim();
-        const ajuda = (document.getElementById('v-ajuda')?.value || '').trim();
-
-        let err = null;
-        if (!nome) err = 'O nome do visitante e obrigatorio.';
-        else if (!tel) err = 'O telemovel e obrigatorio.';
-        else if (!ajuda) err = 'Descreve como o HUB pode ajudar antes de guardar.';
-
-        if (err) {
-            setMsg('msg-visitante', 'err', err);
-            return;
+        function resolveIgreja() {
+            const val = document.getElementById('v-igreja')?.value || '';
+            if (val === 'Sim') {
+                const nome = (document.querySelector('#v-igreja-nome input')?.value || '').trim();
+                return nome ? `Sim: ${nome}` : 'Sim';
+            }
+            return val;
         }
-        clearMsg('msg-visitante');
-
-        const btn = document.getElementById('btn-guardar-visitante');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-inline"></span>A guardar...';
-
-        try {
-            const patch = {
-                tipo_pessoa: 'visitante',
-                nome,
-                telefone:  tel,
-                morada:    (document.getElementById('v-cidade')?.value || '').trim() || null,
-                pergunta1: document.getElementById('v-primeira')?.value || null,
-                pergunta2: resolveSelect('v-conheceu', 'v-conheceu-outro') || null,
-                pergunta3: resolveSelect('v-acomp', 'v-acomp-outro') || null,
-                pergunta4: resolveIgreja() || null,
-                pergunta5: document.getElementById('v-faixa')?.value || null,
-                pergunta6: (document.getElementById('v-oracao')?.value || '').trim() || null,
-                duvida:    ajuda,
-            };
-
-            await sbRpc('registar_atendimento_hub', patch);
-
-            mostrarSucesso(nome, 'Visitante', patch.duvida);
-
-        } catch (e) {
-            console.error(e);
-            setMsg('msg-visitante', 'err', 'Erro ao guardar. Verifica a ligacao e tenta novamente.');
-            btn.disabled = false;
-            btn.textContent = 'Guardar Registo';
-        }
-    };
 
 
-    /* ══════════════════════════════════════
-       SUCESSO
-    ══════════════════════════════════════ */
-    function mostrarSucesso(nome, tipo, detalhe) {
-        document.getElementById('success-msg').innerHTML =
-            `<span class="success-name">${escHtml(nome)}</span> foi atendido/a com sucesso.`;
+        /* ══════════════════════════════════════
+           GUARDAR — MEMBRO
+        ══════════════════════════════════════ */
+        window.guardarMembro = async function () {
+            const ajuda = (document.getElementById('membro-ajuda')?.value || '').trim();
+            if (!ajuda) {
+                document.getElementById('membro-ajuda')?.classList.add('invalid');
+                setMsg('msg-membro-q', 'err', 'Descreve como podemos ajudar antes de guardar.');
+                return;
+            }
+            document.getElementById('membro-ajuda')?.classList.remove('invalid');
+            clearMsg('msg-membro-q');
 
-        document.getElementById('success-detail').innerHTML = `
+            const btn = document.getElementById('btn-guardar-membro');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-inline"></span>A guardar...';
+
+            try {
+                const patch = { tipo_pessoa: 'membro' };
+
+                if (_membro) {
+                    patch.membro_id   = _membro.id;
+                    patch.nome_membro = _membro.nome;
+                } else {
+                    // Nao encontrado: usar dados manuais
+                    patch.nome     = (document.getElementById('nf-nome')?.value || '').trim() || null;
+                    patch.telefone = (document.getElementById('nf-telefone')?.value || '').trim() || null;
+                }
+
+                if (_selectedAreas.size) {
+                    patch.pergunta1 = [..._selectedAreas].join(', ');
+                }
+                patch.duvida = ajuda;
+
+                await sbRpc('registar_atendimento_hub', patch);
+
+                const nome = _membro?.nome || (document.getElementById('nf-nome')?.value || '').trim() || 'O membro';
+                mostrarSucesso(nome, 'Membro', patch.pergunta1 || '—');
+
+            } catch (e) {
+                console.error(e);
+                setMsg('msg-membro-q', 'err', 'Erro ao guardar. Verifica a ligacao e tenta novamente.');
+                btn.disabled = false;
+                btn.textContent = 'Guardar Registo';
+            }
+        };
+
+
+        /* ══════════════════════════════════════
+           GUARDAR — VISITANTE
+        ══════════════════════════════════════ */
+        window.guardarVisitante = async function () {
+            const nome = (document.getElementById('v-nome')?.value || '').trim();
+            const tel  = (document.getElementById('v-tel')?.value || '').trim();
+            const ajuda = (document.getElementById('v-ajuda')?.value || '').trim();
+
+            let err = null;
+            if (!nome) err = 'O nome do visitante e obrigatorio.';
+            else if (!tel) err = 'O telemovel e obrigatorio.';
+            else if (!ajuda) err = 'Descreve como o HUB pode ajudar antes de guardar.';
+
+            if (err) {
+                setMsg('msg-visitante', 'err', err);
+                return;
+            }
+            clearMsg('msg-visitante');
+
+            const btn = document.getElementById('btn-guardar-visitante');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-inline"></span>A guardar...';
+
+            try {
+                const patch = {
+                    tipo_pessoa: 'visitante',
+                    nome,
+                    telefone:  tel,
+                    morada:    (document.getElementById('v-cidade')?.value || '').trim() || null,
+                    pergunta1: document.getElementById('v-primeira')?.value || null,
+                    pergunta2: resolveSelect('v-conheceu', 'v-conheceu-outro') || null,
+                    pergunta3: resolveSelect('v-acomp', 'v-acomp-outro') || null,
+                    pergunta4: resolveIgreja() || null,
+                    pergunta5: document.getElementById('v-faixa')?.value || null,
+                    pergunta6: (document.getElementById('v-oracao')?.value || '').trim() || null,
+                    duvida:    ajuda,
+                };
+
+                await sbRpc('registar_atendimento_hub', patch);
+
+                mostrarSucesso(nome, 'Visitante', patch.duvida);
+
+            } catch (e) {
+                console.error(e);
+                setMsg('msg-visitante', 'err', 'Erro ao guardar. Verifica a ligacao e tenta novamente.');
+                btn.disabled = false;
+                btn.textContent = 'Guardar Registo';
+            }
+        };
+
+
+        /* ══════════════════════════════════════
+           SUCESSO
+        ══════════════════════════════════════ */
+        function mostrarSucesso(nome, tipo, detalhe) {
+            document.getElementById('success-msg').innerHTML =
+                `<span class="success-name">${escHtml(nome)}</span> foi atendido/a com sucesso.`;
+
+            document.getElementById('success-detail').innerHTML = `
             <div class="success-detail-row">
                 <span class="success-detail-lbl">Tipo de pessoa</span>
                 <span class="success-detail-val">${escHtml(tipo)}</span>
@@ -1162,161 +1162,160 @@
             </div>
         `;
 
-        irPara('s-sucesso');
-    }
+            irPara('s-sucesso');
+        }
 
 
-    /* ══════════════════════════════════════
-       NOVO ATENDIMENTO
-    ══════════════════════════════════════ */
-    window.novoAtendimento = function () {
-        _tipo          = null;
-        _membro        = null;
-        _naoEncontrado = false;
-        _searchResults = [];
-        _selectedAreas = new Set();
+        /* ══════════════════════════════════════
+           NOVO ATENDIMENTO
+        ══════════════════════════════════════ */
+        window.novoAtendimento = function () {
+            _tipo          = null;
+            _membro        = null;
+            _naoEncontrado = false;
+            _searchResults = [];
+            _selectedAreas = new Set();
 
-        // Reset UI
-        document.querySelectorAll('input:not([type=hidden]), select, textarea').forEach(el => {
-            el.value = ''; el.classList.remove('invalid');
-        });
-        ['tc-membro','tc-visitante'].forEach(id => {
-            document.getElementById(id)?.classList.remove('selected');
-        });
-        document.querySelectorAll('.area-chip').forEach(c => c.classList.remove('selected'));
-        const cnt = document.getElementById('areas-count');
-        if (cnt) cnt.textContent = 'Nenhuma area selecionada';
+            // Reset UI
+            document.querySelectorAll('input:not([type=hidden]), select, textarea').forEach(el => {
+                el.value = ''; el.classList.remove('invalid');
+            });
+            ['tc-membro','tc-visitante'].forEach(id => {
+                document.getElementById(id)?.classList.remove('selected');
+            });
+            document.querySelectorAll('.area-chip').forEach(c => c.classList.remove('selected'));
+            const cnt = document.getElementById('areas-count');
+            if (cnt) cnt.textContent = 'Nenhuma area selecionada';
 
-        document.getElementById('membro-sel-wrap').style.display  = 'none';
-        document.getElementById('not-found-block').style.display  = 'none';
-        document.getElementById('search-results').className = 'search-results';
+            document.getElementById('membro-sel-wrap').style.display  = 'none';
+            document.getElementById('not-found-block').style.display  = 'none';
+            document.getElementById('search-results').className = 'search-results';
 
-        document.querySelectorAll('.field-hidden').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('.field-hidden').forEach(el => el.classList.remove('show'));
 
-        ['msg-tipo','msg-membro-id','msg-membro-q','msg-visitante'].forEach(clearMsg);
+            ['msg-tipo','msg-membro-id','msg-membro-q','msg-visitante'].forEach(clearMsg);
 
-        // Reset buttons
-        const bm = document.getElementById('btn-guardar-membro');
-        const bv = document.getElementById('btn-guardar-visitante');
-        if (bm) { bm.disabled = false; bm.textContent = 'Guardar Registo'; }
-        if (bv) { bv.disabled = false; bv.textContent = 'Guardar Registo'; }
+            // Reset buttons
+            const bm = document.getElementById('btn-guardar-membro');
+            const bv = document.getElementById('btn-guardar-visitante');
+            if (bm) { bm.disabled = false; bm.textContent = 'Guardar Registo'; }
+            if (bv) { bv.disabled = false; bv.textContent = 'Guardar Registo'; }
 
-        irPara('s-tipo');
-    };
+            irPara('s-tipo');
+        };
 
 
-    /* ══════════════════════════════════════
-       PROGRESS BAR
-    ══════════════════════════════════════ */
-    function atualizarProgress() {
-        const wrap = document.getElementById('progress-wrap');
-        if (_currentScreen === 's-sucesso') { wrap.style.display = 'none'; return; }
-        wrap.style.display = '';
+        /* ══════════════════════════════════════
+           PROGRESS BAR
+        ══════════════════════════════════════ */
+        function atualizarProgress() {
+            const wrap = document.getElementById('progress-wrap');
+            if (_currentScreen === 's-sucesso') { wrap.style.display = 'none'; return; }
+            wrap.style.display = '';
 
-        const fluxo = _tipo || 'membro';
-        const steps = PROGRESS[fluxo];
-        const idxMap = SCREEN_IDX[fluxo] || {};
-        const currentIdx = idxMap[_currentScreen] || 1;
+            const fluxo = _tipo || 'membro';
+            const steps = PROGRESS[fluxo];
+            const idxMap = SCREEN_IDX[fluxo] || {};
+            const currentIdx = idxMap[_currentScreen] || 1;
 
-        renderProgress(fluxo, currentIdx);
-    }
+            renderProgress(fluxo, currentIdx);
+        }
 
-    function renderProgress(fluxo, currentIdx) {
-        const steps = PROGRESS[fluxo];
-        const stepsEl = document.getElementById('progress-steps');
-        if (!stepsEl) return;
+        function renderProgress(fluxo, currentIdx) {
+            const steps = PROGRESS[fluxo];
+            const stepsEl = document.getElementById('progress-steps');
+            if (!stepsEl) return;
 
-        let html = '';
-        steps.forEach((s, i) => {
-            const n = i + 1;
-            const isDone   = n < currentIdx;
-            const isActive = n === currentIdx;
-            const dotClass = isDone ? 'done' : isActive ? 'active' : '';
-            const stepClass= isDone ? 'done' : isActive ? 'active' : '';
-            const dotContent = isDone ? '&#10003;' : n;
+            let html = '';
+            steps.forEach((s, i) => {
+                const n = i + 1;
+                const isDone   = n < currentIdx;
+                const isActive = n === currentIdx;
+                const dotClass = isDone ? 'done' : isActive ? 'active' : '';
+                const stepClass= isDone ? 'done' : isActive ? 'active' : '';
+                const dotContent = isDone ? '&#10003;' : n;
 
-            html += `
+                html += `
                 <div class="progress-step ${stepClass}">
                     <div class="progress-step-dot ${dotClass}">${dotContent}</div>
                     <div class="progress-step-label">${s.lbl}</div>
                 </div>
             `;
-            if (i < steps.length - 1) {
-                html += `<div class="progress-line${isDone ? ' done' : ''}"></div>`;
-            }
-        });
-        stepsEl.innerHTML = html;
-    }
+                if (i < steps.length - 1) {
+                    html += `<div class="progress-line${isDone ? ' done' : ''}"></div>`;
+                }
+            });
+            stepsEl.innerHTML = html;
+        }
 
 
-    /* ══════════════════════════════════════
-       UTILS
-    ══════════════════════════════════════ */
-    async function sb(path, opts = {}) {
-        const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-            ...opts,
-            headers: {
-                apikey: SB_KEY,
-                Authorization: `Bearer ${SB_KEY}`,
-                'Content-Type': 'application/json',
-                Prefer: 'return=representation',
-                ...(opts.headers || {}),
-            },
-        });
-        if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
-        const t = await r.text(); return t ? JSON.parse(t) : [];
-    }
+        /* ══════════════════════════════════════
+           UTILS
+        ══════════════════════════════════════ */
+        async function sb(path, opts = {}) {
+            const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+                ...opts,
+                headers: {
+                    apikey: SB_KEY,
+                    Authorization: `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation',
+                    ...(opts.headers || {}),
+                },
+            });
+            if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
+            const t = await r.text(); return t ? JSON.parse(t) : [];
+        }
+        
+        async function sbRpc(fn, params) {
+            const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+                method: 'POST',
+                headers: {
+                    apikey: SB_KEY,
+                    Authorization: `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ payload: params }),
+            });
+            if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
+            const t = await r.text(); return t ? JSON.parse(t) : null;
+        }
 
-    /* Chama uma função RPC (SECURITY DEFINER) — contorna o RLS */
-    async function sbRpc(fn, params) {
-        const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
-            method: 'POST',
-            headers: {
-                apikey: SB_KEY,
-                Authorization: `Bearer ${SB_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(params),
-        });
-        if (!r.ok) { const e = await r.json().catch(() => ({})); throw e; }
-        const t = await r.text(); return t ? JSON.parse(t) : null;
-    }
+        function iniciais(nome) {
+            if (!nome) return '?';
+            const p = nome.trim().split(' ').filter(Boolean);
+            if (p.length >= 2) return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+            return p[0].slice(0, 2).toUpperCase();
+        }
 
-    function iniciais(nome) {
-        if (!nome) return '?';
-        const p = nome.trim().split(' ').filter(Boolean);
-        if (p.length >= 2) return (p[0][0] + p[p.length - 1][0]).toUpperCase();
-        return p[0].slice(0, 2).toUpperCase();
-    }
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
 
-    function escHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+        function setMsg(id, tipo, txt) {
+            const e = document.getElementById(id); if (!e) return;
+            e.textContent = txt; e.className = 'msg show ' + tipo;
+        }
+        function clearMsg(id) {
+            const e = document.getElementById(id); if (!e) return;
+            e.textContent = ''; e.className = 'msg';
+        }
 
-    function setMsg(id, tipo, txt) {
-        const e = document.getElementById(id); if (!e) return;
-        e.textContent = txt; e.className = 'msg show ' + tipo;
-    }
-    function clearMsg(id) {
-        const e = document.getElementById(id); if (!e) return;
-        e.textContent = ''; e.className = 'msg';
-    }
+        init();
 
-    init();
-
-})();
+    })();
 </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(r => console.log('SW registado:', r.scope))
-            .catch(e => console.error('SW erro:', e));
-    });
-}
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(r => console.log('SW registado:', r.scope))
+                .catch(e => console.error('SW erro:', e));
+        });
+    }
 </script>
 
 </body>

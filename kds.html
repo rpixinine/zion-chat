@@ -890,6 +890,37 @@
     setInterval(verificarSinais, 3000);
     verificarSinais();
 
+    // ── Verificar URL remota do YouTube ──
+    let _ytUrlRemota = null;
+
+    async function verificarYtConfig() {
+        try {
+            const res = await sb('kds_config?id=eq.singleton&select=yt_url,updated_at');
+            if (!res.length) return;
+            const novaUrl = res[0].yt_url || null;
+            if (novaUrl === _ytUrlRemota) return; // sem mudança
+            _ytUrlRemota = novaUrl;
+
+            const frame = document.getElementById('yt-frame');
+            if (novaUrl) {
+                // Extrai o ID do URL do YouTube
+                const match = novaUrl.match(/(?:v=|youtu\.be\/)([^&\?\/]+)/);
+                if (match) {
+                    const id = match[1];
+                    frame.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=${ytMuted ? 1 : 0}&controls=0&rel=0&modestbranding=1`;
+                    showToast('▶ A transmitir culto ao vivo');
+                }
+            } else {
+                // Volta ao canal normal
+                ytCanalIdx = 0;
+                frame.src = ytSrc();
+            }
+        } catch(e) {}
+    }
+
+    setInterval(verificarYtConfig, 10000); // verifica a cada 10 segundos
+    verificarYtConfig();
+
     // ── Arranque ──
     carregar();
     setInterval(carregar, 8000);

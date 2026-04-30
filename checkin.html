@@ -912,12 +912,19 @@
         });
     }
 
-    function hojeISO() { return new Date().toISOString().split('T')[0]; }
+    function hojeISO() {
+        const d = new Date();
+        return d.getFullYear() + '-'
+            + String(d.getMonth() + 1).padStart(2, '0') + '-'
+            + String(d.getDate()).padStart(2, '0');
+    }
 
     function addDias(iso, n) {
-        const d = new Date(iso + 'T00:00:00');
-        d.setDate(d.getDate() + n);
-        return d.toISOString().split('T')[0];
+        const [y, m, day] = iso.split('-').map(Number);
+        const d = new Date(y, m - 1, day + n);
+        return d.getFullYear() + '-'
+            + String(d.getMonth() + 1).padStart(2, '0') + '-'
+            + String(d.getDate()).padStart(2, '0');
     }
 
     function addMeses(ymStr, n) {
@@ -1026,7 +1033,7 @@
                 ),
                 sb(
                     `ministerio_checkin?ministerio_id=eq.${CI.ministerioId}` +
-                    `&data=gte.${hoje}&data=lte.${addDias(hoje,PRE_CHECKIN_DIAS)}&select=id,membro_id,culto_id,data,status`
+                    `&data=gte.${hoje}&data=lte.${addDias(hoje,30)}&select=id,membro_id,culto_id,data,status`
                 ).catch(() => []),
                 /* membros do ministério */
                 sb(
@@ -1793,7 +1800,7 @@
             if (b) { b.disabled = false; b.textContent = 'Confirmar que estarei presente'; }
         }
     }
-    
+
     /* ═══════════════════════════════════════════
        TELAS DE SUCESSO
     ═══════════════════════════════════════════ */
@@ -1842,11 +1849,14 @@
 
     /* ── semana ISO (segunda-feira) ── */
     function semanaISO(iso) {
-        const d = new Date(iso + 'T00:00:00');
-        const dow = d.getDay(); // 0 = dom
+        const [y, m, day] = iso.split('-').map(Number);
+        const d = new Date(y, m - 1, day);
+        const dow  = d.getDay();
         const diff = dow === 0 ? -6 : 1 - dow;
-        const seg = new Date(d); seg.setDate(d.getDate() + diff);
-        return seg.toISOString().split('T')[0];
+        const seg  = new Date(y, m - 1, day + diff);
+        return seg.getFullYear() + '-'
+            + String(seg.getMonth() + 1).padStart(2, '0') + '-'
+            + String(seg.getDate()).padStart(2, '0');
     }
 
     function semanaLabel(mondayISO) {

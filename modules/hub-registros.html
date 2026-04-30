@@ -1,0 +1,1070 @@
+<style>
+  /* ══════════════════════════════════════════════════════
+     HUB REGISTROS MODULE
+  ══════════════════════════════════════════════════════ */
+  .hrg-page { display:flex; height:100%; overflow:hidden; }
+
+  /* ── SIDEBAR ── */
+  .hrg-side {
+    width:260px; min-width:220px; flex-shrink:0;
+    background:var(--bg-card); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .hrg-side-hd {
+    padding:10px 12px 8px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:6px; flex-shrink:0;
+  }
+  .hrg-side-title {
+    font-family:var(--font-title); font-size:9px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--text-faint); flex:1;
+  }
+  .hrg-filters { flex:1; overflow-y:auto; padding:10px 12px; display:flex; flex-direction:column; gap:12px; }
+
+  .hrg-fg { }
+  .hrg-fg-lbl {
+    font-family:var(--font-title); font-size:8px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--text-faint); margin-bottom:5px; display:block;
+  }
+  .hrg-fg input, .hrg-fg select {
+    width:100%; padding:7px 9px; border-radius:7px;
+    border:1px solid var(--border); background:var(--bg-input);
+    color:var(--text-main); font-size:12px; outline:none; transition:border-color .12s;
+  }
+  .hrg-fg input:focus, .hrg-fg select:focus { border-color:var(--primary); }
+  .hrg-fg select option { background:var(--bg-card); }
+
+  .hrg-quick-dates { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+  .hrg-qd {
+    padding:3px 9px; border-radius:20px; font-size:9px; font-family:var(--font-title);
+    letter-spacing:0.5px; cursor:pointer; border:1px solid var(--border);
+    background:var(--bg-input); color:var(--text-faint); transition:all .12s;
+  }
+  .hrg-qd:hover, .hrg-qd.on { background:var(--primary); color:white; border-color:var(--primary); }
+
+  .hrg-tipo-btns { display:flex; gap:4px; }
+  .hrg-tb {
+    flex:1; padding:5px 4px; border-radius:6px; border:1px solid var(--border);
+    background:var(--bg-input); color:var(--text-faint);
+    font-family:var(--font-title); font-size:9px; letter-spacing:0.3px;
+    cursor:pointer; transition:all .12s; text-align:center;
+  }
+  .hrg-tb:hover { border-color:var(--primary); color:var(--primary-dark); }
+  .hrg-tb.on    { background:var(--primary); color:white; border-color:var(--primary); }
+
+  .hrg-sep { border:none; border-top:1px solid var(--border); margin:4px 0; }
+
+  /* ── CONTENT ── */
+  .hrg-content { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+  .hrg-top-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 16px; border-bottom:1px solid var(--border);
+    background:var(--bg-card); flex-shrink:0; flex-wrap:wrap; gap:8px;
+  }
+
+  .hrg-stats { display:flex; gap:8px; padding:10px 16px; border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap; background:var(--bg-card); }
+  .hrg-stat  { flex:1; min-width:60px; background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius); padding:8px 10px; text-align:center; }
+  .hrg-stat-n { font-family:var(--font-title); font-size:18px; color:var(--primary-dark); }
+  .hrg-stat-l { font-size:8px; font-family:var(--font-title); letter-spacing:1px; color:var(--text-faint); margin-top:2px; }
+
+  /* ── TABS ── */
+  .hrg-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg-card); flex-shrink:0; }
+  .hrg-tab {
+    padding:9px 16px; font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--text-faint); cursor:pointer;
+    border-bottom:2px solid transparent; transition:all .12s;
+  }
+  .hrg-tab:hover  { color:var(--primary-dark); }
+  .hrg-tab.active { color:var(--primary-dark); border-bottom-color:var(--primary); }
+  .hrg-tab-pane   { display:none; flex:1; overflow-y:auto; }
+  .hrg-tab-pane.active { display:block; }
+
+  /* ── TABLE ── */
+  .hrg-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .hrg-table th {
+    font-family:var(--font-title); font-size:8px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--border);
+    text-align:left; white-space:nowrap; background:var(--bg-panel);
+    position:sticky; top:0; z-index:1;
+  }
+  .hrg-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .hrg-table tr:hover td { background:var(--bg-panel); cursor:pointer; }
+  .hrg-table .tc { text-align:center; }
+
+  /* ── BADGES ── */
+  .hbadge { padding:2px 8px; border-radius:20px; font-size:9px; font-family:var(--font-title); letter-spacing:0.3px; display:inline-block; white-space:nowrap; }
+  .hb-m { background:rgba(0,144,152,.12); color:#009098; }
+  .hb-v { background:rgba(155,89,182,.12); color:#9b59b6; }
+  .hb-ret { background:rgba(243,156,18,.12); color:#f39c12; font-weight:700; }
+
+  /* ── AVATAR ── */
+  .hrg-av {
+    width:30px; height:30px; border-radius:50%; object-fit:cover;
+    border:1px solid var(--border); flex-shrink:0; vertical-align:middle;
+  }
+  .hrg-av-ph {
+    width:30px; height:30px; border-radius:50%; background:var(--primary-faint);
+    border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center;
+    font-family:var(--font-title); font-size:11px; color:var(--primary-dark); flex-shrink:0;
+    vertical-align:middle;
+  }
+
+  /* ── WA LINK ── */
+  .hrg-wa {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:50%;
+    background:rgba(37,211,102,.15); text-decoration:none; flex-shrink:0;
+    vertical-align:middle; margin-left:4px;
+  }
+
+  /* ── RETORNOS ── */
+  .hrg-ret-card { border:1px solid var(--border); border-radius:10px; background:var(--bg-card); overflow:hidden; margin:8px 16px; }
+  .hrg-ret-hd   { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; transition:background .12s; }
+  .hrg-ret-hd:hover { background:var(--bg-panel); }
+  .hrg-ret-body { border-top:1px solid var(--border); display:none; }
+  .hrg-ret-body.open { display:block; }
+  .hrg-ret-row  { padding:8px 14px 8px 44px; display:flex; align-items:flex-start; gap:10px; border-bottom:1px solid var(--border); font-size:12px; }
+  .hrg-ret-row:last-child { border-bottom:none; }
+
+  /* ── CHARTS ── */
+  .hrg-chart-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; padding:16px; }
+  .hrg-chart-box  { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .hrg-chart-ttl  { font-family:var(--font-title); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint); margin-bottom:12px; }
+  .hrg-chart-inner{ display:flex; align-items:center; gap:12px; }
+  .hrg-legend     { display:flex; flex-direction:column; gap:5px; flex:1; min-width:0; }
+  .hrg-leg-item   { display:flex; align-items:center; gap:6px; font-size:11px; }
+  .hrg-leg-dot    { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+  .hrg-leg-lbl    { flex:1; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hrg-leg-val    { color:var(--text-main); font-weight:600; font-size:10px; }
+  .hrg-leg-pct    { color:var(--text-faint); font-size:9px; }
+
+  /* ── MODAL ── */
+  .hrg-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:300; align-items:center; justify-content:center; overflow-y:auto; padding:20px; }
+  .hrg-modal-box { background:var(--bg-card); border-radius:var(--radius); padding:24px; width:580px; max-width:96vw; box-shadow:var(--shadow-md); max-height:90vh; overflow-y:auto; }
+  .hrg-detail-row { display:flex; gap:10px; margin-bottom:8px; }
+  .hrg-detail-lbl { min-width:160px; font-family:var(--font-title); font-size:8px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); padding-top:2px; flex-shrink:0; }
+  .hrg-detail-val { flex:1; font-size:12px; color:var(--text-main); line-height:1.5; }
+
+  .hrg-empty { display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-faint); font-size:12px; font-style:italic; }
+
+  @media(max-width:700px) {
+    .hrg-side { display:none; }
+    .hrg-chart-grid { grid-template-columns:1fr; }
+  }
+</style>
+
+<!-- ══ HUB REGISTROS PAGE ══ -->
+<div class="hrg-page">
+
+  <!-- SIDEBAR -->
+  <div class="hrg-side">
+    <div class="hrg-side-hd">
+      <div class="hrg-side-title">HUB · Filtros</div>
+      <button class="btn-icon" onclick="hrg_carregar()" title="Recarregar">↺</button>
+    </div>
+
+    <div class="hrg-filters">
+
+      <!-- Datas rápidas -->
+      <div class="hrg-fg">
+        <span class="hrg-fg-lbl">Período</span>
+        <div class="hrg-quick-dates">
+          <span class="hrg-qd" onclick="hrg_quickDate('hoje',this)">Hoje</span>
+          <span class="hrg-qd" onclick="hrg_quickDate('semana',this)">Semana</span>
+          <span class="hrg-qd on" onclick="hrg_quickDate('mes',this)">Mês</span>
+          <span class="hrg-qd" onclick="hrg_quickDate('tudo',this)">Tudo</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div>
+            <span class="hrg-fg-lbl">De</span>
+            <input type="date" id="hrg-f-de" onchange="hrg_aplicar()">
+          </div>
+          <div>
+            <span class="hrg-fg-lbl">Até</span>
+            <input type="date" id="hrg-f-ate" onchange="hrg_aplicar()">
+          </div>
+        </div>
+      </div>
+
+      <hr class="hrg-sep">
+
+      <!-- Tipo -->
+      <div class="hrg-fg">
+        <span class="hrg-fg-lbl">Tipo de Pessoa</span>
+        <div class="hrg-tipo-btns">
+          <div class="hrg-tb on"  onclick="hrg_setTipo('',this)">Todos</div>
+          <div class="hrg-tb"     onclick="hrg_setTipo('membro',this)">Membro</div>
+          <div class="hrg-tb"     onclick="hrg_setTipo('visitante',this)">Visitante</div>
+        </div>
+      </div>
+
+      <hr class="hrg-sep">
+
+      <!-- Nome -->
+      <div class="hrg-fg">
+        <span class="hrg-fg-lbl">Nome</span>
+        <input type="text" id="hrg-f-nome" placeholder="Filtrar por nome..." oninput="hrg_aplicar()">
+      </div>
+
+      <hr class="hrg-sep">
+
+      <!-- Perguntas Visitante -->
+      <div id="hrg-pv-wrap">
+        <span class="hrg-fg-lbl" style="margin-bottom:8px;display:block;color:var(--primary-dark)">Perguntas — Visitante</span>
+
+        <div class="hrg-fg" style="margin-bottom:8px">
+          <span class="hrg-fg-lbl">Primeira vez?</span>
+          <select id="hrg-f-p1" onchange="hrg_aplicar()">
+            <option value="">Todos</option>
+            <option>Sim</option>
+            <option>Nao</option>
+          </select>
+        </div>
+        <div class="hrg-fg" style="margin-bottom:8px">
+          <span class="hrg-fg-lbl">Como conheceu</span>
+          <select id="hrg-f-p2" onchange="hrg_aplicar()">
+            <option value="">Todos</option>
+            <option>Redes Sociais</option>
+            <option>Convite de Amigos ou Familia</option>
+            <option>Eventos da Zion ou Dunamis</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div class="hrg-fg" style="margin-bottom:8px">
+          <span class="hrg-fg-lbl">Veio acompanhado</span>
+          <select id="hrg-f-p3" onchange="hrg_aplicar()">
+            <option value="">Todos</option>
+            <option>Nao</option>
+            <option>Sim, Amigos</option>
+            <option>Sim, Conjuge</option>
+            <option>Sim, filhos Lumen</option>
+            <option>Sim, filhos Geracionais</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div class="hrg-fg" style="margin-bottom:8px">
+          <span class="hrg-fg-lbl">Faixa etária</span>
+          <select id="hrg-f-p5" onchange="hrg_aplicar()">
+            <option value="">Todas</option>
+            <option>18-25 anos</option>
+            <option>26-35 anos</option>
+            <option>36-45 anos</option>
+            <option>46-55 anos</option>
+            <option>56+</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="hrg-sep">
+
+      <!-- Perguntas Membro -->
+      <div id="hrg-pm-wrap">
+        <span class="hrg-fg-lbl" style="margin-bottom:8px;display:block;color:var(--primary-dark)">Perguntas — Membro</span>
+        <div class="hrg-fg">
+          <span class="hrg-fg-lbl">Área da Igreja</span>
+          <select id="hrg-f-area" onchange="hrg_aplicar()">
+            <option value="">Todas</option>
+            <option>Alcance</option>
+            <option>Altomonte</option>
+            <option>Areas Executivas</option>
+            <option>Escola Zao</option>
+            <option>Flow</option>
+            <option>Intercessao</option>
+            <option>Jornada</option>
+            <option>Links</option>
+            <option>Lumen</option>
+            <option>Ministracao</option>
+            <option>Raizes</option>
+            <option>Rise</option>
+            <option>Vox</option>
+          </select>
+        </div>
+      </div>
+
+    </div><!-- /hrg-filters -->
+  </div><!-- /hrg-side -->
+
+  <!-- CONTENT -->
+  <div class="hrg-content">
+
+    <!-- TOP BAR -->
+    <div class="hrg-top-bar">
+      <div>
+        <div style="font-family:var(--font-title);font-size:13px;color:var(--primary-dark)">HUB — Registros e Retornos</div>
+        <div style="font-size:10px;color:var(--text-faint);margin-top:2px" id="hrg-periodo-lbl"></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" onclick="hrg_exportPDF()">PDF / Imprimir</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="hrg-stats">
+      <div class="hrg-stat"><div class="hrg-stat-n" id="hs-total">–</div><div class="hrg-stat-l">REGISTROS</div></div>
+      <div class="hrg-stat" style="border-color:rgba(0,144,152,.3)"><div class="hrg-stat-n" id="hs-membros" style="color:#009098">–</div><div class="hrg-stat-l">MEMBROS</div></div>
+      <div class="hrg-stat" style="border-color:rgba(155,89,182,.3)"><div class="hrg-stat-n" id="hs-visitantes" style="color:#9b59b6">–</div><div class="hrg-stat-l">VISITANTES</div></div>
+      <div class="hrg-stat" style="border-color:rgba(243,156,18,.3)"><div class="hrg-stat-n" id="hs-retornos" style="color:#f39c12">–</div><div class="hrg-stat-l">RETORNOS</div></div>
+      <div class="hrg-stat" style="border-color:rgba(39,174,96,.3)"><div class="hrg-stat-n" id="hs-pessoas" style="color:#27ae60">–</div><div class="hrg-stat-l">PESSOAS</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="hrg-tabs">
+      <div class="hrg-tab active" onclick="hrg_setTab('registos',this)">Registos</div>
+      <div class="hrg-tab"        onclick="hrg_setTab('retornos',this)">Retornos</div>
+      <div class="hrg-tab"        onclick="hrg_setTab('analise',this)">Análise</div>
+    </div>
+
+    <!-- PANE: REGISTOS -->
+    <div class="hrg-tab-pane active" id="hrg-pane-registos">
+      <div style="overflow-x:auto">
+        <table class="hrg-table">
+          <thead><tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Pessoa</th>
+            <th>Contacto</th>
+            <th>Info Principal</th>
+            <th>Dúvida / Pedido</th>
+            <th class="tc">Visitas</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="hrg-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANE: RETORNOS -->
+    <div class="hrg-tab-pane" id="hrg-pane-retornos">
+      <div id="hrg-ret-list"></div>
+    </div>
+
+    <!-- PANE: ANALISE -->
+    <div class="hrg-tab-pane" id="hrg-pane-analise">
+      <div class="hrg-chart-grid" id="hrg-chart-grid"></div>
+    </div>
+
+  </div><!-- /hrg-content -->
+</div>
+
+<!-- ══ MODAL DETALHE ══ -->
+<div id="hrg-modal" class="hrg-modal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="hrg-modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-family:var(--font-title);font-size:11px;letter-spacing:1.5px;color:var(--primary-dark)">DETALHE DO REGISTO</div>
+      <button class="btn-sm" onclick="document.getElementById('hrg-modal').style.display='none'">Fechar</button>
+    </div>
+    <div id="hrg-modal-body"></div>
+  </div>
+</div>
+
+<!-- ══ JAVASCRIPT ══ -->
+<script>
+  (function() {
+
+    /* ═══════════════════════════════════════
+       CONSTANTES
+    ═══════════════════════════════════════ */
+    const hrg_sb = (...args) => window.sb(...args);
+
+    /* Mapeamento das perguntas por tipo */
+    const Q = {
+      membro: [
+        { key:'pergunta1', label:'Áreas da Igreja' },
+        { key:'duvida',    label:'Como podemos ajudar' },
+      ],
+      visitante: [
+        { key:'pergunta1', label:'Primeira vez?' },
+        { key:'pergunta2', label:'Como conheceu a Zion' },
+        { key:'pergunta3', label:'Veio acompanhado' },
+        { key:'pergunta4', label:'Frequenta alguma igreja' },
+        { key:'pergunta5', label:'Faixa etária' },
+        { key:'pergunta6', label:'Pedido de oração' },
+        { key:'duvida',    label:'Como o HUB pode ajudar' },
+      ]
+    };
+
+    const CORES = [
+      '#009098','#e74c3c','#f39c12','#27ae60',
+      '#3498db','#9b59b6','#1abc9c','#e67e22','#95a5a6','#2c3e50'
+    ];
+
+    /* ── Estado ── */
+    var hrg_todos     = [];   // todos os registros carregados
+    var hrg_filtrado  = [];   // após filtros
+    var hrg_membros   = {};   // membro_id -> { nome, foto_url }
+    var hrg_tipof     = '';   // filtro de tipo atual
+    var hrg_tabAtual  = 'registos';
+
+    /* ── Datas iniciais (mês atual) ── */
+    function hoje()       { return new Date().toISOString().slice(0,10); }
+    function primMes()    { const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10); }
+
+    /* ═══════════════════════════════════════
+       INIT
+    ═══════════════════════════════════════ */
+    async function hrg_init() {
+      document.getElementById('hrg-f-de').value  = primMes();
+      document.getElementById('hrg-f-ate').value = hoje();
+      hrg_carregar();
+    }
+
+    window.hrg_carregar = async function() {
+      const de  = document.getElementById('hrg-f-de').value;
+      const ate = document.getElementById('hrg-f-ate').value;
+
+      document.getElementById('hrg-tbody').innerHTML =
+              '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px">A carregar...</td></tr>';
+
+      try {
+        let q = 'visitantes_hub?select=*&order=created_at.desc';
+        if (de)  q += `&created_at=gte.${de}T00:00:00`;
+        if (ate) q += `&created_at=lte.${ate}T23:59:59`;
+
+        hrg_todos = await hrg_sb(q);
+
+        // Carregar dados de membros (foto + nome) para registros com membro_id
+        const memIds = [...new Set(hrg_todos.filter(r=>r.membro_id).map(r=>r.membro_id))];
+        if (memIds.length) {
+          const mems = await hrg_sb(
+                  `membros?id=in.(${memIds.join(',')})&select=id,nome,foto_url`
+          ).catch(()=>[]);
+          hrg_membros = {};
+          mems.forEach(m => { hrg_membros[m.id] = m; });
+        }
+
+        hrg_aplicar();
+        hrg_atualizarPeriodoLabel();
+
+      } catch(e) {
+        console.error(e);
+        document.getElementById('hrg-tbody').innerHTML =
+                '<tr><td colspan="8" style="text-align:center;padding:30px;color:#e74c3c;font-size:12px">Erro ao carregar dados.</td></tr>';
+      }
+    };
+
+    /* ═══════════════════════════════════════
+       FILTROS
+    ═══════════════════════════════════════ */
+    window.hrg_quickDate = function(periodo, el) {
+      document.querySelectorAll('.hrg-qd').forEach(e=>e.classList.remove('on'));
+      el.classList.add('on');
+
+      const d = new Date();
+      let de = '', ate = hoje();
+
+      if (periodo === 'hoje') {
+        de = hoje();
+      } else if (periodo === 'semana') {
+        const s = new Date(d); s.setDate(d.getDate() - d.getDay());
+        de = s.toISOString().slice(0,10);
+      } else if (periodo === 'mes') {
+        de = primMes();
+      } else {
+        de = ''; ate = '';
+      }
+
+      document.getElementById('hrg-f-de').value  = de;
+      document.getElementById('hrg-f-ate').value = ate;
+      hrg_carregar();
+    };
+
+    window.hrg_setTipo = function(tipo, el) {
+      hrg_tipof = tipo;
+      document.querySelectorAll('.hrg-tb').forEach(e=>e.classList.remove('on'));
+      el.classList.add('on');
+
+      // Mostrar/ocultar blocos de perguntas por tipo
+      const pv = document.getElementById('hrg-pv-wrap');
+      const pm = document.getElementById('hrg-pm-wrap');
+      if (tipo==='membro')    { pv.style.display='none'; pm.style.display=''; }
+      else if (tipo==='visitante') { pv.style.display=''; pm.style.display='none'; }
+      else { pv.style.display=''; pm.style.display=''; }
+
+      hrg_aplicar();
+    };
+
+    window.hrg_aplicar = function() {
+      const nome  = (document.getElementById('hrg-f-nome')?.value || '').trim().toLowerCase();
+      const p1    = document.getElementById('hrg-f-p1')?.value  || '';
+      const p2    = document.getElementById('hrg-f-p2')?.value  || '';
+      const p3    = document.getElementById('hrg-f-p3')?.value  || '';
+      const p5    = document.getElementById('hrg-f-p5')?.value  || '';
+      const area  = document.getElementById('hrg-f-area')?.value || '';
+
+      hrg_filtrado = hrg_todos.filter(r => {
+        if (hrg_tipof && r.tipo_pessoa !== hrg_tipof) return false;
+        if (nome) {
+          const n = (r.nome||r.nome_membro||'').toLowerCase();
+          if (!n.includes(nome)) return false;
+        }
+        if (p1   && r.pergunta1 !== p1)   return false;
+        if (p2   && r.pergunta2 !== p2)    return false;
+        if (p3   && r.pergunta3 !== p3)    return false;
+        if (p5   && r.pergunta5 !== p5)    return false;
+        if (area && !(r.pergunta1||'').includes(area)) return false;
+        return true;
+      });
+
+      hrg_renderStats();
+      hrg_renderTabAtual();
+    };
+
+    /* ═══════════════════════════════════════
+       STATS
+    ═══════════════════════════════════════ */
+    function hrg_renderStats() {
+      const total     = hrg_filtrado.length;
+      const membros   = hrg_filtrado.filter(r=>r.tipo_pessoa==='membro').length;
+      const visitantes= hrg_filtrado.filter(r=>r.tipo_pessoa==='visitante').length;
+      const grupos    = hrg_agrupar(hrg_filtrado);
+      const retornos  = grupos.filter(g=>g.registos.length>1).length;
+      const pessoas   = grupos.length;
+
+      document.getElementById('hs-total').textContent     = total;
+      document.getElementById('hs-membros').textContent   = membros;
+      document.getElementById('hs-visitantes').textContent= visitantes;
+      document.getElementById('hs-retornos').textContent  = retornos;
+      document.getElementById('hs-pessoas').textContent   = pessoas;
+    }
+
+    /* ═══════════════════════════════════════
+       TABS
+    ═══════════════════════════════════════ */
+    window.hrg_setTab = function(tab, el) {
+      hrg_tabAtual = tab;
+      document.querySelectorAll('.hrg-tab').forEach(e=>e.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.hrg-tab-pane').forEach(e=>e.classList.remove('active'));
+      document.getElementById('hrg-pane-'+tab).classList.add('active');
+      hrg_renderTabAtual();
+    };
+
+    function hrg_renderTabAtual() {
+      if (hrg_tabAtual === 'registos')  hrg_renderTabela();
+      if (hrg_tabAtual === 'retornos')  hrg_renderRetornos();
+      if (hrg_tabAtual === 'analise')   hrg_renderAnalise();
+    }
+
+    /* ═══════════════════════════════════════
+       TAB: REGISTOS
+    ═══════════════════════════════════════ */
+    function hrg_renderTabela() {
+      const tbody = document.getElementById('hrg-tbody');
+      if (!hrg_filtrado.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px;font-style:italic">Nenhum registo encontrado.</td></tr>';
+        return;
+      }
+
+      const grupos = hrg_agrupar(hrg_filtrado);
+      const contPessoa = {};
+      grupos.forEach(g => g.registos.forEach(r => { contPessoa[r.id] = g.registos.length; }));
+
+      tbody.innerHTML = hrg_filtrado.map(r => {
+        const data   = hrg_fmtData(r.created_at);
+        const nome   = r.nome || r.nome_membro || '—';
+        const tipo   = r.tipo_pessoa;
+        const isM    = tipo === 'membro';
+        const mem    = isM && r.membro_id ? hrg_membros[r.membro_id] : null;
+        const foto   = mem?.foto_url;
+        const tel    = r.telefone || '';
+        const visitas= contPessoa[r.id] || 1;
+
+        const badge  = isM
+                ? `<span class="hbadge hb-m">Membro</span>`
+                : `<span class="hbadge hb-v">Visitante</span>`;
+
+        const avatar = foto
+                ? `<img class="hrg-av" src="${foto}" alt="" onerror="this.outerHTML='<span class=hrg-av-ph>${iniciais(nome)}</span>'">`
+                : `<span class="hrg-av-ph">${iniciais(nome)}</span>`;
+
+        const waBtn = tel
+                ? `<a class="hrg-wa" href="https://wa.me/${tel.replace(/\D/g,'')}" target="_blank" onclick="event.stopPropagation()" title="WhatsApp">
+                     <svg viewBox="0 0 24 24" width="11" height="11" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                   </a>`
+                : '';
+
+        // Info principal
+        const info = isM
+                ? (r.pergunta1 ? `<span style="font-size:10px;color:var(--text-faint)">${truncar(r.pergunta1, 40)}</span>` : '—')
+                : (r.pergunta2 ? `<span style="font-size:10px;color:var(--text-faint)">${r.pergunta2}</span>` : '—');
+
+        const duvida = truncar(r.duvida || '', 50) || '<span style="color:var(--text-faint);font-style:italic">—</span>';
+
+        const vBadge = visitas > 1
+                ? `<span class="hbadge hb-ret">${visitas}x</span>`
+                : `<span style="font-size:11px;color:var(--text-faint)">1</span>`;
+
+        return `<tr onclick="hrg_verDetalhe('${r.id}')">
+                <td style="white-space:nowrap;font-size:11px;color:var(--text-faint)">${data}</td>
+                <td>${badge}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        ${avatar}
+                        <div>
+                            <div style="font-weight:600;font-size:12px">${esc(nome)}</div>
+                            ${mem ? `<div style="font-size:9px;color:var(--text-faint)">Membro registado</div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td style="white-space:nowrap">
+                    <span style="font-size:11px">${esc(tel) || '—'}</span>${waBtn}
+                </td>
+                <td style="max-width:180px">${info}</td>
+                <td style="max-width:200px;font-size:11px">${esc(duvida)}</td>
+                <td class="tc">${vBadge}</td>
+                <td><button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();hrg_verDetalhe('${r.id}')">Ver</button></td>
+            </tr>`;
+      }).join('');
+    }
+
+    /* ═══════════════════════════════════════
+       TAB: RETORNOS
+    ═══════════════════════════════════════ */
+    function hrg_agrupar(dados) {
+      const map = new Map();
+      dados.forEach(r => {
+        let key;
+        if (r.tipo_pessoa === 'membro' && r.membro_id) {
+          key = `m:${r.membro_id}`;
+        } else {
+          const tel = (r.telefone||'').replace(/\D/g,'');
+          key = tel ? `t:${tel}` : `n:${(r.nome||r.nome_membro||'').toLowerCase().trim()}`;
+        }
+        if (!map.has(key)) {
+          map.set(key, {
+            key,
+            nome: r.nome || r.nome_membro || '—',
+            tipo: r.tipo_pessoa,
+            membro_id: r.membro_id,
+            telefone: r.telefone,
+            registos: []
+          });
+        }
+        map.get(key).registos.push(r);
+      });
+      return [...map.values()].sort((a,b) => b.registos.length - a.registos.length);
+    }
+
+    function hrg_renderRetornos() {
+      const el = document.getElementById('hrg-ret-list');
+      const grupos = hrg_agrupar(hrg_filtrado);
+
+      if (!grupos.length) {
+        el.innerHTML = '<div class="hrg-empty">Nenhum registo encontrado.</div>';
+        return;
+      }
+
+      el.innerHTML = grupos.map((g, gi) => {
+        const isM    = g.tipo === 'membro';
+        const mem    = isM && g.membro_id ? hrg_membros[g.membro_id] : null;
+        const foto   = mem?.foto_url;
+        const retorno= g.registos.length > 1;
+        const tel    = g.telefone || '';
+
+        const avatar = foto
+                ? `<img class="hrg-av" src="${foto}" alt="" onerror="this.outerHTML='<span class=hrg-av-ph>${iniciais(g.nome)}</span>'">`
+                : `<span class="hrg-av-ph">${iniciais(g.nome)}</span>`;
+
+        const waBtn = tel
+                ? `<a class="hrg-wa" href="https://wa.me/${tel.replace(/\D/g,'')}" target="_blank" onclick="event.stopPropagation()" title="WhatsApp">
+                     <svg viewBox="0 0 24 24" width="11" height="11" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                   </a>`
+                : '';
+
+        const visitas = g.registos.map(r => {
+          const qs = (r.tipo_pessoa==='membro' ? Q.membro : Q.visitante)
+                  .filter(q => r[q.key])
+                  .map(q => `<div style="font-size:10px;color:var(--text-faint)"><b style="color:var(--text-muted)">${q.label}:</b> ${esc(r[q.key])}</div>`)
+                  .join('');
+          return `<div class="hrg-ret-row">
+                    <div style="white-space:nowrap;font-size:10px;color:var(--text-faint);min-width:90px">${hrg_fmtData(r.created_at)}</div>
+                    <div style="flex:1">
+                        <span class="hbadge ${r.tipo_pessoa==='membro'?'hb-m':'hb-v'}" style="font-size:8px;margin-bottom:4px;display:inline-block">${r.tipo_pessoa}</span>
+                        ${qs}
+                    </div>
+                    <button class="btn-sm" style="font-size:9px;padding:2px 7px;flex-shrink:0" onclick="hrg_verDetalhe('${r.id}')">Ver</button>
+                </div>`;
+        }).join('');
+
+        return `<div class="hrg-ret-card">
+                <div class="hrg-ret-hd" onclick="document.getElementById('hrg-rb-${gi}').classList.toggle('open')">
+                    ${avatar}
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:600;font-size:13px">${esc(g.nome)}</div>
+                        <div style="font-size:10px;color:var(--text-faint);margin-top:2px">
+                            ${isM?'Membro':'Visitante'}
+                            ${tel ? ` · ${tel}` : ''}
+                        </div>
+                    </div>
+                    ${waBtn}
+                    ${retorno
+                ? `<span class="hbadge hb-ret">${g.registos.length} visitas</span>`
+                : `<span style="font-size:10px;color:var(--text-faint)">1 visita</span>`}
+                    <span style="color:var(--text-faint);font-size:14px;margin-left:4px">›</span>
+                </div>
+                <div class="hrg-ret-body ${retorno?'open':''}" id="hrg-rb-${gi}">
+                    ${visitas}
+                </div>
+            </div>`;
+      }).join('');
+    }
+
+    /* ═══════════════════════════════════════
+       TAB: ANÁLISE (GRÁFICOS)
+    ═══════════════════════════════════════ */
+    function hrg_renderAnalise() {
+      const grid = document.getElementById('hrg-chart-grid');
+      const d = hrg_filtrado;
+
+      const charts = [
+        {
+          titulo: 'Membros vs Visitantes',
+          dados: hrg_contagem(d, r=>r.tipo_pessoa==='membro'?'Membro':'Visitante')
+        },
+        {
+          titulo: 'Como conheceu a Zion',
+          dados: hrg_contagem(d.filter(r=>r.tipo_pessoa==='visitante'), r=>r.pergunta2||'Não respondeu')
+        },
+        {
+          titulo: 'Faixa Etária',
+          dados: hrg_contagem(d.filter(r=>r.tipo_pessoa==='visitante'), r=>r.pergunta5||'Não respondeu')
+        },
+        {
+          titulo: 'Veio Acompanhado',
+          dados: hrg_contagem(d.filter(r=>r.tipo_pessoa==='visitante'), r=>r.pergunta3||'Não respondeu')
+        },
+        {
+          titulo: 'Primeira Vez?',
+          dados: hrg_contagem(d.filter(r=>r.tipo_pessoa==='visitante'), r=>r.pergunta1||'Não respondeu')
+        },
+        {
+          titulo: 'Áreas Pedidas (Membros)',
+          dados: (function(){
+            const cnt={};
+            d.filter(r=>r.tipo_pessoa==='membro'&&r.pergunta1).forEach(r=>{
+              r.pergunta1.split(',').map(a=>a.trim()).filter(Boolean).forEach(a=>{
+                cnt[a]=(cnt[a]||0)+1;
+              });
+            });
+            return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({l:k,v}));
+          })()
+        },
+        {
+          titulo: 'Registos por Dia da Semana',
+          dados: hrg_contagem(d, r=>{
+            const dias=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+            return dias[new Date(r.created_at).getDay()];
+          })
+        },
+        {
+          titulo: 'Retornos vs Primeira Visita',
+          dados: (function(){
+            const grupos = hrg_agrupar(d);
+            const ret = grupos.filter(g=>g.registos.length>1).length;
+            const prim= grupos.filter(g=>g.registos.length===1).length;
+            return [{l:'Primeira Visita',v:prim},{l:'Retornos',v:ret}];
+          })()
+        }
+      ];
+
+      grid.innerHTML = charts.map(c =>
+              `<div class="hrg-chart-box">
+                <div class="hrg-chart-ttl">${c.titulo}</div>
+                ${hrg_renderPie(c.dados)}
+            </div>`
+      ).join('');
+    }
+
+    function hrg_contagem(arr, fn) {
+      const cnt = {};
+      arr.forEach(r => { const k=fn(r); cnt[k]=(cnt[k]||0)+1; });
+      return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v}));
+    }
+
+    function hrg_renderPie(dados) {
+      if (!dados.length || dados.every(d=>!d.v)) {
+        return '<div class="hrg-empty" style="height:80px">Sem dados</div>';
+      }
+      const total = dados.reduce((s,d)=>s+d.v,0);
+      const items = dados.slice(0,8).map((d,i) => ({ ...d, c:CORES[i%CORES.length] }));
+
+      const svg = hrg_svgPie(items, 110);
+      const legend = items.map(d =>
+              `<div class="hrg-leg-item">
+                <div class="hrg-leg-dot" style="background:${d.c}"></div>
+                <div class="hrg-leg-lbl" title="${esc(d.l)}">${esc(truncar(d.l,22))}</div>
+                <span class="hrg-leg-val">${d.v}</span>
+                <span class="hrg-leg-pct">${Math.round(d.v/total*100)}%</span>
+            </div>`
+      ).join('');
+
+      return `<div class="hrg-chart-inner">
+            ${svg}
+            <div class="hrg-legend">${legend}</div>
+        </div>`;
+    }
+
+    function hrg_svgPie(items, size) {
+      const total = items.reduce((s,d)=>s+d.v,0);
+      if (!total) return '';
+      const cx=size/2, cy=size/2, r=size/2-4;
+      let a=-Math.PI/2;
+      const paths = items.filter(d=>d.v>0).map(d => {
+        const da=(d.v/total)*Math.PI*2;
+        const x1=cx+r*Math.cos(a), y1=cy+r*Math.sin(a);
+        a+=da;
+        const x2=cx+r*Math.cos(a), y2=cy+r*Math.sin(a);
+        const lg=da>Math.PI?1:0;
+        return `<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${r},${r},0,${lg},1,${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${d.c}" stroke="var(--bg-card)" stroke-width="1.5"/>`;
+      }).join('');
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0">${paths}</svg>`;
+    }
+
+    /* ═══════════════════════════════════════
+       MODAL DETALHE
+    ═══════════════════════════════════════ */
+    window.hrg_verDetalhe = function(id) {
+      const r = hrg_todos.find(x=>x.id===id); if (!r) return;
+      const isM = r.tipo_pessoa === 'membro';
+      const mem = isM && r.membro_id ? hrg_membros[r.membro_id] : null;
+      const nome= r.nome || r.nome_membro || '—';
+      const tel = r.telefone || '';
+
+      const avatar = (mem?.foto_url)
+              ? `<img src="${mem.foto_url}" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);margin-right:14px" onerror="this.style.display='none'">`
+              : '';
+
+      const waBtn = tel
+              ? `<a href="https://wa.me/${tel.replace(/\D/g,'')}" target="_blank"
+                style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:rgba(37,211,102,.12);color:#25d366;font-size:11px;text-decoration:none;font-family:var(--font-title)">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                ${tel}
+               </a>`
+              : `<span style="font-size:12px">${tel || '—'}</span>`;
+
+      const qs = (isM ? Q.membro : Q.visitante).map(q => {
+        const val = r[q.key];
+        if (!val) return '';
+        return `<div class="hrg-detail-row">
+                <div class="hrg-detail-lbl">${q.label}</div>
+                <div class="hrg-detail-val">${esc(val)}</div>
+            </div>`;
+      }).join('');
+
+      document.getElementById('hrg-modal-body').innerHTML = `
+            <div style="display:flex;align-items:center;margin-bottom:18px">
+                ${avatar}
+                <div>
+                    <div style="font-weight:700;font-size:16px;margin-bottom:4px">${esc(nome)}</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <span class="hbadge ${isM?'hb-m':'hb-v'}">${r.tipo_pessoa}</span>
+                        ${waBtn}
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+                <div class="hrg-detail-row">
+                    <div class="hrg-detail-lbl">Data</div>
+                    <div class="hrg-detail-val">${hrg_fmtDataHora(r.created_at)}</div>
+                </div>
+                ${r.email ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Email</div><div class="hrg-detail-val">${esc(r.email)}</div></div>` : ''}
+                ${r.morada ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Bairro / Cidade</div><div class="hrg-detail-val">${esc(r.morada)}</div></div>` : ''}
+            </div>
+
+            <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:14px">
+                <div style="font-family:var(--font-title);font-size:8px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:10px">RESPOSTAS</div>
+                ${qs || '<div style="color:var(--text-faint);font-size:12px;font-style:italic">Sem respostas registadas.</div>'}
+            </div>
+        `;
+      document.getElementById('hrg-modal').style.display = 'flex';
+    };
+
+    /* ═══════════════════════════════════════
+       PDF / IMPRESSÃO
+    ═══════════════════════════════════════ */
+    window.hrg_exportPDF = function() {
+      const de  = document.getElementById('hrg-f-de').value;
+      const ate = document.getElementById('hrg-f-ate').value;
+      const total     = hrg_filtrado.length;
+      const membros   = hrg_filtrado.filter(r=>r.tipo_pessoa==='membro').length;
+      const visitantes= total - membros;
+      const grupos    = hrg_agrupar(hrg_filtrado);
+      const retornos  = grupos.filter(g=>g.registos.length>1).length;
+
+      // Gráficos SVG para o PDF
+      const pieTipo = hrg_svgPieStatic([
+        {l:'Membros',v:membros,c:'#009098'},
+        {l:'Visitantes',v:visitantes,c:'#9b59b6'}
+      ], 120);
+
+      const conheceu = hrg_contagem(hrg_filtrado.filter(r=>r.tipo_pessoa==='visitante'), r=>r.pergunta2||'N/R');
+      const pieConheceu = hrg_svgPieStatic(conheceu.slice(0,6).map((d,i)=>({...d,c:CORES[i]})), 120);
+
+      const faixa = hrg_contagem(hrg_filtrado.filter(r=>r.tipo_pessoa==='visitante'), r=>r.pergunta5||'N/R');
+      const pieFaixa = hrg_svgPieStatic(faixa.slice(0,6).map((d,i)=>({...d,c:CORES[i]})), 120);
+
+      const retornosData = [{l:'Primeira visita',v:grupos.filter(g=>g.registos.length===1).length,c:'#27ae60'},{l:'Retornos',v:retornos,c:'#f39c12'}];
+      const pieRet = hrg_svgPieStatic(retornosData, 120);
+
+      function legPie(dados) {
+        const total = dados.reduce((s,d)=>s+(d.v||0),0);
+        return dados.filter(d=>d.v>0).map((d,i)=>`
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px">
+                    <div style="width:10px;height:10px;border-radius:2px;background:${d.c||CORES[i]};flex-shrink:0"></div>
+                    <div style="flex:1;color:#555">${d.l}</div>
+                    <b>${d.v}</b>
+                    <span style="color:#999">${total?Math.round(d.v/total*100):0}%</span>
+                </div>`
+        ).join('');
+      }
+
+      const linhas = hrg_filtrado.map(r => {
+        const nome = r.nome||r.nome_membro||'—';
+        const tipo = r.tipo_pessoa==='membro'?'Membro':'Visitante';
+        const info = r.tipo_pessoa==='membro' ? (r.pergunta1||'') : (r.pergunta2||'');
+        return `<tr>
+                <td>${hrg_fmtData(r.created_at)}</td>
+                <td>${tipo}</td>
+                <td>${esc(nome)}</td>
+                <td>${esc(r.telefone||'')}</td>
+                <td>${esc(truncar(info,35))}</td>
+                <td>${esc(truncar(r.duvida||'',45))}</td>
+            </tr>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+<title>HUB Relatório</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Arial,sans-serif; font-size:12px; color:#111; padding:24px; background:#fff; }
+  h1 { font-size:18px; color:#009098; margin-bottom:2px; }
+  .sub { font-size:11px; color:#666; margin-bottom:20px; }
+  .stats { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .stat  { border:1px solid #ddd; border-radius:8px; padding:10px 16px; text-align:center; min-width:90px; }
+  .stat-n{ font-size:22px; font-weight:700; color:#009098; }
+  .stat-l{ font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#888; margin-top:2px; }
+  .charts { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; margin-bottom:24px; }
+  .chart  { border:1px solid #ddd; border-radius:8px; padding:12px; }
+  .chart-ttl { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#888; margin-bottom:8px; }
+  .chart-inner { display:flex; align-items:center; gap:10px; }
+  table { width:100%; border-collapse:collapse; font-size:11px; }
+  th { background:#f5f5f5; padding:7px 8px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#666; border-bottom:2px solid #ddd; }
+  td { padding:6px 8px; border-bottom:1px solid #eee; }
+  tr:nth-child(even) td { background:#fafafa; }
+  .badge { display:inline-block; padding:2px 7px; border-radius:20px; font-size:9px; }
+  .bm { background:#e0f5f6; color:#007880; }
+  .bv { background:#f0eaf8; color:#7b4fa0; }
+  @media print { @page { size:A4 landscape; margin:15mm; } }
+</style>
+</head><body>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+  <div>
+    <h1>HUB — Relatório de Atendimentos</h1>
+    <div class="sub">Período: ${de||'início'} até ${ate||'hoje'} · Gerado em ${new Date().toLocaleString('pt-PT')}</div>
+  </div>
+  <div style="font-size:10px;color:#888;text-align:right">Zion Lisboa · HUB</div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Registros</div></div>
+  <div class="stat"><div class="stat-n" style="color:#009098">${membros}</div><div class="stat-l">Membros</div></div>
+  <div class="stat"><div class="stat-n" style="color:#9b59b6">${visitantes}</div><div class="stat-l">Visitantes</div></div>
+  <div class="stat"><div class="stat-n" style="color:#f39c12">${retornos}</div><div class="stat-l">Retornos</div></div>
+  <div class="stat"><div class="stat-n" style="color:#27ae60">${grupos.length}</div><div class="stat-l">Pessoas</div></div>
+</div>
+
+<div class="charts">
+  <div class="chart">
+    <div class="chart-ttl">Tipo de Pessoa</div>
+    <div class="chart-inner">${pieTipo}<div>${legPie([{l:'Membros',v:membros,c:'#009098'},{l:'Visitantes',v:visitantes,c:'#9b59b6'}])}</div></div>
+  </div>
+  <div class="chart">
+    <div class="chart-ttl">Como Conheceu</div>
+    <div class="chart-inner">${pieConheceu}<div>${legPie(conheceu.slice(0,5).map((d,i)=>({...d,c:CORES[i]})))}</div></div>
+  </div>
+  <div class="chart">
+    <div class="chart-ttl">Faixa Etária</div>
+    <div class="chart-inner">${pieFaixa}<div>${legPie(faixa.slice(0,5).map((d,i)=>({...d,c:CORES[i]})))}</div></div>
+  </div>
+  <div class="chart">
+    <div class="chart-ttl">Retornos</div>
+    <div class="chart-inner">${pieRet}<div>${legPie(retornosData)}</div></div>
+  </div>
+</div>
+
+<table>
+  <thead><tr>
+    <th>Data</th><th>Tipo</th><th>Nome</th><th>Contacto</th><th>Info Principal</th><th>Dúvida / Pedido</th>
+  </tr></thead>
+  <tbody>${linhas}</tbody>
+</table>
+</body></html>`;
+
+      const w = window.open('','_blank','width=1100,height=750');
+      w.document.write(html);
+      w.document.close();
+      w.onload = () => setTimeout(()=>w.print(), 400);
+    };
+
+    function hrg_svgPieStatic(items, size) {
+      const valid = items.filter(d=>d.v>0);
+      const total = valid.reduce((s,d)=>s+d.v,0);
+      if (!total) return `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px">N/A</div>`;
+      const cx=size/2, cy=size/2, r=size/2-4;
+      let a=-Math.PI/2;
+      const paths=valid.map(d=>{
+        const da=(d.v/total)*Math.PI*2;
+        const x1=cx+r*Math.cos(a), y1=cy+r*Math.sin(a);
+        a+=da; const x2=cx+r*Math.cos(a), y2=cy+r*Math.sin(a);
+        const lg=da>Math.PI?1:0;
+        return `<path d="M${cx},${cy}L${x1.toFixed(1)},${y1.toFixed(1)}A${r},${r},0,${lg},1,${x2.toFixed(1)},${y2.toFixed(1)}Z" fill="${d.c}" stroke="white" stroke-width="1.5"/>`;
+      }).join('');
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0">${paths}</svg>`;
+    }
+
+    /* ═══════════════════════════════════════
+       UTILS
+    ═══════════════════════════════════════ */
+    function hrg_atualizarPeriodoLabel() {
+      const de  = document.getElementById('hrg-f-de').value;
+      const ate = document.getElementById('hrg-f-ate').value;
+      const lbl = [de?`De ${de}`:'', ate?`até ${ate}`:''].filter(Boolean).join(' ') || 'Todos os períodos';
+      document.getElementById('hrg-periodo-lbl').textContent = `${hrg_filtrado.length} registos · ${lbl}`;
+    }
+
+    function hrg_fmtData(s) {
+      if (!s) return '—';
+      const d = new Date(s);
+      return d.toLocaleDateString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric' });
+    }
+    function hrg_fmtDataHora(s) {
+      if (!s) return '—';
+      return new Date(s).toLocaleString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function iniciais(nome) {
+      if (!nome) return '?';
+      const p = nome.trim().split(' ').filter(Boolean);
+      return (p.length>=2 ? p[0][0]+p[p.length-1][0] : (p[0]||'?').slice(0,2)).toUpperCase();
+    }
+
+    function truncar(s, n) { return s && s.length>n ? s.slice(0,n)+'…' : (s||''); }
+
+    function esc(s) {
+      return String(s||'')
+              .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+              .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ═══════════════════════════════════════
+       ARRANQUE
+    ═══════════════════════════════════════ */
+    function start() {
+      if (typeof window.sb === 'function') hrg_init();
+      else setTimeout(start, 80);
+    }
+    start();
+
+  })();
+</script>

@@ -707,57 +707,32 @@
         });
     }
 
-    const VOICERSS_KEY = 'b6ab823aec1f42aa8538db67a7245f5d'
-    function falarPedidoOld(numero) {
-        return new Promise(resolve => {
-            if (!audioDesbloqueado || !window.speechSynthesis) { resolve(); return; }
-            window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance(`Pedido ${numParaTexto(numero)} pronto!`);
-            utter.lang  = 'pt-PT';
-            utter.rate  = 0.92;
-            utter.pitch = 1.05;
-            const vozes = window.speechSynthesis.getVoices();
-            const vozPT = vozes.find(v => v.lang === 'pt-PT') || vozes.find(v => v.lang.startsWith('pt')) || null;
-            if (vozPT) utter.voice = vozPT;
-            utter.onend = utter.onerror = resolve;
-            window.speechSynthesis.speak(utter);
-        });
-    }
-    
+    const VOICERSS_KEY = 'b6ab823aec1f42aa8538db67a7245f5d';
     function falarPedido(numero) {
         return new Promise(resolve => {
             if (!audioDesbloqueado) { resolve(); return; }
 
             const texto = `Pedido ${numParaTexto(numero)} pronto!`;
-
-            // Tenta Web Speech API primeiro
-            if (window.speechSynthesis) {
-                const vozes = window.speechSynthesis.getVoices();
-                const vozPT = vozes.find(v => v.lang === 'pt-PT')
-                    || vozes.find(v => v.lang.startsWith('pt'));
-
-                if (vozPT) {
-                    window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance(texto);
-                    utter.lang  = 'pt-PT';
-                    utter.rate  = 0.92;
-                    utter.pitch = 1.05;
-                    utter.voice = vozPT;
-                    utter.onend = utter.onerror = resolve;
-                    window.speechSynthesis.speak(utter);
-                    return;
-                }
-            }
-
-            // Fallback: VoiceRSS (funciona em qualquer browser)
-            const url = `https://api.voicerss.org/?key=${VOICERSS_KEY}` +
+            const url   = `https://api.voicerss.org/?key=${VOICERSS_KEY}` +
                 `&hl=pt-pt&v=Ines&r=-1&c=MP3&f=16khz_16bit_mono` +
                 `&src=${encodeURIComponent(texto)}`;
 
             const audio = new Audio(url);
             audio.onended = resolve;
-            audio.onerror = resolve;
-            audio.play().catch(resolve);
+            audio.onerror = () => {
+                console.warn('VoiceRSS falhou, a tentar Web Speech...');
+                // Fallback para Web Speech se VoiceRSS falhar
+                if (window.speechSynthesis) {
+                    const utter = new SpeechSynthesisUtterance(texto);
+                    utter.lang  = 'pt-PT';
+                    utter.rate  = 0.92;
+                    utter.onend = utter.onerror = resolve;
+                    window.speechSynthesis.speak(utter);
+                } else {
+                    resolve();
+                }
+            };
+            audio.play().catch(() => resolve());
         });
     }
 

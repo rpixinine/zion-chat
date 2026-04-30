@@ -892,33 +892,42 @@
 
     // ── Verificar URL remota do YouTube ──
     let _ytUrlRemota = null;
+    let _ytConfigUpdatedAt = null;
 
     async function verificarYtConfig() {
         try {
-            const res = await sb('kds_config?id=eq.singleton&select=yt_url,updated_at');
+            const res = await sb('kds_config?select=yt_url,updated_at');
             if (!res.length) return;
-            const novaUrl = res[0].yt_url || null;
-            if (novaUrl === _ytUrlRemota) return; // sem mudança
-            _ytUrlRemota = novaUrl;
+
+            const { yt_url, updated_at } = res[0];
+
+            // Só age se houve mudança real
+            if (updated_at === _ytConfigUpdatedAt) return;
+            _ytConfigUpdatedAt = updated_at;
+
+            console.log('KDS config mudou:', yt_url);
 
             const frame = document.getElementById('yt-frame');
-            if (novaUrl) {
-                // Extrai o ID do URL do YouTube
-                const match = novaUrl.match(/(?:v=|youtu\.be\/)([^&\?\/]+)/);
+
+            if (yt_url) {
+                const match = yt_url.match(/(?:v=|youtu\.be\/)([^&\?\/]+)/);
                 if (match) {
                     const id = match[1];
                     frame.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=${ytMuted ? 1 : 0}&controls=0&rel=0&modestbranding=1`;
                     showToast('▶ A transmitir culto ao vivo');
+                } else {
+                    console.warn('URL inválido:', yt_url);
                 }
             } else {
                 // Volta ao canal normal
                 ytCanalIdx = 0;
                 frame.src = ytSrc();
+                showToast('Voltou aos canais normais');
             }
-        } catch(e) {}
+        } catch(e) { console.error('verificarYtConfig:', e); }
     }
 
-    setInterval(verificarYtConfig, 10000); // verifica a cada 10 segundos
+    setInterval(verificarYtConfig, 8000);
     verificarYtConfig();
 
     // ── Arranque ──

@@ -182,6 +182,17 @@
             Os pedidos lançados aqui aparecem no KDS como <strong style="color:var(--prep-color)">Em Preparação</strong>.<br>
             Usa os botões nos cards para avançar o estado.
         </div>
+        <div class="form-section-title" style="margin-top:8px">✦ YouTube no KDS</div>
+        <div class="form-group">
+            <label class="form-label" for="input-yt-url">URL do Culto / Canal</label>
+            <input id="input-yt-url" class="form-input" type="text"
+                   placeholder="https://www.youtube.com/watch?v=…"
+                   autocomplete="off" spellcheck="false"/>
+            <div class="form-hint">Cola aqui o link do YouTube. Deixa vazio para voltar aos canais normais.</div>
+        </div>
+        <button class="btn-lancar" id="btn-yt-enviar" onclick="enviarYtUrl()" style="margin-top:-8px">
+            ▶ Enviar para KDS
+        </button>
     </aside>
 
     <main class="painel-lista">
@@ -324,9 +335,9 @@
         btn.disabled = true; btn.textContent = '…';
         try {
             await sb('pedidos', { method: 'POST', body: JSON.stringify({
-                numero, nome_cliente: nome, status: 'em_preparacao',
-                data_pedido: hojeLocal(), created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-            })});
+                    numero, nome_cliente: nome, status: 'em_preparacao',
+                    data_pedido: hojeLocal(), created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+                })});
             btn.classList.add('sucesso'); btn.textContent = '✓ Lançado!';
             nomeInput.value = '';
             showToast(`Pedido #${padNum(numero)}${nome ? ' — ' + nome : ''} lançado!`);
@@ -388,6 +399,34 @@
         document.getElementById('input-numero').value = await proximoNumero();
         document.getElementById('input-nome').focus();
         await carregar();
+        await carregarYtUrl();
+
+    }
+
+    // ── YouTube URL remota ──
+    async function carregarYtUrl() {
+        try {
+            const res = await sb('kds_config?id=eq.singleton&select=yt_url');
+            if (res.length && res[0].yt_url) {
+                document.getElementById('input-yt-url').value = res[0].yt_url;
+            }
+        } catch(e) {}
+    }
+
+    async function enviarYtUrl() {
+        const url = document.getElementById('input-yt-url').value.trim();
+        const btn = document.getElementById('btn-yt-enviar');
+        btn.disabled = true; btn.textContent = '…';
+        try {
+            await sb('kds_config?id=eq.singleton', {
+                method: 'PATCH',
+                body: JSON.stringify({ yt_url: url || null, updated_at: new Date().toISOString() })
+            });
+            showToast(url ? '▶ Culto enviado para o KDS!' : '✓ KDS voltou aos canais normais');
+        } catch(e) {
+            showToast('Erro ao enviar URL', true);
+        }
+        btn.disabled = false; btn.textContent = '▶ Enviar para KDS';
     }
 
     init();

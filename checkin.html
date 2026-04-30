@@ -779,6 +779,55 @@
             font-size: 11px;
             margin: 1px 2px;
         }
+
+        /* ── PAPEL ESCALA badge ── */
+        .papel-escala-badge {
+            font-size: 9px;
+            font-family: 'Cinzel', serif;
+            letter-spacing: 0.5px;
+            padding: 1px 7px;
+            border-radius: 20px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .papel-servindo { background: rgba(0,144,152,0.12); color: var(--teal); border: 1px solid rgba(0,144,152,0.25); }
+        .papel-aprendiz { background: rgba(251,140,0,0.10); color: var(--orange); border: 1px solid rgba(251,140,0,0.25); }
+        .papel-extra    { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid var(--border); }
+
+        /* ── membro com notas ── */
+        .escala-member {
+            flex-direction: column;  /* sobrepõe o flex-direction do selector existente */
+            align-items: flex-start;
+            gap: 4px;
+        }
+        .escala-member-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .escala-member-notas {
+            font-size: 11px;
+            color: var(--muted);
+            font-style: italic;
+            padding-left: 14px;   /* alinha com o nome (depois do dot) */
+            line-height: 1.4;
+        }
+
+        /* ── separador de semana em Próximas ── */
+        .semana-sep {
+            font-family: 'Cinzel', serif;
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--teal);
+            padding: 10px 0 6px;
+            border-bottom: 1px solid rgba(0,144,152,0.2);
+            margin-bottom: 8px;
+            margin-top: 4px;
+        }
+        .semana-sep:first-child { margin-top: 0; }
+
     </style>
 </head>
 <body>
@@ -1109,31 +1158,51 @@
             return acc;
         }, []);
 
-        const todos = [...CI.preGrupos, ...futGrupos].sort((a,b) => a.data.localeCompare(b.data));
+        const todos = [...CI.preGrupos, ...futGrupos]
+            .sort((a,b) => a.data.localeCompare(b.data));
         if (!todos.length) return '';
+
+        /* agrupar por semana */
+        const porSemana = {};
+        todos.forEach(p => {
+            const seg = semanaISO(p.data);
+            if (!porSemana[seg]) porSemana[seg] = [];
+            porSemana[seg].push(p);
+        });
 
         let html = `<div class="divider"></div><div class="proximas-section">
         <div class="section-label">Próximas Escalas</div>`;
 
-        todos.forEach(p => {
-            const tags = p.escalados.map(e => {
-                const nome = e.membros_publico?.nome || '—';
-                const ci   = CI.checkins.find(c =>
-                    c.membro_id === e.membro_id && c.culto_id === p.culto?.id && c.data === p.data
-                );
-                const conf = ci?.status === 'pre_confirmado';
-                return `<span class="prox-tag ${conf ? 'confirmado' : ''}">${nome}${conf ? ' ✓' : ''}</span>`;
-            }).join('');
+        Object.keys(porSemana).sort().forEach(seg => {
+            html += `<div class="semana-sep">${semanaLabel(seg)}</div>`;
 
-            const campusPart = p.culto?.campus?.nome ? ` · <span style="color:#7eb8f7;font-size:10px">${p.culto.campus.nome}</span>` : '';
-            html += `<div class="prox-card">
-            <div class="prox-card-hd">
-                <div class="prox-card-data">${dataLabel(p.data)}</div>
-                <div class="prox-card-diff">${diffLabel(p.data)}</div>
-            </div>
-            <div class="prox-card-culto">${p.culto ? p.culto.nome + ' · ' + p.culto.hora_inicio.slice(0,5) : ''}${campusPart}</div>
-            <div class="prox-card-membros">${tags}</div>
-        </div>`;
+            porSemana[seg].forEach(p => {
+                const tags = p.escalados.map(e => {
+                    const ci   = CI.checkins.find(c =>
+                        c.membro_id === e.membro_id && c.culto_id === p.culto?.id && c.data === p.data
+                    );
+                    const conf = ci?.status === 'pre_confirmado';
+                    const papel = e.papel_escala || 'servindo';
+                    const papelMap = { servindo:'', aprendiz:' · Aprendiz', extra:' · Extra' };
+                    const notasPart = e.notas ? ` · <em style="color:var(--muted);font-size:10px">${e.notas}</em>` : '';
+
+                    return `<span class="prox-tag ${conf ? 'confirmado' : ''}">
+                    ${e.membros_publico?.nome || '—'}${papelMap[papel]}${conf ? ' ✓' : ''}${notasPart}
+                </span>`;
+                }).join('');
+
+                const campusPart = p.culto?.campus?.nome
+                    ? ` · <span style="color:#7eb8f7;font-size:10px">${p.culto.campus.nome}</span>` : '';
+
+                html += `<div class="prox-card">
+                <div class="prox-card-hd">
+                    <div class="prox-card-data">${dataLabel(p.data)}</div>
+                    <div class="prox-card-diff">${diffLabel(p.data)}</div>
+                </div>
+                <div class="prox-card-culto">${p.culto ? p.culto.nome + ' · ' + p.culto.hora_inicio.slice(0,5) : ''}${campusPart}</div>
+                <div class="prox-card-membros" style="flex-direction:column;gap:4px">${tags}</div>
+            </div>`;
+            });
         });
 
         return html + '</div>';
@@ -1192,15 +1261,24 @@
                 c.membro_id === e.membro_id && c.culto_id === CI.cultSel.id && c.data === hoje
             );
             const st = ci?.status;
-            let dot = '', badge = '';
-            if      (st === 'presente')       { dot = 'green';  badge = `<span class="member-badge ok">✓ presente</span>`; }
-            else if (st === 'atrasado')       { dot = 'orange'; badge = `<span class="member-badge late">⏱ atrasado</span>`; }
-            else if (st === 'pre_confirmado') {                 badge = `<span class="member-badge pre">✓ confirmado</span>`; }
-            else if (e.papel)                 {                 badge = `<span class="escala-member-role">${e.papel}</span>`; }
+            let dot = '', statusBadge = '';
+            if      (st === 'presente')       { dot = 'green';  statusBadge = `<span class="member-badge ok">✓ presente</span>`; }
+            else if (st === 'atrasado')       { dot = 'orange'; statusBadge = `<span class="member-badge late">⏱ atrasado</span>`; }
+            else if (st === 'pre_confirmado') {                 statusBadge = `<span class="member-badge pre">✓ confirmado</span>`; }
+
+            const notasHtml = e.notas
+                ? `<div class="escala-member-notas">📝 ${e.notas}</div>`
+                : '';
+
             return `<div class="escala-member">
+        <div class="escala-member-row">
             <div class="escala-member-dot ${dot}"></div>
-            <span>${e.membros_publico?.nome || '—'}</span>${badge}
-        </div>`;
+            <span style="font-size:13px">${e.membros_publico?.nome || '—'}</span>
+            ${papelEscalaBadge(e.papel_escala || 'servindo')}
+            <span style="margin-left:auto;flex-shrink:0">${statusBadge}</span>
+        </div>
+        ${notasHtml}
+    </div>`;
         }).join('');
 
         const campusPart = CI.cultSel.campus?.nome
@@ -1344,13 +1422,22 @@
                 c.membro_id === e.membro_id && c.culto_id === g.culto?.id && c.data === g.data
             );
             const conf = ci?.status === 'pre_confirmado';
-            let badge = conf
-                ? `<span class="member-badge pre">✓ confirmado</span>`
-                : (e.papel ? `<span class="escala-member-role">${e.papel}</span>` : '');
+            const statusBadge = conf
+                ? `<span class="member-badge pre" style="margin-left:auto">✓ confirmado</span>`
+                : '';
+            const notasHtml = e.notas
+                ? `<div class="escala-member-notas">📝 ${e.notas}</div>`
+                : '';
+
             return `<div class="escala-member">
+        <div class="escala-member-row">
             <div class="escala-member-dot ${conf ? 'green' : ''}"></div>
-            <span>${e.membros_publico?.nome || '—'}</span>${badge}
-        </div>`;
+            <span style="font-size:13px">${e.membros_publico?.nome || '—'}</span>
+            ${papelEscalaBadge(e.papel_escala || 'servindo')}
+            ${statusBadge}
+        </div>
+        ${notasHtml}
+    </div>`;
         }).join('');
 
         const campusPart = g.culto?.campus?.nome ? ` · ${campusBadge(g.culto)}` : '';
@@ -1720,6 +1807,38 @@
         window.open(`https://wa.me/${tel}?text=${encodeURIComponent(
             `*Zion Lisboa – Pré-Confirmação ✅*\n*${nome}* confirmou presença.\nMinistério: ${CI.ministerioNome}\nEvento: ${g.culto?.nome || ''}${campusPart} · ${dataLabel(g.data)}\nHorário: ${(g.culto?.hora_inicio||'').slice(0,5)}`
         )}`, '_blank');
+    }
+
+    /* ── semana ISO (segunda-feira) ── */
+    function semanaISO(iso) {
+        const d = new Date(iso + 'T00:00:00');
+        const dow = d.getDay(); // 0 = dom
+        const diff = dow === 0 ? -6 : 1 - dow;
+        const seg = new Date(d); seg.setDate(d.getDate() + diff);
+        return seg.toISOString().split('T')[0];
+    }
+
+    function semanaLabel(mondayISO) {
+        const hojeMonday = semanaISO(hojeISO());
+        const nextMonday = addDias(hojeMonday, 7);
+        const n2         = addDias(hojeMonday, 14);
+        if (mondayISO === hojeMonday) return 'Esta Semana';
+        if (mondayISO === nextMonday) return 'Próxima Semana';
+        const dt = new Date(mondayISO + 'T00:00:00');
+        const sun = new Date(dt); sun.setDate(dt.getDate() + 6);
+        const fmt = d => String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+        return `Semana de ${fmt(dt)} – ${fmt(sun)}`;
+    }
+
+    /* ── badge do papel na escala ── */
+    function papelEscalaBadge(papel) {
+        const map = {
+            servindo: { cls: 'papel-servindo', lbl: 'Servindo' },
+            aprendiz: { cls: 'papel-aprendiz', lbl: 'Aprendiz' },
+            extra:    { cls: 'papel-extra',    lbl: 'Extra'    }
+        };
+        const p = map[papel] || map.servindo;
+        return `<span class="papel-escala-badge ${p.cls}">${p.lbl}</span>`;
     }
 
     /* START */

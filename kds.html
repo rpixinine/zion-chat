@@ -707,7 +707,8 @@
         });
     }
 
-    function falarPedido(numero) {
+    const VOICERSS_KEY = 'b6ab823aec1f42aa8538db67a7245f5d'
+    function falarPedidoOld(numero) {
         return new Promise(resolve => {
             if (!audioDesbloqueado || !window.speechSynthesis) { resolve(); return; }
             window.speechSynthesis.cancel();
@@ -720,6 +721,43 @@
             if (vozPT) utter.voice = vozPT;
             utter.onend = utter.onerror = resolve;
             window.speechSynthesis.speak(utter);
+        });
+    }
+    
+    function falarPedido(numero) {
+        return new Promise(resolve => {
+            if (!audioDesbloqueado) { resolve(); return; }
+
+            const texto = `Pedido ${numParaTexto(numero)} pronto!`;
+
+            // Tenta Web Speech API primeiro
+            if (window.speechSynthesis) {
+                const vozes = window.speechSynthesis.getVoices();
+                const vozPT = vozes.find(v => v.lang === 'pt-PT')
+                    || vozes.find(v => v.lang.startsWith('pt'));
+
+                if (vozPT) {
+                    window.speechSynthesis.cancel();
+                    const utter = new SpeechSynthesisUtterance(texto);
+                    utter.lang  = 'pt-PT';
+                    utter.rate  = 0.92;
+                    utter.pitch = 1.05;
+                    utter.voice = vozPT;
+                    utter.onend = utter.onerror = resolve;
+                    window.speechSynthesis.speak(utter);
+                    return;
+                }
+            }
+
+            // Fallback: VoiceRSS (funciona em qualquer browser)
+            const url = `https://api.voicerss.org/?key=${VOICERSS_KEY}` +
+                `&hl=pt-pt&v=Ines&r=-1&c=MP3&f=16khz_16bit_mono` +
+                `&src=${encodeURIComponent(texto)}`;
+
+            const audio = new Audio(url);
+            audio.onended = resolve;
+            audio.onerror = resolve;
+            audio.play().catch(resolve);
         });
     }
 
@@ -922,7 +960,7 @@
                 const match = yt_url.match(/(?:v=|youtu\.be\/)([^&\?\/]+)/);
                 if (match) {
                     const id = match[1];
-                    frame.src = ytSrc(id); 
+                    frame.src = ytSrc(id);
                     showToast('▶ A transmitir culto ao vivo');
                 } else {
                     console.warn('URL inválido:', yt_url);

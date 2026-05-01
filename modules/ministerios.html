@@ -253,6 +253,12 @@
         transition: background 0.2s;
     }
     .min-toggle-btn:hover { background: rgba(0,144,152,0.2); }
+
+    .cal-mini-dia.parcial {
+        background: rgba(230,81,0,0.15);
+        border-color: rgba(230,81,0,0.5);
+        color: var(--orange);
+    }
 </style>
 
 <!-- ══ PÁGINA ══ -->
@@ -1212,31 +1218,62 @@
     }
 
     /* ── INDISPONIBILIDADES ── */
+    /* ── HELPER: cultos que ocorrem num dia específico ── */
+    function min_cultosNoDia(iso) {
+        const mes = iso.substring(0, 7);
+        const [a, m] = mes.split('-').map(Number);
+        const dias = todosDiasMes(a, m);
+        return min_minCults
+            .map(mc => mc.cultos)
+            .filter(Boolean)
+            .filter(c => min_cultoDatasNoMes(c, dias, mes).some(d => d.iso === iso));
+    }
+
+    /* ── INDISPONIBILIDADES ── */
     async function min_renderIndisp() {
         if (!min_minAtivo) return;
         const minId = min_minAtivo.id;
-        const el=document.getElementById('mintb-indisp'); if (!el) return;
-        const [a,m]=min_indMes.split('-').map(Number);
-        const fim=new Date(a,m,0).getDate();
-        const ini=`${min_indMes}-01`, fim2=`${min_indMes}-${fim}`;
-        min_indisps=await min_sb(`ministerio_indisponibilidade?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome),cultos(nome)`).catch(()=>[]);
+        const el = document.getElementById('mintb-indisp'); if (!el) return;
+        const [a, m] = min_indMes.split('-').map(Number);
+        const fim = new Date(a, m, 0).getDate();
+        const ini = `${min_indMes}-01`, fim2 = `${min_indMes}-${fim}`;
+
+        min_indisps = await min_sb(
+            `ministerio_indisponibilidade?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome),cultos(nome,hora_inicio)`
+        ).catch(() => []);
         if (!min_minAtivo || min_minAtivo.id !== minId) return;
-        if (!min_indMemSel&&min_minMems.length) min_indMemSel=min_minMems[0].membro_id;
-        const inSet=new Set(min_indisps.filter(i=>i.membro_id===min_indMemSel).map(i=>i.data));
-        const hoje=new Date().toISOString().split('T')[0];
-        const primeiroD=new Date(a,m-1,1).getDay();
-        let diasHtml='';
-        for (let i=0;i<primeiroD;i++) diasHtml+=`<div class="cal-mini-dia vazio"></div>`;
-        for (let d=1;d<=fim;d++){
-            const iso=`${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            let cls='cal-mini-dia';
-            if (inSet.has(iso)) cls+=' bloqueado'; else if (iso===hoje) cls+=' hoje';
-            diasHtml+=`<div class="${cls}" onclick="min_togIndisp('${iso}')" title="${iso}">${d}</div>`;
+        if (!min_indMemSel && min_minMems.length) min_indMemSel = min_minMems[0].membro_id;
+
+        const hoje = new Date().toISOString().split('T')[0];
+        const primeiroD = new Date(a, m - 1, 1).getDay();
+
+        let diasHtml = '';
+        for (let i = 0; i < primeiroD; i++) diasHtml += `<div class="cal-mini-dia vazio"></div>`;
+        for (let d = 1; d <= fim; d++) {
+            const iso = `${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const minhasIndisp = min_indisps.filter(i => i.membro_id === min_indMemSel && i.data === iso);
+            const temDiaInteiro = minhasIndisp.some(i => !i.culto_id);
+            const temParcial    = !temDiaInteiro && minhasIndisp.length > 0;
+
+            let cls = 'cal-mini-dia';
+            if (temDiaInteiro)   cls += ' bloqueado';
+            else if (temParcial) cls += ' parcial';
+            else if (iso === hoje) cls += ' hoje';
+
+            diasHtml += `<div class="${cls}" onclick="min_abrirPickerCulto('${iso}')" title="${iso}">${d}</div>`;
         }
-        el.innerHTML=`
-    <div class="sec-hd" style="margin-bottom:10px"><div class="sec-lbl">Indisponibilidades</div></div>
+
+        el.innerHTML = `
+    <div class="sec-hd" style="margin-bottom:10px">
+        <div class="sec-lbl">Indisponibilidades</div>
+    </div>
     <div class="sec-lbl" style="margin-bottom:6px">Seleccionar voluntário</div>
-    <div class="mem-chips" style="margin-bottom:14px">${min_minMems.map(mm=>`<div class="mem-chip ${min_indMemSel===mm.membro_id?'active':''}" onclick="min_selIndMem('${mm.membro_id}')">${mm.membros?.nome||'—'}</div>`).join('')}</div>
+    <div class="mem-chips" style="margin-bottom:14px">
+        ${min_minMems.map(mm => `
+        <div class="mem-chip ${min_indMemSel === mm.membro_id ? 'active' : ''}" onclick="min_selIndMem('${mm.membro_id}')">
+            ${mm.membros?.nome || '—'}
+        </div>`).join('')}
+    </div>
     <div class="ind-layout">
         <div class="ind-cal-wrap">
             <div class="mes-nav">
@@ -1245,42 +1282,292 @@
                 <button class="btn-sm" style="padding:3px 8px" onclick="min_navInd(1)">Prox.</button>
             </div>
             <div class="cal-mini">
-                <div class="cal-mini-hds">${['D','S','T','Q','Q','S','S'].map(d=>`<div class="cal-mini-hd">${d}</div>`).join('')}</div>
-                <div class="cal-mini-dias">${diasHtml}</div>
+                <div class="cal-mini-hds">${['D','S','T','Q','Q','S','S'].map(d => `<div class="cal-mini-hd">${d}</div>`).join('')}</div>
+                <div class="cal-mini-dias" id="min-cal-dias">${diasHtml}</div>
             </div>
-            <div style="margin-top:8px;font-size:10px;color:var(--text-faint);text-align:center">Clica num dia para marcar/desmarcar</div>
+            <div style="display:flex;gap:10px;margin-top:10px;justify-content:center;flex-wrap:wrap">
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-faint)">
+                    <span style="width:10px;height:10px;border-radius:3px;background:rgba(192,57,43,0.25);border:1px solid rgba(192,57,43,0.5);display:inline-block"></span>Dia inteiro
+                </span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-faint)">
+                    <span style="width:10px;height:10px;border-radius:3px;background:rgba(230,81,0,0.2);border:1px solid rgba(230,81,0,0.5);display:inline-block"></span>Parcial
+                </span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-faint)">
+                    <span style="width:10px;height:10px;border-radius:3px;background:rgba(0,144,152,0.15);border:1px solid var(--primary);display:inline-block"></span>Hoje
+                </span>
+            </div>
+            <div style="margin-top:6px;font-size:10px;color:var(--text-faint);text-align:center">
+                Clica num dia para gerir indisponibilidade
+            </div>
         </div>
         <div style="flex:1;min-width:200px">
             <div class="sec-lbl" style="margin-bottom:8px">Lista do mês</div>
             <div id="min-indisp-lista"></div>
         </div>
+    </div>
+
+    <!-- ── PICKER DE CULTOS ── -->
+    <div id="min-indisp-picker"
+         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;align-items:center;justify-content:center"
+         onclick="if(event.target===this)min_fecharPickerCulto()">
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:20px;width:320px;max-width:95vw;box-shadow:var(--shadow-md)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <div>
+                    <div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px;color:var(--primary-dark)">INDISPONIBILIDADE</div>
+                    <div id="min-picker-data-lbl" style="font-size:13px;font-weight:600;margin-top:3px"></div>
+                </div>
+                <button class="btn-sm" onclick="min_fecharPickerCulto()">Fechar</button>
+            </div>
+            <div id="min-picker-body"></div>
+        </div>
     </div>`;
+
         min_renderIndispLista();
     }
+
+    /* ── PICKER DE CULTOS ── */
+    function min_abrirPickerCulto(iso) {
+        if (!min_indMemSel) { min_t('Seleciona um voluntário primeiro', 'err'); return; }
+        const picker = document.getElementById('min-indisp-picker'); if (!picker) return;
+
+        const cultosDoDia  = min_cultosNoDia(iso);
+        const minhasIndisp = min_indisps.filter(i => i.membro_id === min_indMemSel && i.data === iso);
+        const temDiaInteiro = minhasIndisp.some(i => !i.culto_id);
+
+        document.getElementById('min-picker-data-lbl').textContent = fmtD(iso);
+
+        let html = '';
+
+        /* ── Opção "Dia inteiro" ── */
+        html += `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;
+                border:1px solid ${temDiaInteiro ? 'rgba(192,57,43,0.5)' : 'var(--border)'};
+                border-radius:9px;
+                background:${temDiaInteiro ? 'rgba(192,57,43,0.06)' : 'var(--bg-panel)'};
+                margin-bottom:10px">
+        <div>
+            <div style="font-weight:700;font-size:13px">Dia inteiro</div>
+            <div style="font-size:10px;color:var(--text-faint);margin-top:2px">Indisponível em todos os cultos</div>
+        </div>
+        <button class="btn-sm ${temDiaInteiro ? 'danger' : 'primary'}"
+                style="font-size:11px;padding:4px 12px"
+                onclick="min_togIndispDiaInteiro('${iso}',${temDiaInteiro})">
+            ${temDiaInteiro ? 'Remover' : 'Marcar'}
+        </button>
+    </div>`;
+
+        /* ── Cultos específicos do dia ── */
+        if (!cultosDoDia.length) {
+            html += `<div style="padding:10px;text-align:center;color:var(--text-faint);font-size:12px">
+            Sem cultos neste dia para este ministério.
+        </div>`;
+        } else {
+            html += `<div style="font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;
+                             color:var(--text-faint);margin-bottom:8px">
+            OU POR CULTO ESPECÍFICO
+        </div>`;
+
+            cultosDoDia.forEach(c => {
+                const temCulto = minhasIndisp.some(i => i.culto_id === c.id);
+                /* Se dia inteiro está marcado: mostra todos como bloqueados mas não permite toggle individual
+                   (não faz sentido marcar culto individual se dia inteiro já bloqueia tudo) */
+                const bloqueadoPorDiaInteiro = temDiaInteiro && !temCulto;
+
+                html += `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 13px;
+                        border:1px solid ${temCulto || temDiaInteiro ? 'rgba(192,57,43,0.35)' : 'var(--border)'};
+                        border-radius:9px;
+                        background:${temCulto || temDiaInteiro ? 'rgba(192,57,43,0.04)' : 'var(--bg-card)'};
+                        margin-bottom:6px;
+                        opacity:${bloqueadoPorDiaInteiro ? '0.55' : '1'}">
+                <div>
+                    <div style="font-weight:600;font-size:12px">${c.nome}</div>
+                    <div style="font-size:10px;color:var(--text-faint);margin-top:1px">
+                        ${c.hora_inicio?.slice(0,5)}${c.hora_fim ? '–'+c.hora_fim.slice(0,5) : ''}
+                    </div>
+                </div>
+                ${bloqueadoPorDiaInteiro
+                    ? `<span style="font-size:9px;color:var(--red);font-family:var(--font-title);padding:3px 8px;
+                                   background:rgba(192,57,43,0.1);border-radius:20px">INDISP.</span>`
+                    : `<button class="btn-sm ${temCulto ? 'danger' : 'primary'}"
+                               style="font-size:11px;padding:4px 10px"
+                               onclick="min_togIndispCulto('${iso}','${c.id}',${temCulto})">
+                           ${temCulto ? 'Remover' : 'Marcar'}
+                       </button>`
+                }
+            </div>`;
+            });
+        }
+
+        document.getElementById('min-picker-body').innerHTML = html;
+        picker.style.display = 'flex';
+    }
+
+    function min_fecharPickerCulto() {
+        const p = document.getElementById('min-indisp-picker');
+        if (p) p.style.display = 'none';
+    }
+
+    async function min_togIndispDiaInteiro(iso, temDiaInteiro) {
+        if (!min_indMemSel || !min_minAtivo) return;
+
+        if (temDiaInteiro) {
+            /* Remover entrada dia inteiro */
+            const ex = min_indisps.find(i => i.membro_id === min_indMemSel && i.data === iso && !i.culto_id);
+            if (ex) {
+                await min_sb(`ministerio_indisponibilidade?id=eq.${ex.id}`, { method: 'DELETE' })
+                    .catch(e => min_t('Erro: ' + e.message, 'err'));
+                min_indisps = min_indisps.filter(i => i.id !== ex.id);
+            }
+        } else {
+            /* Remover eventuais registos individuais do mesmo dia primeiro */
+            const individuais = min_indisps.filter(i => i.membro_id === min_indMemSel && i.data === iso && i.culto_id);
+            for (const ind of individuais) {
+                await min_sb(`ministerio_indisponibilidade?id=eq.${ind.id}`, { method: 'DELETE' }).catch(console.error);
+                min_indisps = min_indisps.filter(i => i.id !== ind.id);
+            }
+            /* Adicionar dia inteiro (culto_id = null) */
+            const r = await min_sb('ministerio_indisponibilidade', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ministerio_id: min_minAtivo.id,
+                    membro_id: min_indMemSel,
+                    data: iso,
+                    culto_id: null
+                })
+            }).catch(e => { min_t('Erro: ' + e.message, 'err'); return null; });
+            if (r?.[0]) {
+                const nm = min_minMems.find(m => m.membro_id === min_indMemSel);
+                min_indisps.push({ ...r[0], membros: { nome: nm?.membros?.nome || '' }, cultos: null });
+            }
+        }
+
+        min_renderIndispCalDias();
+        min_renderIndispLista();
+        min_abrirPickerCulto(iso); /* re-abre o picker atualizado */
+    }
+
+    async function min_togIndispCulto(iso, cultoId, temCulto) {
+        if (!min_indMemSel || !min_minAtivo) return;
+
+        if (temCulto) {
+            const ex = min_indisps.find(i => i.membro_id === min_indMemSel && i.data === iso && i.culto_id === cultoId);
+            if (ex) {
+                await min_sb(`ministerio_indisponibilidade?id=eq.${ex.id}`, { method: 'DELETE' })
+                    .catch(e => min_t('Erro: ' + e.message, 'err'));
+                min_indisps = min_indisps.filter(i => i.id !== ex.id);
+            }
+        } else {
+            const r = await min_sb('ministerio_indisponibilidade', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ministerio_id: min_minAtivo.id,
+                    membro_id: min_indMemSel,
+                    data: iso,
+                    culto_id: cultoId
+                })
+            }).catch(e => { min_t('Erro: ' + e.message, 'err'); return null; });
+            if (r?.[0]) {
+                const nm     = min_minMems.find(m => m.membro_id === min_indMemSel);
+                const culto  = min_cultsAll.find(c => c.id === cultoId);
+                min_indisps.push({
+                    ...r[0],
+                    membros: { nome: nm?.membros?.nome || '' },
+                    cultos:  { nome: culto?.nome || '', hora_inicio: culto?.hora_inicio || '' }
+                });
+            }
+        }
+
+        min_renderIndispCalDias();
+        min_renderIndispLista();
+        min_abrirPickerCulto(iso); /* re-abre o picker atualizado */
+    }
+
+    /* Atualiza só os quadradinhos do calendário sem re-render completo */
+    function min_renderIndispCalDias() {
+        const diasEl = document.getElementById('min-cal-dias'); if (!diasEl) return;
+        const [a, m] = min_indMes.split('-').map(Number);
+        const fim    = new Date(a, m, 0).getDate();
+        const hoje   = new Date().toISOString().split('T')[0];
+        const primeiroD = new Date(a, m - 1, 1).getDay();
+
+        let html = '';
+        for (let i = 0; i < primeiroD; i++) html += `<div class="cal-mini-dia vazio"></div>`;
+        for (let d = 1; d <= fim; d++) {
+            const iso = `${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const minhasIndisp  = min_indisps.filter(i => i.membro_id === min_indMemSel && i.data === iso);
+            const temDiaInteiro = minhasIndisp.some(i => !i.culto_id);
+            const temParcial    = !temDiaInteiro && minhasIndisp.length > 0;
+
+            let cls = 'cal-mini-dia';
+            if (temDiaInteiro)   cls += ' bloqueado';
+            else if (temParcial) cls += ' parcial';
+            else if (iso === hoje) cls += ' hoje';
+
+            html += `<div class="${cls}" onclick="min_abrirPickerCulto('${iso}')" title="${iso}">${d}</div>`;
+        }
+        diasEl.innerHTML = html;
+    }
+
+
     function min_renderIndispLista() {
-        const el=document.getElementById('min-indisp-lista'); if (!el) return;
-        const filtradas=min_indisps.filter(i=>i.membro_id===min_indMemSel);
-        if (!filtradas.length){el.innerHTML=`<div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;color:var(--text-faint);font-size:12px">Nenhuma indisponibilidade</div>`;return;}
-        const sorted=[...filtradas].sort((a,b)=>a.data.localeCompare(b.data));
-        el.innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">${sorted.map(i=>`
-    <div style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px;font-size:12px">
-        <div style="font-family:var(--font-title);font-size:11px;color:var(--primary-dark);flex:1">${fmtD(i.data)}</div>
-        <button class="btn-sm danger" style="padding:2px 7px" onclick="min_remIndisp('${i.id}')">Remover</button>
-    </div>`).join('')}</div>`;
-        const outros=min_indisps.filter(i=>i.membro_id!==min_indMemSel);
-        if (outros.length){
-            const porData={};
-            outros.forEach(i=>{if(!porData[i.data])porData[i.data]=[];porData[i.data].push(i.membros?.nome||'?');});
-            el.innerHTML+=`<div style="margin-top:12px;font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:6px">OUTROS NESTE MÊS</div>
-        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">${Object.entries(porData).sort().map(([data,nomes])=>`
-        <div style="display:flex;align-items:center;padding:7px 12px;border-bottom:1px solid var(--border);gap:8px;font-size:11px">
-            <div style="font-family:var(--font-title);font-size:10px;color:var(--primary-dark);min-width:90px">${fmtD(data)}</div>
-            <div style="color:var(--text-muted)">${nomes.join(', ')}</div>
-        </div>`).join('')}</div>`;
+        const el = document.getElementById('min-indisp-lista'); if (!el) return;
+        const filtradas = min_indisps.filter(i => i.membro_id === min_indMemSel);
+
+        if (!filtradas.length) {
+            el.innerHTML = `<div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;color:var(--text-faint);font-size:12px">Nenhuma indisponibilidade</div>`;
+        } else {
+            const sorted = [...filtradas].sort((a, b) => a.data.localeCompare(b.data));
+            el.innerHTML = `<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        ${sorted.map(i => {
+                const cultoNome = i.culto_id
+                    ? (i.cultos?.nome || min_cultsAll.find(c => c.id === i.culto_id)?.nome || 'Culto específico')
+                    : null;
+                const badge = cultoNome
+                    ? `<span style="font-size:9px;background:rgba(230,81,0,0.1);color:var(--orange);padding:2px 8px;border-radius:20px;font-family:var(--font-title)">${cultoNome}</span>`
+                    : `<span style="font-size:9px;background:rgba(192,57,43,0.1);color:var(--red);padding:2px 8px;border-radius:20px;font-family:var(--font-title)">Dia inteiro</span>`;
+                return `
+            <div style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px;font-size:12px">
+                <div style="font-family:var(--font-title);font-size:11px;color:var(--primary-dark);min-width:90px">${fmtD(i.data)}</div>
+                <div style="flex:1">${badge}</div>
+                <button class="btn-sm danger" style="padding:2px 7px" onclick="min_remIndisp('${i.id}')">Remover</button>
+            </div>`;
+            }).join('')}</div>`;
+        }
+
+        /* ── Outros membros no mesmo mês ── */
+        const outros = min_indisps.filter(i => i.membro_id !== min_indMemSel);
+        if (outros.length) {
+            const porData = {};
+            outros.forEach(i => {
+                if (!porData[i.data]) porData[i.data] = [];
+                const label = i.cultos?.nome ? i.membros?.nome + ' (' + i.cultos.nome + ')' : i.membros?.nome || '?';
+                porData[i.data].push(label);
+            });
+            el.innerHTML += `
+        <div style="margin-top:12px;font-family:var(--font-title);font-size:9px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:6px">OUTROS NESTE MÊS</div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        ${Object.entries(porData).sort().map(([data, nomes]) => `
+            <div style="display:flex;align-items:flex-start;padding:7px 12px;border-bottom:1px solid var(--border);gap:8px;font-size:11px">
+                <div style="font-family:var(--font-title);font-size:10px;color:var(--primary-dark);min-width:90px;flex-shrink:0">${fmtD(data)}</div>
+                <div style="color:var(--text-muted);line-height:1.6">${nomes.join(', ')}</div>
+            </div>`).join('')}
+        </div>`;
         }
     }
+
+    async function min_remIndisp(id) {
+        await min_sb(`ministerio_indisponibilidade?id=eq.${id}`, { method: 'DELETE' })
+            .catch(e => min_t('Erro: ' + e.message, 'err'));
+        min_indisps = min_indisps.filter(i => i.id !== id);
+        min_renderIndispCalDias();
+        min_renderIndispLista();
+    }
+
     function min_selIndMem(id) { min_indMemSel=id; min_renderIndisp(); }
+
     function min_navInd(n) { min_indMes=addM(min_indMes,n); min_renderIndisp(); }
+
     async function min_togIndisp(iso) {
         if (!min_indMemSel) { min_t('Seleciona um voluntário primeiro', 'err'); return; }
         if (!min_minAtivo) return;
@@ -1294,11 +1581,7 @@
         }
         await min_renderIndisp();
     }
-    async function min_remIndisp(id) {
-        await min_sb(`ministerio_indisponibilidade?id=eq.${id}`,{method:'DELETE'}).catch(e=>min_t('Erro: '+e.message,'err'));
-        min_indisps=min_indisps.filter(i=>i.id!==id);
-        await min_renderIndisp();
-    }
+
 
     /* ── ESCALA ── */
     async function min_renderEscala() {

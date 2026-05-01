@@ -796,11 +796,12 @@
         return m[code] || 'Variável';
     }
 
-    async function fetchRSS(feedUrl, label, count = 5) {
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}&count=${count}`;
+    async function fetchRSS(feedUrl, label) {
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`;
         const d   = await fetch(url).then(r => r.json());
         if (d.status !== 'ok') throw new Error(d.message || 'rss error');
         return (d.items || [])
+            .slice(0, 5) // limita a 5 no cliente em vez de pedir ao servidor
             .map(it => ({ tipo: 'news', label, texto: it.title?.trim() || '' }))
             .filter(it => it.texto.length > 4);
     }
@@ -826,14 +827,14 @@
 
         // Notícias
         const feeds = [
-            { url: 'https://observador.pt/feed/',                  label: 'OBSERVADOR', count: 5 },
-            { url: 'https://feeds.publico.pt/publico/rss/ultimas', label: 'PÚBLICO',    count: 4 },
-            { url: 'https://sicnoticias.pt/rss',                   label: 'SIC',        count: 4 },
-            { url: 'https://www.noticiasaominuto.com/rss',         label: '1Minuto',    count: 4 },
-            { url: 'https://recortes.pt/Info/RSS',                 label: 'Recortes',   count: 4 },
-            { url: 'https://www.europarl.europa.eu/rss/doc/top-stories/pt.xml', label: 'EUROPARL', count: 3 },
+            { url: 'https://observador.pt/feed/',                        label: 'OBSERVADOR' },
+            { url: 'https://feeds.publico.pt/publico/rss/ultimas',       label: 'PÚBLICO'   },
+            { url: 'https://sicnoticias.pt/rss',                         label: 'SIC'       },
+            { url: 'https://www.noticiasaominuto.com/rss',               label: '1MINUTO'   },
+            { url: 'https://www.europarl.europa.eu/rss/doc/top-stories/pt.xml', label: 'EUROPARL' },
         ];
-        const res = await Promise.allSettled(feeds.map(f => fetchRSS(f.url, f.label, f.count)));
+
+        const res = await Promise.allSettled(feeds.map(f => fetchRSS(f.url, f.label)));
         res.forEach((r, i) => {
             if (r.status === 'fulfilled') items.push(...r.value);
             else console.warn(`Feed ${feeds[i].label}:`, r.reason?.message);

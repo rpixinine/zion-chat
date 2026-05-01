@@ -1584,7 +1584,7 @@
 
             CI.indisps = await sb(
                 `ministerio_indisponibilidade?ministerio_id=eq.${CI.ministerioId}` +
-                `&data=gte.${ini}&data=lte.${fim2}&select=*,membros_publico(nome)&order=data`
+                `&data=gte.${ini}&data=lte.${fim2}&select=*,membros_publico(nome),cultos(nome,hora_inicio)&order=data`
             ).catch(() => []);
 
             el.innerHTML = buildIndispLayout();
@@ -1602,7 +1602,11 @@
         const porData = {};
         CI.indisps.forEach(i => {
             if (!porData[i.data]) porData[i.data] = [];
-            porData[i.data].push(i.membros_publico?.nome || '?');
+            porData[i.data].push({
+                nome:      i.membros_publico?.nome || '?',
+                cultoNome: i.culto_id ? (i.cultos?.nome || 'Culto específico') : null,
+                cultoHora: i.cultos?.hora_inicio?.slice(0,5) || ''
+            });
         });
 
         /* Calendário */
@@ -1624,7 +1628,7 @@
                 ? `<div class="cal-dia-dots">${nomes.slice(0,4).map(() => `<div class="cal-dia-dot"></div>`).join('')}</div>`
                 : '';
 
-            const title = nomes.length ? `title="${nomes.join(', ')}"` : '';
+            const title = nomes.length ? `title="${nomes.map(x => x.nome).join(', ')}"` : '';
             diasHtml += `<div class="${cls}" ${title}>
                 <div class="cal-dia-num">${d}</div>
                 ${dots}
@@ -1633,39 +1637,64 @@
 
         /* Lista por data */
         const datasComIndisp = Object.keys(porData).sort();
+
+        // SUBSTITUIR o bloco da lista (listaHtml)
         const listaHtml = datasComIndisp.length
             ? `<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
-                ${datasComIndisp.map(iso => `
-                    <div class="ind-list-item">
-                        <div class="ind-list-date">${fmtDiaSemana(iso)}</div>
-                        <div class="ind-list-names">
-                            ${porData[iso].map(n => `<span class="ind-name-tag">${n}</span>`).join(' ')}
-                        </div>
-                    </div>`).join('')}
-               </div>`
+        ${datasComIndisp.map(iso => `
+            <div class="ind-list-item">
+                <div class="ind-list-date">${fmtDiaSemana(iso)}</div>
+                <div class="ind-list-names">
+                    ${porData[iso].map(item => {
+                const cultoBadge = item.cultoNome
+                    ? `<span style="font-size:9px;background:rgba(251,140,0,0.12);color:#fb8c00;
+                                           border:1px solid rgba(251,140,0,0.25);padding:1px 6px;
+                                           border-radius:20px;margin-left:4px;font-family:'Cinzel',serif">
+                                   ${item.cultoNome}${item.cultoHora ? ' · '+item.cultoHora : ''}
+                               </span>`
+                    : `<span style="font-size:9px;background:rgba(229,57,53,0.12);color:#ef9a9a;
+                                           border:1px solid rgba(229,57,53,0.25);padding:1px 6px;
+                                           border-radius:20px;margin-left:4px;font-family:'Cinzel',serif">
+                                   Dia inteiro
+                               </span>`;
+                return `<span class="ind-name-tag">${item.nome}</span>${cultoBadge}`;
+            }).join(' ')}
+                </div>
+            </div>`).join('')}
+       </div>`
             : `<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">
-                   Nenhuma indisponibilidade neste mês.
-               </div>`;
+           Nenhuma indisponibilidade neste mês.
+       </div>`;
 
         /* Resumo por voluntário */
+        // SUBSTITUIR o bloco do resumo (porMembro) — contar por nome ignorando duplicados de culto
         const porMembro = {};
         CI.indisps.forEach(i => {
             const nome = i.membros_publico?.nome || '?';
-            if (!porMembro[nome]) porMembro[nome] = 0;
-            porMembro[nome]++;
+            if (!porMembro[nome]) porMembro[nome] = { total: 0, diaInteiro: 0, porCulto: 0 };
+            if (i.culto_id) porMembro[nome].porCulto++;
+            else            porMembro[nome].diaInteiro++;
+            porMembro[nome].total++;
         });
 
         const resumoHtml = Object.keys(porMembro).length
             ? `<div style="margin-top:16px">
-                <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Por Voluntário</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px">
-                    ${Object.entries(porMembro).sort((a,b) => b[1]-a[1]).map(([nome, cnt]) =>
-                `<span style="padding:3px 10px;border-radius:20px;background:rgba(229,57,53,0.10);border:1px solid rgba(229,57,53,0.2);color:#ef9a9a;font-size:11px">
-                            ${nome} <strong>(${cnt})</strong>
-                        </span>`
-            ).join('')}
-                </div>
-               </div>`
+        <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;
+                    text-transform:uppercase;color:var(--muted);margin-bottom:8px">Por Voluntário</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${Object.entries(porMembro).sort((a,b) => b[1].total - a[1].total).map(([nome, cnt]) => {
+                const detalhes = [
+                    cnt.diaInteiro ? `${cnt.diaInteiro} dia${cnt.diaInteiro>1?'s':''} inteiro${cnt.diaInteiro>1?'s':''}` : '',
+                    cnt.porCulto   ? `${cnt.porCulto} culto${cnt.porCulto>1?'s':''}` : ''
+                ].filter(Boolean).join(', ');
+                return `<span style="padding:3px 10px;border-radius:20px;background:rgba(229,57,53,0.10);
+                                     border:1px solid rgba(229,57,53,0.2);color:#ef9a9a;font-size:11px">
+                    ${nome} <strong>(${cnt.total})</strong>
+                    ${detalhes ? `<span style="font-size:9px;opacity:0.7"> · ${detalhes}</span>` : ''}
+                </span>`;
+            }).join('')}
+        </div>
+       </div>`
             : '';
 
         return `

@@ -178,6 +178,14 @@
         const lmn_sb = (...args) => window.sb(...args);
         const BASE_URL  = location.origin + location.pathname.replace(/\/[^/]*$/, '/');
 
+        // ── PDF LIB ──
+        if (!window._html2pdfLoaded) {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            s.onload = () => window._html2pdfLoaded = true;
+            document.head.appendChild(s);
+        }
+
         var lmn_membros  = [];
         var lmn_termos   = [];
         var lmn_lumenIds = [];
@@ -327,6 +335,7 @@
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn-sm" onclick="lmn_selecionarPendentes()" title="Seleciona membros sem termo atual">Sel. Sem Termo</button>
+        <button class="btn-sm" onclick="lmn_savePDF()">⬇ PDF</button>
         <button class="btn-sm primary" onclick="lmn_abrirModalLink()">📝 Gerar Link</button>
       </div>
     </div>
@@ -441,6 +450,7 @@
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn-sm" onclick="lmn_renderGeral()">← Geral</button>
+        <button class="btn-sm" onclick="lmn_savePDF()">⬇ PDF</button>
         <button class="btn-sm primary" onclick="lmn_abrirModalLink(['${m.id}'])">📝 Gerar Link</button>
       </div>
     </div>
@@ -683,6 +693,28 @@
                 const d = await r.json();
                 window.open(`${SUPA_URL}/storage/v1${d.signedURL}`, '_blank');
             } catch(e) { lmn_t('Erro ao abrir documento','err'); }
+        };
+
+        window.lmn_savePDF = function(nome) {
+            const el = document.getElementById('lmn-content');
+            if (!el) return;
+
+            const filename = nome
+                ? `Lumen_${nome.replace(/\s+/g,'_')}.pdf`
+                : `Lumen_Geral_${new Date().toISOString().slice(0,10)}.pdf`;
+
+            const opt = {
+                margin:       [10, 8, 10, 8],
+                filename,
+                image:        { type: 'jpeg', quality: 0.95 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            lmn_t('A gerar PDF…');
+            html2pdf().set(opt).from(el).save()
+                .then(() => lmn_t('PDF guardado!'))
+                .catch(() => lmn_t('Erro ao gerar PDF', 'err'));
         };
 
         // Expor no window para o reInitMap do admin

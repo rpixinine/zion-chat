@@ -462,7 +462,7 @@
     <div class="coluna-sep"></div>
     <div class="coluna-yt" id="coluna-yt">
         <iframe id="yt-frame"
-                src="https://www.youtube.com/embed/XuZAl-ZPEcA?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1"
+                src="https://www.youtube.com/embed/XuZAl-ZPEcA?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&enablejsapi=1"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowfullscreen>
         </iframe>
@@ -740,7 +740,7 @@
         if (processandoFila || !filaChamada.length) return;
         processandoFila = true;
 
-        // Muta o YouTube via API sem recarregar
+        // Muta YouTube antes
         if (!ytMuted) ytMuteFrame();
 
         while (filaChamada.length > 0) {
@@ -749,9 +749,15 @@
             await falarPedido(numero);
         }
 
-        // Restaura som sem recarregar
+        // Pausa pequena e retoma YouTube
+        await new Promise(r => setTimeout(r, 600));
+
+        const frame = document.getElementById('yt-frame');
+        // Força retoma do vídeo e desmuta se estava com som
+        frame.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
+        );
         if (!ytMuted) {
-            await new Promise(r => setTimeout(r, 600));
             ytUnmuteFrame();
         }
 

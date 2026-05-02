@@ -1655,6 +1655,9 @@
                 const faltam=Math.max(0,c.vagas-ps.filter(p=>p.papel_escala==='servindo').length);
                 if (!ps.length) return`<td><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="color:var(--text-faint);font-size:10px">—</span><span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span></div></td>`;
                 return`<td><div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+                    <span style="font-size:9px;color:var(--red);cursor:pointer;opacity:0.6;margin-bottom:2px"
+                    onclick="min_remEscTodos('${iso}','${c.id}')"
+                    title="Remover todos deste culto/dia">✕ limpar</span>
                 ${ps.map(p=>`<div class="esc-cell">
                     <span class="esc-cell-nome">${p.membros?.nome||'—'}</span>
                     ${p.papel_escala!=='servindo'?`<span class="esc-cell-papel">${p.papel_escala.toUpperCase()}</span>`:''}
@@ -1822,6 +1825,24 @@
         }
         min_t(`Escala gerada — ${novas.length} entradas${min_dividirEquipe?' (H+M)':''}`);
         await min_renderEscala();
+    }
+
+    async function min_remEscTodos(iso, cId) {
+        const culto = min_cultsAll.find(c => c.id === cId);
+        const d = new Date(iso + 'T00:00:00').toLocaleDateString('pt-PT', { weekday:'short', day:'2-digit', month:'short' });
+        if (!confirm(`Remover todos de "${culto?.nome || 'este culto'}" em ${d}?`)) return;
+
+        const ids = min_escala
+            .filter(e => e.data === iso && e.culto_id === cId)
+            .map(e => e.id);
+
+        await Promise.all(
+            ids.map(id => min_sb(`ministerio_escala?id=eq.${id}`, { method: 'DELETE' }).catch(console.error))
+        );
+
+        min_escala = min_escala.filter(e => !(e.data === iso && e.culto_id === cId));
+        min_renderEscCorpo();
+        min_t(`${ids.length} entrada${ids.length > 1 ? 's removidas' : ' removida'}`);
     }
 
     async function min_remEsc(id) {

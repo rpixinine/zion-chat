@@ -386,22 +386,22 @@
 
 <!-- ══ MODAL ADD ESCALA ══ -->
 <div id="min-modal-ea" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;align-items:center;justify-content:center">
-    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:360px;box-shadow:var(--shadow-md)">
-        <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark);margin-bottom:14px">Adicionar à Escala</div>
-        <div class="crud-group" style="margin-bottom:10px"><label>Voluntário</label><select id="min-ea-membro"></select></div>
-        <div class="crud-group" style="margin-bottom:10px">
-            <label>Papel na Escala</label>
-            <select id="min-ea-papel">
-                <option value="servindo">Servindo</option>
-                <option value="aprendiz">Aprendiz</option>
-                <option value="extra">Extra</option>
-            </select>
+    <div style="background:var(--bg-card);border-radius:var(--radius);padding:24px;width:480px;max-width:96vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:var(--shadow-md)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0">
+            <div>
+                <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;color:var(--primary-dark)">Adicionar à Escala</div>
+                <div id="min-ea-ctx-lbl" style="font-size:11px;color:var(--text-faint);margin-top:3px"></div>
+            </div>
+            <button class="btn-sm" onclick="document.getElementById('min-modal-ea').style.display='none'">Fechar</button>
         </div>
-        <div class="crud-group" style="margin-bottom:10px"><label>Notas</label><input id="min-ea-notas" placeholder="Opcional…"></div>
+
+        <!-- Lista de voluntários -->
+        <div id="min-ea-lista" style="flex:1;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;min-height:80px"></div>
+
         <div class="form-msg" id="min-ea-msg"></div>
-        <div style="display:flex;gap:8px;margin-top:14px">
+        <div style="display:flex;gap:8px;margin-top:4px;flex-shrink:0">
             <button class="btn-sm" style="flex:1" onclick="document.getElementById('min-modal-ea').style.display='none'">Cancelar</button>
-            <button class="btn-sm primary" style="flex:1" onclick="min_salvarEscalaManual()">Adicionar</button>
+            <button class="btn-sm primary" style="flex:2" id="min-ea-btn" onclick="min_salvarEscalaManual()">Adicionar à escala</button>
         </div>
     </div>
 </div>
@@ -1828,6 +1828,7 @@
         await min_sb(`ministerio_escala?id=eq.${id}`,{method:'DELETE'});
         min_escala=min_escala.filter(e=>e.id!==id); min_renderEscCorpo();
     }
+
     async function min_limparEsc() {
         if (!confirm(`Limpar escala de ${mesLbl(min_escMes)}?`)) return;
         const [a,m]=min_escMes.split('-').map(Number);
@@ -1835,28 +1836,148 @@
         await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}`,{method:'DELETE'}).catch(()=>{});
         min_t('Escala limpa'); await min_renderEscala();
     }
+
     function min_abrirEA(iso, cId) {
-        min_eaCtx={iso,cId};
-        const sel=document.getElementById('min-ea-membro');
-        sel.innerHTML=min_minMems.map(m=>`<option value="${m.membro_id}">${m.membros?.nome||'—'} (${min_papel_nome(m.papel)})</option>`).join('');
-        document.getElementById('min-ea-notas').value='';
-        document.getElementById('min-ea-msg').className='form-msg';
-        document.getElementById('min-modal-ea').style.display='flex';
+        min_eaCtx = { iso, cId };
+
+        /* Label de contexto */
+        const culto = min_cultsAll.find(c => c.id === cId);
+        const d = new Date(iso + 'T00:00:00');
+        document.getElementById('min-ea-ctx-lbl').textContent =
+            (culto?.nome || '') + ' · ' + d.toLocaleDateString('pt-PT', { weekday:'short', day:'2-digit', month:'short' });
+
+        /* Já escalados neste slot */
+        const jaEsc = new Set(
+            min_escala.filter(e => e.data === iso && e.culto_id === cId).map(e => e.membro_id)
+        );
+
+        const disponiveis = min_minMems.filter(m => !jaEsc.has(m.membro_id));
+
+        const lista = document.getElementById('min-ea-lista');
+        if (!disponiveis.length) {
+            lista.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Todos os voluntários já estão escalados.</div>`;
+        } else {
+            lista.innerHTML = disponiveis.map(m => `
+        <div class="min-ea-row" id="min-ea-row-${m.membro_id}"
+             style="border-bottom:1px solid var(--border);padding:10px 12px;cursor:pointer;transition:background 0.12s"
+             onclick="min_eaToggle('${m.membro_id}')">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);
+                            background:var(--bg-input);flex-shrink:0;display:flex;align-items:center;
+                            justify-content:center;font-size:11px;transition:all 0.12s"
+                     id="min-ea-chk-${m.membro_id}"></div>
+                <div style="flex:1">
+                    <div style="font-weight:600;font-size:13px">${m.membros?.nome || '—'}</div>
+                    <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-title)">${min_papel_nome(m.papel)}</div>
+                </div>
+            </div>
+            <!-- campos expandidos quando selecionado -->
+            <div id="min-ea-exp-${m.membro_id}"
+                 style="display:none;margin-top:10px;padding:10px;background:var(--bg-panel);border-radius:8px;border:1px solid var(--border)"
+                 onclick="event.stopPropagation()">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div class="crud-group">
+                        <label>Papel na escala</label>
+                        <select id="min-ea-papel-${m.membro_id}">
+                            <option value="servindo">Servindo</option>
+                            <option value="aprendiz">Aprendiz</option>
+                            <option value="extra">Extra</option>
+                        </select>
+                    </div>
+                    <div class="crud-group">
+                        <label>Nota</label>
+                        <input id="min-ea-nota-${m.membro_id}" type="text" placeholder="Opcional…">
+                    </div>
+                </div>
+            </div>
+        </div>`).join('');
+        }
+
+        document.getElementById('min-ea-msg').className = 'form-msg';
+        min_eaAtualizarBtn();
+        document.getElementById('min-modal-ea').style.display = 'flex';
     }
+
+    function min_eaToggle(membroId) {
+        const chk = document.getElementById('min-ea-chk-' + membroId);
+        const exp = document.getElementById('min-ea-exp-' + membroId);
+        const row = document.getElementById('min-ea-row-' + membroId);
+        if (!chk || !exp) return;
+
+        const on = chk.dataset.on === '1';
+        if (on) {
+            chk.dataset.on = '0';
+            chk.textContent = '';
+            chk.style.cssText = 'width:18px;height:18px;border-radius:4px;border:2px solid var(--border);background:var(--bg-input);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.12s';
+            exp.style.display = 'none';
+            row.style.background = '';
+        } else {
+            chk.dataset.on = '1';
+            chk.textContent = '✓';
+            chk.style.cssText = 'width:18px;height:18px;border-radius:4px;border:2px solid var(--primary);background:var(--primary);color:white;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.12s';
+            exp.style.display = 'block';
+            row.style.background = 'var(--primary-faint)';
+        }
+        min_eaAtualizarBtn();
+    }
+
+    function min_eaAtualizarBtn() {
+        const selecionados = document.querySelectorAll('[id^="min-ea-chk-"][data-on="1"]').length;
+        const btn = document.getElementById('min-ea-btn');
+        if (btn) {
+            btn.textContent = selecionados > 0
+                ? `Adicionar ${selecionados} pessoa${selecionados > 1 ? 's' : ''} à escala`
+                : 'Adicionar à escala';
+            btn.disabled = selecionados === 0;
+        }
+    }
+
+
     async function min_salvarEscalaManual() {
         if (!min_eaCtx) return;
-        const mId=document.getElementById('min-ea-membro').value;
-        const papel=document.getElementById('min-ea-papel').value;
-        const notas=document.getElementById('min-ea-notas').value||null;
+        const btn = document.getElementById('min-ea-btn');
+
+        const selecionados = [...document.querySelectorAll('[id^="min-ea-chk-"][data-on="1"]')]
+            .map(el => el.id.replace('min-ea-chk-', ''))
+            .map(mId => ({
+                membro_id:    mId,
+                papel_escala: document.getElementById('min-ea-papel-' + mId)?.value || 'servindo',
+                notas:        document.getElementById('min-ea-nota-'  + mId)?.value.trim() || null
+            }));
+
+        if (!selecionados.length) return;
+
+        btn.disabled = true;
+        btn.textContent = 'A guardar…';
+
         try {
-            await min_sb('ministerio_escala',{method:'POST',body:JSON.stringify({ministerio_id:min_minAtivo.id,membro_id:mId,culto_id:min_eaCtx.cId,data:min_eaCtx.iso,papel_escala:papel,gerado_auto:false,notas})});
-            document.getElementById('min-modal-ea').style.display='none';
-            min_t('Adicionado à escala');
-            const [a,m]=min_escMes.split('-').map(Number);
-            const ini=`${min_escMes}-01`, fim2=`${min_escMes}-${new Date(a,m,0).getDate()}`;
-            min_escala=await min_sb(`ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`).catch(()=>[]);
+            const payload = selecionados.map(s => ({
+                ministerio_id: min_minAtivo.id,
+                membro_id:     s.membro_id,
+                culto_id:      min_eaCtx.cId,
+                data:          min_eaCtx.iso,
+                papel_escala:  s.papel_escala,
+                gerado_auto:   false,
+                notas:         s.notas
+            }));
+
+            await min_sb('ministerio_escala', { method: 'POST', body: JSON.stringify(payload) });
+
+            document.getElementById('min-modal-ea').style.display = 'none';
+            min_t(`${selecionados.length} pessoa${selecionados.length > 1 ? 's adicionadas' : ' adicionada'} à escala`);
+
+            const [a, m] = min_escMes.split('-').map(Number);
+            const ini  = `${min_escMes}-01`;
+            const fim2 = `${min_escMes}-${new Date(a, m, 0).getDate()}`;
+            min_escala = await min_sb(
+                `ministerio_escala?ministerio_id=eq.${min_minAtivo.id}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(id,nome)&order=data,culto_id`
+            ).catch(() => []);
             min_renderEscCorpo();
-        } catch(e){smsg('min-ea-msg',e.message,'err');}
+        } catch(e) {
+            smsg('min-ea-msg', e.message, 'err');
+            btn.disabled = false;
+            min_eaAtualizarBtn();
+        }
     }
 
     /* ── CHECK-IN ── */

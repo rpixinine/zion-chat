@@ -11,12 +11,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zion Lisboa">
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
+
     <style>
         /* ── Hero banner ─────────────────────────────────── */
         .banner {
@@ -29,10 +30,10 @@
             display: flex !important;
             padding: 0 14px 14px !important;
             overflow: hidden !important;
+            position: relative;
         }
         .banner img,
         .banner-fallback { display: none !important; }
-
         .banner-overlay {
             position: absolute; inset: 0;
             background: rgba(0,0,0,0.50);
@@ -43,7 +44,7 @@
             background: linear-gradient(to bottom, rgba(2,22,30,0), rgba(2,22,30,1));
         }
 
-        /* ── Nav pills (dark style) ──────────────────────── */
+        /* ── Nav pills ───────────────────────────────────── */
         .back-btn {
             position: relative; z-index: 2;
             display: flex; align-items: center; gap: 6px;
@@ -55,7 +56,6 @@
             backdrop-filter: blur(8px); transition: all 0.2s;
         }
         .back-btn:hover { background: rgba(216,195,165,0.12); border-color: var(--primary-light); color: var(--primary-light); }
-
         .page-badge {
             position: relative; z-index: 2;
             font-family: var(--font-title); font-size: 10px; letter-spacing: 2px;
@@ -73,12 +73,40 @@
         .content::-webkit-scrollbar { width: 4px; }
         .content::-webkit-scrollbar-thumb { background: rgba(0,144,152,0.25); border-radius: 2px; }
 
-        /* ── Cards ───────────────────────────────────────── */
-        .card {
+        /* ── Intro card ──────────────────────────────────── */
+        .intro-card {
             background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius-md); padding: 18px; margin-bottom: 10px;
-            box-shadow: var(--shadow-sm); animation: fadeUp 0.4s ease both;
+            border-radius: var(--radius-md); padding: 18px; margin-bottom: 20px;
+            box-shadow: var(--shadow-sm); animation: fadeUp 0.3s ease both;
         }
+        .intro-card .card-text { font-size: 14px; color: var(--text-muted); line-height: 1.75; }
+
+        /* ── Separador de grupo (raiz) ───────────────────── */
+        .group-header {
+            display: flex; align-items: center; gap: 10px;
+            margin: 24px 0 12px;
+            animation: fadeUp 0.35s ease both;
+        }
+        .group-header:first-of-type { margin-top: 6px; }
+        .group-header-line {
+            flex: 1; height: 1px;
+            background: linear-gradient(to right, var(--border), transparent);
+        }
+        .group-header-label {
+            font-family: var(--font-title); font-size: 9px; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--primary-dark);
+            white-space: nowrap;
+        }
+
+        /* ── Card de ministério (nível 1) ────────────────── */
+        .min-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); margin-bottom: 10px;
+            box-shadow: var(--shadow-sm); overflow: hidden;
+            animation: fadeUp 0.4s ease both;
+        }
+        .min-card-body { padding: 16px 18px; }
+
         .card-badge {
             display: inline-block; padding: 2px 10px;
             border-radius: var(--radius-full);
@@ -88,25 +116,64 @@
         }
         .card-title {
             font-family: var(--font-title); font-size: 16px; font-weight: 600;
-            color: var(--primary-dark); margin-bottom: 6px;
+            color: var(--primary-dark); margin-bottom: 4px;
         }
         .card-text { font-size: 14px; color: var(--text-muted); line-height: 1.75; }
 
-        /* ── Ministério meta ─────────────────────────────── */
+        /* ── Meta (faixa etária, instagram) ──────────────── */
         .min-meta { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
         .min-meta-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-faint); }
         .min-meta-item a { color: var(--primary); text-decoration: none; font-size: 11px; }
         .min-meta-item a:hover { text-decoration: underline; }
         .min-meta-item svg { width: 12px; height: 12px; flex-shrink: 0; }
 
-        /* ── Section label ───────────────────────────────── */
-        .section-label {
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 3px;
-            text-transform: uppercase; color: var(--text-faint); margin: 18px 0 10px;
+        /* ── Sub-áreas (filhos do nível 1) ───────────────── */
+        .subareas-wrap {
+            border-top: 1px solid var(--border);
+            background: rgba(0,144,152,0.03);
+            padding: 12px 18px;
         }
-        .section-label:first-child { margin-top: 0; }
+        .subareas-label {
+            font-family: var(--font-title); font-size: 8px; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--text-faint);
+            margin-bottom: 8px;
+        }
+        .subareas-list {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
 
-        .d1{animation-delay:0.05s}
+        /* ── Item de sub-área ────────────────────────────── */
+        .subarea-item {
+            display: flex; flex-direction: column;
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 8px; padding: 7px 12px;
+            min-width: 0;
+        }
+        .subarea-item-name {
+            font-family: var(--font-title); font-size: 10px; letter-spacing: 0.5px;
+            color: var(--text-main);
+        }
+        .subarea-item-desc {
+            font-size: 11px; color: var(--text-faint); margin-top: 2px;
+            line-height: 1.5;
+        }
+        /* Se tiver netos (filhos de sub-área) */
+        .subarea-children {
+            margin-top: 6px; padding-top: 6px;
+            border-top: 1px solid var(--border);
+            display: flex; flex-wrap: wrap; gap: 4px;
+        }
+        .subarea-child-chip {
+            font-size: 10px; color: var(--text-faint);
+            background: var(--primary-faint);
+            border: 1px solid var(--border);
+            border-radius: 999px; padding: 2px 8px;
+            white-space: nowrap;
+        }
+
+        /* ── Empty / Loading ─────────────────────────────── */
+        .empty { text-align: center; padding: 40px 0; }
+        .empty-txt { font-size: 13px; color: var(--text-faint); }
     </style>
 </head>
 <body>
@@ -160,56 +227,150 @@
         return r.json();
     }
 
+    /* ──────────────────────────────────────────────────────
+       Constrói árvore a partir de lista plana com parent_id
+       Retorna só os nós raiz; cada nó tem .children[]
+    ────────────────────────────────────────────────────── */
+    function buildTree(list) {
+        const byId = {};
+        list.forEach(m => { byId[m.id] = { ...m, children: [] }; });
+
+        const roots = [];
+        list.forEach(m => {
+            const node = byId[m.id];
+            if (m.parent_id && byId[m.parent_id]) {
+                byId[m.parent_id].children.push(node);
+            } else {
+                roots.push(node);
+            }
+        });
+        return roots;
+    }
+
+    /* ──────────────────────────────────────────────────────
+       Renderiza netos (filhos de um filho) como chips
+    ────────────────────────────────────────────────────── */
+    function renderNetos(netos) {
+        if (!netos.length) return '';
+        return `<div class="subarea-children">
+            ${netos.map(n => `<span class="subarea-child-chip">${n.nome}</span>`).join('')}
+        </div>`;
+    }
+
+    /* ──────────────────────────────────────────────────────
+       Renderiza filhos de um ministério (nível 2)
+       como chips/cards dentro do card pai
+    ────────────────────────────────────────────────────── */
+    function renderSubareas(filhos) {
+        if (!filhos.length) return '';
+        const items = filhos.map(f => `
+            <div class="subarea-item">
+                <span class="subarea-item-name">${f.nome}</span>
+                ${f.descricao ? `<span class="subarea-item-desc">${f.descricao}</span>` : ''}
+                ${renderNetos(f.children)}
+            </div>`).join('');
+
+        return `<div class="subareas-wrap">
+            <div class="subareas-label">Áreas</div>
+            <div class="subareas-list">${items}</div>
+        </div>`;
+    }
+
+    /* ──────────────────────────────────────────────────────
+       Renderiza um ministério de nível 1 (filho da raiz)
+    ────────────────────────────────────────────────────── */
+    function renderMinCard(m, delay) {
+        const metaItems = [];
+        if (m.faixa_etaria) metaItems.push(`<span class="min-meta-item">${SVG_USER} ${m.faixa_etaria}</span>`);
+        if (m.instagram)    metaItems.push(`<span class="min-meta-item">${SVG_IG}<a href="${m.instagram}" target="_blank">Instagram</a></span>`);
+
+        return `
+        <div class="min-card" style="animation-delay:${delay}s">
+            <div class="min-card-body">
+                ${m.faixa_etaria ? `<div class="card-badge">${m.faixa_etaria}</div>` : ''}
+                <div class="card-title">${m.nome}</div>
+                ${m.descricao ? `<div class="card-text">${m.descricao}</div>` : ''}
+                ${metaItems.length ? `<div class="min-meta">${metaItems.join('')}</div>` : ''}
+            </div>
+            ${renderSubareas(m.children)}
+        </div>`;
+    }
+
+    /* ──────────────────────────────────────────────────────
+       Renderiza a árvore completa
+       - Raízes sem filhos → card normal (ministério isolado)
+       - Raízes com filhos → separador de secção + cards dos filhos
+    ────────────────────────────────────────────────────── */
+    function renderTree(roots) {
+        if (!roots.length) {
+            return `<div class="empty"><div class="empty-txt">Nenhum ministério disponível de momento.</div></div>`;
+        }
+
+        let html = `
+        <div class="intro-card">
+            <div class="card-text">Temos ministérios para todas as faixas etárias e áreas de serviço. Cada ministério é um espaço de crescimento, conexão e propósito dentro da Zion Lisboa.</div>
+        </div>`;
+
+        let delay = 0.08;
+
+        roots.forEach(raiz => {
+            if (raiz.children.length === 0) {
+                /* Raiz sem filhos → card directo */
+                html += renderMinCard(raiz, delay);
+                delay += 0.05;
+            } else {
+                /* Raiz com filhos → separador + cards dos filhos */
+                html += `
+                <div class="group-header" style="animation-delay:${delay}s">
+                    <span class="group-header-label">${raiz.nome}</span>
+                    <div class="group-header-line"></div>
+                </div>`;
+                delay += 0.04;
+
+                raiz.children.forEach(filho => {
+                    html += renderMinCard(filho, delay);
+                    delay += 0.05;
+                });
+            }
+        });
+
+        return html;
+    }
+
     async function init() {
         try {
             const [ministerios, configs] = await Promise.all([
-                sb('ministerios?select=*&ativo=eq.true&tipo=eq.ministerio&order=created_at.asc'),
+                /* Busca TODOS os ministerios activos, sem filtro de tipo */
+                sb('ministerios?select=id,nome,descricao,faixa_etaria,instagram,parent_id,tipo&ativo=eq.true&order=created_at.asc'),
                 sb('configuracoes?select=chave,valor'),
             ]);
+
+            /* ── Configs do footer ── */
             const cfg = {};
             (Array.isArray(configs) ? configs : []).forEach(r => { cfg[r.chave] = r.valor; });
 
             if (cfg['copy']) document.getElementById('footer-copy').textContent = cfg['copy'];
-            const addrLine = [cfg['endereco']||'', [cfg['codigo_postal']||'', cfg['cidade']||''].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+            const addrLine = [cfg['endereco'] || '', [cfg['codigo_postal'] || '', cfg['cidade'] || ''].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
             if (addrLine) document.getElementById('footer-addr').textContent = addrLine;
 
             const instagram = cfg['instagram'] || 'https://www.instagram.com/zionlisboa/';
             const site      = cfg['site']      || 'https://zionchurch.org.br/';
             document.getElementById('footer-links').innerHTML = `
-            <a class="footer-link" href="${site}" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Oficial</a>
+            <a class="footer-link" href="${site}" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Site Oficial
+            </a>
             <a class="footer-link" href="${instagram}" target="_blank">${SVG_IG} @ZionLisboa</a>`;
 
-            renderMinisterios(Array.isArray(ministerios) ? ministerios : []);
+            /* ── Constrói e renderiza ── */
+            const list  = Array.isArray(ministerios) ? ministerios : [];
+            const roots = buildTree(list);
+            document.getElementById('main-content').innerHTML = renderTree(roots);
+
         } catch (e) {
             console.error(e);
             document.getElementById('main-content').innerHTML = `<div class="empty"><div class="empty-txt">Erro ao carregar. Tenta novamente.</div></div>`;
         }
-    }
-
-    function renderMinisterios(list) {
-        if (!list.length) {
-            document.getElementById('main-content').innerHTML = `<div class="empty"><div class="empty-txt">Nenhum ministério disponível de momento.</div></div>`;
-            return;
-        }
-        let html = `
-    <div class="card d1">
-        <div class="card-text">Temos ministérios para todas as faixas etárias e áreas de serviço. Cada ministério é um espaço de crescimento, conexão e propósito dentro da Zion Lisboa.</div>
-    </div>
-    <p class="section-label">Nossos Ministérios</p>`;
-
-        list.forEach((m, i) => {
-            const metaItems = [];
-            if (m.faixa_etaria) metaItems.push(`<span class="min-meta-item">${SVG_USER} ${m.faixa_etaria}</span>`);
-            if (m.instagram)    metaItems.push(`<span class="min-meta-item">${SVG_IG}<a href="${m.instagram}" target="_blank">Instagram</a></span>`);
-            html += `
-        <div class="card" style="animation-delay:${(i+2)*0.04}s">
-            ${m.faixa_etaria ? `<div class="card-badge">${m.faixa_etaria}</div>` : ''}
-            <div class="card-title">${m.nome}</div>
-            ${m.descricao ? `<div class="card-text">${m.descricao}</div>` : ''}
-            ${metaItems.length ? `<div class="min-meta">${metaItems.join('')}</div>` : ''}
-        </div>`;
-        });
-        document.getElementById('main-content').innerHTML = html;
     }
 
     init();

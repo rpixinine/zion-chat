@@ -131,44 +131,61 @@
         .subareas-wrap {
             border-top: 1px solid var(--border);
             background: rgba(0,144,152,0.03);
-            padding: 12px 18px;
+            padding: 0;
         }
         .subareas-label {
             font-family: var(--font-title); font-size: 8px; letter-spacing: 2px;
             text-transform: uppercase; color: var(--text-faint);
-            margin-bottom: 8px;
+            padding: 10px 18px 6px;
         }
+        /* lista vertical — cada filho ocupa a largura toda */
         .subareas-list {
-            display: flex; flex-wrap: wrap; gap: 6px;
+            display: flex; flex-direction: column;
         }
 
-        /* ── Item de sub-área ────────────────────────────── */
+        /* ── Item de sub-área — linha vertical com accent ── */
         .subarea-item {
             display: flex; flex-direction: column;
-            background: var(--bg-input); border: 1px solid var(--border);
-            border-radius: 8px; padding: 7px 12px;
-            min-width: 0;
+            padding: 10px 18px 10px 16px;
+            border-top: 1px solid var(--border);
+            border-left: 3px solid transparent;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .subarea-item:hover {
+            border-left-color: var(--primary);
+            background: rgba(0,144,152,0.05);
         }
         .subarea-item-name {
-            font-family: var(--font-title); font-size: 10px; letter-spacing: 0.5px;
-            color: var(--text-main);
+            font-family: var(--font-title); font-size: 12px; letter-spacing: 0.5px;
+            color: var(--primary-dark);
         }
         .subarea-item-desc {
-            font-size: 11px; color: var(--text-faint); margin-top: 2px;
-            line-height: 1.5;
+            font-size: 12px; color: var(--text-muted); margin-top: 3px;
+            line-height: 1.6;
         }
-        /* Se tiver netos (filhos de sub-área) */
+        /* Netos — lista vertical dentro do item pai */
         .subarea-children {
-            margin-top: 6px; padding-top: 6px;
-            border-top: 1px solid var(--border);
-            display: flex; flex-wrap: wrap; gap: 4px;
+            margin-top: 8px; padding-top: 8px;
+            border-top: 1px dashed var(--border);
+            display: flex; flex-direction: column; gap: 0;
         }
-        .subarea-child-chip {
-            font-size: 10px; color: var(--text-faint);
-            background: var(--primary-faint);
-            border: 1px solid var(--border);
-            border-radius: 999px; padding: 2px 8px;
-            white-space: nowrap;
+        .subarea-child-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .subarea-child-row:last-child { border-bottom: none; }
+        .subarea-child-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--primary); flex-shrink: 0; opacity: 0.6;
+        }
+        .subarea-child-name {
+            font-size: 12px; color: var(--text-main);
+        }
+        .subarea-child-desc {
+            font-size: 11px; color: var(--text-faint);
+            padding-left: 13px; /* alinha com o nome */
+            line-height: 1.5; margin-top: 1px;
         }
 
         /* ── Empty / Loading ─────────────────────────────── */
@@ -252,9 +269,13 @@
     ────────────────────────────────────────────────────── */
     function renderNetos(netos) {
         if (!netos.length) return '';
-        return `<div class="subarea-children">
-            ${netos.map(n => `<span class="subarea-child-chip">${n.nome}</span>`).join('')}
-        </div>`;
+        const rows = netos.map(n => `
+            <div class="subarea-child-row">
+                <div class="subarea-child-dot"></div>
+                <span class="subarea-child-name">${n.nome}</span>
+            </div>
+            ${n.descricao ? `<div class="subarea-child-desc">${n.descricao}</div>` : ''}`).join('');
+        return `<div class="subarea-children">${rows}</div>`;
     }
 
     /* ──────────────────────────────────────────────────────
@@ -302,7 +323,10 @@
        - Raízes com filhos → separador de secção + cards dos filhos
     ────────────────────────────────────────────────────── */
     function renderTree(roots) {
-        if (!roots.length) {
+        /* Só o pilar "ministério" — ignora AE, Links, etc. */
+        const ministerioRoots = roots.filter(r => r.tipo === 'ministerio');
+
+        if (!ministerioRoots.length) {
             return `<div class="empty"><div class="empty-txt">Nenhum ministério disponível de momento.</div></div>`;
         }
 
@@ -313,24 +337,17 @@
 
         let delay = 0.08;
 
-        roots.forEach(raiz => {
-            if (raiz.children.length === 0) {
-                /* Raiz sem filhos → card directo */
-                html += renderMinCard(raiz, delay);
-                delay += 0.05;
-            } else {
-                /* Raiz com filhos → separador + cards dos filhos */
-                html += `
-                <div class="group-header" style="animation-delay:${delay}s">
-                    <span class="group-header-label">${raiz.nome}</span>
-                    <div class="group-header-line"></div>
-                </div>`;
-                delay += 0.04;
-
+        ministerioRoots.forEach(raiz => {
+            /* Se a raiz tiver filhos, mostra os filhos como cards (a raiz é o pilar).
+               Se não tiver filhos, mostra a própria raiz como card. */
+            if (raiz.children.length > 0) {
                 raiz.children.forEach(filho => {
                     html += renderMinCard(filho, delay);
                     delay += 0.05;
                 });
+            } else {
+                html += renderMinCard(raiz, delay);
+                delay += 0.05;
             }
         });
 

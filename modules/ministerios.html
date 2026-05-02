@@ -1239,7 +1239,7 @@
         const ini = `${min_indMes}-01`, fim2 = `${min_indMes}-${fim}`;
 
         min_indisps = await min_sb(
-            `ministerio_indisponibilidade?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome),cultos(nome,hora_inicio)`
+            `ministerio_indisponibilidade?ministerio_id=eq.${minId}&data=gte.${ini}&data=lte.${fim2}&select=*,membros(nome),cultos(nome,hora_inicio,campus:campus(nome))`
         ).catch(() => []);
         if (!min_minAtivo || min_minAtivo.id !== minId) return;
         if (!min_indMemSel && min_minMems.length) min_indMemSel = min_minMems[0].membro_id;
@@ -1381,7 +1381,10 @@
                         margin-bottom:6px;
                         opacity:${bloqueadoPorDiaInteiro ? '0.55' : '1'}">
                 <div>
-                    <div style="font-weight:600;font-size:12px">${c.nome}</div>
+                    <div style="font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px">
+                        ${c.nome}
+                        ${c.campus?.nome ? `<span style="font-size:9px;background:rgba(21,101,192,0.1);color:#1565c0;padding:1px 7px;border-radius:20px;font-family:var(--font-title)">${c.campus.nome}</span>` : ''}
+                    </div>
                     <div style="font-size:10px;color:var(--text-faint);margin-top:1px">
                         ${c.hora_inicio?.slice(0,5)}${c.hora_fim ? '–'+c.hora_fim.slice(0,5) : ''}
                     </div>
@@ -1523,8 +1526,10 @@
                 const cultoNome = i.culto_id
                     ? (i.cultos?.nome || min_cultsAll.find(c => c.id === i.culto_id)?.nome || 'Culto específico')
                     : null;
+
+                const campusNome = i.cultos?.campus?.nome ? ` · ${i.cultos.campus.nome}` : '';
                 const badge = cultoNome
-                    ? `<span style="font-size:9px;background:rgba(230,81,0,0.1);color:var(--orange);padding:2px 8px;border-radius:20px;font-family:var(--font-title)">${cultoNome}</span>`
+                    ? `<span style="font-size:9px;background:rgba(230,81,0,0.1);color:var(--orange);padding:2px 8px;border-radius:20px;font-family:var(--font-title)">${cultoNome}-${campusNome}</span>`
                     : `<span style="font-size:9px;background:rgba(192,57,43,0.1);color:var(--red);padding:2px 8px;border-radius:20px;font-family:var(--font-title)">Dia inteiro</span>`;
                 return `
             <div style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px;font-size:12px">

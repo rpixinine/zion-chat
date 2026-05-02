@@ -1584,7 +1584,7 @@
 
             CI.indisps = await sb(
                 `ministerio_indisponibilidade?ministerio_id=eq.${CI.ministerioId}` +
-                `&data=gte.${ini}&data=lte.${fim2}&select=*,membros_publico(nome),cultos(nome,hora_inicio)&order=data`
+                `&data=gte.${ini}&data=lte.${fim2}&select=*,membros_publico(nome),cultos(nome,hora_inicio,campus:campus(nome))&order=data`
             ).catch(() => []);
 
             el.innerHTML = buildIndispLayout();
@@ -1603,9 +1603,10 @@
         CI.indisps.forEach(i => {
             if (!porData[i.data]) porData[i.data] = [];
             porData[i.data].push({
-                nome:      i.membros_publico?.nome || '?',
-                cultoNome: i.culto_id ? (i.cultos?.nome || 'Culto específico') : null,
-                cultoHora: i.cultos?.hora_inicio?.slice(0,5) || ''
+                nome:       i.membros_publico?.nome || '?',
+                cultoNome:  i.culto_id ? (i.cultos?.nome || 'Culto específico') : null,
+                cultoHora:  i.cultos?.hora_inicio?.slice(0,5) || '',
+                campusNome: i.cultos?.campus?.nome || ''
             });
         });
 
@@ -1650,7 +1651,7 @@
                     ? `<span style="font-size:9px;background:rgba(251,140,0,0.12);color:#fb8c00;
                                            border:1px solid rgba(251,140,0,0.25);padding:1px 6px;
                                            border-radius:20px;margin-left:4px;font-family:'Cinzel',serif">
-                                   ${item.cultoNome}${item.cultoHora ? ' · '+item.cultoHora : ''}
+                                   ${item.cultoNome}${item.campusNome ? ' · '+item.campusNome : ''}${item.cultoHora ? ' · '+item.cultoHora : ''}
                                </span>`
                     : `<span style="font-size:9px;background:rgba(229,57,53,0.12);color:#ef9a9a;
                                            border:1px solid rgba(229,57,53,0.25);padding:1px 6px;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão · Presenças</title>
+    <title>Chek-in · Voluntários</title>
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -599,6 +599,37 @@
         }
 
         #g-canvas { display: none; }
+
+        /* ── PRESENÇA SUB-TABS ── */
+        .presenca-subtabs {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 12px 14px 0;
+            scrollbar-width: none;
+        }
+        .presenca-subtabs::-webkit-scrollbar { display: none; }
+
+        .presenca-subtab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            font-size: 11px;
+            font-family: 'Cinzel', serif;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            color: var(--muted);
+            transition: all 0.15s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            text-align: center;
+        }
+        .presenca-subtab:hover { border-color: var(--teal); color: var(--teal); }
+        .presenca-subtab.on { background: var(--teal-l); color: var(--text); border-color: var(--teal); font-weight: 700; }
+        .presenca-subtab-campus { font-size: 9px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
+        .presenca-subtab.on .presenca-subtab-campus { color: rgba(0,144,152,0.8); }
+
     </style>
 </head>
 <body>
@@ -617,7 +648,7 @@
              onerror="this.style.display='none';document.getElementById('hd-txt').style.display='block'">
         <span id="hd-txt" class="top-hd-logo-text">ZION</span>
         <div class="top-hd-info">
-            <div class="top-hd-title">Gestão de Presenças</div>
+            <div class="top-hd-title">Check--in de Voluntários</div>
             <div class="top-hd-sub">Área Executiva</div>
         </div>
         <div class="top-hd-date" id="g-top-date"></div>
@@ -703,8 +734,9 @@
 
         <!-- ══ TAB: PRESENÇAS ══ -->
         <div class="tab-pane" id="pane-presencas">
+            <div id="g-presenca-subtabs" class="presenca-subtabs"></div>
             <div class="attendance-hd">
-                <div class="attendance-hd-title">Lista de Presenças</div>
+                <div class="attendance-hd-title" id="g-presenca-subtab-label">Lista de Presenças</div>
                 <button class="btn-mark-all" onclick="gMarcarTodosFalta()">
                     ✕&nbsp; Marcar restantes como Falta
                 </button>
@@ -800,6 +832,7 @@ const G = {
     checkins:    [],   // todos os checkins de hoje
     cultos:      [],   // cultos únicos de hoje
     cultSel:     null, // culto filtrado actualmente
+    presencasCultSel: null,
     scanning:    false,
     videoStream: null,
     animFrame:   null,
@@ -821,7 +854,7 @@ async function gInit() {
         const escRaw = await sb(
             `ministerio_escala?data=eq.${hoje}` +
             `&select=id,membro_id,ministerio_id,culto_id,` +
-            `membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio)` +
+            `membros(id,nome),ministerios(id,nome),cultos(id,nome,hora_inicio,campus(id,nome))` +
             `&order=culto_id`
         );
         G.escalaHoje = escRaw || [];
@@ -862,7 +895,13 @@ function gSwitchTab(tab) {
     document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
     document.getElementById('g-tab-' + tab).classList.add('active');
     document.getElementById('pane-' + tab).classList.add('active');
-    if (tab === 'presencas') gRenderPresencas();
+    if (tab === 'presencas') {
+        if (!G.presencasCultSel && G.cultos.length > 0) {
+            G.presencasCultSel = G.cultos[0];
+        }
+        gRenderPresencaSubtabs();
+        gRenderPresencas();
+    }
 }
 
 /* ═══════════════════════════════════════════════════
@@ -873,10 +912,11 @@ function gRenderCultoFilter() {
     if (G.cultos.length <= 1) { el.style.display = 'none'; return; }
     el.innerHTML = G.cultos.map(c =>
         `<div class="culto-chip ${G.cultSel?.id === c.id ? 'on' : ''}"
-              onclick="gSelCulto('${c.id}')">
-            <span style="font-weight:700">${c.nome}</span>
-            <span style="font-size:10px;opacity:.75;margin-left:4px">${c.hora_inicio.slice(0,5)}</span>
-        </div>`
+          onclick="gSelCulto('${c.id}')">
+        <span style="font-weight:700">${c.nome}</span>
+        ${c.campus?.nome ? `<span style="font-size:10px;opacity:.6;margin-left:4px">· ${c.campus.nome}</span>` : ''}
+        <span style="font-size:10px;opacity:.75;margin-left:4px">${c.hora_inicio.slice(0,5)}</span>
+    </div>`
     ).join('');
 }
 
@@ -1339,12 +1379,43 @@ function gSelectManual(membro_id) {
 /* ═══════════════════════════════════════════════════
    RENDER: LISTA DE PRESENÇAS
 ═══════════════════════════════════════════════════ */
+function gRenderPresencaSubtabs() {
+    const el = document.getElementById('g-presenca-subtabs');
+    if (!el) return;
+
+    if (G.cultos.length <= 1) {
+        el.style.display = 'none';
+        return;
+    }
+
+    el.style.display = 'flex';
+    el.innerHTML = G.cultos.map(c =>
+        `<div class="presenca-subtab ${G.presencasCultSel?.id === c.id ? 'on' : ''}"
+              onclick="gSelPresencaSubtab('${c.id}')">
+            <div>${c.nome} · ${c.hora_inicio.slice(0,5)}</div>
+            ${c.campus?.nome ? `<div class="presenca-subtab-campus">${c.campus.nome}</div>` : ''}
+        </div>`
+    ).join('');
+
+    // actualizar label do título
+    const label = document.getElementById('g-presenca-subtab-label');
+    if (label && G.presencasCultSel) {
+        const campus = G.presencasCultSel.campus?.nome ? ` · ${G.presencasCultSel.campus.nome}` : '';
+        label.textContent = `${G.presencasCultSel.nome}${campus}`;
+    }
+}
+
+function gSelPresencaSubtab(id) {
+    G.presencasCultSel = G.cultos.find(c => c.id === id) || null;
+    gRenderPresencaSubtabs();
+    gRenderPresencas();
+}
+
 function gRenderPresencas() {
     const el = document.getElementById('g-presenca-list');
-
-    /* Agrupar por ministério → dentro do culto seleccionado */
     let escalas = G.escalaHoje;
-    if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
+    const filtCulto = G.presencasCultSel || G.cultSel;
+    if (filtCulto) escalas = escalas.filter(e => e.culto_id === filtCulto.id);
 
     if (!escalas.length) {
         el.innerHTML = `<div class="empty-state">
@@ -1478,7 +1549,8 @@ async function gMarcarFalta(membro_id, ministerio_id, culto_id, nome) {
 
 async function gMarcarTodosFalta() {
     let escalas = G.escalaHoje;
-    if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
+    const filtCulto = G.presencasCultSel || G.cultSel;
+    if (filtCulto) escalas = escalas.filter(e => e.culto_id === filtCulto.id);
 
     const pendentes = escalas.filter(e => {
         const ci = G.checkins.find(c =>
@@ -1540,7 +1612,9 @@ async function gMarcarFaltaSilent(membro_id, ministerio_id, culto_id) {
 ═══════════════════════════════════════════════════ */
 function gAtualizarBadge() {
     let escalas = G.escalaHoje;
-    if (G.cultSel) escalas = escalas.filter(e => e.culto_id === G.cultSel.id);
+
+    const filtCulto = G.presencasCultSel || G.cultSel;
+    if (filtCulto) escalas = escalas.filter(e => e.culto_id === filtCulto.id);
 
     const pendentes = escalas.filter(e => {
         const ci = G.checkins.find(c =>

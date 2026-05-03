@@ -565,6 +565,146 @@
         .btn-falta:hover { border-color: var(--red); background: rgba(229,57,53,0.2); color: white; }
         .btn-falta:disabled { opacity: 0.4; cursor: not-allowed; }
 
+        /* ── SUMMARY CARD ── */
+        .summary-card {
+            margin: 0 14px 14px;
+            background: var(--navy2);
+            border: 1px solid rgba(0,144,152,0.25);
+            border-radius: var(--radius);
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        .summary-card-hd {
+            padding: 11px 16px;
+            background: rgba(0,144,152,0.07);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .summary-card-title {
+            font-family: 'Cinzel', serif;
+            font-size: 10px; font-weight: 600;
+            letter-spacing: 1.8px; text-transform: uppercase;
+            color: var(--teal);
+        }
+
+        .summary-card-culto {
+            font-size: 11px; color: var(--muted);
+            text-align: right; line-height: 1.4;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            padding: 18px 16px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-stat {
+            text-align: center;
+            position: relative;
+        }
+
+        .summary-stat + .summary-stat::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 10%; height: 80%;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .summary-stat-value {
+            font-family: 'Cinzel', serif;
+            font-size: 28px; font-weight: 700;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .summary-stat-value.total    { color: var(--text); }
+        .summary-stat-value.present  { color: #a5d6a7; }
+        .summary-stat-value.absent   { color: #ef9a9a; }
+
+        .summary-stat-label {
+            font-size: 9px; font-family: 'Cinzel', serif;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--muted); line-height: 1.3;
+        }
+
+        /* Progress bar */
+        .summary-progress {
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-progress-label {
+            display: flex; justify-content: space-between;
+            font-size: 11px; color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .summary-progress-label strong {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .summary-progress-label .pct-ok   { color: #a5d6a7; }
+        .summary-progress-label .pct-warn { color: #ffcc80; }
+        .summary-progress-label .pct-err  { color: #ef9a9a; }
+
+        .progress-bar-track {
+            height: 8px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-bar-seg {
+            height: 100%;
+            transition: width 0.6s cubic-bezier(.4,0,.2,1);
+            min-width: 0;
+        }
+        .progress-bar-seg.presente { background: var(--green); }
+        .progress-bar-seg.atrasado { background: var(--orange); }
+        .progress-bar-seg.faltou   { background: var(--red); opacity: 0.7; }
+
+        /* Breakdown grid */
+        .summary-breakdown {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0;
+        }
+
+        .breakdown-item {
+            padding: 10px 16px;
+            display: flex; align-items: center; gap: 8px;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .breakdown-item:nth-child(2n) { border-right: none; }
+        .breakdown-item:nth-last-child(-n+2) { border-bottom: none; }
+
+        .breakdown-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .breakdown-dot.presente { background: var(--green); }
+        .breakdown-dot.atrasado { background: var(--orange); }
+        .breakdown-dot.faltou   { background: var(--red); }
+        .breakdown-dot.pendente { background: var(--muted); opacity: 0.5; }
+
+        .breakdown-text { flex: 1; }
+        .breakdown-label { font-size: 11px; color: var(--muted); }
+        .breakdown-value { font-size: 16px; font-weight: 700; font-family: 'Cinzel', serif; }
+        .breakdown-value.presente { color: #a5d6a7; }
+        .breakdown-value.atrasado { color: #ffcc80; }
+        .breakdown-value.faltou   { color: #ef9a9a; }
+        .breakdown-value.pendente { color: var(--muted); }
+
         /* ── EMPTY / ERROR ── */
         .empty-state {
             text-align: center; padding: 40px 20px;
@@ -786,21 +926,17 @@ function sb(path, opts) {
 function hojeISO() { return new Date().toISOString().split('T')[0]; }
 
 function agoraHHMM() {
-    // Returns just HH:MM for display
     const n = new Date();
     return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
 }
 
 function agoraISO() {
-    // Returns full ISO timestamp for Supabase timestamptz fields
     return new Date().toISOString();
 }
 
 function horaDisplay(val) {
-    // Accepts both "HH:MM" and ISO timestamp, returns "HH:MM"
     if (!val) return '';
     if (val.includes('T')) {
-        // ISO: convert to local time
         const d = new Date(val);
         return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
     }
@@ -828,17 +964,17 @@ function iniciais(nome) {
    ESTADO GLOBAL
 ═══════════════════════════════════════════════════ */
 const G = {
-    escalaHoje:  [],   // todos os registos de escala para hoje
-    checkins:    [],   // todos os checkins de hoje
-    cultos:      [],   // cultos únicos de hoje
-    cultSel:     null, // culto filtrado actualmente
+    escalaHoje:  [],
+    checkins:    [],
+    cultos:      [],
+    cultSel:     null,
     presencasCultSel: null,
     scanning:    false,
     videoStream: null,
     animFrame:   null,
     lastQR:      null,
     lastQRTime:  0,
-    scanResult:  null, // { membro, escalas, selectedEscala }
+    scanResult:  null,
     searchTimer: null
 };
 
@@ -850,7 +986,6 @@ async function gInit() {
     document.getElementById('g-top-date').textContent = dataFmt(hoje);
 
     try {
-        /* Buscar todas as escalas de hoje (todos os ministérios) */
         const escRaw = await sb(
             `ministerio_escala?data=eq.${hoje}` +
             `&select=id,membro_id,ministerio_id,culto_id,` +
@@ -859,12 +994,10 @@ async function gInit() {
         );
         G.escalaHoje = escRaw || [];
 
-        /* Buscar checkins de hoje */
         G.checkins = await sb(
             `ministerio_checkin?data=eq.${hoje}&select=*`
         ).catch(() => []);
 
-        /* Extrair cultos únicos */
         const cultMap = {};
         G.escalaHoje.forEach(e => {
             if (e.cultos) cultMap[e.cultos.id] = e.cultos;
@@ -1029,12 +1162,10 @@ async function gProcessarVoluntario(membro_id, hint) {
     try {
         const hoje = hojeISO();
 
-        /* Info do membro */
         const memRes = await sb(`membros?id=eq.${membro_id}&select=id,nome`);
         const mem = memRes?.[0];
         if (!mem) throw new Error('Voluntário não encontrado na base de dados.');
 
-        /* Todas as escalas deste voluntário hoje */
         let escalasHoje = G.escalaHoje.filter(e => e.membro_id === membro_id);
 
         if (!escalasHoje.length) {
@@ -1042,16 +1173,13 @@ async function gProcessarVoluntario(membro_id, hint) {
             return;
         }
 
-        /* Filtrar pelo culto seleccionado (se houver) */
         if (G.cultSel) {
             const filtradas = escalasHoje.filter(e => e.culto_id === G.cultSel.id);
             if (filtradas.length) escalasHoje = filtradas;
         }
 
-        /* Checkins actuais deste voluntário */
         const checkinsDoMembro = G.checkins.filter(c => c.membro_id === membro_id);
 
-        /* Filtrar escalas ainda não confirmadas fisicamente */
         const pendentes = escalasHoje.filter(e => {
             const ci = checkinsDoMembro.find(c =>
                 c.ministerio_id === e.ministerio_id && c.culto_id === e.culto_id
@@ -1067,7 +1195,6 @@ async function gProcessarVoluntario(membro_id, hint) {
         });
 
         if (!pendentes.length && jaDone.length) {
-            /* Todos já confirmados */
             gShowResultJaConcluido(mem, jaDone, checkinsDoMembro);
             return;
         }
@@ -1091,7 +1218,6 @@ function gRenderResultCard() {
     const { membro, escalas, selectedEscala } = G.scanResult;
     const area = document.getElementById('g-result-area');
 
-    /* Calcular timing com base na escala seleccionada */
     let timingHtml = '';
     if (selectedEscala) {
         const min = minutosDesde(selectedEscala.cultos?.hora_inicio || '00:00');
@@ -1105,7 +1231,6 @@ function gRenderResultCard() {
         }
     }
 
-    /* Chips de área (se múltiplas) */
     let areaHtml = '';
     if (escalas.length > 1) {
         areaHtml = `
@@ -1155,7 +1280,6 @@ function gRenderResultCard() {
             </div>
         </div>`;
 
-    /* Scroll para o card */
     setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
 }
 
@@ -1214,17 +1338,14 @@ function gSelArea(ministerio_id, culto_id) {
     G.scanResult.selectedEscala = G.scanResult.escalas.find(e =>
         e.ministerio_id === ministerio_id && e.culto_id === culto_id
     );
-    /* Actualizar chips */
     document.querySelectorAll('.area-chip').forEach(el => {
         el.classList.toggle('on',
             el.getAttribute('onclick').includes(`'${ministerio_id}'`)
         );
     });
-    /* Activar botão + recalcular timing */
     const btn = document.getElementById('g-btn-confirmar');
     if (btn) btn.disabled = false;
 
-    /* Actualizar timing display */
     const e = G.scanResult.selectedEscala;
     if (e) {
         const min = minutosDesde(e.cultos?.hora_inicio || '00:00');
@@ -1261,14 +1382,12 @@ async function gConfirmarCheckin() {
         const minAtraso = atrasado ? diffMin : 0;
         const status    = atrasado ? 'atrasado' : 'presente';
 
-        /* Verificar se já existe registo (pre_confirmado ou outro) */
         const ex = await sb(
             `ministerio_checkin?ministerio_id=eq.${selectedEscala.ministerio_id}` +
             `&membro_id=eq.${membro.id}&culto_id=eq.${selectedEscala.culto_id}&data=eq.${hoje}&select=id,status`
         );
 
         if (ex?.length) {
-            /* Actualizar registo existente */
             await sb(`ministerio_checkin?id=eq.${ex[0].id}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
@@ -1276,7 +1395,6 @@ async function gConfirmarCheckin() {
                     hora_checkin: agoraISO()
                 })
             });
-            /* Actualizar estado local */
             const idx = G.checkins.findIndex(c => c.id === ex[0].id);
             if (idx >= 0) {
                 G.checkins[idx] = {
@@ -1285,7 +1403,6 @@ async function gConfirmarCheckin() {
                 };
             }
         } else {
-            /* Criar novo registo */
             const novo = await sb('ministerio_checkin', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -1301,7 +1418,6 @@ async function gConfirmarCheckin() {
             if (novo?.[0]) G.checkins.push(novo[0]);
         }
 
-        /* Mostrar toast */
         gToast(
             atrasado ? 'late' : 'ok',
             membro.nome,
@@ -1329,8 +1445,6 @@ function gSearchVoluntario(query) {
 
     G.searchTimer = setTimeout(() => {
         const q = query.toLowerCase();
-        /* Filtrar dos dados já carregados */
-        const hoje = hojeISO();
         const membrosMap = {};
         G.escalaHoje.forEach(e => {
             if (!e.membros) return;
@@ -1397,7 +1511,6 @@ function gRenderPresencaSubtabs() {
         </div>`
     ).join('');
 
-    // actualizar label do título
     const label = document.getElementById('g-presenca-subtab-label');
     if (label && G.presencasCultSel) {
         const campus = G.presencasCultSel.campus?.nome ? ` · ${G.presencasCultSel.campus.nome}` : '';
@@ -1414,16 +1527,21 @@ function gSelPresencaSubtab(id) {
 function gRenderPresencas() {
     const el = document.getElementById('g-presenca-list');
     let escalas = G.escalaHoje;
+
+    /* FIX: a tab de Presenças tem o seu próprio filtro independente do scanner */
     const filtCulto = G.presencasCultSel || G.cultSel;
     if (filtCulto) escalas = escalas.filter(e => e.culto_id === filtCulto.id);
 
     if (!escalas.length) {
         el.innerHTML = `<div class="empty-state">
             <div class="empty-state-title">Sem escala</div>
-            <p>${G.cultSel ? 'Nenhuma escala para este culto.' : 'Nenhuma escala para hoje.'}</p>
+            <p>${filtCulto ? 'Nenhuma escala para este culto.' : 'Nenhuma escala para hoje.'}</p>
         </div>`;
         return;
     }
+
+    /* ── Contadores globais do culto ── */
+    let gTotal = 0, gPresente = 0, gAtrasado = 0, gFaltou = 0, gPendente = 0, gPreConf = 0;
 
     /* Agrupar por ministério */
     const minMap = {};
@@ -1445,20 +1563,29 @@ function gRenderPresencas() {
             );
             const st = ci?.status || 'pendente';
 
-            if      (st === 'presente')    totPresente++;
-            else if (st === 'atrasado')    totAtrasado++;
-            else if (st === 'faltou')      totFaltou++;
-            else                            totPendente++;
+            /* Contadores por ministério */
+            if      (st === 'presente')       totPresente++;
+            else if (st === 'atrasado')       totAtrasado++;
+            else if (st === 'faltou')         totFaltou++;
+            else                               totPendente++;
+
+            /* Contadores globais */
+            gTotal++;
+            if      (st === 'presente')       gPresente++;
+            else if (st === 'atrasado')       gAtrasado++;
+            else if (st === 'faltou')         gFaltou++;
+            else if (st === 'pre_confirmado') gPreConf++;
+            else                               gPendente++;
 
             const horaLabel = ci?.hora_checkin ? ` · ${horaDisplay(ci.hora_checkin)}` : '';
             const tardLabel  = st === 'atrasado' && ci?.minutos_atraso ? ` +${ci.minutos_atraso}min` : '';
 
             const statusLabel = {
-                presente: '✓ Presente',
-                atrasado: '⏱ Atrasado',
-                pre_confirmado: '• Confirmado',
-                faltou: '✕ Falta',
-                pendente: '— Pendente'
+                presente:      '✓ Presente',
+                atrasado:      '⏱ Atrasado',
+                pre_confirmado:'• Confirmado',
+                faltou:        '✕ Falta',
+                pendente:      '— Pendente'
             }[st] || '—';
 
             const showFaltaBtn = (st === 'pendente' || st === 'pre_confirmado');
@@ -1498,6 +1625,90 @@ function gRenderPresencas() {
         </div>`;
     });
 
+    /* ── Card de totais ── */
+    const gPresentes    = gPresente + gAtrasado;        /* check-in físico efectuado */
+    const gNaoPresentes = gFaltou + gPendente + gPreConf; /* sem check-in físico */
+    const pct = gTotal > 0 ? Math.round((gPresentes / gTotal) * 100) : 0;
+
+    /* Cor do indicador de percentagem */
+    const pctClass = pct >= 80 ? 'pct-ok' : pct >= 50 ? 'pct-warn' : 'pct-err';
+
+    /* Larguras das barras de progresso */
+    const wPresente = gTotal > 0 ? ((gPresente / gTotal) * 100).toFixed(1) : 0;
+    const wAtrasado = gTotal > 0 ? ((gAtrasado / gTotal) * 100).toFixed(1) : 0;
+    const wFaltou   = gTotal > 0 ? ((gFaltou   / gTotal) * 100).toFixed(1) : 0;
+
+    /* Identificação do culto activo */
+    const cultLabel = filtCulto
+        ? `${filtCulto.nome} · ${filtCulto.hora_inicio.slice(0,5)}${filtCulto.campus?.nome ? ' · ' + filtCulto.campus.nome : ''}`
+        : 'Todos os cultos';
+
+    html += `
+    <div class="summary-card">
+        <div class="summary-card-hd">
+            <div class="summary-card-title">Resumo de Presenças</div>
+            <div class="summary-card-culto">${cultLabel}</div>
+        </div>
+
+        <div class="summary-stats">
+            <div class="summary-stat">
+                <div class="summary-stat-value total">${gTotal}</div>
+                <div class="summary-stat-label">Total<br>Voluntários</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value present">${gPresentes}</div>
+                <div class="summary-stat-label">Com<br>Check-in</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value absent">${gNaoPresentes}</div>
+                <div class="summary-stat-label">Sem<br>Check-in</div>
+            </div>
+        </div>
+
+        <div class="summary-progress">
+            <div class="summary-progress-label">
+                <span>Taxa de presença</span>
+                <strong class="${pctClass}">${pct}%</strong>
+            </div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-seg presente" style="width:${wPresente}%"></div>
+                <div class="progress-bar-seg atrasado" style="width:${wAtrasado}%"></div>
+                <div class="progress-bar-seg faltou"   style="width:${wFaltou}%"></div>
+            </div>
+        </div>
+
+        <div class="summary-breakdown">
+            <div class="breakdown-item">
+                <div class="breakdown-dot presente"></div>
+                <div class="breakdown-text">
+                    <div class="breakdown-label">No horário</div>
+                    <div class="breakdown-value presente">${gPresente}</div>
+                </div>
+            </div>
+            <div class="breakdown-item">
+                <div class="breakdown-dot atrasado"></div>
+                <div class="breakdown-text">
+                    <div class="breakdown-label">Atrasados</div>
+                    <div class="breakdown-value atrasado">${gAtrasado}</div>
+                </div>
+            </div>
+            <div class="breakdown-item">
+                <div class="breakdown-dot faltou"></div>
+                <div class="breakdown-text">
+                    <div class="breakdown-label">Faltaram</div>
+                    <div class="breakdown-value faltou">${gFaltou}</div>
+                </div>
+            </div>
+            <div class="breakdown-item">
+                <div class="breakdown-dot pendente"></div>
+                <div class="breakdown-text">
+                    <div class="breakdown-label">Pendentes</div>
+                    <div class="breakdown-value pendente">${gPendente + gPreConf}</div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
     el.innerHTML = html;
 }
 
@@ -1512,7 +1723,6 @@ async function gMarcarFalta(membro_id, ministerio_id, culto_id, nome) {
     try {
         const hoje = hojeISO();
 
-        /* Verificar se já existe (pre_confirmado → actualizar) */
         const ex = await sb(
             `ministerio_checkin?ministerio_id=eq.${ministerio_id}` +
             `&membro_id=eq.${membro_id}&culto_id=eq.${culto_id}&data=eq.${hoje}&select=id`
@@ -1609,10 +1819,13 @@ async function gMarcarFaltaSilent(membro_id, ministerio_id, culto_id) {
 
 /* ═══════════════════════════════════════════════════
    BADGE
+   FIX: usa sempre presencasCultSel se estiver na tab de presenças,
+        senão usa cultSel (scanner). Evita divergência entre tabs.
 ═══════════════════════════════════════════════════ */
 function gAtualizarBadge() {
     let escalas = G.escalaHoje;
 
+    /* O badge reflecte o culto activo na tab Presenças quando disponível */
     const filtCulto = G.presencasCultSel || G.cultSel;
     if (filtCulto) escalas = escalas.filter(e => e.culto_id === filtCulto.id);
 

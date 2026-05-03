@@ -222,7 +222,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
     <div class="nt rd" id="nt-cors" style="display:none"><strong>Aviso HTTPS:</strong> O browser pode bloquear pedidos HTTP. Abre esta página por HTTP ou como ficheiro local.</div>
     <div class="g2">
       <div class="fld"><label>IP do ProPresenter</label><input type="text" id="cfg-ip" placeholder="192.168.1.50" inputmode="decimal" autocomplete="off"></div>
-      <div class="fld"><label>Porta</label><input type="number" id="cfg-port" placeholder="1025" value="1025" inputmode="numeric"></div>
+      <div class="fld"><label>Porta</label><input type="number" id="cfg-port" placeholder="52866" value="52866" inputmode="numeric"></div>
     </div>
     <div class="msg" id="msg-cfg"></div>
     <button class="btn" id="btn-test" onclick="testar()">
@@ -258,7 +258,7 @@ function init(){
 
 window.irCfg=function(){
   document.getElementById('cfg-ip').value=C.ip||'';
-  document.getElementById('cfg-port').value=C.port||'1025';
+  document.getElementById('cfg-port').value=C.port||'52866';
   document.getElementById('btn-vlt').style.display=C.ip?'':'none';
   document.getElementById('nt-cors').style.display=location.protocol==='https:'?'':'none';
   clrMsg('msg-cfg');
@@ -276,14 +276,12 @@ window.testar=async function(){
   btn.disabled=true;btn.innerHTML='<span class="sp"></span> A ligar...';
   const base=`http://${ip}:${port}`;
   try{
-    const vr=await fetch(`${base}/version`,{signal:AbortSignal.timeout(5000)});
-    if(!vr.ok)throw new Error(`HTTP ${vr.status}`);
-    const vd=await vr.json();
-    setMsg('msg-cfg','ok',`✓ Ligado! ${vd.host_description||'ProPresenter'}`);
+    // Usa /v1/messages como teste de ligação (endpoint garantido na API)
     btn.innerHTML='<span class="sp"></span> A carregar mensagens...';
     const mr=await fetch(`${base}/v1/messages`,{signal:AbortSignal.timeout(5000)});
-    if(!mr.ok)throw new Error('Erro a carregar mensagens');
+    if(!mr.ok)throw new Error(`HTTP ${mr.status}`);
     msgs=await mr.json();
+    setMsg('msg-cfg','ok',`✓ Ligado! ${msgs.length} mensagem(s) encontrada(s).`);
     if(!msgs||!msgs.length){
       setMsg('msg-cfg','warn','Ligação OK mas sem mensagens criadas. Vai a Tools → Messages no ProPresenter.');
     }else{
@@ -341,10 +339,10 @@ async function verificar(){
   if(!C.ip){setSt('off','Não configurado','Configurar',irCfg);return;}
   setSt('loading','A verificar ligação...',null,null);
   try{
-    const r=await fetch(`http://${C.ip}:${C.port}/version`,{signal:AbortSignal.timeout(4000)});
-    if(!r.ok)throw new Error();
-    const d=await r.json();
-    setSt('ok',`Ligado — ${d.host_description||'ProPresenter'}`,null,null);
+    const r=await fetch(`http://${C.ip}:${C.port}/v1/messages`,{signal:AbortSignal.timeout(4000)});
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    await r.json();
+    setSt('ok',`Ligado — ProPresenter ${C.ip}`,null,null);
     document.getElementById('btn-call').disabled=false;
   }catch(e){
     setSt('err','Sem ligação ao ProPresenter','Configurar',irCfg);
@@ -398,11 +396,17 @@ window.enviar=async function(){
   const mId=(urg&&C.uId)?C.uId:C.nId;
   const base=`http://${C.ip}:${C.port}`;
   try{
-    await Promise.all([
-      fetch(`${base}/v1/message/${encodeURIComponent(mId)}/token/numero`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:num}),signal:AbortSignal.timeout(4000)}),
-      fetch(`${base}/v1/message/${encodeURIComponent(mId)}/token/sala`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:sl}),signal:AbortSignal.timeout(4000)})
-    ]);
-    const tr=await fetch(`${base}/v1/message/${encodeURIComponent(mId)}/trigger`,{signal:AbortSignal.timeout(4000)});
+    // POST /v1/message/{id}/trigger com body = array de tokens
+    const body=[
+      {name:'numero',text:{text:num}},
+      {name:'sala',text:{text:sl}}
+    ];
+    const tr=await fetch(`${base}/v1/message/${encodeURIComponent(mId)}/trigger`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body),
+      signal:AbortSignal.timeout(4000)
+    });
     if(!tr.ok&&tr.status!==204)throw new Error(`HTTP ${tr.status}`);
     const hora=new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
     hist.unshift({num,sl,urg,hora});renderHist();
@@ -415,7 +419,7 @@ window.enviar=async function(){
 
 window.esconder=async function(){
   const id=(urg&&C.uId)?C.uId:C.nId;if(!id)return;
-  try{await fetch(`http://${C.ip}:${C.port}/v1/message/${encodeURIComponent(id)}/trigger`,{method:'DELETE',signal:AbortSignal.timeout(4000)})}catch(e){}
+  try{await fetch(`http://${C.ip}:${C.port}/v1/message/${encodeURIComponent(id)}/clear`,{signal:AbortSignal.timeout(4000)})}catch(e){}
 };
 
 function sucesso(num,sl,u){

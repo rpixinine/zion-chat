@@ -590,7 +590,6 @@
                     <div class="card-nome">${p.nome_cliente || 'Anónimo'}</div>
                     ${itensHtml ? `<div class="card-itens">${itensHtml}</div>` : ''}
                     <div class="card-tempo ${urgente ? 'urgente' : ''}">${textoTempo(ts)}${urgente ? ' ⚠' : ''}</div>
-                    <button class="btn-acao btn-pronto" onclick="mudarStatus('${p.id}','pronto')">✓ Marcar Pronto</button>
                 </div>`;
         }).join('');
     }
@@ -688,7 +687,7 @@
         return new Promise(resolve => {
             if (!audioDesbloqueado || !audioCtx) { resolve(); return; }
             const play = () => {
-                [0, 0.22].forEach((t, i, arr) => {
+                [0, 0.22, 0.44].forEach((t, i, arr) => {
                     const osc  = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.connect(gain); gain.connect(audioCtx.destination);
@@ -746,7 +745,7 @@
         while (filaChamada.length > 0) {
             const { numero } = filaChamada.shift();
             await tocarBips();
-            await falarPedido(numero);
+            //await falarPedido(numero);
         }
 
         // Pausa pequena e retoma YouTube
@@ -853,7 +852,7 @@
         track.innerHTML = makeItems(lista) + '<span style="display:inline-block;width:80px"></span>' + makeItems(lista);
         track.classList.remove('animating');
         void track.offsetWidth;
-        const dur = Math.max(40, Math.round((track.scrollWidth / 2) / 110));
+        const dur = Math.max(80, Math.round((track.scrollWidth / 2) / 55));
         track.style.setProperty('--ticker-dur', dur + 's');
         track.classList.add('animating');
     }
@@ -942,7 +941,7 @@
             const frame = document.getElementById('yt-frame');
 
             if (yt_url) {
-                const match = yt_url.match(/(?:v=|youtu\.be\/)([^&\?\/]+)/);
+                const match = yt_url.match(/(?:v=|youtu\.be\/|\/live\/)([^&\?\/]+)/);
                 if (match) {
                     const id = match[1];
                     frame.src = ytSrc(id);

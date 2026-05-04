@@ -1,0 +1,729 @@
+<style>
+  /* ══════════════════════════════════════════════════════════════
+     SERVIÇOS MODULE — Directório da Comunidade
+     Prefixo: sv-
+  ══════════════════════════════════════════════════════════════ */
+
+  .sv-wrap { display:flex; height:100%; min-height:0; overflow:hidden; font-family:var(--font-body); color:#fff; }
+  .sv-wrap * { box-sizing:border-box; }
+
+  /* ── Sidebar ── */
+  .sv-side {
+    width:300px; flex-shrink:0;
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    background:var(--bg-card); overflow:hidden;
+    transition:width 0.25s ease;
+  }
+  .sv-side.collapsed { width:36px; }
+  .sv-side.collapsed .sv-search,
+  .sv-side.collapsed .sv-btn-novo,
+  .sv-side.collapsed .sv-filters,
+  .sv-side.collapsed .sv-list { display:none; }
+  .sv-side.collapsed .sv-side-head { padding:10px 4px; justify-content:center; }
+
+  .sv-side-head {
+    padding:10px 12px; border-bottom:1px solid var(--border);
+    display:flex; gap:6px; align-items:center;
+    flex-shrink:0; min-height:48px;
+  }
+  .sv-toggle-btn {
+    width:28px; height:28px; flex-shrink:0;
+    border-radius:6px; border:1px solid var(--border);
+    background:transparent; color:var(--primary);
+    font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:background 0.2s;
+  }
+  .sv-toggle-btn:hover { background:rgba(0,144,152,0.2); }
+
+  .sv-search {
+    flex:1; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:8px; padding:7px 10px;
+    font-size:12px; font-family:var(--font-body); color:#fff; outline:none; min-width:0;
+  }
+  .sv-search::placeholder { color:rgba(255,255,255,0.3); }
+  .sv-search:focus { border-color:var(--primary); }
+
+  .sv-btn-novo {
+    padding:7px 11px; border-radius:8px; border:none;
+    background:var(--primary); color:#fff;
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+    cursor:pointer; white-space:nowrap; flex-shrink:0;
+  }
+  .sv-btn-novo:hover { background:var(--primary-dark); }
+
+  /* ── Filtros rápidos por área ── */
+  .sv-filters {
+    padding:8px 12px; border-bottom:1px solid var(--border);
+    display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0;
+  }
+  .sv-filter-pill {
+    padding:3px 10px; border-radius:999px; cursor:pointer;
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+    border:1px solid var(--border); background:transparent;
+    color:rgba(255,255,255,0.4); transition:all 0.15s;
+  }
+  .sv-filter-pill:hover  { border-color:var(--primary); color:var(--primary); }
+  .sv-filter-pill.active { background:rgba(0,144,152,0.18); border-color:var(--primary); color:var(--primary); }
+
+  /* ── Lista ── */
+  .sv-list { flex:1; overflow-y:auto; }
+  .sv-list::-webkit-scrollbar { width:3px; }
+  .sv-list::-webkit-scrollbar-thumb { background:rgba(0,144,152,0.25); border-radius:2px; }
+
+  .sv-item {
+    display:flex; align-items:center; gap:10px;
+    padding:11px 14px; cursor:pointer;
+    border-left:3px solid transparent;
+    border-bottom:1px solid var(--border);
+    transition:background 0.12s;
+  }
+  .sv-item:hover  { background:rgba(255,255,255,0.03); }
+  .sv-item.active { border-left-color:var(--primary); background:rgba(0,144,152,0.08); }
+  .sv-item.inativo { opacity:0.42; }
+
+  /* Mini logo / placeholder */
+  .sv-item-logo {
+    width:36px; height:36px; flex-shrink:0; border-radius:9px;
+    object-fit:cover; border:1px solid var(--border); background:var(--bg-input);
+  }
+  .sv-item-logo-ph {
+    width:36px; height:36px; flex-shrink:0; border-radius:9px;
+    background:rgba(0,144,152,0.14); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-title); font-size:14px; font-weight:700; color:var(--primary);
+  }
+
+  .sv-item-info { flex:1; min-width:0; }
+  .sv-item-nome {
+    font-size:12.5px; font-weight:600; color:#fff;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .sv-item-sub {
+    font-size:10px; color:rgba(255,255,255,0.38);
+    margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .sv-pill-off {
+    font-size:8px; font-family:var(--font-title); letter-spacing:0.5px;
+    padding:2px 7px; border-radius:10px; flex-shrink:0;
+    background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3);
+    border:1px solid rgba(255,255,255,0.1);
+  }
+
+  .sv-empty-side {
+    padding:20px; text-align:center;
+    font-size:12px; color:rgba(255,255,255,0.3); line-height:1.7;
+  }
+
+  /* ── Painel direito ── */
+  .sv-panel { flex:1; overflow-y:auto; background:var(--bg); }
+  .sv-panel::-webkit-scrollbar { width:4px; }
+  .sv-panel::-webkit-scrollbar-thumb { background:rgba(0,144,152,0.2); border-radius:2px; }
+
+  .sv-panel-empty {
+    height:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:10px;
+  }
+  .sv-panel-empty-icon {
+    width:56px; height:56px; border-radius:50%;
+    background:var(--bg-input); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    color:rgba(255,255,255,0.2);
+  }
+  .sv-panel-empty-txt {
+    font-family:var(--font-title); font-size:10px;
+    letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.25);
+  }
+
+  /* ── Form header ── */
+  .sv-form-header {
+    padding:16px 20px 12px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:14px; background:var(--bg-card);
+  }
+  .sv-form-header-logo {
+    width:50px; height:50px; flex-shrink:0; border-radius:12px;
+    object-fit:cover; border:1px solid var(--border); background:var(--bg-input);
+  }
+  .sv-form-header-ph {
+    width:50px; height:50px; flex-shrink:0; border-radius:12px;
+    background:rgba(0,144,152,0.15); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-title); font-size:18px; font-weight:700; color:var(--primary);
+  }
+  .sv-form-title { font-family:var(--font-title); font-size:15px; letter-spacing:1px; color:#fff; }
+  .sv-form-sub   { font-size:12px; color:rgba(255,255,255,0.38); margin-top:2px; }
+
+  /* ── Formulário ── */
+  .sv-form { padding:16px 20px 32px; }
+
+  .sv-section-title {
+    font-family:var(--font-title); font-size:9px; letter-spacing:2px;
+    text-transform:uppercase; color:rgba(255,255,255,0.35);
+    padding:16px 0 8px; border-bottom:1px solid var(--border);
+    margin-bottom:12px;
+  }
+  .sv-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:4px; }
+  .sv-field { display:flex; flex-direction:column; gap:4px; }
+  .sv-field.full { grid-column:1/-1; }
+
+  .sv-label {
+    font-size:9px; font-family:var(--font-title); letter-spacing:1px;
+    text-transform:uppercase; color:rgba(255,255,255,0.38);
+  }
+  .sv-input, .sv-select, .sv-textarea {
+    background:var(--bg-input); border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px;
+    font-size:13px; font-family:var(--font-body); color:#fff;
+    outline:none; transition:border-color 0.15s; width:100%;
+  }
+  .sv-input::placeholder, .sv-textarea::placeholder { color:rgba(255,255,255,0.2); }
+  .sv-select option { background:#081c26; color:#fff; }
+  .sv-input:focus, .sv-select:focus, .sv-textarea:focus { border-color:var(--primary); }
+  .sv-textarea { resize:vertical; min-height:80px; }
+
+  .sv-toggle-row {
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; color:#fff; cursor:pointer; padding:6px 0;
+  }
+  .sv-toggle-row input[type="checkbox"] { width:16px; height:16px; accent-color:var(--primary); cursor:pointer; }
+
+  /* Preview imagem */
+  .sv-img-box {
+    width:100%; height:130px;
+    border:2px dashed var(--border); border-radius:12px;
+    background:var(--bg-input); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; transition:border-color 0.2s, background 0.2s;
+  }
+  .sv-img-box:hover { border-color:var(--primary); background:rgba(0,144,152,0.06); }
+  .sv-img-placeholder {
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    color:rgba(255,255,255,0.3); pointer-events:none; text-align:center;
+  }
+  .sv-img-placeholder span { font-size:12px; font-weight:600; }
+  .sv-img-placeholder small { font-size:10px; }
+  .sv-img-btns { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .sv-img-btn {
+    padding:5px 11px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg-input); font-size:11px; font-family:var(--font-title);
+    letter-spacing:0.5px; color:rgba(255,255,255,0.5); cursor:pointer; transition:all 0.15s;
+  }
+  .sv-img-btn:hover { border-color:var(--primary); color:var(--primary); }
+  .sv-img-btn.danger:hover { border-color:rgba(198,40,40,0.4); color:#ff7070; }
+  .sv-img-url-input {
+    margin-top:6px; width:100%;
+    background:var(--bg-input); border:1px solid var(--border);
+    border-radius:7px; padding:7px 10px;
+    font-size:12px; color:#fff; outline:none;
+    font-family:var(--font-body); box-sizing:border-box;
+  }
+  .sv-img-url-input:focus { border-color:var(--primary); }
+  .sv-img-url-input::placeholder { color:rgba(255,255,255,0.2); }
+  .sv-img-status { font-size:11px; min-height:16px; margin-top:3px; color:rgba(255,255,255,0.35); }
+
+  /* Mensagem feedback */
+  .sv-msg { padding:10px 14px; border-radius:8px; font-size:12px; margin-bottom:10px; display:none; }
+  .sv-msg.error   { display:block; background:rgba(198,40,40,0.1);  color:#ff7070; border:1px solid rgba(198,40,40,0.3); }
+  .sv-msg.success { display:block; background:rgba(46,125,50,0.1);  color:#70d988; border:1px solid rgba(46,125,50,0.3); }
+
+  /* Acções */
+  .sv-actions {
+    display:flex; gap:8px; justify-content:flex-end;
+    padding-top:16px; border-top:1px solid var(--border); margin-top:20px;
+  }
+  .sv-btn-cancel {
+    padding:8px 16px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg-input); color:rgba(255,255,255,0.5);
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+  }
+  .sv-btn-cancel:hover { color:#fff; border-color:rgba(255,255,255,0.3); }
+  .sv-btn-save {
+    padding:8px 20px; border-radius:8px; border:none;
+    background:var(--primary); color:#fff;
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+  }
+  .sv-btn-save:hover { background:var(--primary-dark); }
+  .sv-btn-save:disabled { opacity:0.5; cursor:not-allowed; }
+  .sv-btn-toggle {
+    padding:8px 14px; border-radius:8px; margin-right:auto;
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+    cursor:pointer; background:transparent;
+  }
+  .sv-btn-toggle.inativar { border:1px solid rgba(198,40,40,0.35); color:#ff7070; }
+  .sv-btn-toggle.inativar:hover { background:rgba(198,40,40,0.08); }
+  .sv-btn-toggle.ativar   { border:1px solid rgba(46,125,50,0.35);  color:#70d988; }
+  .sv-btn-toggle.ativar:hover   { background:rgba(46,125,50,0.08); }
+</style>
+
+<div class="sv-wrap">
+
+  <!-- SIDEBAR -->
+  <div class="sv-side" id="sv-side">
+    <div class="sv-side-head">
+      <button class="sv-toggle-btn" id="sv-toggle-btn" onclick="sv_toggleSide()" title="Expandir/colapsar">☰</button>
+      <input class="sv-search" id="sv-search" placeholder="Pesquisar serviços..." oninput="sv_filtrar()">
+      <button class="sv-btn-novo" onclick="sv_novoServico()">+ Serviço</button>
+    </div>
+
+    <div class="sv-filters" id="sv-filters">
+      <button class="sv-filter-pill active" onclick="sv_setArea(this,'')">Todos</button>
+    </div>
+
+    <div class="sv-list" id="sv-list">
+      <div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,0.3)">A carregar...</div>
+    </div>
+  </div>
+
+  <!-- PAINEL DIREITO -->
+  <div class="sv-panel" id="sv-panel">
+    <div class="sv-panel-empty">
+      <div class="sv-panel-empty-icon">
+        <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div class="sv-panel-empty-txt">Seleciona ou adiciona um serviço</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var sv_sb = window.sb;
+
+  var SV_AREAS = [
+    'Tecnologia/TI','Saúde','Educação','Comércio/Vendas','Administrativo',
+    'Financeiro/Contabilidade','Arte/Design','Serviços Gerais',
+    'Construção Civil','Jurídico','Outros'
+  ];
+
+  var SV_AREA_DOT = {
+    'Tecnologia/TI':          '#009098',
+    'Saúde':                  '#70d988',
+    'Educação':               '#5090e0',
+    'Comércio/Vendas':        '#ffa040',
+    'Administrativo':         '#ab73e8',
+    'Financeiro/Contabilidade':'#d4b800',
+    'Arte/Design':            '#e060a0',
+    'Serviços Gerais':        '#a0c030',
+    'Construção Civil':       '#c8903c',
+    'Jurídico':               '#c080ff',
+    'Outros':                 'rgba(255,255,255,0.25)',
+  };
+
+  var sv = { servicos:[], servicoId:null, filtroTexto:'', filtroArea:'' };
+
+  /* ── Sidebar colapsar ── */
+  window.sv_toggleSide = function() {
+    var side = document.getElementById('sv-side');
+    var btn  = document.getElementById('sv-toggle-btn');
+    side.classList.toggle('collapsed');
+    btn.textContent = side.classList.contains('collapsed') ? '▶' : '☰';
+  };
+
+  /* ── INIT ── */
+  async function sv_init() {
+    try {
+      sv.servicos = await sv_sb('servicos?select=*&order=created_at.desc') || [];
+    } catch(e) {
+      console.error('[Serviços] Erro ao carregar:', e);
+      sv.servicos = [];
+    }
+    sv_buildAreaPills();
+    sv_renderList();
+  }
+
+  /* ── Pills de área ── */
+  function sv_buildAreaPills() {
+    var areas = [...new Set(sv.servicos.map(function(s){ return s.area_atuacao; }).filter(Boolean))].sort();
+    var el = document.getElementById('sv-filters');
+    if (!el) return;
+    var html = '<button class="sv-filter-pill'+(sv.filtroArea===''?' active':'')+'" onclick="sv_setArea(this,\'\')">Todos</button>';
+    areas.forEach(function(a) {
+      html += '<button class="sv-filter-pill'+(sv.filtroArea===a?' active':'')+
+              '" onclick="sv_setArea(this,\''+a.replace(/'/g,"\\'")+'\')">'+a.split('/')[0]+'</button>';
+    });
+    el.innerHTML = html;
+  }
+
+  window.sv_setArea = function(btn, area) {
+    sv.filtroArea = area;
+    document.querySelectorAll('.sv-filter-pill').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    sv_renderList();
+  };
+
+  window.sv_filtrar = function() {
+    sv.filtroTexto = (document.getElementById('sv-search')?.value||'').toLowerCase();
+    sv_renderList();
+  };
+
+  /* ── RENDER LIST ── */
+  function sv_renderList() {
+    var el = document.getElementById('sv-list');
+    if (!el) return;
+
+    var lista = sv.servicos.filter(function(s) {
+      if (sv.filtroArea && s.area_atuacao !== sv.filtroArea) return false;
+      if (sv.filtroTexto && !((s.nome_empresa||'').toLowerCase().includes(sv.filtroTexto) ||
+              (s.area_atuacao||'').toLowerCase().includes(sv.filtroTexto) ||
+              (s.zona_atuacao||'').toLowerCase().includes(sv.filtroTexto) ||
+              (s.nome_contato||'').toLowerCase().includes(sv.filtroTexto))) return false;
+      return true;
+    });
+
+    if (!lista.length) {
+      el.innerHTML = '<div class="sv-empty-side">Sem serviços.<br>Clica em + Serviço para adicionar.</div>';
+      return;
+    }
+
+    var html = '';
+    lista.forEach(function(s) {
+      var ativo  = s.ativo !== false;
+      var active = sv.servicoId === s.id ? ' active' : '';
+      var cor    = SV_AREA_DOT[s.area_atuacao] || 'rgba(255,255,255,0.25)';
+
+      var thumb = s.imagem_url
+              ? '<img class="sv-item-logo" src="'+s.imagem_url+'" onerror="this.outerHTML=\'<div class=\\\'sv-item-logo-ph\\\'>\'+(s.nome_empresa||\'?\').charAt(0).toUpperCase()+\'</div>\'">'
+              : '<div class="sv-item-logo-ph">'+(s.nome_empresa||'?').charAt(0).toUpperCase()+'</div>';
+
+      var sub = [s.area_atuacao, s.zona_atuacao].filter(Boolean).join(' · ');
+
+      html +=
+              '<div class="sv-item'+active+(ativo?'':' inativo')+'" onclick="sv_selecionarServico(\''+s.id+'\')">' +
+              thumb +
+              '<div class="sv-item-info">' +
+              '<div class="sv-item-nome">'+s.nome_empresa+'</div>' +
+              '<div class="sv-item-sub">'+(sub||'—')+'</div>' +
+              '</div>' +
+              (!ativo ? '<span class="sv-pill-off">Off</span>' : '') +
+              '</div>';
+    });
+    el.innerHTML = html;
+  }
+
+  /* ── SELECIONAR ── */
+  window.sv_selecionarServico = function(id) {
+    sv.servicoId = id;
+    sv_renderList();
+    var s = sv.servicos.find(function(x){ return x.id===id; });
+    if (s) sv_renderFormServico(s);
+  };
+
+  /* ── NOVO ── */
+  window.sv_novoServico = function() {
+    sv.servicoId = null;
+    sv_renderList();
+    sv_renderFormNovoServico();
+  };
+
+  /* ── FORM existente ── */
+  function sv_renderFormServico(s) {
+    var panel = document.getElementById('sv-panel');
+    if (!panel) return;
+    var ativo = s.ativo !== false;
+    var sub   = [s.area_atuacao, s.zona_atuacao].filter(Boolean).join(' · ');
+    if (!ativo) sub += ' · <span style="color:rgba(255,255,255,0.3)">Inativo</span>';
+
+    var headerLogo = s.imagem_url
+            ? '<img class="sv-form-header-logo" src="'+s.imagem_url+'" onerror="this.outerHTML=\'<div class=\\\'sv-form-header-ph\\\'>\'+('+(s.nome_empresa||'?').charAt(0).toUpperCase()+')+\'</div>\'">'
+            : '<div class="sv-form-header-ph">'+(s.nome_empresa||'?').charAt(0).toUpperCase()+'</div>';
+
+    panel.innerHTML =
+            '<div class="sv-form-header">'+headerLogo+
+            '<div><div class="sv-form-title">'+s.nome_empresa+'</div>'+
+            '<div class="sv-form-sub">'+sub+'</div></div></div>'+
+            sv_buildForm(s);
+  }
+
+  /* ── FORM novo ── */
+  function sv_renderFormNovoServico() {
+    var panel = document.getElementById('sv-panel');
+    if (!panel) return;
+    panel.innerHTML =
+            '<div class="sv-form-header">'+
+            '<div class="sv-form-header-ph" style="font-size:20px">+</div>'+
+            '<div><div class="sv-form-title">Novo Serviço</div>'+
+            '<div class="sv-form-sub">Preenche os campos e publica</div></div></div>'+
+            sv_buildForm(null);
+  }
+
+  /* ── HTML DO FORMULÁRIO ── */
+  function sv_buildForm(s) {
+    var fv = function(k, d) {
+      var v = s ? s[k] : undefined;
+      return (v===undefined||v===null) ? (d!==undefined?d:'') : v;
+    };
+    var id    = s ? s.id : '';
+    var ativo = s ? (s.ativo !== false) : true;
+    var img   = fv('imagem_url');
+
+    var areaOpts = '<option value="">Selecionar...</option>' +
+            SV_AREAS.map(function(a){ return '<option value="'+a+'"'+(fv('area_atuacao')===a?' selected':'')+'>'+a+'</option>'; }).join('');
+
+    var imgBoxContent = img
+            ? '<img src="'+img.replace(/"/g,'')+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" onerror="this.parentElement.innerHTML=sv_imgPlaceholder()">'
+            : sv_imgPlaceholder();
+
+    return '<div class="sv-form">'+
+            '<div class="sv-msg" id="sv-msg"></div>'+
+
+            /* ── Empresa ── */
+            '<div class="sv-section-title">Informações da Empresa / Pessoa</div>'+
+            '<div class="sv-field-grid">'+
+
+            '<div class="sv-field full">'+
+            '<label class="sv-label">Nome da Empresa ou Pessoa *</label>'+
+            '<input class="sv-input" id="sf-nome" type="text" value="'+fv('nome_empresa')+'" placeholder="Ex: Costa & Silva Contabilidade">'+
+            '</div>'+
+
+            '<div class="sv-field">'+
+            '<label class="sv-label">Área de Actuação *</label>'+
+            '<select class="sv-select" id="sf-area">'+areaOpts+'</select>'+
+            '</div>'+
+
+            '<div class="sv-field">'+
+            '<label class="sv-label">Zona de Actuação</label>'+
+            '<input class="sv-input" id="sf-zona" type="text" value="'+fv('zona_atuacao')+'" placeholder="Ex: Lisboa e arredores">'+
+            '</div>'+
+
+            '<div class="sv-field full">'+
+            '<label class="sv-label">Descrição dos Serviços</label>'+
+            '<textarea class="sv-textarea" id="sf-descricao" placeholder="Descreve o que ofereces, especialidades, experiência...">'+fv('descricao')+'</textarea>'+
+            '</div>'+
+
+            '</div>'+
+
+            /* ── Logo / imagem ── */
+            '<div class="sv-section-title">Logo / Imagem</div>'+
+            '<div class="sv-field-grid">'+
+            '<div class="sv-field full">'+
+            '<div id="sv-img-box" class="sv-img-box" onclick="sv_triggerFile()">'+imgBoxContent+'</div>'+
+            '<div class="sv-img-btns">'+
+            '<button type="button" class="sv-img-btn" onclick="sv_triggerFile()">Escolher ficheiro</button>'+
+            '<button type="button" class="sv-img-btn" onclick="sv_triggerCamera()">Câmara</button>'+
+            (img ? '<button type="button" class="sv-img-btn danger" onclick="sv_removerFoto()">Remover</button>' : '')+
+            '</div>'+
+            '<input class="sv-img-url-input" id="sv-img-url-text" placeholder="Ou cola um URL da imagem..." value="'+img+'">'+
+            '<button type="button" class="sv-img-btn" style="margin-top:4px" onclick="sv_aplicarUrl()">Usar URL</button>'+
+            '<div class="sv-img-status" id="sv-img-status"></div>'+
+            '<input type="hidden" id="sv-foto-url" value="'+img+'">'+
+            '<input type="file" id="sv-file-input" accept="image/*" style="display:none" onchange="sv_handleFile(this)">'+
+            '<input type="file" id="sv-cam-input"  accept="image/*" capture="environment" style="display:none" onchange="sv_handleFile(this)">'+
+            '</div>'+
+            '</div>'+
+
+            /* ── Contacto ── */
+            '<div class="sv-section-title">Contacto</div>'+
+            '<div class="sv-field-grid">'+
+
+            '<div class="sv-field full">'+
+            '<label class="sv-label">Nome da Pessoa de Contacto</label>'+
+            '<input class="sv-input" id="sf-contato" type="text" value="'+fv('nome_contato')+'" placeholder="Ex: João Silva">'+
+            '</div>'+
+
+            '<div class="sv-field">'+
+            '<label class="sv-label">Email</label>'+
+            '<input class="sv-input" id="sf-email" type="email" value="'+fv('email_contato')+'" placeholder="email@exemplo.com">'+
+            '</div>'+
+
+            '<div class="sv-field">'+
+            '<label class="sv-label">Telemóvel</label>'+
+            '<input class="sv-input" id="sf-tel" type="tel" value="'+fv('telemovel_contato')+'" placeholder="+351 912 345 678">'+
+            '</div>'+
+
+            '</div>'+
+
+            /* ── Online ── */
+            '<div class="sv-section-title">Presença Online</div>'+
+            '<div class="sv-field-grid">'+
+
+            '<div class="sv-field">'+
+            '<label class="sv-label">Website</label>'+
+            '<input class="sv-input" id="sf-website" type="url" value="'+fv('website')+'" placeholder="https://exemplo.com">'+
+            '</div>'+
+
+            '<div class="sv-field">'+
+            '<label class="sv-label">Instagram (URL)</label>'+
+            '<input class="sv-input" id="sf-instagram" type="url" value="'+fv('instagram')+'" placeholder="https://instagram.com/...">'+
+            '</div>'+
+
+            '<div class="sv-field">'+
+            '<label class="sv-toggle-row">'+
+            '<input type="checkbox" id="sf-ativo" '+(ativo?'checked':'')+'>Visível ao público</label>'+
+            '</div>'+
+
+            '</div>'+
+
+            /* ── Acções ── */
+            '<div class="sv-actions">'+
+            (s ? '<button class="sv-btn-toggle '+(ativo?'inativar':'ativar')+'" onclick="sv_toggleServico(\''+id+'\','+ativo+')">'+(ativo?'Inativar':'Ativar')+'</button>' : '')+
+            '<button class="sv-btn-cancel" onclick="sv_fechar()">Cancelar</button>'+
+            '<button class="sv-btn-save" id="sv-btn-save" onclick="sv_guardar(\''+id+'\')">'+(s?'Guardar Alterações':'Publicar Serviço')+'</button>'+
+            '</div>'+
+            '</div>';
+  }
+
+  /* ── Imagem helpers ── */
+  function sv_imgPlaceholder() {
+    return '<div class="sv-img-placeholder">'+
+            '<svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">'+
+            '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/>'+
+            '</svg><span>Clica para escolher imagem</span><small>JPG, PNG, WEBP</small></div>';
+  }
+  window.sv_imgPlaceholder = sv_imgPlaceholder;
+
+  window.sv_triggerFile   = function(){ document.getElementById('sv-file-input')?.click(); };
+  window.sv_triggerCamera = function(){ document.getElementById('sv-cam-input')?.click(); };
+
+  window.sv_aplicarUrl = function() {
+    var url = document.getElementById('sv-img-url-text')?.value?.trim();
+    if (!url) return;
+    document.getElementById('sv-foto-url').value = url;
+    sv_atualizarPreview(url);
+  };
+  window.sv_removerFoto = function() {
+    document.getElementById('sv-foto-url').value = '';
+    document.getElementById('sv-img-url-text').value = '';
+    var box = document.getElementById('sv-img-box');
+    if (box) box.innerHTML = sv_imgPlaceholder();
+  };
+  function sv_atualizarPreview(url) {
+    var box = document.getElementById('sv-img-box');
+    if (!box) return;
+    box.innerHTML = '<img src="'+url+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" onerror="this.parentElement.innerHTML=sv_imgPlaceholder()">';
+  }
+  window.sv_handleFile = async function(input) {
+    var file = input.files?.[0];
+    if (!file) return;
+    sv_atualizarPreview(URL.createObjectURL(file));
+    var status = document.getElementById('sv-img-status');
+    if (status){ status.textContent='A comprimir...'; status.style.color='rgba(255,255,255,0.35)'; }
+    try {
+      var blob = await new Promise(function(resolve) {
+        var img = new Image(); var url = URL.createObjectURL(file);
+        img.onload = function() {
+          var w=img.width,h=img.height,max=800;
+          if(w>max||h>max){ var r=Math.min(max/w,max/h); w=Math.round(w*r); h=Math.round(h*r); }
+          var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+          cv.getContext('2d').drawImage(img,0,0,w,h);
+          URL.revokeObjectURL(url);
+          cv.toBlob(function(b){ resolve(b); },'image/jpeg',0.82);
+        };
+        img.onerror=function(){ URL.revokeObjectURL(url); resolve(file); };
+        img.src=url;
+      });
+      var fname = 'servicos/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.jpg';
+      if (status) status.textContent='A fazer upload...';
+      var res = await fetch(window.SUPABASE_URL+'/storage/v1/object/imagens/'+fname,{
+        method:'POST',
+        headers:{ 'apikey':window.SUPABASE_ANON_KEY,'Authorization':'Bearer '+window.SUPABASE_ANON_KEY,'Content-Type':'image/jpeg','x-upsert':'true' },
+        body:blob,
+      });
+      if (!res.ok){ var err=await res.json().catch(function(){return{};}); throw new Error(err?.error||err?.message||'Erro '+res.status); }
+      var pub = window.SUPABASE_URL+'/storage/v1/object/public/imagens/'+fname;
+      document.getElementById('sv-foto-url').value = pub;
+      document.getElementById('sv-img-url-text').value = pub;
+      sv_atualizarPreview(pub);
+      if (status){ status.textContent='Upload concluído ('+Math.round(blob.size/1024)+' KB)'; status.style.color='#70d988'; }
+    } catch(e){
+      if (status){ status.textContent='Erro: '+e.message; status.style.color='#ff7070'; }
+    }
+    input.value='';
+  };
+
+  /* ── GUARDAR ── */
+  window.sv_guardar = async function(id) {
+    var get = function(k){ var el=document.getElementById('sf-'+k); return el?(el.value||'').trim()||null:null; };
+    var chk = function(k){ var el=document.getElementById('sf-'+k); return el?el.checked:false; };
+
+    var nome = get('nome');
+    var area = get('area');
+    if (!nome){ sv_showMsg('Nome é obrigatório.','error'); return; }
+    if (!area){ sv_showMsg('Área de actuação é obrigatória.','error'); return; }
+
+    var body = {
+      nome_empresa:       nome,
+      area_atuacao:       area,
+      descricao:          get('descricao'),
+      zona_atuacao:       get('zona'),
+      nome_contato:       get('contato'),
+      email_contato:      get('email'),
+      telemovel_contato:  get('tel'),
+      website:            get('website'),
+      instagram:          get('instagram'),
+      imagem_url:         document.getElementById('sv-foto-url')?.value?.trim()||null,
+      ativo:              chk('ativo'),
+    };
+
+    var btn = document.getElementById('sv-btn-save');
+    if (btn){ btn.disabled=true; btn.textContent='A guardar...'; }
+
+    try {
+      if (!id) {
+        await sv_sb('servicos',{method:'POST',body:JSON.stringify(body)});
+      } else {
+        await sv_sb('servicos?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});
+      }
+      sv_showMsg('Guardado com sucesso!','success');
+      sv.servicos = await sv_sb('servicos?select=*&order=created_at.desc')||[];
+      sv_buildAreaPills();
+      sv_renderList();
+
+      if (!id) {
+        var criado = sv.servicos.find(function(x){ return x.nome_empresa===nome; });
+        if (criado){ sv.servicoId=criado.id; sv_renderList(); setTimeout(function(){ sv_renderFormServico(criado); },600); }
+      } else {
+        var updated = sv.servicos.find(function(x){ return x.id===id; });
+        if (updated) setTimeout(function(){ sv_renderFormServico(updated); },600);
+      }
+    } catch(e){
+      sv_showMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
+      if (btn){ btn.disabled=false; btn.textContent=id?'Guardar Alterações':'Publicar Serviço'; }
+    }
+  };
+
+  /* ── TOGGLE ativo ── */
+  window.sv_toggleServico = async function(id, ativoAtual) {
+    if (!confirm(ativoAtual?'Inativar este serviço?':'Ativar este serviço?')) return;
+    try {
+      await sv_sb('servicos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo:!ativoAtual})});
+      sv.servicos = await sv_sb('servicos?select=*&order=created_at.desc')||[];
+      sv_renderList();
+      var s = sv.servicos.find(function(x){ return x.id===id; });
+      if (s) sv_renderFormServico(s);
+    } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
+  };
+
+  /* ── FECHAR ── */
+  window.sv_fechar = function() {
+    sv.servicoId = null;
+    sv_renderList();
+    var panel = document.getElementById('sv-panel');
+    if (!panel) return;
+    panel.innerHTML =
+            '<div class="sv-panel-empty">'+
+            '<div class="sv-panel-empty-icon">'+
+            '<svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">'+
+            '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'+
+            '<polyline points="9 22 9 12 15 12 15 22"/>'+
+            '</svg></div>'+
+            '<div class="sv-panel-empty-txt">Seleciona ou adiciona um serviço</div>'+
+            '</div>';
+  };
+
+  /* ── MENSAGEM ── */
+  function sv_showMsg(txt, tipo) {
+    var el = document.getElementById('sv-msg');
+    if (!el) return;
+    el.textContent = txt;
+    el.className = 'sv-msg '+tipo;
+    el.scrollIntoView({behavior:'smooth',block:'nearest'});
+    if (tipo==='success') setTimeout(function(){ el.className='sv-msg'; },3000);
+  }
+
+  window.sv_init = sv_init;
+  sv_init();
+</script>

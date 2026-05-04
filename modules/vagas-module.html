@@ -1,714 +1,749 @@
 <style>
-  /* ══════════════════════════════════════════════════════════════
-     VAGAS MODULE — Bolsa de Emprego
-     Prefixo: vg-
-     Segue a mesma linguagem visual do módulo Cultos
-  ══════════════════════════════════════════════════════════════ */
+    /* ══════════════════════════════════════════════════════════════
+       VAGAS MODULE v2 — com fluxo de aprovação
+       Prefixo: vg-
+    ══════════════════════════════════════════════════════════════ */
 
-  .vg-wrap { display:flex; height:100%; min-height:0; overflow:hidden; font-family:var(--font-body); color:#fff; }
-  .vg-wrap * { box-sizing:border-box; }
+    .vg-wrap { display:flex; height:100%; min-height:0; overflow:hidden; font-family:var(--font-body); color:#fff; }
+    .vg-wrap * { box-sizing:border-box; }
 
-  /* ── Sidebar ── */
-  .vg-side {
-    width: 300px; flex-shrink:0;
-    border-right:1px solid var(--border);
-    display:flex; flex-direction:column;
-    background: var(--bg-card);
-    overflow:hidden;
-    transition: width 0.25s ease;
-  }
-  .vg-side.collapsed { width:36px; }
-  .vg-side.collapsed .vg-search,
-  .vg-side.collapsed .vg-btn-novo,
-  .vg-side.collapsed .vg-filters,
-  .vg-side.collapsed .vg-list { display:none; }
-  .vg-side.collapsed .vg-side-head { padding:10px 4px; justify-content:center; }
+    .vg-side {
+        width:300px; flex-shrink:0;
+        border-right:1px solid var(--border);
+        display:flex; flex-direction:column;
+        background:var(--bg-card); overflow:hidden;
+        transition:width 0.25s ease;
+    }
+    .vg-side.collapsed { width:36px; }
+    .vg-side.collapsed .vg-search,
+    .vg-side.collapsed .vg-btn-novo,
+    .vg-side.collapsed .vg-filters,
+    .vg-side.collapsed .vg-list { display:none; }
+    .vg-side.collapsed .vg-side-head { padding:10px 4px; justify-content:center; }
 
-  .vg-side-head {
-    padding:10px 12px;
-    border-bottom:1px solid var(--border);
-    display:flex; gap:6px; align-items:center;
-    flex-shrink:0; min-height:48px;
-  }
-  .vg-toggle-btn {
-    width:28px; height:28px; flex-shrink:0;
-    border-radius:6px; border:1px solid var(--border);
-    background:transparent; color:var(--primary);
-    font-size:14px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    transition:background 0.2s;
-  }
-  .vg-toggle-btn:hover { background:rgba(0,144,152,0.2); }
+    .vg-side-head {
+        padding:10px 12px; border-bottom:1px solid var(--border);
+        display:flex; gap:6px; align-items:center;
+        flex-shrink:0; min-height:48px;
+    }
+    .vg-toggle-btn {
+        width:28px; height:28px; flex-shrink:0;
+        border-radius:6px; border:1px solid var(--border);
+        background:transparent; color:var(--primary);
+        font-size:14px; cursor:pointer;
+        display:flex; align-items:center; justify-content:center;
+        transition:background 0.2s;
+    }
+    .vg-toggle-btn:hover { background:rgba(0,144,152,0.2); }
+    .vg-search {
+        flex:1; background:var(--bg-input); border:1px solid var(--border);
+        border-radius:8px; padding:7px 10px;
+        font-size:12px; font-family:var(--font-body); color:#fff; outline:none; min-width:0;
+    }
+    .vg-search::placeholder { color:rgba(255,255,255,0.3); }
+    .vg-search:focus { border-color:var(--primary); }
+    .vg-btn-novo {
+        padding:7px 11px; border-radius:8px; border:none;
+        background:var(--primary); color:#fff;
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+        cursor:pointer; white-space:nowrap; flex-shrink:0;
+    }
+    .vg-btn-novo:hover { background:var(--primary-dark); }
 
-  .vg-search {
-    flex:1;
-    background:var(--bg-input); border:1px solid var(--border);
-    border-radius:8px; padding:7px 10px;
-    font-size:12px; font-family:var(--font-body);
-    color:#fff; outline:none; min-width:0;
-  }
-  .vg-search::placeholder { color:rgba(255,255,255,0.3); }
-  .vg-search:focus { border-color:var(--primary); }
+    /* ── Filtros ── */
+    .vg-filters {
+        padding:8px 12px; border-bottom:1px solid var(--border);
+        display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0;
+    }
+    .vg-filter-pill {
+        padding:3px 10px; border-radius:999px; cursor:pointer;
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+        border:1px solid var(--border); background:transparent;
+        color:rgba(255,255,255,0.4); transition:all 0.15s;
+    }
+    .vg-filter-pill:hover  { border-color:var(--primary); color:var(--primary); }
+    .vg-filter-pill.active { background:rgba(0,144,152,0.18); border-color:var(--primary); color:var(--primary); }
 
-  .vg-btn-novo {
-    padding:7px 11px; border-radius:8px; border:none;
-    background:var(--primary); color:#fff;
-    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
-    cursor:pointer; white-space:nowrap; flex-shrink:0;
-  }
-  .vg-btn-novo:hover { background:var(--primary-dark); }
+    /* ── Lista ── */
+    .vg-list { flex:1; overflow-y:auto; }
+    .vg-list::-webkit-scrollbar { width:3px; }
+    .vg-list::-webkit-scrollbar-thumb { background:rgba(0,144,152,0.25); border-radius:2px; }
 
-  /* ── Filtros rápidos ── */
-  .vg-filters {
-    padding:8px 12px;
-    border-bottom:1px solid var(--border);
-    display:flex; gap:6px; flex-wrap:wrap;
-    flex-shrink:0;
-  }
-  .vg-filter-pill {
-    padding:3px 10px; border-radius:999px; cursor:pointer;
-    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
-    border:1px solid var(--border); background:transparent;
-    color:rgba(255,255,255,0.4); transition:all 0.15s;
-  }
-  .vg-filter-pill:hover { border-color:var(--primary); color:var(--primary); }
-  .vg-filter-pill.active { background:rgba(0,144,152,0.18); border-color:var(--primary); color:var(--primary); }
+    /* Separador de secção na lista */
+    .vg-list-section {
+        padding:6px 14px 4px;
+        font-family:var(--font-title); font-size:8px; letter-spacing:2px;
+        text-transform:uppercase; border-bottom:1px solid var(--border);
+        display:flex; align-items:center; gap:7px;
+    }
+    .vg-list-section.pendentes { color:#ffa040; background:rgba(200,130,0,0.06); }
+    .vg-list-section.todas     { color:rgba(255,255,255,0.3); background:transparent; }
+    .vg-section-count {
+        font-size:9px; padding:1px 6px; border-radius:999px;
+        font-family:var(--font-title); letter-spacing:0;
+    }
+    .vg-section-count.amber { background:rgba(200,130,0,0.2); color:#ffa040; }
+    .vg-section-count.muted { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.4); }
 
-  /* ── Lista ── */
-  .vg-list { flex:1; overflow-y:auto; }
-  .vg-list::-webkit-scrollbar { width:3px; }
-  .vg-list::-webkit-scrollbar-thumb { background:rgba(0,144,152,0.25); border-radius:2px; }
+    .vg-item {
+        display:flex; align-items:center; gap:10px;
+        padding:11px 14px; cursor:pointer;
+        border-left:3px solid transparent;
+        border-bottom:1px solid var(--border);
+        transition:background 0.12s;
+    }
+    .vg-item:hover   { background:rgba(255,255,255,0.03); }
+    .vg-item.active  { border-left-color:var(--primary); background:rgba(0,144,152,0.08); }
+    .vg-item.inativo { opacity:0.42; }
+    .vg-item.pendente-item { border-left-color:rgba(200,130,0,0.5); background:rgba(200,130,0,0.04); }
+    .vg-item.pendente-item.active { border-left-color:#ffa040; background:rgba(200,130,0,0.12); }
 
-  .vg-item {
-    display:flex; align-items:flex-start; gap:10px;
-    padding:11px 14px;
-    cursor:pointer; border-left:3px solid transparent;
-    border-bottom:1px solid var(--border);
-    transition:background 0.12s;
-  }
-  .vg-item:hover { background:rgba(255,255,255,0.03); }
-  .vg-item.active { border-left-color:var(--primary); background:rgba(0,144,152,0.08); }
-  .vg-item.inativo { opacity:0.42; }
+    .vg-item-dot {
+        width:8px; height:8px; border-radius:50%;
+        flex-shrink:0; margin-top:5px;
+    }
+    .vg-item-info { flex:1; min-width:0; }
+    .vg-item-titulo {
+        font-size:12.5px; font-weight:600; color:#fff;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .vg-item-sub {
+        font-size:10px; color:rgba(255,255,255,0.38);
+        margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .vg-item-badge {
+        font-size:8px; font-family:var(--font-title); letter-spacing:0.5px;
+        padding:2px 7px; border-radius:999px; flex-shrink:0; align-self:center;
+    }
+    .vg-item-badge.off     { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3); border:1px solid rgba(255,255,255,0.1); }
+    .vg-item-badge.exp     { background:rgba(198,40,40,0.12); color:#ff7070; border:1px solid rgba(198,40,40,0.25); }
+    .vg-item-badge.expira  { background:rgba(200,130,0,0.12); color:#ffa040; border:1px solid rgba(200,130,0,0.25); }
+    .vg-item-badge.pend    { background:rgba(200,130,0,0.18); color:#ffa040; border:1px solid rgba(200,130,0,0.3); }
+    .vg-item-badge.rejeit  { background:rgba(198,40,40,0.12); color:#ff7070; border:1px solid rgba(198,40,40,0.25); }
 
-  .vg-item-dot {
-    width:8px; height:8px; border-radius:50%;
-    flex-shrink:0; margin-top:5px;
-  }
-  .vg-item-info { flex:1; min-width:0; }
-  .vg-item-titulo {
-    font-size:12.5px; font-weight:600; color:#fff;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    line-height:1.3;
-  }
-  .vg-item-sub {
-    font-size:10px; color:rgba(255,255,255,0.38);
-    margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .vg-item-badge {
-    font-size:8px; font-family:var(--font-title); letter-spacing:0.5px;
-    padding:2px 7px; border-radius:999px; flex-shrink:0; align-self:center;
-  }
-  .vg-item-badge.off    { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3); border:1px solid rgba(255,255,255,0.1); }
-  .vg-item-badge.exp    { background:rgba(198,40,40,0.12); color:#ff7070; border:1px solid rgba(198,40,40,0.25); }
-  .vg-item-badge.expira { background:rgba(200,130,0,0.12); color:#ffa040; border:1px solid rgba(200,130,0,0.25); }
+    .vg-empty-side {
+        padding:20px; text-align:center;
+        font-size:12px; color:rgba(255,255,255,0.3); line-height:1.7;
+    }
 
-  .vg-empty-side {
-    padding:20px; text-align:center;
-    font-size:12px; font-family:var(--font-body);
-    color:rgba(255,255,255,0.3); line-height:1.7;
-  }
+    /* ── Painel direito ── */
+    .vg-panel { flex:1; overflow-y:auto; background:var(--bg); }
+    .vg-panel::-webkit-scrollbar { width:4px; }
+    .vg-panel::-webkit-scrollbar-thumb { background:rgba(0,144,152,0.2); border-radius:2px; }
 
-  /* ── Painel direito ── */
-  .vg-panel { flex:1; overflow-y:auto; background:var(--bg); }
-  .vg-panel::-webkit-scrollbar { width:4px; }
-  .vg-panel::-webkit-scrollbar-thumb { background:rgba(0,144,152,0.2); border-radius:2px; }
+    .vg-panel-empty {
+        height:100%; display:flex; flex-direction:column;
+        align-items:center; justify-content:center; gap:10px;
+    }
+    .vg-panel-empty-icon {
+        width:56px; height:56px; border-radius:50%;
+        background:var(--bg-input); border:1px solid var(--border);
+        display:flex; align-items:center; justify-content:center;
+        color:rgba(255,255,255,0.2);
+    }
+    .vg-panel-empty-txt {
+        font-family:var(--font-title); font-size:10px;
+        letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.25);
+    }
 
-  .vg-panel-empty {
-    height:100%; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:10px;
-  }
-  .vg-panel-empty-icon {
-    width:56px; height:56px; border-radius:50%;
-    background:var(--bg-input); border:1px solid var(--border);
-    display:flex; align-items:center; justify-content:center;
-    color:rgba(255,255,255,0.2);
-  }
-  .vg-panel-empty-txt {
-    font-family:var(--font-title); font-size:10px;
-    letter-spacing:2px; text-transform:uppercase;
-    color:rgba(255,255,255,0.25);
-  }
+    /* ── Banner de aprovação (no topo do painel) ── */
+    .vg-approval-banner {
+        margin:16px 20px 0;
+        padding:14px 16px;
+        border-radius:10px;
+        border:1px solid rgba(200,130,0,0.35);
+        background:rgba(200,130,0,0.08);
+        display:flex; align-items:flex-start; gap:12px;
+    }
+    .vg-approval-banner.rejeitado {
+        border-color:rgba(198,40,40,0.35); background:rgba(198,40,40,0.08);
+    }
+    .vg-approval-banner-icon { font-size:20px; flex-shrink:0; line-height:1; }
+    .vg-approval-banner-body { flex:1; }
+    .vg-approval-banner-title {
+        font-family:var(--font-title); font-size:10px; letter-spacing:1.5px;
+        text-transform:uppercase; margin-bottom:4px;
+    }
+    .vg-approval-banner.pendente .vg-approval-banner-title { color:#ffa040; }
+    .vg-approval-banner.rejeitado .vg-approval-banner-title { color:#ff7070; }
+    .vg-approval-banner-sub { font-size:12px; color:rgba(255,255,255,0.5); line-height:1.6; }
 
-  /* ── Form header ── */
-  .vg-form-header {
-    padding:16px 20px 12px;
-    border-bottom:1px solid var(--border);
-    display:flex; align-items:center; gap:14px;
-    background:var(--bg-card);
-  }
-  .vg-form-header-av {
-    width:46px; height:46px; border-radius:12px; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-title); font-size:14px; font-weight:700;
-    color:var(--primary); background:rgba(0,144,152,0.15);
-  }
-  .vg-form-title { font-family:var(--font-title); font-size:15px; letter-spacing:1px; color:#fff; }
-  .vg-form-sub   { font-size:12px; color:rgba(255,255,255,0.38); margin-top:2px; }
+    /* Acções de aprovação */
+    .vg-approval-actions {
+        display:flex; gap:8px; flex-wrap:wrap;
+        padding:12px 20px 0;
+    }
+    .vg-btn-aprovar {
+        padding:9px 20px; border-radius:8px; border:none;
+        background:rgba(46,125,50,0.2); color:#70d988;
+        border:1px solid rgba(46,125,50,0.4);
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+        transition:all 0.15s;
+    }
+    .vg-btn-aprovar:hover { background:rgba(46,125,50,0.35); }
+    .vg-btn-rejeitar {
+        padding:9px 20px; border-radius:8px;
+        background:rgba(198,40,40,0.1); color:#ff7070;
+        border:1px solid rgba(198,40,40,0.35);
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+        transition:all 0.15s;
+    }
+    .vg-btn-rejeitar:hover { background:rgba(198,40,40,0.22); }
+    .vg-btn-reativar {
+        padding:9px 20px; border-radius:8px;
+        background:rgba(0,144,152,0.12); color:var(--primary);
+        border:1px solid rgba(0,144,152,0.35);
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+        transition:all 0.15s;
+    }
+    .vg-btn-reativar:hover { background:rgba(0,144,152,0.25); }
 
-  /* ── Formulário ── */
-  .vg-form { padding:16px 20px 32px; }
+    /* Box de motivo de rejeição */
+    .vg-rejeitar-box {
+        margin:8px 20px 0;
+        padding:12px 14px;
+        border-radius:8px;
+        border:1px solid rgba(198,40,40,0.3);
+        background:rgba(198,40,40,0.06);
+        display:none;
+    }
+    .vg-rejeitar-box.visible { display:block; }
+    .vg-rejeitar-box label {
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+        text-transform:uppercase; color:#ff7070; display:block; margin-bottom:6px;
+    }
+    .vg-rejeitar-textarea {
+        width:100%; background:var(--bg-input); border:1px solid rgba(198,40,40,0.3);
+        border-radius:7px; padding:8px 10px;
+        font-size:12px; font-family:var(--font-body); color:#fff;
+        outline:none; resize:vertical; min-height:70px;
+    }
+    .vg-rejeitar-textarea::placeholder { color:rgba(255,255,255,0.2); }
+    .vg-rejeitar-confirm {
+        margin-top:8px; padding:7px 16px; border-radius:7px; border:none;
+        background:#c62828; color:#fff;
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+    }
+    .vg-rejeitar-confirm:hover { background:#b71c1c; }
 
-  .vg-section-title {
-    font-family:var(--font-title); font-size:9px; letter-spacing:2px;
-    text-transform:uppercase; color:rgba(255,255,255,0.35);
-    padding:16px 0 8px; border-bottom:1px solid var(--border);
-    margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;
-  }
-  .vg-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:4px; }
-  .vg-field { display:flex; flex-direction:column; gap:4px; }
-  .vg-field.full { grid-column:1 / -1; }
-  .vg-field.span3 { grid-column:1 / -1; }
+    /* ── Form header ── */
+    .vg-form-header {
+        padding:16px 20px 12px; border-bottom:1px solid var(--border);
+        display:flex; align-items:center; gap:14px; background:var(--bg-card);
+    }
+    .vg-form-header-av {
+        width:46px; height:46px; border-radius:12px; flex-shrink:0;
+        display:flex; align-items:center; justify-content:center;
+        font-family:var(--font-title); font-size:14px; font-weight:700;
+        color:var(--primary); background:rgba(0,144,152,0.15);
+    }
+    .vg-form-title { font-family:var(--font-title); font-size:15px; letter-spacing:1px; color:#fff; }
+    .vg-form-sub   { font-size:12px; color:rgba(255,255,255,0.38); margin-top:2px; }
 
-  .vg-label {
-    font-size:9px; font-family:var(--font-title);
-    letter-spacing:1px; text-transform:uppercase;
-    color:rgba(255,255,255,0.38);
-  }
-  .vg-input, .vg-select, .vg-textarea {
-    background:var(--bg-input); border:1px solid var(--border);
-    border-radius:8px; padding:8px 10px;
-    font-size:13px; font-family:var(--font-body); color:#fff;
-    outline:none; transition:border-color 0.15s; width:100%;
-  }
-  .vg-input::placeholder, .vg-textarea::placeholder { color:rgba(255,255,255,0.2); }
-  .vg-select option { background:#081c26; color:#fff; }
-  .vg-input:focus, .vg-select:focus, .vg-textarea:focus { border-color:var(--primary); }
-  .vg-textarea { resize:vertical; min-height:80px; }
+    /* ── Formulário ── */
+    .vg-form { padding:16px 20px 32px; }
+    .vg-section-title {
+        font-family:var(--font-title); font-size:9px; letter-spacing:2px;
+        text-transform:uppercase; color:rgba(255,255,255,0.35);
+        padding:16px 0 8px; border-bottom:1px solid var(--border); margin-bottom:12px;
+    }
+    .vg-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:4px; }
+    .vg-field { display:flex; flex-direction:column; gap:4px; }
+    .vg-field.full { grid-column:1/-1; }
+    .vg-label {
+        font-size:9px; font-family:var(--font-title); letter-spacing:1px;
+        text-transform:uppercase; color:rgba(255,255,255,0.38);
+    }
+    .vg-input, .vg-select, .vg-textarea {
+        background:var(--bg-input); border:1px solid var(--border);
+        border-radius:8px; padding:8px 10px;
+        font-size:13px; font-family:var(--font-body); color:#fff;
+        outline:none; transition:border-color 0.15s; width:100%;
+    }
+    .vg-input::placeholder, .vg-textarea::placeholder { color:rgba(255,255,255,0.2); }
+    .vg-select option { background:#081c26; color:#fff; }
+    .vg-input:focus, .vg-select:focus, .vg-textarea:focus { border-color:var(--primary); }
+    .vg-textarea { resize:vertical; min-height:80px; }
+    .vg-toggle-row {
+        display:flex; align-items:center; gap:8px;
+        font-size:13px; color:#fff; cursor:pointer; padding:6px 0;
+    }
+    .vg-toggle-row input[type="checkbox"] { width:16px; height:16px; accent-color:var(--primary); cursor:pointer; }
+    .vg-expiry-hint { font-size:11px; color:rgba(255,255,255,0.3); padding:4px 0 0; min-height:16px; }
 
-  .vg-toggle-row {
-    display:flex; align-items:center; gap:8px;
-    font-size:13px; font-family:var(--font-body); color:#fff;
-    cursor:pointer; padding:6px 0;
-  }
-  .vg-toggle-row input[type="checkbox"] { width:16px; height:16px; accent-color:var(--primary); cursor:pointer; }
+    .vg-msg { padding:10px 14px; border-radius:8px; font-size:12px; margin-bottom:10px; display:none; }
+    .vg-msg.error   { display:block; background:rgba(198,40,40,0.1);  color:#ff7070; border:1px solid rgba(198,40,40,0.3); }
+    .vg-msg.success { display:block; background:rgba(46,125,50,0.1);  color:#70d988; border:1px solid rgba(46,125,50,0.3); }
 
-  /* Hint de expiração */
-  .vg-expiry-hint {
-    font-size:11px; color:rgba(255,255,255,0.3);
-    padding:4px 0 0; font-family:var(--font-body); min-height:16px;
-  }
+    .vg-actions {
+        display:flex; gap:8px; justify-content:flex-end;
+        padding-top:16px; border-top:1px solid var(--border); margin-top:20px;
+    }
+    .vg-btn-cancel {
+        padding:8px 16px; border-radius:8px; border:1px solid var(--border);
+        background:var(--bg-input); color:rgba(255,255,255,0.5);
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+    }
+    .vg-btn-cancel:hover { color:#fff; border-color:rgba(255,255,255,0.3); }
+    .vg-btn-save {
+        padding:8px 20px; border-radius:8px; border:none;
+        background:var(--primary); color:#fff;
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+    }
+    .vg-btn-save:hover { background:var(--primary-dark); }
+    .vg-btn-save:disabled { opacity:0.5; cursor:not-allowed; }
+    .vg-btn-toggle {
+        padding:8px 14px; border-radius:8px; margin-right:auto;
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+        cursor:pointer; background:transparent;
+    }
+    .vg-btn-toggle.inativar { border:1px solid rgba(198,40,40,0.35); color:#ff7070; }
+    .vg-btn-toggle.inativar:hover { background:rgba(198,40,40,0.08); }
+    .vg-btn-toggle.ativar   { border:1px solid rgba(46,125,50,0.35);  color:#70d988; }
+    .vg-btn-toggle.ativar:hover   { background:rgba(46,125,50,0.08); }
+    .vg-btn-renovar {
+        padding:8px 14px; border-radius:8px;
+        font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+        cursor:pointer; background:transparent;
+        border:1px solid rgba(200,130,0,0.35); color:#ffa040;
+    }
+    .vg-btn-renovar:hover { background:rgba(200,130,0,0.08); }
 
-  /* Mensagem feedback */
-  .vg-msg { padding:10px 14px; border-radius:8px; font-size:12px; margin-bottom:10px; display:none; }
-  .vg-msg.error   { display:block; background:rgba(198,40,40,0.1);  color:#ff7070; border:1px solid rgba(198,40,40,0.3); }
-  .vg-msg.success { display:block; background:rgba(46,125,50,0.1);  color:#70d988; border:1px solid rgba(46,125,50,0.3); }
-
-  /* Acções */
-  .vg-actions {
-    display:flex; gap:8px; justify-content:flex-end;
-    padding-top:16px; border-top:1px solid var(--border); margin-top:20px;
-  }
-  .vg-btn-cancel {
-    padding:8px 16px; border-radius:8px; border:1px solid var(--border);
-    background:var(--bg-input); color:rgba(255,255,255,0.5);
-    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
-  }
-  .vg-btn-cancel:hover { color:#fff; border-color:rgba(255,255,255,0.3); }
-  .vg-btn-save {
-    padding:8px 20px; border-radius:8px; border:none;
-    background:var(--primary); color:#fff;
-    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
-  }
-  .vg-btn-save:hover { background:var(--primary-dark); }
-  .vg-btn-save:disabled { opacity:0.5; cursor:not-allowed; }
-  .vg-btn-toggle {
-    padding:8px 14px; border-radius:8px; margin-right:auto;
-    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
-    cursor:pointer; background:transparent;
-  }
-  .vg-btn-toggle.inativar { border:1px solid rgba(198,40,40,0.35); color:#ff7070; }
-  .vg-btn-toggle.inativar:hover { background:rgba(198,40,40,0.08); }
-  .vg-btn-toggle.ativar   { border:1px solid rgba(46,125,50,0.35);  color:#70d988; }
-  .vg-btn-toggle.ativar:hover   { background:rgba(46,125,50,0.08);  }
-  .vg-btn-renovar {
-    padding:8px 14px; border-radius:8px;
-    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
-    cursor:pointer; background:transparent;
-    border:1px solid rgba(200,130,0,0.35); color:#ffa040;
-  }
-  .vg-btn-renovar:hover { background:rgba(200,130,0,0.08); }
-
-  /* ── Cores das áreas (dot) ── */
-  .vg-dot-ti        { background: #009098; }
-  .vg-dot-saude     { background: #70d988; }
-  .vg-dot-educacao  { background: #5090e0; }
-  .vg-dot-comercio  { background: #ffa040; }
-  .vg-dot-admin     { background: #ab73e8; }
-  .vg-dot-eng       { background: #d4b800; }
-  .vg-dot-arte      { background: #e060a0; }
-  .vg-dot-servicos  { background: #a0c030; }
-  .vg-dot-construcao{ background: #c8903c; }
-  .vg-dot-outros    { background: rgba(255,255,255,0.25); }
+    /* ── Cores dos dots ── */
+    .vg-dot-ti        { background:#009098; }
+    .vg-dot-saude     { background:#70d988; }
+    .vg-dot-educacao  { background:#5090e0; }
+    .vg-dot-comercio  { background:#ffa040; }
+    .vg-dot-admin     { background:#ab73e8; }
+    .vg-dot-eng       { background:#d4b800; }
+    .vg-dot-arte      { background:#e060a0; }
+    .vg-dot-servicos  { background:#a0c030; }
+    .vg-dot-construcao{ background:#c8903c; }
+    .vg-dot-outros    { background:rgba(255,255,255,0.25); }
+    .vg-dot-pendente  { background:#ffa040; }
 </style>
 
 <div class="vg-wrap">
-
-  <!-- SIDEBAR -->
-  <div class="vg-side" id="vg-side">
-    <div class="vg-side-head">
-      <button class="vg-toggle-btn" id="vg-toggle-btn" onclick="vg_toggleSide()" title="Expandir/colapsar">☰</button>
-      <input class="vg-search" id="vg-search" placeholder="Pesquisar vagas..." oninput="vg_filtrar()">
-      <button class="vg-btn-novo" onclick="vg_novaVaga()">+ Vaga</button>
+    <div class="vg-side" id="vg-side">
+        <div class="vg-side-head">
+            <button class="vg-toggle-btn" id="vg-toggle-btn" onclick="vg_toggleSide()" title="Expandir/colapsar">☰</button>
+            <input class="vg-search" id="vg-search" placeholder="Pesquisar vagas..." oninput="vg_filtrar()">
+            <button class="vg-btn-novo" onclick="vg_novaVaga()">+ Vaga</button>
+        </div>
+        <div class="vg-filters" id="vg-filters">
+            <button class="vg-filter-pill active" onclick="vg_setArea(this,'')">Todas</button>
+        </div>
+        <div class="vg-list" id="vg-list">
+            <div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,0.3)">A carregar...</div>
+        </div>
     </div>
 
-    <!-- Filtros rápidos por área -->
-    <div class="vg-filters" id="vg-filters">
-      <button class="vg-filter-pill active" data-area="" onclick="vg_setArea(this,'')">Todas</button>
+    <div class="vg-panel" id="vg-panel">
+        <div class="vg-panel-empty">
+            <div class="vg-panel-empty-icon">
+                <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                    <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+                </svg>
+            </div>
+            <div class="vg-panel-empty-txt">Seleciona ou cria uma vaga</div>
+        </div>
     </div>
-
-    <div class="vg-list" id="vg-list">
-      <div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,0.3)">A carregar...</div>
-    </div>
-  </div>
-
-  <!-- PAINEL DIREITO -->
-  <div class="vg-panel" id="vg-panel">
-    <div class="vg-panel-empty">
-      <div class="vg-panel-empty-icon">
-        <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <rect x="2" y="7" width="20" height="14" rx="2"/>
-          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
-        </svg>
-      </div>
-      <div class="vg-panel-empty-txt">Seleciona ou cria uma vaga</div>
-    </div>
-  </div>
-
 </div>
 
 <script>
-  /* ── Supabase helper (usa o window.sb do portal) ── */
-  var vg_sb = window.sb;
+    var vg_sb = window.sb;
 
-  /* ── OPÇÕES FIXAS ── */
-  var VG_TIPOS = ['Tempo Inteiro','Meio Período','Freelance','Estágio','Voluntário','Temporário'];
-  var VG_AREAS = ['Tecnologia/TI','Saúde','Educação','Comércio/Vendas','Administrativo','Engenharia','Arte/Design','Serviços Gerais','Construção Civil','Outros'];
+    var VG_TIPOS = ['Tempo Inteiro','Meio Período','Freelance','Estágio','Voluntário','Temporário'];
+    var VG_AREAS = ['Tecnologia/TI','Saúde','Educação','Comércio/Vendas','Administrativo','Engenharia','Arte/Design','Serviços Gerais','Construção Civil','Outros'];
+    var VG_AREA_DOT = {
+        'Tecnologia/TI':'vg-dot-ti','Saúde':'vg-dot-saude','Educação':'vg-dot-educacao',
+        'Comércio/Vendas':'vg-dot-comercio','Administrativo':'vg-dot-admin','Engenharia':'vg-dot-eng',
+        'Arte/Design':'vg-dot-arte','Serviços Gerais':'vg-dot-servicos','Construção Civil':'vg-dot-construcao',
+        'Outros':'vg-dot-outros',
+    };
 
-  var VG_AREA_DOT = {
-    'Tecnologia/TI':   'vg-dot-ti',
-    'Saúde':           'vg-dot-saude',
-    'Educação':        'vg-dot-educacao',
-    'Comércio/Vendas': 'vg-dot-comercio',
-    'Administrativo':  'vg-dot-admin',
-    'Engenharia':      'vg-dot-eng',
-    'Arte/Design':     'vg-dot-arte',
-    'Serviços Gerais': 'vg-dot-servicos',
-    'Construção Civil':'vg-dot-construcao',
-    'Outros':          'vg-dot-outros',
-  };
+    var vg = { vagas:[], vagaId:null, filtroTexto:'', filtroArea:'' };
 
-  /* ── ESTADO ── */
-  var vg = { vagas:[], vagaId:null, filtroTexto:'', filtroArea:'' };
+    window.vg_toggleSide = function() {
+        var side = document.getElementById('vg-side');
+        var btn  = document.getElementById('vg-toggle-btn');
+        side.classList.toggle('collapsed');
+        btn.textContent = side.classList.contains('collapsed') ? '▶' : '☰';
+    };
 
-  /* ── Sidebar colapsar ── */
-  window.vg_toggleSide = function() {
-    var side = document.getElementById('vg-side');
-    var btn  = document.getElementById('vg-toggle-btn');
-    var collapsed = side.classList.toggle('collapsed');
-    btn.textContent = collapsed ? '▶' : '☰';
-  };
-
-  /* ── Dias restantes ── */
-  function vg_diasRestantes(v) {
-    if (!v.data_anuncio || !v.dias_expiracao) return null;
-    var exp = new Date(v.data_anuncio);
-    exp.setDate(exp.getDate() + parseInt(v.dias_expiracao));
-    var hoje = new Date(); hoje.setHours(0,0,0,0);
-    return Math.floor((exp - hoje) / 86400000);
-  }
-  function vg_isExpirada(v) { var d=vg_diasRestantes(v); return d!==null && d<0; }
-
-  /* ── Auto-inativar expiradas ── */
-  async function vg_autoInativar() {
-    var expiradas = vg.vagas.filter(function(v){ return v.ativo && vg_isExpirada(v); });
-    for (var v of expiradas) {
-      try {
-        await vg_sb('vagas?id=eq.'+v.id, {method:'PATCH', body:JSON.stringify({ativo:false})});
-        v.ativo = false;
-      } catch(e){ console.warn('[Vagas] auto-inativar erro', e); }
+    function vg_diasRestantes(v) {
+        if (!v.data_anuncio || !v.dias_expiracao) return null;
+        var exp = new Date(v.data_anuncio);
+        exp.setDate(exp.getDate() + parseInt(v.dias_expiracao));
+        var hoje = new Date(); hoje.setHours(0,0,0,0);
+        return Math.floor((exp - hoje) / 86400000);
     }
-  }
+    function vg_isExpirada(v) { var d = vg_diasRestantes(v); return d !== null && d < 0; }
 
-  /* ── INIT ── */
-  async function vg_init() {
-    try {
-      vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc') || [];
-      await vg_autoInativar();
-    } catch(e){
-      console.error('[Vagas] Erro ao carregar:', e);
-      vg.vagas = [];
-    }
-    vg_buildAreaPills();
-    vg_renderList();
-  }
-
-  /* ── Build filtros de área ── */
-  function vg_buildAreaPills() {
-    var areas = [...new Set(vg.vagas.map(function(v){return v.area;}).filter(Boolean))].sort();
-    var el = document.getElementById('vg-filters');
-    if (!el) return;
-    var html = '<button class="vg-filter-pill'+(vg.filtroArea===''?' active':'')+'" data-area="" onclick="vg_setArea(this,\'\')">Todas</button>';
-    areas.forEach(function(a){
-      html += '<button class="vg-filter-pill'+(vg.filtroArea===a?' active':'')+'" data-area="'+a+'" onclick="vg_setArea(this,\''+a.replace(/'/g,"\\'")+'\')">'
-              +a.split('/')[0]+'</button>';
-    });
-    el.innerHTML = html;
-  }
-
-  window.vg_setArea = function(btn, area) {
-    vg.filtroArea = area;
-    document.querySelectorAll('.vg-filter-pill').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-    vg_renderList();
-  };
-
-  window.vg_filtrar = function() {
-    vg.filtroTexto = (document.getElementById('vg-search')?.value||'').toLowerCase();
-    vg_renderList();
-  };
-
-  /* ── RENDER LIST ── */
-  function vg_renderList() {
-    var el = document.getElementById('vg-list');
-    if (!el) return;
-
-    var lista = vg.vagas.filter(function(v) {
-      if (vg.filtroArea && v.area !== vg.filtroArea) return false;
-      if (vg.filtroTexto && !((v.titulo||'').toLowerCase().includes(vg.filtroTexto) ||
-              (v.area||'').toLowerCase().includes(vg.filtroTexto) ||
-              (v.tipo||'').toLowerCase().includes(vg.filtroTexto) ||
-              (v.nome_contato||'').toLowerCase().includes(vg.filtroTexto))) return false;
-      return true;
-    });
-
-    if (!lista.length) {
-      el.innerHTML = '<div class="vg-empty-side">Sem vagas.<br>Clica em + Vaga para adicionar.</div>';
-      return;
+    async function vg_autoInativar() {
+        var expiradas = vg.vagas.filter(function(v){ return v.ativo && v.status === 'aprovado' && vg_isExpirada(v); });
+        for (var v of expiradas) {
+            try {
+                await vg_sb('vagas?id=eq.'+v.id, {method:'PATCH', body:JSON.stringify({ativo:false})});
+                v.ativo = false;
+            } catch(e){ console.warn('[Vagas] auto-inativar erro', e); }
+        }
     }
 
-    var html = '';
-    lista.forEach(function(v) {
-      var dias     = vg_diasRestantes(v);
-      var expirada = vg_isExpirada(v);
-      var ativo    = v.ativo !== false;
-      var active   = vg.vagaId === v.id ? ' active' : '';
-      var inativo  = !ativo ? ' inativo' : '';
-      var dotCls   = VG_AREA_DOT[v.area] || 'vg-dot-outros';
+    async function vg_init() {
+        try {
+            vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc') || [];
+            await vg_autoInativar();
+        } catch(e) {
+            console.error('[Vagas] Erro:', e);
+            vg.vagas = [];
+        }
+        vg_buildAreaPills();
+        vg_renderList();
+    }
 
-      var sub = [v.tipo||'', v.area||''].filter(Boolean).join(' · ');
-      if (dias !== null && ativo && !expirada) {
-        sub += (sub ? ' · ' : '') + (dias === 0 ? 'Expira hoje' : dias === 1 ? 'Expira amanhã' : dias+' dias');
-      }
+    function vg_buildAreaPills() {
+        var areas = [...new Set(vg.vagas.filter(function(v){ return v.status==='aprovado'; }).map(function(v){ return v.area; }).filter(Boolean))].sort();
+        var el = document.getElementById('vg-filters');
+        if (!el) return;
+        var html = '<button class="vg-filter-pill'+(vg.filtroArea===''?' active':'')+'" onclick="vg_setArea(this,\'\')">Todas</button>';
+        areas.forEach(function(a) {
+            html += '<button class="vg-filter-pill'+(vg.filtroArea===a?' active':'')+
+                    '" onclick="vg_setArea(this,\''+a.replace(/'/g,"\\'")+'\')">'+a.split('/')[0]+'</button>';
+        });
+        el.innerHTML = html;
+    }
 
-      var badge = '';
-      if (!ativo && expirada) badge = '<span class="vg-item-badge exp">Expirada</span>';
-      else if (!ativo)        badge = '<span class="vg-item-badge off">Inativa</span>';
-      else if (dias !== null && dias <= 3) badge = '<span class="vg-item-badge expira">'+( dias<=0 ? 'Expira hoje':''+dias+'d')+'</span>';
+    window.vg_setArea = function(btn, area) {
+        vg.filtroArea = area;
+        document.querySelectorAll('.vg-filter-pill').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        vg_renderList();
+    };
+    window.vg_filtrar = function() {
+        vg.filtroTexto = (document.getElementById('vg-search')?.value||'').toLowerCase();
+        vg_renderList();
+    };
 
-      html +=
-              '<div class="vg-item'+active+inativo+'" onclick="vg_selecionarVaga(\''+v.id+'\')">' +
-              '<div class="vg-item-dot '+dotCls+'"></div>' +
-              '<div class="vg-item-info">' +
-              '<div class="vg-item-titulo">'+v.titulo+'</div>' +
-              '<div class="vg-item-sub">'+(sub||'—')+'</div>' +
-              '</div>' +
-              badge +
-              '</div>';
-    });
-    el.innerHTML = html;
-  }
+    /* ── RENDER LIST ── */
+    function vg_renderList() {
+        var el = document.getElementById('vg-list');
+        if (!el) return;
 
-  /* ── SELECIONAR VAGA ── */
-  window.vg_selecionarVaga = function(id) {
-    vg.vagaId = id;
-    vg_renderList();
-    var v = vg.vagas.find(function(x){ return x.id===id; });
-    if (v) vg_renderFormVaga(v);
-  };
+        var pendentes = vg.vagas.filter(function(v){ return v.status === 'pendente'; });
+        var resto = vg.vagas.filter(function(v){ return v.status !== 'pendente'; }).filter(function(v) {
+            if (vg.filtroArea && v.area !== vg.filtroArea) return false;
+            if (vg.filtroTexto && !((v.titulo||'').toLowerCase().includes(vg.filtroTexto) ||
+                (v.area||'').toLowerCase().includes(vg.filtroTexto) ||
+                (v.tipo||'').toLowerCase().includes(vg.filtroTexto) ||
+                (v.nome_contato||'').toLowerCase().includes(vg.filtroTexto))) return false;
+            return true;
+        });
 
-  /* ── NOVA VAGA ── */
-  window.vg_novaVaga = function() {
-    vg.vagaId = null;
-    vg_renderList();
-    vg_renderFormNovaVaga();
-  };
+        if (!pendentes.length && !resto.length) {
+            el.innerHTML = '<div class="vg-empty-side">Sem vagas.<br>Clica em + Vaga para adicionar.</div>';
+            return;
+        }
 
-  /* ── FORM — vaga existente ── */
-  function vg_renderFormVaga(v) {
-    var panel = document.getElementById('vg-panel');
-    if (!panel) return;
-    var ativo    = v.ativo !== false;
-    var dias     = vg_diasRestantes(v);
-    var expirada = vg_isExpirada(v);
-    var dotCls   = VG_AREA_DOT[v.area] || 'vg-dot-outros';
+        var html = '';
 
-    var sub = [v.tipo||'', v.area||''].filter(Boolean).join(' · ');
-    if (expirada) sub += ' · <span style="color:#ff7070">Expirada</span>';
-    else if (!ativo) sub += ' · <span style="color:rgba(255,255,255,0.3)">Inativa</span>';
+        /* Secção pendentes */
+        if (pendentes.length) {
+            html += '<div class="vg-list-section pendentes">Pendentes <span class="vg-section-count amber">'+pendentes.length+'</span></div>';
+            pendentes.forEach(function(v) {
+                var active = vg.vagaId === v.id ? ' active' : '';
+                html += '<div class="vg-item pendente-item'+active+'" onclick="vg_selecionarVaga(\''+v.id+'\')">' +
+                    '<div class="vg-item-dot vg-dot-pendente"></div>' +
+                    '<div class="vg-item-info">' +
+                    '<div class="vg-item-titulo">'+(v.titulo||'—')+'</div>' +
+                    '<div class="vg-item-sub">'+(v.tipo||'')+(v.area?' · '+v.area:'')+'</div>' +
+                    '</div>' +
+                    '<span class="vg-item-badge pend">Pendente</span>' +
+                    '</div>';
+            });
+        }
 
-    panel.innerHTML =
+        /* Secção resto */
+        if (resto.length) {
+            html += '<div class="vg-list-section todas">Todas as vagas <span class="vg-section-count muted">'+resto.length+'</span></div>';
+            resto.forEach(function(v) {
+                var dias     = vg_diasRestantes(v);
+                var expirada = vg_isExpirada(v);
+                var ativo    = v.ativo !== false;
+                var active   = vg.vagaId === v.id ? ' active' : '';
+                var dotCls   = VG_AREA_DOT[v.area] || 'vg-dot-outros';
+                var sub      = [v.tipo, v.area].filter(Boolean).join(' · ');
+                if (dias !== null && ativo && !expirada) sub += (sub?' · ':'')+( dias===0?'Expira hoje':dias===1?'Expira amanhã':dias+'d');
+
+                var badge = '';
+                if (v.status === 'rejeitado') badge = '<span class="vg-item-badge rejeit">Rejeitada</span>';
+                else if (!ativo && expirada)  badge = '<span class="vg-item-badge exp">Expirada</span>';
+                else if (!ativo)              badge = '<span class="vg-item-badge off">Inativa</span>';
+                else if (dias !== null && dias <= 3) badge = '<span class="vg-item-badge expira">'+(dias<=0?'Hoje':''+dias+'d')+'</span>';
+
+                html += '<div class="vg-item'+(ativo && v.status!=='rejeitado'?'':' inativo')+active+'" onclick="vg_selecionarVaga(\''+v.id+'\')">' +
+                    '<div class="vg-item-dot '+dotCls+'"></div>' +
+                    '<div class="vg-item-info">' +
+                    '<div class="vg-item-titulo">'+(v.titulo||'—')+'</div>' +
+                    '<div class="vg-item-sub">'+(sub||'—')+'</div>' +
+                    '</div>' + badge + '</div>';
+            });
+        }
+        el.innerHTML = html;
+    }
+
+    window.vg_selecionarVaga = function(id) {
+        vg.vagaId = id;
+        vg_renderList();
+        var v = vg.vagas.find(function(x){ return x.id===id; });
+        if (v) vg_renderFormVaga(v);
+    };
+
+    window.vg_novaVaga = function() {
+        vg.vagaId = null;
+        vg_renderList();
+        vg_renderFormNovaVaga();
+    };
+
+    function vg_renderFormVaga(v) {
+        var panel = document.getElementById('vg-panel');
+        if (!panel) return;
+        var ativo = v.ativo !== false;
+        var sub   = [v.tipo, v.area].filter(Boolean).join(' · ');
+        if (v.status === 'pendente')   sub += ' · <span style="color:#ffa040">Pendente</span>';
+        else if (v.status === 'rejeitado') sub += ' · <span style="color:#ff7070">Rejeitada</span>';
+        else if (!ativo) sub += ' · <span style="color:rgba(255,255,255,0.3)">Inativa</span>';
+
+        var approvalHtml = '';
+        if (v.status === 'pendente') {
+            approvalHtml =
+                '<div class="vg-approval-banner pendente">' +
+                '<div class="vg-approval-banner-icon">⏳</div>' +
+                '<div class="vg-approval-banner-body">' +
+                '<div class="vg-approval-banner-title">Pendente de Aprovação</div>' +
+                '<div class="vg-approval-banner-sub">Submetida por '+(v.nome_contato||'anónimo')+'. Revê os dados e aprova ou rejeita.</div>' +
+                '</div></div>' +
+                '<div class="vg-approval-actions">' +
+                '<button class="vg-btn-aprovar" onclick="vg_aprovar(\''+v.id+'\')">✓ Aprovar</button>' +
+                '<button class="vg-btn-rejeitar" onclick="vg_mostrarRejeitar(\''+v.id+'\')">✕ Rejeitar</button>' +
+                '</div>' +
+                '<div class="vg-rejeitar-box" id="vg-rejeitar-box">' +
+                '<label>Motivo da Rejeição (opcional)</label>' +
+                '<textarea class="vg-rejeitar-textarea" id="vg-motivo" placeholder="Ex: Informações incompletas, vaga duplicada..."></textarea>' +
+                '<button class="vg-rejeitar-confirm" onclick="vg_confirmarRejeitar(\''+v.id+'\')">Confirmar Rejeição</button>' +
+                '</div>';
+        } else if (v.status === 'rejeitado') {
+            approvalHtml =
+                '<div class="vg-approval-banner rejeitado">' +
+                '<div class="vg-approval-banner-icon">✕</div>' +
+                '<div class="vg-approval-banner-body">' +
+                '<div class="vg-approval-banner-title">Vaga Rejeitada</div>' +
+                '<div class="vg-approval-banner-sub">'+(v.motivo_rejeicao||'Sem motivo registado.')+'</div>' +
+                '</div></div>' +
+                '<div class="vg-approval-actions">' +
+                '<button class="vg-btn-reativar" onclick="vg_aprovar(\''+v.id+'\')">↩ Reactivar e Aprovar</button>' +
+                '</div>';
+        }
+
+        panel.innerHTML =
             '<div class="vg-form-header">' +
-            '<div class="vg-form-header-av"><div style="width:14px;height:14px;border-radius:50%" class="'+dotCls+'"></div></div>' +
-            '<div><div class="vg-form-title">'+v.titulo+'</div>' +
-            '<div class="vg-form-sub">'+sub+'</div></div>' +
-            '</div>' +
+            '<div class="vg-form-header-av"></div>' +
+            '<div><div class="vg-form-title">'+(v.titulo||'—')+'</div>' +
+            '<div class="vg-form-sub">'+sub+'</div></div></div>' +
+            approvalHtml +
             vg_buildForm(v);
-  }
+    }
 
-  /* ── FORM — nova vaga ── */
-  function vg_renderFormNovaVaga() {
-    var panel = document.getElementById('vg-panel');
-    if (!panel) return;
-    panel.innerHTML =
+    function vg_renderFormNovaVaga() {
+        var panel = document.getElementById('vg-panel');
+        if (!panel) return;
+        panel.innerHTML =
             '<div class="vg-form-header">' +
             '<div class="vg-form-header-av" style="font-size:20px">+</div>' +
             '<div><div class="vg-form-title">Nova Vaga</div>' +
-            '<div class="vg-form-sub">Preenche os campos e publica</div></div>' +
-            '</div>' +
+            '<div class="vg-form-sub">Preenche os campos e publica</div></div></div>' +
             vg_buildForm(null);
-  }
-
-  /* ── HTML DO FORMULÁRIO ── */
-  function vg_buildForm(v) {
-    var fv = function(k, d) {
-      var val = v ? v[k] : undefined;
-      return (val===undefined||val===null) ? (d!==undefined ? d : '') : val;
-    };
-    var id    = v ? v.id : '';
-    var ativo = v ? (v.ativo !== false) : true;
-
-    /* Calcula data de expiração para hint */
-    var dataAnuncioDefault = fv('data_anuncio') || new Date().toISOString().split('T')[0];
-    var diasDefault        = fv('dias_expiracao', 15);
-
-    /* Opções dos selects */
-    var tipoOpts = '<option value="">Selecionar...</option>' +
-            VG_TIPOS.map(function(t){ return '<option value="'+t+'"'+(fv('tipo')===t?' selected':'')+'>'+t+'</option>'; }).join('');
-    var areaOpts = '<option value="">Selecionar...</option>' +
-            VG_AREAS.map(function(a){ return '<option value="'+a+'"'+(fv('area')===a?' selected':'')+'>'+a+'</option>'; }).join('');
-
-    /* Hint de expiração */
-    function calcHint(dataStr, dias) {
-      if (!dataStr || !dias) return '';
-      var d = new Date(dataStr);
-      d.setDate(d.getDate() + parseInt(dias));
-      return 'Expira em: ' + d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
     }
-    var hintHtml = calcHint(dataAnuncioDefault, diasDefault);
 
-    return '<div class="vg-form">' +
-            '<div class="vg-msg" id="vg-msg"></div>' +
+    function vg_buildForm(v) {
+        var fv = function(k, d) { var val=v?v[k]:undefined; return (val===undefined||val===null)?(d!==undefined?d:''):val; };
+        var id    = v ? v.id : '';
+        var ativo = v ? (v.ativo !== false) : true;
+        var dataAnuncioDefault = fv('data_anuncio') || new Date().toISOString().split('T')[0];
+        var diasDefault = fv('dias_expiracao', 15);
 
-            /* ── Identificação ── */
-            '<div class="vg-section-title">Identificação da Vaga</div>' +
-            '<div class="vg-field-grid">' +
+        var tipoOpts = '<option value="">Selecionar...</option>' + VG_TIPOS.map(function(t){ return '<option value="'+t+'"'+(fv('tipo')===t?' selected':'')+'>'+t+'</option>'; }).join('');
+        var areaOpts = '<option value="">Selecionar...</option>' + VG_AREAS.map(function(a){ return '<option value="'+a+'"'+(fv('area')===a?' selected':'')+'>'+a+'</option>'; }).join('');
 
-            '<div class="vg-field full">' +
-            '<label class="vg-label">Título da Vaga *</label>' +
-            '<input class="vg-input" id="vf-titulo" type="text" value="'+fv('titulo')+'" placeholder="Ex: Desenvolvedor Web Full-Stack">' +
-            '</div>' +
+        function calcHint(dataStr, dias) {
+            if (!dataStr || !dias) return '';
+            var d = new Date(dataStr); d.setDate(d.getDate() + parseInt(dias));
+            return 'Expira em: ' + d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+        }
 
-            '<div class="vg-field">' +
-            '<label class="vg-label">Tipo de Trabalho</label>' +
-            '<select class="vg-select" id="vf-tipo">'+tipoOpts+'</select>' +
-            '</div>' +
+        var isPendente = v && v.status === 'pendente';
 
-            '<div class="vg-field">' +
-            '<label class="vg-label">Área de Trabalho</label>' +
-            '<select class="vg-select" id="vf-area" onchange="vg_onAreaChange()">'+areaOpts+'</select>' +
-            '</div>' +
+        return '<div class="vg-form">'+
+            '<div class="vg-msg" id="vg-msg"></div>'+
+            (isPendente ? '<div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:#ffa040;padding:14px 0 4px;text-transform:uppercase">Dados Submetidos — podes editar antes de aprovar</div>' : '')+
 
-            '<div class="vg-field full">' +
-            '<label class="vg-label">Descrição da Vaga</label>' +
-            '<textarea class="vg-textarea" id="vf-descricao" placeholder="Descreve o cargo, requisitos, local de trabalho...">'+fv('descricao')+'</textarea>' +
-            '</div>' +
+            '<div class="vg-section-title">Identificação</div>'+
+            '<div class="vg-field-grid">'+
+            '<div class="vg-field full"><label class="vg-label">Título da Vaga *</label>'+
+            '<input class="vg-input" id="vf-titulo" type="text" value="'+fv('titulo')+'" placeholder="Ex: Desenvolvedor Web Full-Stack"></div>'+
+            '<div class="vg-field"><label class="vg-label">Tipo de Trabalho</label>'+
+            '<select class="vg-select" id="vf-tipo">'+tipoOpts+'</select></div>'+
+            '<div class="vg-field"><label class="vg-label">Área de Trabalho</label>'+
+            '<select class="vg-select" id="vf-area">'+areaOpts+'</select></div>'+
+            '<div class="vg-field full"><label class="vg-label">Descrição</label>'+
+            '<textarea class="vg-textarea" id="vf-descricao" placeholder="Descreve o cargo, requisitos, local de trabalho...">'+fv('descricao')+'</textarea></div>'+
+            '</div>'+
 
-            '</div>' +
+            '<div class="vg-section-title">Contacto</div>'+
+            '<div class="vg-field-grid">'+
+            '<div class="vg-field full"><label class="vg-label">Nome da Pessoa ou Empresa *</label>'+
+            '<input class="vg-input" id="vf-nome" type="text" value="'+fv('nome_contato')+'" placeholder="Ex: Maria Silva"></div>'+
+            '<div class="vg-field"><label class="vg-label">Email</label>'+
+            '<input class="vg-input" id="vf-email" type="email" value="'+fv('email_contato')+'" placeholder="email@exemplo.com"></div>'+
+            '<div class="vg-field"><label class="vg-label">Telemóvel</label>'+
+            '<input class="vg-input" id="vf-tel" type="tel" value="'+fv('telemovel_contato')+'" placeholder="+351 912 345 678"></div>'+
+            '</div>'+
 
-            /* ── Contacto ── */
-            '<div class="vg-section-title">Informação de Contacto</div>' +
-            '<div class="vg-field-grid">' +
+            '<div class="vg-section-title">Publicação</div>'+
+            '<div class="vg-field-grid">'+
+            '<div class="vg-field"><label class="vg-label">Data do Anúncio</label>'+
+            '<input class="vg-input" id="vf-data" type="date" value="'+dataAnuncioDefault+'" onchange="vg_updateHint()"></div>'+
+            '<div class="vg-field"><label class="vg-label">Dias até Expirar</label>'+
+            '<input class="vg-input" id="vf-dias" type="number" min="1" max="365" value="'+diasDefault+'" oninput="vg_updateHint()"></div>'+
+            '<div class="vg-field full"><div class="vg-expiry-hint" id="vg-expiry-hint">'+calcHint(dataAnuncioDefault,diasDefault)+'</div></div>'+
+            '<div class="vg-field"><label class="vg-toggle-row"><input type="checkbox" id="vf-ativo" '+(ativo?'checked':'')+'>Vaga Ativa</label></div>'+
+            '</div>'+
 
-            '<div class="vg-field full">' +
-            '<label class="vg-label">Nome da Pessoa ou Empresa *</label>' +
-            '<input class="vg-input" id="vf-nome" type="text" value="'+fv('nome_contato')+'" placeholder="Ex: Maria Silva ou Tech Solutions Lda">' +
-            '</div>' +
+            '<div class="vg-actions">'+
+            (v && v.status === 'aprovado' ? '<button class="vg-btn-toggle '+(ativo?'inativar':'ativar')+'" onclick="vg_toggleVaga(\''+id+'\','+ativo+')">'+(ativo?'Inativar':'Ativar')+'</button>' : '')+
+            (v && vg_isExpirada(v) ? '<button class="vg-btn-renovar" onclick="vg_renovar(\''+id+'\')">Renovar +15d</button>' : '')+
+            '<button class="vg-btn-cancel" onclick="vg_fechar()">Cancelar</button>'+
+            '<button class="vg-btn-save" id="vg-btn-save" onclick="vg_guardar(\''+id+'\')">'+(v?'Guardar Alterações':'Publicar Vaga')+'</button>'+
+            '</div></div>';
+    }
 
-            '<div class="vg-field">' +
-            '<label class="vg-label">Email de Contacto</label>' +
-            '<input class="vg-input" id="vf-email" type="email" value="'+fv('email_contato')+'" placeholder="email@exemplo.com">' +
-            '</div>' +
-
-            '<div class="vg-field">' +
-            '<label class="vg-label">Telemóvel</label>' +
-            '<input class="vg-input" id="vf-tel" type="tel" value="'+fv('telemovel_contato')+'" placeholder="+351 912 345 678">' +
-            '</div>' +
-
-            '</div>' +
-
-            /* ── Publicação ── */
-            '<div class="vg-section-title">Publicação e Expiração</div>' +
-            '<div class="vg-field-grid">' +
-
-            '<div class="vg-field">' +
-            '<label class="vg-label">Data do Anúncio</label>' +
-            '<input class="vg-input" id="vf-data" type="date" value="'+dataAnuncioDefault+'" onchange="vg_updateHint()">' +
-            '</div>' +
-
-            '<div class="vg-field">' +
-            '<label class="vg-label">Dias até Expirar</label>' +
-            '<input class="vg-input" id="vf-dias" type="number" min="1" max="365" value="'+diasDefault+'" placeholder="15" oninput="vg_updateHint()">' +
-            '</div>' +
-
-            '<div class="vg-field full">' +
-            '<div class="vg-expiry-hint" id="vg-expiry-hint">'+hintHtml+'</div>' +
-            '</div>' +
-
-            '<div class="vg-field">' +
-            '<label class="vg-toggle-row">' +
-            '<input type="checkbox" id="vf-ativo" '+(ativo?'checked':'')+'>Vaga Ativa (visível ao público)</label>' +
-            '</div>' +
-
-            '</div>' +
-
-            /* ── Acções ── */
-            '<div class="vg-actions">' +
-            (v ? '<button class="vg-btn-toggle '+(ativo?'inativar':'ativar')+'" onclick="vg_toggleVaga(\''+id+'\','+ativo+')">'+(ativo?'Inativar':'Ativar')+'</button>' : '') +
-            (v && vg_isExpirada(v) ? '<button class="vg-btn-renovar" onclick="vg_renovar(\''+id+'\')">Renovar +15d</button>' : '') +
-            '<button class="vg-btn-cancel" onclick="vg_fechar()">Cancelar</button>' +
-            '<button class="vg-btn-save" id="vg-btn-save" onclick="vg_guardar(\''+id+'\')">'+(v?'Guardar Alterações':'Publicar Vaga')+'</button>' +
-            '</div>' +
-            '</div>';
-  }
-
-  /* ── Hint dinâmico de expiração ── */
-  window.vg_updateHint = function() {
-    var data = document.getElementById('vf-data')?.value;
-    var dias = document.getElementById('vf-dias')?.value;
-    var el   = document.getElementById('vg-expiry-hint');
-    if (!el) return;
-    if (!data || !dias) { el.textContent=''; return; }
-    var d = new Date(data);
-    d.setDate(d.getDate() + parseInt(dias));
-    el.textContent = 'Expira em: ' + d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
-  };
-
-  /* ── Cor do dot ao mudar área ── */
-  window.vg_onAreaChange = function() { /* sem comportamento visual extra necessário */ };
-
-  /* ── GUARDAR ── */
-  window.vg_guardar = async function(id) {
-    var get = function(k){ var el=document.getElementById('vf-'+k); return el?(el.value||'').trim()||null:null; };
-    var chk = function(k){ var el=document.getElementById('vf-'+k); return el?el.checked:false; };
-
-    var titulo = get('titulo');
-    var nome   = get('nome');
-    if (!titulo) { vg_showMsg('Título é obrigatório.','error'); return; }
-    if (!nome)   { vg_showMsg('Nome de contacto é obrigatório.','error'); return; }
-
-    var body = {
-      titulo:             titulo,
-      tipo:               get('tipo'),
-      area:               get('area'),
-      descricao:          get('descricao'),
-      nome_contato:       nome,
-      email_contato:      get('email'),
-      telemovel_contato:  get('tel'),
-      data_anuncio:       get('data') || new Date().toISOString().split('T')[0],
-      dias_expiracao:     parseInt(document.getElementById('vf-dias')?.value)||15,
-      ativo:              chk('ativo'),
+    window.vg_updateHint = function() {
+        var data = document.getElementById('vf-data')?.value;
+        var dias = document.getElementById('vf-dias')?.value;
+        var el   = document.getElementById('vg-expiry-hint');
+        if (!el) return;
+        if (!data || !dias) { el.textContent=''; return; }
+        var d = new Date(data); d.setDate(d.getDate() + parseInt(dias));
+        el.textContent = 'Expira em: ' + d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
     };
 
-    var btn = document.getElementById('vg-btn-save');
-    if (btn){ btn.disabled=true; btn.textContent='A guardar...'; }
+    /* ── APROVAÇÃO ── */
+    window.vg_aprovar = async function(id) {
+        if (!confirm('Aprovar esta vaga? Ficará visível ao público imediatamente.')) return;
+        try {
+            await vg_sb('vagas?id=eq.'+id, {method:'PATCH', body:JSON.stringify({
+                status: 'aprovado', ativo: true,
+                data_anuncio: new Date().toISOString().split('T')[0],
+                motivo_rejeicao: null
+            })});
+            vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc') || [];
+            vg_buildAreaPills(); vg_renderList();
+            var v = vg.vagas.find(function(x){ return x.id===id; });
+            if (v) vg_renderFormVaga(v);
+        } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
+    };
 
-    try {
-      if (!id) {
-        await vg_sb('vagas', {method:'POST', body:JSON.stringify(body)});
-      } else {
-        await vg_sb('vagas?id=eq.'+id, {method:'PATCH', body:JSON.stringify(body)});
-      }
-      vg_showMsg('Guardado com sucesso!','success');
-      vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc') || [];
-      vg_buildAreaPills();
-      vg_renderList();
+    window.vg_mostrarRejeitar = function() {
+        var box = document.getElementById('vg-rejeitar-box');
+        if (box) box.classList.toggle('visible');
+    };
 
-      if (!id) {
-        var criada = vg.vagas.find(function(x){ return x.titulo===titulo && x.nome_contato===nome; });
-        if (criada){ vg.vagaId=criada.id; vg_renderList(); setTimeout(function(){ vg_renderFormVaga(criada); },600); }
-      } else {
-        var updated = vg.vagas.find(function(x){ return x.id===id; });
-        if (updated) setTimeout(function(){ vg_renderFormVaga(updated); },600);
-      }
-    } catch(e){
-      vg_showMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
-      if (btn){ btn.disabled=false; btn.textContent=id?'Guardar Alterações':'Publicar Vaga'; }
+    window.vg_confirmarRejeitar = async function(id) {
+        var motivo = (document.getElementById('vg-motivo')?.value||'').trim() || null;
+        if (!confirm('Confirmas a rejeição desta vaga?')) return;
+        try {
+            await vg_sb('vagas?id=eq.'+id, {method:'PATCH', body:JSON.stringify({
+                status: 'rejeitado', ativo: false, motivo_rejeicao: motivo
+            })});
+            vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc') || [];
+            vg_buildAreaPills(); vg_renderList();
+            var v = vg.vagas.find(function(x){ return x.id===id; });
+            if (v) vg_renderFormVaga(v);
+        } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
+    };
+
+    /* ── GUARDAR ── */
+    window.vg_guardar = async function(id) {
+        var get = function(k){ var el=document.getElementById('vf-'+k); return el?(el.value||'').trim()||null:null; };
+        var chk = function(k){ var el=document.getElementById('vf-'+k); return el?el.checked:false; };
+        var titulo = get('titulo'), nome = get('nome');
+        if (!titulo){ vg_showMsg('Título é obrigatório.','error'); return; }
+        if (!nome)  { vg_showMsg('Nome de contacto é obrigatório.','error'); return; }
+
+        var body = {
+            titulo:nome_contato:nome, tipo:get('tipo'), area:get('area'),
+            descricao:get('descricao'), email_contato:get('email'), telemovel_contato:get('tel'),
+            data_anuncio:get('data')||new Date().toISOString().split('T')[0],
+            dias_expiracao:parseInt(document.getElementById('vf-dias')?.value)||15,
+            ativo:chk('ativo'),
+        };
+        // Fix syntax
+        body.titulo = titulo; body.nome_contato = nome;
+
+        var btn = document.getElementById('vg-btn-save');
+        if (btn){ btn.disabled=true; btn.textContent='A guardar...'; }
+        try {
+            if (!id) {
+                await vg_sb('vagas', {method:'POST', body:JSON.stringify(Object.assign(body,{status:'aprovado'}))});
+            } else {
+                await vg_sb('vagas?id=eq.'+id, {method:'PATCH', body:JSON.stringify(body)});
+            }
+            vg_showMsg('Guardado!','success');
+            vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc')||[];
+            vg_buildAreaPills(); vg_renderList();
+            if (id) { var upd=vg.vagas.find(function(x){return x.id===id;}); if(upd) setTimeout(function(){vg_renderFormVaga(upd);},600); }
+            else { var cri=vg.vagas.find(function(x){return x.titulo===titulo;}); if(cri){vg.vagaId=cri.id;vg_renderList();setTimeout(function(){vg_renderFormVaga(cri);},600);} }
+        } catch(e){
+            vg_showMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
+            if (btn){ btn.disabled=false; btn.textContent=id?'Guardar Alterações':'Publicar Vaga'; }
+        }
+    };
+
+    window.vg_toggleVaga = async function(id, ativoAtual) {
+        if (!confirm(ativoAtual?'Inativar esta vaga?':'Ativar esta vaga?')) return;
+        try {
+            await vg_sb('vagas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo:!ativoAtual})});
+            vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc')||[];
+            vg_renderList(); var v=vg.vagas.find(function(x){return x.id===id;}); if(v) vg_renderFormVaga(v);
+        } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
+    };
+
+    window.vg_renovar = async function(id) {
+        if (!confirm('Renovar esta vaga? A data do anúncio será actualizada para hoje.')) return;
+        try {
+            await vg_sb('vagas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({data_anuncio:new Date().toISOString().split('T')[0],ativo:true})});
+            vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc')||[];
+            vg_renderList(); var v=vg.vagas.find(function(x){return x.id===id;}); if(v) vg_renderFormVaga(v);
+        } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
+    };
+
+    window.vg_fechar = function() {
+        vg.vagaId = null; vg_renderList();
+        var panel = document.getElementById('vg-panel');
+        if (!panel) return;
+        panel.innerHTML = '<div class="vg-panel-empty"><div class="vg-panel-empty-icon"><svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div><div class="vg-panel-empty-txt">Seleciona ou cria uma vaga</div></div>';
+    };
+
+    function vg_showMsg(txt, tipo) {
+        var el = document.getElementById('vg-msg');
+        if (!el) return;
+        el.textContent = txt; el.className = 'vg-msg '+tipo;
+        el.scrollIntoView({behavior:'smooth',block:'nearest'});
+        if (tipo==='success') setTimeout(function(){ el.className='vg-msg'; },3000);
     }
-  };
 
-  /* ── TOGGLE ativo/inativo ── */
-  window.vg_toggleVaga = async function(id, ativoAtual) {
-    if (!confirm(ativoAtual?'Inativar esta vaga?':'Ativar esta vaga?')) return;
-    try {
-      await vg_sb('vagas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo:!ativoAtual})});
-      vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc')||[];
-      vg_renderList();
-      var v = vg.vagas.find(function(x){ return x.id===id; });
-      if (v) vg_renderFormVaga(v);
-    } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
-  };
-
-  /* ── RENOVAR (reset data_anuncio para hoje + mantém dias) ── */
-  window.vg_renovar = async function(id) {
-    if (!confirm('Renovar esta vaga? A data do anúncio será actualizada para hoje.')) return;
-    try {
-      await vg_sb('vagas?id=eq.'+id,{method:'PATCH',body:JSON.stringify({data_anuncio:new Date().toISOString().split('T')[0], ativo:true})});
-      vg.vagas = await vg_sb('vagas?select=*&order=created_at.desc')||[];
-      vg_renderList();
-      var v = vg.vagas.find(function(x){ return x.id===id; });
-      if (v) vg_renderFormVaga(v);
-    } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
-  };
-
-  /* ── FECHAR ── */
-  window.vg_fechar = function() {
-    vg.vagaId = null;
-    vg_renderList();
-    var panel = document.getElementById('vg-panel');
-    if (!panel) return;
-    panel.innerHTML =
-            '<div class="vg-panel-empty">' +
-            '<div class="vg-panel-empty-icon">' +
-            '<svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
-            '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>' +
-            '<line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>' +
-            '</svg></div>' +
-            '<div class="vg-panel-empty-txt">Seleciona ou cria uma vaga</div>' +
-            '</div>';
-  };
-
-  /* ── MENSAGEM ── */
-  function vg_showMsg(txt, tipo) {
-    var el = document.getElementById('vg-msg');
-    if (!el) return;
-    el.textContent = txt;
-    el.className = 'vg-msg '+tipo;
-    el.scrollIntoView({behavior:'smooth',block:'nearest'});
-    if (tipo==='success') setTimeout(function(){ el.className='vg-msg'; },3000);
-  }
-
-  /* ── ARRANCAR ── */
-  window.vg_init = vg_init;
-  vg_init();
+    window.vg_init = vg_init;
+    vg_init();
 </script>

@@ -212,6 +212,106 @@
     /* ── Empty / Loading ─────────────────────────────── */
     .empty { text-align: center; padding: 40px 0; }
     .empty-txt { font-size: 13px; color: var(--text-faint); }
+
+    /* ── Botão flutuante de submissão ── */
+    .submit-fab {
+      position: fixed; bottom: 80px; right: 18px; z-index: 100;
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 18px; border-radius: 999px; border: none;
+      background: var(--primary); color: #fff;
+      font-family: var(--font-title); font-size: 10px; letter-spacing: 1.5px;
+      box-shadow: 0 4px 20px rgba(0,144,152,0.4);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .submit-fab:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,144,152,0.5); }
+    .submit-fab svg { width: 14px; height: 14px; }
+
+    /* ── Overlay + modal ── */
+    .submit-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .submit-overlay.open { opacity: 1; pointer-events: all; }
+
+    .submit-modal {
+      width: 100%; max-width: 520px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      padding: 0 0 env(safe-area-inset-bottom);
+      max-height: 90vh; overflow-y: auto;
+      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+    }
+    .submit-overlay.open .submit-modal { transform: translateY(0); }
+    .submit-modal::-webkit-scrollbar { width: 3px; }
+    .submit-modal::-webkit-scrollbar-thumb { background: rgba(0,144,152,0.25); border-radius: 2px; }
+
+    /* Handle de drag */
+    .submit-handle {
+      width: 40px; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      margin: 12px auto 0;
+    }
+
+    .submit-modal-head {
+      padding: 14px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .submit-modal-title { font-family: var(--font-title); font-size: 13px; letter-spacing: 1px; color: #fff; }
+    .submit-modal-close {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--bg-input);
+      color: rgba(255,255,255,0.5); font-size: 16px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .submit-modal-close:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+    .submit-form { padding: 16px 20px 24px; }
+
+    .submit-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+    .submit-label {
+      font-size: 9px; font-family: var(--font-title); letter-spacing: 1px;
+      text-transform: uppercase; color: rgba(255,255,255,0.4);
+    }
+    .submit-input, .submit-select, .submit-textarea {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px;
+      font-size: 13px; font-family: var(--font-body); color: #fff;
+      outline: none; transition: border-color 0.15s; width: 100%;
+    }
+    .submit-input::placeholder, .submit-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .submit-select option { background: #081c26; color: #fff; }
+    .submit-input:focus, .submit-select:focus, .submit-textarea:focus { border-color: var(--primary); }
+    .submit-textarea { resize: vertical; min-height: 80px; }
+
+    .submit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .submit-msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; display: none; line-height: 1.6; }
+    .submit-msg.error   { display: block; background: rgba(198,40,40,0.1);  color: #ff7070; border: 1px solid rgba(198,40,40,0.3); }
+    .submit-msg.success { display: block; background: rgba(46,125,50,0.1);  color: #70d988; border: 1px solid rgba(46,125,50,0.3); }
+
+    .submit-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+    .submit-btn-cancel {
+      padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-input); color: rgba(255,255,255,0.5);
+      font-family: var(--font-title); font-size: 9px; letter-spacing: 1px; cursor: pointer;
+    }
+    .submit-btn-send {
+      flex: 1; padding: 10px 18px; border-radius: 8px; border: none;
+      background: var(--primary); color: #fff;
+      font-family: var(--font-title); font-size: 9px; letter-spacing: 1px; cursor: pointer;
+    }
+    .submit-btn-send:hover { background: var(--primary-dark); }
+    .submit-btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .submit-notice {
+      font-size: 11px; color: rgba(255,255,255,0.3);
+      text-align: center; padding-top: 10px; line-height: 1.6;
+    }
+
+
   </style>
 </head>
 <body>
@@ -466,6 +566,142 @@
               .catch(err => console.error('SW erro:', err));
     });
   }
+</script>
+
+<!-- Botão flutuante -->
+<button class="submit-fab" onclick="vgsub_abrir()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  Submeter Vaga
+</button>
+
+<!-- Modal -->
+<div class="submit-overlay" id="vgsub-overlay" onclick="vgsub_fechar(event)">
+  <div class="submit-modal">
+    <div class="submit-handle"></div>
+    <div class="submit-modal-head">
+      <span class="submit-modal-title">Submeter Vaga de Emprego</span>
+      <button class="submit-modal-close" onclick="vgsub_fechar()">×</button>
+    </div>
+    <div class="submit-form">
+      <div class="submit-msg" id="vgsub-msg"></div>
+
+      <div class="submit-field">
+        <label class="submit-label">Título da Vaga *</label>
+        <input class="submit-input" id="vgsub-titulo" type="text" placeholder="Ex: Desenvolvedor Web, Técnico de Saúde...">
+      </div>
+      <div class="submit-row">
+        <div class="submit-field">
+          <label class="submit-label">Tipo de Trabalho</label>
+          <select class="submit-select" id="vgsub-tipo">
+            <option value="">Selecionar...</option>
+            <option>Tempo Inteiro</option><option>Meio Período</option>
+            <option>Freelance</option><option>Estágio</option>
+            <option>Voluntário</option><option>Temporário</option>
+          </select>
+        </div>
+        <div class="submit-field">
+          <label class="submit-label">Área de Trabalho</label>
+          <select class="submit-select" id="vgsub-area">
+            <option value="">Selecionar...</option>
+            <option>Tecnologia/TI</option><option>Saúde</option>
+            <option>Educação</option><option>Comércio/Vendas</option>
+            <option>Administrativo</option><option>Engenharia</option>
+            <option>Arte/Design</option><option>Serviços Gerais</option>
+            <option>Construção Civil</option><option>Outros</option>
+          </select>
+        </div>
+      </div>
+      <div class="submit-field">
+        <label class="submit-label">Descrição da Vaga</label>
+        <textarea class="submit-textarea" id="vgsub-descricao" placeholder="Descreve o cargo, requisitos, local de trabalho..."></textarea>
+      </div>
+      <div class="submit-field">
+        <label class="submit-label">Nome da Pessoa ou Empresa *</label>
+        <input class="submit-input" id="vgsub-nome" type="text" placeholder="Teu nome ou nome da empresa">
+      </div>
+      <div class="submit-row">
+        <div class="submit-field">
+          <label class="submit-label">Email de Contacto</label>
+          <input class="submit-input" id="vgsub-email" type="email" placeholder="email@exemplo.com">
+        </div>
+        <div class="submit-field">
+          <label class="submit-label">Telemóvel</label>
+          <input class="submit-input" id="vgsub-tel" type="tel" placeholder="+351 912 345 678">
+        </div>
+      </div>
+
+      <div class="submit-actions">
+        <button class="submit-btn-cancel" onclick="vgsub_fechar()">Cancelar</button>
+        <button class="submit-btn-send" id="vgsub-send" onclick="vgsub_enviar()">Enviar para Aprovação</button>
+      </div>
+      <div class="submit-notice">A tua submissão será analisada pela equipa antes de aparecer publicamente.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.vgsub_abrir = function() {
+    document.getElementById('vgsub-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+  window.vgsub_fechar = function(e) {
+    if (e && e.target !== document.getElementById('vgsub-overlay')) return;
+    document.getElementById('vgsub-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  window.vgsub_enviar = async function() {
+    var get = function(id){ return (document.getElementById(id)?.value||'').trim()||null; };
+    var titulo = get('vgsub-titulo'), nome = get('vgsub-nome');
+    var msgEl  = document.getElementById('vgsub-msg');
+    var btn    = document.getElementById('vgsub-send');
+
+    msgEl.className = 'submit-msg';
+    if (!titulo){ msgEl.textContent='Título é obrigatório.'; msgEl.className='submit-msg error'; return; }
+    if (!nome)  { msgEl.textContent='Nome de contacto é obrigatório.'; msgEl.className='submit-msg error'; return; }
+
+    btn.disabled = true; btn.textContent = 'A enviar...';
+
+    try {
+      var res = await fetch(window.SUPABASE_URL + '/rest/v1/rpc/public_submit_vaga', {
+        method: 'POST',
+        headers: {
+          'apikey': window.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_titulo:            titulo,
+          p_tipo:              get('vgsub-tipo'),
+          p_area:              get('vgsub-area'),
+          p_descricao:         get('vgsub-descricao'),
+          p_nome_contato:      nome,
+          p_email_contato:     get('vgsub-email'),
+          p_telemovel_contato: get('vgsub-tel'),
+          p_dias_expiracao:    15,
+        }),
+      });
+
+      var data = await res.json();
+      if (!res.ok || data?.ok === false) {
+        throw new Error(data?.erro || data?.message || 'Erro ao enviar.');
+      }
+
+      msgEl.textContent = '✓ Vaga submetida com sucesso! Será analisada pela equipa da Zion Lisboa antes de aparecer.';
+      msgEl.className = 'submit-msg success';
+      btn.textContent = 'Enviado!';
+
+      /* Limpar campos */
+      ['vgsub-titulo','vgsub-tipo','vgsub-area','vgsub-descricao','vgsub-nome','vgsub-email','vgsub-tel']
+              .forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+
+      setTimeout(function(){ vgsub_fechar(); btn.disabled=false; btn.textContent='Enviar para Aprovação'; msgEl.className='submit-msg'; }, 3000);
+
+    } catch(e) {
+      msgEl.textContent = 'Erro: ' + (e.message||'Tenta novamente.');
+      msgEl.className = 'submit-msg error';
+      btn.disabled = false; btn.textContent = 'Enviar para Aprovação';
+    }
+  };
 </script>
 </body>
 </html>

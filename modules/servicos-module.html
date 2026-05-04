@@ -1,13 +1,12 @@
 <style>
   /* ══════════════════════════════════════════════════════════════
-     SERVIÇOS MODULE — Directório da Comunidade
+     SERVIÇOS MODULE v2 — com fluxo de aprovação
      Prefixo: sv-
   ══════════════════════════════════════════════════════════════ */
 
   .sv-wrap { display:flex; height:100%; min-height:0; overflow:hidden; font-family:var(--font-body); color:#fff; }
   .sv-wrap * { box-sizing:border-box; }
 
-  /* ── Sidebar ── */
   .sv-side {
     width:300px; flex-shrink:0;
     border-right:1px solid var(--border);
@@ -53,7 +52,7 @@
   }
   .sv-btn-novo:hover { background:var(--primary-dark); }
 
-  /* ── Filtros rápidos por área ── */
+  /* ── Filtros ── */
   .sv-filters {
     padding:8px 12px; border-bottom:1px solid var(--border);
     display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0;
@@ -72,6 +71,21 @@
   .sv-list::-webkit-scrollbar { width:3px; }
   .sv-list::-webkit-scrollbar-thumb { background:rgba(0,144,152,0.25); border-radius:2px; }
 
+  /* Separador de secção */
+  .sv-list-section {
+    padding:6px 14px 4px;
+    font-family:var(--font-title); font-size:8px; letter-spacing:2px;
+    text-transform:uppercase; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:7px;
+  }
+  .sv-list-section.pendentes { color:#ffa040; background:rgba(200,130,0,0.06); }
+  .sv-list-section.todas     { color:rgba(255,255,255,0.3); background:transparent; }
+  .sv-section-count {
+    font-size:9px; padding:1px 6px; border-radius:999px; font-family:var(--font-title); letter-spacing:0;
+  }
+  .sv-section-count.amber { background:rgba(200,130,0,0.2); color:#ffa040; }
+  .sv-section-count.muted { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.4); }
+
   .sv-item {
     display:flex; align-items:center; gap:10px;
     padding:11px 14px; cursor:pointer;
@@ -79,9 +93,11 @@
     border-bottom:1px solid var(--border);
     transition:background 0.12s;
   }
-  .sv-item:hover  { background:rgba(255,255,255,0.03); }
-  .sv-item.active { border-left-color:var(--primary); background:rgba(0,144,152,0.08); }
+  .sv-item:hover   { background:rgba(255,255,255,0.03); }
+  .sv-item.active  { border-left-color:var(--primary); background:rgba(0,144,152,0.08); }
   .sv-item.inativo { opacity:0.42; }
+  .sv-item.pendente-item { border-left-color:rgba(200,130,0,0.5); background:rgba(200,130,0,0.04); }
+  .sv-item.pendente-item.active { border-left-color:#ffa040; background:rgba(200,130,0,0.12); }
 
   /* Mini logo / placeholder */
   .sv-item-logo {
@@ -94,6 +110,7 @@
     display:flex; align-items:center; justify-content:center;
     font-family:var(--font-title); font-size:14px; font-weight:700; color:var(--primary);
   }
+  .sv-item-logo-ph.pendente { background:rgba(200,130,0,0.14); color:#ffa040; border-color:rgba(200,130,0,0.3); }
 
   .sv-item-info { flex:1; min-width:0; }
   .sv-item-nome {
@@ -104,12 +121,13 @@
     font-size:10px; color:rgba(255,255,255,0.38);
     margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .sv-pill-off {
+  .sv-item-badge {
     font-size:8px; font-family:var(--font-title); letter-spacing:0.5px;
-    padding:2px 7px; border-radius:10px; flex-shrink:0;
-    background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3);
-    border:1px solid rgba(255,255,255,0.1);
+    padding:2px 7px; border-radius:999px; flex-shrink:0; align-self:center;
   }
+  .sv-item-badge.off    { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3); border:1px solid rgba(255,255,255,0.1); }
+  .sv-item-badge.pend   { background:rgba(200,130,0,0.18); color:#ffa040; border:1px solid rgba(200,130,0,0.3); }
+  .sv-item-badge.rejeit { background:rgba(198,40,40,0.12); color:#ff7070; border:1px solid rgba(198,40,40,0.25); }
 
   .sv-empty-side {
     padding:20px; text-align:center;
@@ -136,6 +154,74 @@
     letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.25);
   }
 
+  /* ── Banner de aprovação ── */
+  .sv-approval-banner {
+    margin:16px 20px 0; padding:14px 16px; border-radius:10px;
+    display:flex; align-items:flex-start; gap:12px;
+  }
+  .sv-approval-banner.pendente  { border:1px solid rgba(200,130,0,0.35); background:rgba(200,130,0,0.08); }
+  .sv-approval-banner.rejeitado { border:1px solid rgba(198,40,40,0.35); background:rgba(198,40,40,0.08); }
+  .sv-approval-banner-icon { font-size:20px; flex-shrink:0; line-height:1; }
+  .sv-approval-banner-body { flex:1; }
+  .sv-approval-banner-title {
+    font-family:var(--font-title); font-size:10px; letter-spacing:1.5px;
+    text-transform:uppercase; margin-bottom:4px;
+  }
+  .sv-approval-banner.pendente  .sv-approval-banner-title { color:#ffa040; }
+  .sv-approval-banner.rejeitado .sv-approval-banner-title { color:#ff7070; }
+  .sv-approval-banner-sub { font-size:12px; color:rgba(255,255,255,0.5); line-height:1.6; }
+
+  .sv-approval-actions { display:flex; gap:8px; flex-wrap:wrap; padding:12px 20px 0; }
+
+  .sv-btn-aprovar {
+    padding:9px 20px; border-radius:8px;
+    background:rgba(46,125,50,0.2); color:#70d988;
+    border:1px solid rgba(46,125,50,0.4);
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+    transition:all 0.15s;
+  }
+  .sv-btn-aprovar:hover { background:rgba(46,125,50,0.35); }
+  .sv-btn-rejeitar {
+    padding:9px 20px; border-radius:8px;
+    background:rgba(198,40,40,0.1); color:#ff7070;
+    border:1px solid rgba(198,40,40,0.35);
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+    transition:all 0.15s;
+  }
+  .sv-btn-rejeitar:hover { background:rgba(198,40,40,0.22); }
+  .sv-btn-reativar {
+    padding:9px 20px; border-radius:8px;
+    background:rgba(0,144,152,0.12); color:var(--primary);
+    border:1px solid rgba(0,144,152,0.35);
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+    transition:all 0.15s;
+  }
+  .sv-btn-reativar:hover { background:rgba(0,144,152,0.25); }
+
+  /* Box de rejeição */
+  .sv-rejeitar-box {
+    margin:8px 20px 0; padding:12px 14px; border-radius:8px;
+    border:1px solid rgba(198,40,40,0.3); background:rgba(198,40,40,0.06); display:none;
+  }
+  .sv-rejeitar-box.visible { display:block; }
+  .sv-rejeitar-box label {
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px;
+    text-transform:uppercase; color:#ff7070; display:block; margin-bottom:6px;
+  }
+  .sv-rejeitar-textarea {
+    width:100%; background:var(--bg-input); border:1px solid rgba(198,40,40,0.3);
+    border-radius:7px; padding:8px 10px;
+    font-size:12px; font-family:var(--font-body); color:#fff;
+    outline:none; resize:vertical; min-height:70px;
+  }
+  .sv-rejeitar-textarea::placeholder { color:rgba(255,255,255,0.2); }
+  .sv-rejeitar-confirm {
+    margin-top:8px; padding:7px 16px; border-radius:7px; border:none;
+    background:#c62828; color:#fff;
+    font-family:var(--font-title); font-size:9px; letter-spacing:1px; cursor:pointer;
+  }
+  .sv-rejeitar-confirm:hover { background:#b71c1c; }
+
   /* ── Form header ── */
   .sv-form-header {
     padding:16px 20px 12px; border-bottom:1px solid var(--border);
@@ -156,17 +242,14 @@
 
   /* ── Formulário ── */
   .sv-form { padding:16px 20px 32px; }
-
   .sv-section-title {
     font-family:var(--font-title); font-size:9px; letter-spacing:2px;
     text-transform:uppercase; color:rgba(255,255,255,0.35);
-    padding:16px 0 8px; border-bottom:1px solid var(--border);
-    margin-bottom:12px;
+    padding:16px 0 8px; border-bottom:1px solid var(--border); margin-bottom:12px;
   }
   .sv-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:4px; }
   .sv-field { display:flex; flex-direction:column; gap:4px; }
   .sv-field.full { grid-column:1/-1; }
-
   .sv-label {
     font-size:9px; font-family:var(--font-title); letter-spacing:1px;
     text-transform:uppercase; color:rgba(255,255,255,0.38);
@@ -181,7 +264,6 @@
   .sv-select option { background:#081c26; color:#fff; }
   .sv-input:focus, .sv-select:focus, .sv-textarea:focus { border-color:var(--primary); }
   .sv-textarea { resize:vertical; min-height:80px; }
-
   .sv-toggle-row {
     display:flex; align-items:center; gap:8px;
     font-size:13px; color:#fff; cursor:pointer; padding:6px 0;
@@ -222,12 +304,10 @@
   .sv-img-url-input::placeholder { color:rgba(255,255,255,0.2); }
   .sv-img-status { font-size:11px; min-height:16px; margin-top:3px; color:rgba(255,255,255,0.35); }
 
-  /* Mensagem feedback */
   .sv-msg { padding:10px 14px; border-radius:8px; font-size:12px; margin-bottom:10px; display:none; }
   .sv-msg.error   { display:block; background:rgba(198,40,40,0.1);  color:#ff7070; border:1px solid rgba(198,40,40,0.3); }
   .sv-msg.success { display:block; background:rgba(46,125,50,0.1);  color:#70d988; border:1px solid rgba(46,125,50,0.3); }
 
-  /* Acções */
   .sv-actions {
     display:flex; gap:8px; justify-content:flex-end;
     padding-top:16px; border-top:1px solid var(--border); margin-top:20px;
@@ -258,24 +338,20 @@
 
 <div class="sv-wrap">
 
-  <!-- SIDEBAR -->
   <div class="sv-side" id="sv-side">
     <div class="sv-side-head">
       <button class="sv-toggle-btn" id="sv-toggle-btn" onclick="sv_toggleSide()" title="Expandir/colapsar">☰</button>
       <input class="sv-search" id="sv-search" placeholder="Pesquisar serviços..." oninput="sv_filtrar()">
       <button class="sv-btn-novo" onclick="sv_novoServico()">+ Serviço</button>
     </div>
-
     <div class="sv-filters" id="sv-filters">
       <button class="sv-filter-pill active" onclick="sv_setArea(this,'')">Todos</button>
     </div>
-
     <div class="sv-list" id="sv-list">
       <div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,0.3)">A carregar...</div>
     </div>
   </div>
 
-  <!-- PAINEL DIREITO -->
   <div class="sv-panel" id="sv-panel">
     <div class="sv-panel-empty">
       <div class="sv-panel-empty-icon">
@@ -298,19 +374,12 @@
     'Financeiro/Contabilidade','Arte/Design','Serviços Gerais',
     'Construção Civil','Jurídico','Outros'
   ];
-
   var SV_AREA_DOT = {
-    'Tecnologia/TI':          '#009098',
-    'Saúde':                  '#70d988',
-    'Educação':               '#5090e0',
-    'Comércio/Vendas':        '#ffa040',
-    'Administrativo':         '#ab73e8',
-    'Financeiro/Contabilidade':'#d4b800',
-    'Arte/Design':            '#e060a0',
-    'Serviços Gerais':        '#a0c030',
-    'Construção Civil':       '#c8903c',
-    'Jurídico':               '#c080ff',
-    'Outros':                 'rgba(255,255,255,0.25)',
+    'Tecnologia/TI':'#009098','Saúde':'#70d988','Educação':'#5090e0',
+    'Comércio/Vendas':'#ffa040','Administrativo':'#ab73e8',
+    'Financeiro/Contabilidade':'#d4b800','Arte/Design':'#e060a0',
+    'Serviços Gerais':'#a0c030','Construção Civil':'#c8903c',
+    'Jurídico':'#c080ff','Outros':'rgba(255,255,255,0.25)',
   };
 
   var sv = { servicos:[], servicoId:null, filtroTexto:'', filtroArea:'' };
@@ -335,9 +404,14 @@
     sv_renderList();
   }
 
-  /* ── Pills de área ── */
+  /* ── Pills de área (apenas aprovados) ── */
   function sv_buildAreaPills() {
-    var areas = [...new Set(sv.servicos.map(function(s){ return s.area_atuacao; }).filter(Boolean))].sort();
+    var areas = [...new Set(
+            sv.servicos
+                    .filter(function(s){ return s.status === 'aprovado'; })
+                    .map(function(s){ return s.area_atuacao; })
+                    .filter(Boolean)
+    )].sort();
     var el = document.getElementById('sv-filters');
     if (!el) return;
     var html = '<button class="sv-filter-pill'+(sv.filtroArea===''?' active':'')+'" onclick="sv_setArea(this,\'\')">Todos</button>';
@@ -365,7 +439,8 @@
     var el = document.getElementById('sv-list');
     if (!el) return;
 
-    var lista = sv.servicos.filter(function(s) {
+    var pendentes = sv.servicos.filter(function(s){ return s.status === 'pendente'; });
+    var resto = sv.servicos.filter(function(s){ return s.status !== 'pendente'; }).filter(function(s) {
       if (sv.filtroArea && s.area_atuacao !== sv.filtroArea) return false;
       if (sv.filtroTexto && !((s.nome_empresa||'').toLowerCase().includes(sv.filtroTexto) ||
               (s.area_atuacao||'').toLowerCase().includes(sv.filtroTexto) ||
@@ -374,33 +449,57 @@
       return true;
     });
 
-    if (!lista.length) {
+    if (!pendentes.length && !resto.length) {
       el.innerHTML = '<div class="sv-empty-side">Sem serviços.<br>Clica em + Serviço para adicionar.</div>';
       return;
     }
 
     var html = '';
-    lista.forEach(function(s) {
-      var ativo  = s.ativo !== false;
-      var active = sv.servicoId === s.id ? ' active' : '';
-      var cor    = SV_AREA_DOT[s.area_atuacao] || 'rgba(255,255,255,0.25)';
 
-      var thumb = s.imagem_url
-              ? '<img class="sv-item-logo" src="'+s.imagem_url+'" onerror="this.outerHTML=\'<div class=\\\'sv-item-logo-ph\\\'>\'+(s.nome_empresa||\'?\').charAt(0).toUpperCase()+\'</div>\'">'
-              : '<div class="sv-item-logo-ph">'+(s.nome_empresa||'?').charAt(0).toUpperCase()+'</div>';
+    /* ── Secção pendentes ── */
+    if (pendentes.length) {
+      html += '<div class="sv-list-section pendentes">Pendentes <span class="sv-section-count amber">'+pendentes.length+'</span></div>';
+      pendentes.forEach(function(s) {
+        var active = sv.servicoId === s.id ? ' active' : '';
+        html +=
+                '<div class="sv-item pendente-item'+active+'" onclick="sv_selecionarServico(\''+s.id+'\')">' +
+                '<div class="sv-item-logo-ph pendente">'+(s.nome_empresa||'?').charAt(0).toUpperCase()+'</div>' +
+                '<div class="sv-item-info">' +
+                '<div class="sv-item-nome">'+(s.nome_empresa||'—')+'</div>' +
+                '<div class="sv-item-sub">'+(s.area_atuacao||'')+(s.zona_atuacao?' · '+s.zona_atuacao:'')+'</div>' +
+                '</div>' +
+                '<span class="sv-item-badge pend">Pendente</span>' +
+                '</div>';
+      });
+    }
 
-      var sub = [s.area_atuacao, s.zona_atuacao].filter(Boolean).join(' · ');
+    /* ── Secção resto ── */
+    if (resto.length) {
+      html += '<div class="sv-list-section todas">Todos os serviços <span class="sv-section-count muted">'+resto.length+'</span></div>';
+      resto.forEach(function(s) {
+        var ativo  = s.ativo !== false;
+        var active = sv.servicoId === s.id ? ' active' : '';
 
-      html +=
-              '<div class="sv-item'+active+(ativo?'':' inativo')+'" onclick="sv_selecionarServico(\''+s.id+'\')">' +
-              thumb +
-              '<div class="sv-item-info">' +
-              '<div class="sv-item-nome">'+s.nome_empresa+'</div>' +
-              '<div class="sv-item-sub">'+(sub||'—')+'</div>' +
-              '</div>' +
-              (!ativo ? '<span class="sv-pill-off">Off</span>' : '') +
-              '</div>';
-    });
+        var thumb = s.imagem_url
+                ? '<img class="sv-item-logo" src="'+s.imagem_url+'" onerror="this.outerHTML=\'<div class=\\\'sv-item-logo-ph\\\'>\'+(\''+((s.nome_empresa||'?').charAt(0).toUpperCase())+'\')+ \'</div>\'">'
+                : '<div class="sv-item-logo-ph">'+(s.nome_empresa||'?').charAt(0).toUpperCase()+'</div>';
+
+        var sub = [s.area_atuacao, s.zona_atuacao].filter(Boolean).join(' · ');
+
+        var badge = '';
+        if (s.status === 'rejeitado') badge = '<span class="sv-item-badge rejeit">Rejeitado</span>';
+        else if (!ativo)             badge = '<span class="sv-item-badge off">Inativo</span>';
+
+        html +=
+                '<div class="sv-item'+(ativo && s.status!=='rejeitado'?'':' inativo')+active+'" onclick="sv_selecionarServico(\''+s.id+'\')">' +
+                thumb +
+                '<div class="sv-item-info">' +
+                '<div class="sv-item-nome">'+(s.nome_empresa||'—')+'</div>' +
+                '<div class="sv-item-sub">'+(sub||'—')+'</div>' +
+                '</div>' + badge + '</div>';
+      });
+    }
+
     el.innerHTML = html;
   }
 
@@ -425,16 +524,50 @@
     if (!panel) return;
     var ativo = s.ativo !== false;
     var sub   = [s.area_atuacao, s.zona_atuacao].filter(Boolean).join(' · ');
-    if (!ativo) sub += ' · <span style="color:rgba(255,255,255,0.3)">Inativo</span>';
+    if (s.status === 'pendente')   sub += ' · <span style="color:#ffa040">Pendente</span>';
+    else if (s.status === 'rejeitado') sub += ' · <span style="color:#ff7070">Rejeitado</span>';
+    else if (!ativo) sub += ' · <span style="color:rgba(255,255,255,0.3)">Inativo</span>';
 
     var headerLogo = s.imagem_url
-            ? '<img class="sv-form-header-logo" src="'+s.imagem_url+'" onerror="this.outerHTML=\'<div class=\\\'sv-form-header-ph\\\'>\'+('+(s.nome_empresa||'?').charAt(0).toUpperCase()+')+\'</div>\'">'
+            ? '<img class="sv-form-header-logo" src="'+s.imagem_url+'" onerror="this.outerHTML=\'<div class=\\\'sv-form-header-ph\\\'>\'+\''+(s.nome_empresa||'?').charAt(0).toUpperCase()+'\'+\'</div>\'">'
             : '<div class="sv-form-header-ph">'+(s.nome_empresa||'?').charAt(0).toUpperCase()+'</div>';
+
+    var approvalHtml = '';
+    if (s.status === 'pendente') {
+      approvalHtml =
+              '<div class="sv-approval-banner pendente">' +
+              '<div class="sv-approval-banner-icon">⏳</div>' +
+              '<div class="sv-approval-banner-body">' +
+              '<div class="sv-approval-banner-title">Pendente de Aprovação</div>' +
+              '<div class="sv-approval-banner-sub">Submetido por '+(s.nome_contato||'anónimo')+'. Revê os dados e aprova ou rejeita.</div>' +
+              '</div></div>' +
+              '<div class="sv-approval-actions">' +
+              '<button class="sv-btn-aprovar" onclick="sv_aprovar(\''+s.id+'\')">✓ Aprovar</button>' +
+              '<button class="sv-btn-rejeitar" onclick="sv_mostrarRejeitar()">✕ Rejeitar</button>' +
+              '</div>' +
+              '<div class="sv-rejeitar-box" id="sv-rejeitar-box">' +
+              '<label>Motivo da Rejeição (opcional)</label>' +
+              '<textarea class="sv-rejeitar-textarea" id="sv-motivo" placeholder="Ex: Informações incompletas, serviço duplicado..."></textarea>' +
+              '<button class="sv-rejeitar-confirm" onclick="sv_confirmarRejeitar(\''+s.id+'\')">Confirmar Rejeição</button>' +
+              '</div>';
+    } else if (s.status === 'rejeitado') {
+      approvalHtml =
+              '<div class="sv-approval-banner rejeitado">' +
+              '<div class="sv-approval-banner-icon">✕</div>' +
+              '<div class="sv-approval-banner-body">' +
+              '<div class="sv-approval-banner-title">Serviço Rejeitado</div>' +
+              '<div class="sv-approval-banner-sub">'+(s.motivo_rejeicao||'Sem motivo registado.')+'</div>' +
+              '</div></div>' +
+              '<div class="sv-approval-actions">' +
+              '<button class="sv-btn-reativar" onclick="sv_aprovar(\''+s.id+'\')">↩ Reactivar e Aprovar</button>' +
+              '</div>';
+    }
 
     panel.innerHTML =
             '<div class="sv-form-header">'+headerLogo+
-            '<div><div class="sv-form-title">'+s.nome_empresa+'</div>'+
+            '<div><div class="sv-form-title">'+(s.nome_empresa||'—')+'</div>'+
             '<div class="sv-form-sub">'+sub+'</div></div></div>'+
+            approvalHtml +
             sv_buildForm(s);
   }
 
@@ -450,7 +583,7 @@
             sv_buildForm(null);
   }
 
-  /* ── HTML DO FORMULÁRIO ── */
+  /* ── HTML FORMULÁRIO ── */
   function sv_buildForm(s) {
     var fv = function(k, d) {
       var v = s ? s[k] : undefined;
@@ -467,39 +600,26 @@
             ? '<img src="'+img.replace(/"/g,'')+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" onerror="this.parentElement.innerHTML=sv_imgPlaceholder()">'
             : sv_imgPlaceholder();
 
+    var isPendente = s && s.status === 'pendente';
+
     return '<div class="sv-form">'+
             '<div class="sv-msg" id="sv-msg"></div>'+
+            (isPendente ? '<div style="font-family:var(--font-title);font-size:8px;letter-spacing:2px;color:#ffa040;padding:14px 0 4px;text-transform:uppercase">Dados Submetidos — podes editar antes de aprovar</div>' : '')+
 
-            /* ── Empresa ── */
-            '<div class="sv-section-title">Informações da Empresa / Pessoa</div>'+
+            '<div class="sv-section-title">Empresa / Pessoa</div>'+
             '<div class="sv-field-grid">'+
-
-            '<div class="sv-field full">'+
-            '<label class="sv-label">Nome da Empresa ou Pessoa *</label>'+
-            '<input class="sv-input" id="sf-nome" type="text" value="'+fv('nome_empresa')+'" placeholder="Ex: Costa & Silva Contabilidade">'+
+            '<div class="sv-field full"><label class="sv-label">Nome da Empresa ou Pessoa *</label>'+
+            '<input class="sv-input" id="sf-nome" type="text" value="'+fv('nome_empresa')+'" placeholder="Ex: Costa & Silva Contabilidade"></div>'+
+            '<div class="sv-field"><label class="sv-label">Área de Actuação *</label>'+
+            '<select class="sv-select" id="sf-area">'+areaOpts+'</select></div>'+
+            '<div class="sv-field"><label class="sv-label">Zona de Actuação</label>'+
+            '<input class="sv-input" id="sf-zona" type="text" value="'+fv('zona_atuacao')+'" placeholder="Ex: Lisboa e arredores"></div>'+
+            '<div class="sv-field full"><label class="sv-label">Descrição dos Serviços</label>'+
+            '<textarea class="sv-textarea" id="sf-descricao" placeholder="Descreve o que ofereces, especialidades...">'+fv('descricao')+'</textarea></div>'+
             '</div>'+
 
-            '<div class="sv-field">'+
-            '<label class="sv-label">Área de Actuação *</label>'+
-            '<select class="sv-select" id="sf-area">'+areaOpts+'</select>'+
-            '</div>'+
-
-            '<div class="sv-field">'+
-            '<label class="sv-label">Zona de Actuação</label>'+
-            '<input class="sv-input" id="sf-zona" type="text" value="'+fv('zona_atuacao')+'" placeholder="Ex: Lisboa e arredores">'+
-            '</div>'+
-
-            '<div class="sv-field full">'+
-            '<label class="sv-label">Descrição dos Serviços</label>'+
-            '<textarea class="sv-textarea" id="sf-descricao" placeholder="Descreve o que ofereces, especialidades, experiência...">'+fv('descricao')+'</textarea>'+
-            '</div>'+
-
-            '</div>'+
-
-            /* ── Logo / imagem ── */
             '<div class="sv-section-title">Logo / Imagem</div>'+
-            '<div class="sv-field-grid">'+
-            '<div class="sv-field full">'+
+            '<div class="sv-field-grid"><div class="sv-field full">'+
             '<div id="sv-img-box" class="sv-img-box" onclick="sv_triggerFile()">'+imgBoxContent+'</div>'+
             '<div class="sv-img-btns">'+
             '<button type="button" class="sv-img-btn" onclick="sv_triggerFile()">Escolher ficheiro</button>'+
@@ -512,58 +632,33 @@
             '<input type="hidden" id="sv-foto-url" value="'+img+'">'+
             '<input type="file" id="sv-file-input" accept="image/*" style="display:none" onchange="sv_handleFile(this)">'+
             '<input type="file" id="sv-cam-input"  accept="image/*" capture="environment" style="display:none" onchange="sv_handleFile(this)">'+
-            '</div>'+
-            '</div>'+
+            '</div></div>'+
 
-            /* ── Contacto ── */
             '<div class="sv-section-title">Contacto</div>'+
             '<div class="sv-field-grid">'+
-
-            '<div class="sv-field full">'+
-            '<label class="sv-label">Nome da Pessoa de Contacto</label>'+
-            '<input class="sv-input" id="sf-contato" type="text" value="'+fv('nome_contato')+'" placeholder="Ex: João Silva">'+
+            '<div class="sv-field full"><label class="sv-label">Nome da Pessoa de Contacto</label>'+
+            '<input class="sv-input" id="sf-contato" type="text" value="'+fv('nome_contato')+'" placeholder="Ex: João Silva"></div>'+
+            '<div class="sv-field"><label class="sv-label">Email</label>'+
+            '<input class="sv-input" id="sf-email" type="email" value="'+fv('email_contato')+'" placeholder="email@exemplo.com"></div>'+
+            '<div class="sv-field"><label class="sv-label">Telemóvel</label>'+
+            '<input class="sv-input" id="sf-tel" type="tel" value="'+fv('telemovel_contato')+'" placeholder="+351 912 345 678"></div>'+
             '</div>'+
 
-            '<div class="sv-field">'+
-            '<label class="sv-label">Email</label>'+
-            '<input class="sv-input" id="sf-email" type="email" value="'+fv('email_contato')+'" placeholder="email@exemplo.com">'+
-            '</div>'+
-
-            '<div class="sv-field">'+
-            '<label class="sv-label">Telemóvel</label>'+
-            '<input class="sv-input" id="sf-tel" type="tel" value="'+fv('telemovel_contato')+'" placeholder="+351 912 345 678">'+
-            '</div>'+
-
-            '</div>'+
-
-            /* ── Online ── */
             '<div class="sv-section-title">Presença Online</div>'+
             '<div class="sv-field-grid">'+
-
-            '<div class="sv-field">'+
-            '<label class="sv-label">Website</label>'+
-            '<input class="sv-input" id="sf-website" type="url" value="'+fv('website')+'" placeholder="https://exemplo.com">'+
+            '<div class="sv-field"><label class="sv-label">Website</label>'+
+            '<input class="sv-input" id="sf-website" type="url" value="'+fv('website')+'" placeholder="https://exemplo.com"></div>'+
+            '<div class="sv-field"><label class="sv-label">Instagram (URL)</label>'+
+            '<input class="sv-input" id="sf-instagram" type="url" value="'+fv('instagram')+'" placeholder="https://instagram.com/..."></div>'+
+            '<div class="sv-field"><label class="sv-toggle-row">'+
+            '<input type="checkbox" id="sf-ativo" '+(ativo?'checked':'')+'>Visível ao público</label></div>'+
             '</div>'+
 
-            '<div class="sv-field">'+
-            '<label class="sv-label">Instagram (URL)</label>'+
-            '<input class="sv-input" id="sf-instagram" type="url" value="'+fv('instagram')+'" placeholder="https://instagram.com/...">'+
-            '</div>'+
-
-            '<div class="sv-field">'+
-            '<label class="sv-toggle-row">'+
-            '<input type="checkbox" id="sf-ativo" '+(ativo?'checked':'')+'>Visível ao público</label>'+
-            '</div>'+
-
-            '</div>'+
-
-            /* ── Acções ── */
             '<div class="sv-actions">'+
-            (s ? '<button class="sv-btn-toggle '+(ativo?'inativar':'ativar')+'" onclick="sv_toggleServico(\''+id+'\','+ativo+')">'+(ativo?'Inativar':'Ativar')+'</button>' : '')+
+            (s && s.status === 'aprovado' ? '<button class="sv-btn-toggle '+(ativo?'inativar':'ativar')+'" onclick="sv_toggleServico(\''+id+'\','+ativo+')">'+(ativo?'Inativar':'Ativar')+'</button>' : '')+
             '<button class="sv-btn-cancel" onclick="sv_fechar()">Cancelar</button>'+
             '<button class="sv-btn-save" id="sv-btn-save" onclick="sv_guardar(\''+id+'\')">'+(s?'Guardar Alterações':'Publicar Serviço')+'</button>'+
-            '</div>'+
-            '</div>';
+            '</div></div>';
   }
 
   /* ── Imagem helpers ── */
@@ -574,10 +669,8 @@
             '</svg><span>Clica para escolher imagem</span><small>JPG, PNG, WEBP</small></div>';
   }
   window.sv_imgPlaceholder = sv_imgPlaceholder;
-
-  window.sv_triggerFile   = function(){ document.getElementById('sv-file-input')?.click(); };
-  window.sv_triggerCamera = function(){ document.getElementById('sv-cam-input')?.click(); };
-
+  window.sv_triggerFile    = function(){ document.getElementById('sv-file-input')?.click(); };
+  window.sv_triggerCamera  = function(){ document.getElementById('sv-cam-input')?.click(); };
   window.sv_aplicarUrl = function() {
     var url = document.getElementById('sv-img-url-text')?.value?.trim();
     if (!url) return;
@@ -615,17 +708,17 @@
         img.onerror=function(){ URL.revokeObjectURL(url); resolve(file); };
         img.src=url;
       });
-      var fname = 'servicos/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.jpg';
+      var fname='servicos/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.jpg';
       if (status) status.textContent='A fazer upload...';
-      var res = await fetch(window.SUPABASE_URL+'/storage/v1/object/imagens/'+fname,{
+      var res=await fetch(window.SUPABASE_URL+'/storage/v1/object/imagens/'+fname,{
         method:'POST',
-        headers:{ 'apikey':window.SUPABASE_ANON_KEY,'Authorization':'Bearer '+window.SUPABASE_ANON_KEY,'Content-Type':'image/jpeg','x-upsert':'true' },
+        headers:{'apikey':window.SUPABASE_ANON_KEY,'Authorization':'Bearer '+window.SUPABASE_ANON_KEY,'Content-Type':'image/jpeg','x-upsert':'true'},
         body:blob,
       });
       if (!res.ok){ var err=await res.json().catch(function(){return{};}); throw new Error(err?.error||err?.message||'Erro '+res.status); }
-      var pub = window.SUPABASE_URL+'/storage/v1/object/public/imagens/'+fname;
-      document.getElementById('sv-foto-url').value = pub;
-      document.getElementById('sv-img-url-text').value = pub;
+      var pub=window.SUPABASE_URL+'/storage/v1/object/public/imagens/'+fname;
+      document.getElementById('sv-foto-url').value=pub;
+      document.getElementById('sv-img-url-text').value=pub;
       sv_atualizarPreview(pub);
       if (status){ status.textContent='Upload concluído ('+Math.round(blob.size/1024)+' KB)'; status.style.color='#70d988'; }
     } catch(e){
@@ -634,50 +727,72 @@
     input.value='';
   };
 
+  /* ── APROVAÇÃO ── */
+  window.sv_aprovar = async function(id) {
+    if (!confirm('Aprovar este serviço? Ficará visível ao público imediatamente.')) return;
+    try {
+      await sv_sb('servicos?id=eq.'+id, {method:'PATCH', body:JSON.stringify({
+          status:'aprovado', ativo:true, motivo_rejeicao:null
+        })});
+      sv.servicos = await sv_sb('servicos?select=*&order=created_at.desc')||[];
+      sv_buildAreaPills(); sv_renderList();
+      var s = sv.servicos.find(function(x){ return x.id===id; });
+      if (s) sv_renderFormServico(s);
+    } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
+  };
+
+  window.sv_mostrarRejeitar = function() {
+    var box = document.getElementById('sv-rejeitar-box');
+    if (box) box.classList.toggle('visible');
+  };
+
+  window.sv_confirmarRejeitar = async function(id) {
+    var motivo = (document.getElementById('sv-motivo')?.value||'').trim()||null;
+    if (!confirm('Confirmas a rejeição deste serviço?')) return;
+    try {
+      await sv_sb('servicos?id=eq.'+id, {method:'PATCH', body:JSON.stringify({
+          status:'rejeitado', ativo:false, motivo_rejeicao:motivo
+        })});
+      sv.servicos = await sv_sb('servicos?select=*&order=created_at.desc')||[];
+      sv_buildAreaPills(); sv_renderList();
+      var s = sv.servicos.find(function(x){ return x.id===id; });
+      if (s) sv_renderFormServico(s);
+    } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
+  };
+
   /* ── GUARDAR ── */
   window.sv_guardar = async function(id) {
     var get = function(k){ var el=document.getElementById('sf-'+k); return el?(el.value||'').trim()||null:null; };
     var chk = function(k){ var el=document.getElementById('sf-'+k); return el?el.checked:false; };
-
-    var nome = get('nome');
-    var area = get('area');
+    var nome = get('nome'), area = get('area');
     if (!nome){ sv_showMsg('Nome é obrigatório.','error'); return; }
     if (!area){ sv_showMsg('Área de actuação é obrigatória.','error'); return; }
 
     var body = {
-      nome_empresa:       nome,
-      area_atuacao:       area,
-      descricao:          get('descricao'),
-      zona_atuacao:       get('zona'),
-      nome_contato:       get('contato'),
-      email_contato:      get('email'),
-      telemovel_contato:  get('tel'),
-      website:            get('website'),
-      instagram:          get('instagram'),
-      imagem_url:         document.getElementById('sv-foto-url')?.value?.trim()||null,
-      ativo:              chk('ativo'),
+      nome_empresa:nome, area_atuacao:area,
+      descricao:get('descricao'), zona_atuacao:get('zona'),
+      nome_contato:get('contato'), email_contato:get('email'),
+      telemovel_contato:get('tel'), website:get('website'),
+      instagram:get('instagram'),
+      imagem_url:document.getElementById('sv-foto-url')?.value?.trim()||null,
+      ativo:chk('ativo'),
     };
 
     var btn = document.getElementById('sv-btn-save');
     if (btn){ btn.disabled=true; btn.textContent='A guardar...'; }
-
     try {
       if (!id) {
-        await sv_sb('servicos',{method:'POST',body:JSON.stringify(body)});
+        await sv_sb('servicos', {method:'POST', body:JSON.stringify(Object.assign(body,{status:'aprovado'}))});
       } else {
-        await sv_sb('servicos?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});
+        await sv_sb('servicos?id=eq.'+id, {method:'PATCH', body:JSON.stringify(body)});
       }
-      sv_showMsg('Guardado com sucesso!','success');
+      sv_showMsg('Guardado!','success');
       sv.servicos = await sv_sb('servicos?select=*&order=created_at.desc')||[];
-      sv_buildAreaPills();
-      sv_renderList();
-
-      if (!id) {
-        var criado = sv.servicos.find(function(x){ return x.nome_empresa===nome; });
-        if (criado){ sv.servicoId=criado.id; sv_renderList(); setTimeout(function(){ sv_renderFormServico(criado); },600); }
+      sv_buildAreaPills(); sv_renderList();
+      if (id) {
+        var upd=sv.servicos.find(function(x){return x.id===id;}); if(upd) setTimeout(function(){sv_renderFormServico(upd);},600);
       } else {
-        var updated = sv.servicos.find(function(x){ return x.id===id; });
-        if (updated) setTimeout(function(){ sv_renderFormServico(updated); },600);
+        var cri=sv.servicos.find(function(x){return x.nome_empresa===nome;}); if(cri){sv.servicoId=cri.id;sv_renderList();setTimeout(function(){sv_renderFormServico(cri);},600);}
       }
     } catch(e){
       sv_showMsg('Erro: '+(e?.message||JSON.stringify(e)),'error');
@@ -692,15 +807,13 @@
       await sv_sb('servicos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo:!ativoAtual})});
       sv.servicos = await sv_sb('servicos?select=*&order=created_at.desc')||[];
       sv_renderList();
-      var s = sv.servicos.find(function(x){ return x.id===id; });
-      if (s) sv_renderFormServico(s);
+      var s=sv.servicos.find(function(x){return x.id===id;}); if(s) sv_renderFormServico(s);
     } catch(e){ alert('Erro: '+(e?.message||JSON.stringify(e))); }
   };
 
   /* ── FECHAR ── */
   window.sv_fechar = function() {
-    sv.servicoId = null;
-    sv_renderList();
+    sv.servicoId = null; sv_renderList();
     var panel = document.getElementById('sv-panel');
     if (!panel) return;
     panel.innerHTML =
@@ -718,8 +831,7 @@
   function sv_showMsg(txt, tipo) {
     var el = document.getElementById('sv-msg');
     if (!el) return;
-    el.textContent = txt;
-    el.className = 'sv-msg '+tipo;
+    el.textContent = txt; el.className = 'sv-msg '+tipo;
     el.scrollIntoView({behavior:'smooth',block:'nearest'});
     if (tipo==='success') setTimeout(function(){ el.className='sv-msg'; },3000);
   }

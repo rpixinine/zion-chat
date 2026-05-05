@@ -577,20 +577,48 @@
 
         function vl_renderRow(ins){
             const m=ins._membro;
+
             const a1=ins._areas.find(a=>a.ordem===1),a2=ins._areas.find(a=>a.ordem===2),a3=ins._areas.find(a=>a.ordem===3);
+
             const disp=[ins.disponibilidade_sabado_manha&&'Sáb M',ins.disponibilidade_sabado_tarde&&'Sáb T',ins.disponibilidade_domingo_manha&&'Dom M',ins.disponibilidade_domingo_tarde&&'Dom T'].filter(Boolean);
+
             const atribs=ins._atribuicoes||[],atribAtual=atribs[0]||null;
+
             const fotoCell=vl_fotoHtml(m?.foto_url||null,m?.nome||'?',36);
+
             const minNome=(area)=>area?vl_minNomeComParent(area.ministerio_id,_ins_todos_ministerios):'<span style="color:var(--text-faint)">—</span>';
+
+            const stColors={aguardando:'#b45309',contatado:'#15803d',sem_retorno:'#9f1239'};
+            const stLabelMap={aguardando:'Aguarda contacto',contatado:'Líder contactou',sem_retorno:'Sem retorno'};
             let atribCol='<span style="color:var(--text-faint);font-size:10px">—</span>';
-            if(atribAtual){
-                const stLabel={aguardando:'Aguarda contacto',contatado:'Líder contactou',sem_retorno:'Sem retorno do líder'}[atribAtual.status]||atribAtual.status;
-                const multiTag=atribs.length>1?`<span style="display:inline-block;font-size:8px;padding:1px 5px;border-radius:20px;background:#7c3aed;color:#fff;font-family:var(--font-title);margin-left:4px">+${atribs.length-1}</span>`:'';
-                atribCol=`<div style="font-size:11px;font-weight:600">${atribAtual.ministerios?.nome||'—'}${multiTag}</div><div style="font-size:9px;color:var(--text-faint);margin-top:1px">${stLabel}</div>${atribAtual.prazo_contato?`<div style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(atribAtual.prazo_contato)}</div>`:''}`;
+            if(atribs.length){
+                atribCol=atribs.map(a=>`<div style="margin-bottom:3px;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px">
+                <div style="font-size:11px;font-weight:600">${a.ministerios?.nome||'—'}</div>
+                <div style="font-size:9px;color:${stColors[a.status]||'#6b7280'};font-family:var(--font-title);letter-spacing:0.5px">${stLabelMap[a.status]||a.status}</div>
+                ${a.prazo_contato?`<div style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(a.prazo_contato)}</div>`:''}
+                </div>`).join('');
             }
-            const historicoHtml=atribs.length>0?atribs.map(a=>{const st={aguardando:'Aguarda',contatado:'Líder contactou',sem_retorno:'Sem retorno'}[a.status]||a.status;return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><span style="font-size:11px;font-weight:600">${a.ministerios?.nome||'—'}</span><span style="font-size:9px;color:var(--text-faint);margin-left:6px">${st}</span></div>${a.prazo_contato?`<span style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(a.prazo_contato)}</span>`:''} ${a.data_contato?`<span style="font-size:9px;color:var(--text-main)">Contactado: ${fmtD(a.data_contato)}</span>`:''}</div>`;}).join(''):'<div style="font-size:11px;color:var(--text-faint)">Sem atribuições.</div>';
+
+            const historicoHtml=atribs.length>0?atribs.map(a=>{
+                const st={aguardando:'Aguarda',contatado:'Líder contactou',sem_retorno:'Sem retorno'}[a.status]||a.status;
+                const stColor=stColors[a.status]||'#6b7280';
+                const lnk=a.link_token?`<button class="vl-btn vl-btn-m" style="padding:2px 7px;font-size:8px" onclick="navigator.clipboard.writeText('${base}?t=${a.link_token}');this.textContent='Copiado!';setTimeout(()=>this.textContent='Link',1500)">Link</button>`:'';
+                const btnContat=a.status==='aguardando'?`<button class="vl-btn vl-btn-p" style="padding:2px 7px;font-size:8px;background:#15803d" onclick="vl_marcarContatado('${a.id}','${ins.id}')">✓ Contactado</button>`:'';
+                return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+  <div style="flex:1">
+    <span style="font-size:11px;font-weight:600">${a.ministerios?.nome||'—'}</span>
+    <span style="font-size:9px;color:${stColor};font-family:var(--font-title);margin-left:6px">${st}</span>
+    ${a.data_contato?`<span style="font-size:9px;color:var(--text-main);margin-left:6px">· ${fmtD(a.data_contato)}</span>`:''}
+  </div>
+  ${a.prazo_contato?`<span style="font-size:9px;color:var(--text-faint)">Prazo: ${fmtD(a.prazo_contato)}</span>`:''}
+  ${lnk} ${btnContat}
+</div>`;
+            }).join(''):'<div style="font-size:11px;color:var(--text-faint)">Sem atribuições.</div>';
+
             const motivoHtml=ins.motivo_rejeicao?`<div class="vl-motivo-box"><div class="vl-motivo-label">Motivo da rejeição</div><div class="vl-motivo-texto">${ins.motivo_rejeicao.replace(/</g,'&lt;')}</div></div>`:'';
+
             const base=`${location.origin}/voluntarios-lider.html`,nomeEsc=(m?.nome||'').replace(/'/g,"\\'");
+
             const telHtml=m?.telefone?`<div style="font-size:12px;display:flex;align-items:center;gap:4px">${m.telefone}${waLink(m.telefone)}</div>`:'<div style="font-size:12px">—</div>';
 
             // ✦ Botão multi-área
@@ -603,8 +631,9 @@
             if(ins.status==='pendente'){
                 botoes=`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_abrirDistribuir('${ins.id}')">Distribuir</button><button class="vl-btn vl-btn-d" style="font-size:8px" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>${btnMulti}`;
             }else if(ins.status==='em_atribuicao'){
-                const token=atribAtual?.link_token||'',linkLider=token?`${base}?t=${token}`:'';
-                botoes=`<button class="vl-btn vl-btn-p" style="font-size:8px" onclick="vl_aprovar('${ins.id}')">Aprovar</button>${linkLider?`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_mostrarLinkLider('${linkLider}','${(atribAtual?.ministerios?.nome||'').replace(/'/g,"\\'")}')">Link Líder</button>`:''}<button class="vl-btn vl-btn-d" style="font-size:8px" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>${btnMulti}`;
+                const atribsComToken=atribs.filter(a=>a.link_token);
+                const btnLinks=atribsComToken.length?`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_mostrarLinksLider('${ins.id}')">Links${atribsComToken.length>1?` (${atribsComToken.length})`:''}</button>`:'';
+                botoes=`<button class="vl-btn vl-btn-p" style="font-size:8px" onclick="vl_aprovar('${ins.id}')">Aprovar</button>${btnLinks}<button class="vl-btn vl-btn-d" style="font-size:8px" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>${btnMulti}`;
             }else if(ins.status==='sem_retorno'){
                 botoes=`<button class="vl-btn vl-btn-o" style="font-size:8px" onclick="vl_abrirDistribuir('${ins.id}')">Redistribuir</button><button class="vl-btn vl-btn-d" style="font-size:8px" onclick="vl_abrirRejeitar('${ins.id}','${nomeEsc}')">Rejeitar</button>${btnMulti}`;
             }
@@ -640,9 +669,56 @@
         function vl_abrirRejeitar(inscricaoId,nome){const ov=document.createElement('div');ov.className='vl-modal-overlay';ov.id='vl-rejeitar-modal';ov.innerHTML=`<div class="vl-modal" style="max-width:440px"><div class="vl-modal-title">Rejeitar Inscrição${nome?' — '+nome:''}</div><div class="vl-field"><label class="vl-label">Motivo</label><textarea class="vl-textarea" id="vl-rej-motivo" style="min-height:90px" placeholder="Ex: Sem vagas no ministério indicado..."></textarea></div><div id="vl-rej-alert"></div><div class="vl-modal-footer"><button class="vl-btn vl-btn-m" onclick="document.getElementById('vl-rejeitar-modal').remove()">Cancelar</button><button class="vl-btn vl-btn-d" onclick="vl_confirmarRejeitar('${inscricaoId}',this)">Confirmar Rejeição</button></div></div>`;document.body.appendChild(ov);setTimeout(()=>document.getElementById('vl-rej-motivo')?.focus(),80);}
         async function vl_confirmarRejeitar(inscricaoId,btn){const motivo=document.getElementById('vl-rej-motivo')?.value?.trim();const alEl=document.getElementById('vl-rej-alert');if(!motivo){if(alEl)alEl.innerHTML='<div class="vl-alert vl-alert-e">O motivo é obrigatório.</div>';return;}btn.disabled=true;btn.textContent='A rejeitar...';try{await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'recusado',motivo_rejeicao:motivo})});const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);if(idx>=0){_ins_cache[idx].status='recusado';_ins_cache[idx].motivo_rejeicao=motivo;}document.getElementById('vl-rejeitar-modal')?.remove();vl_filtrarInscricoes();}catch(e){if(alEl)alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;btn.disabled=false;btn.textContent='Confirmar Rejeição';}}
         function vl_mostrarLinkLider(link,ministerioNome){const ov=document.createElement('div');ov.className='vl-modal-overlay';ov.innerHTML=`<div class="vl-modal" style="max-width:480px"><div class="vl-modal-title">Link do Líder — ${ministerioNome}</div><div class="vl-link-box" style="margin-bottom:10px"><code style="font-size:11px;word-break:break-all;white-space:normal">${link}</code></div><div style="display:flex;gap:8px"><button class="vl-btn vl-btn-p" style="flex:1" onclick="navigator.clipboard.writeText('${link}');this.textContent='Copiado!';setTimeout(()=>this.textContent='Copiar',1500)">Copiar</button></div><div class="vl-modal-footer"><button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button></div></div>`;document.body.appendChild(ov);}
-        async function vl_aprovar(inscricaoId){const ins=_ins_cache.find(i=>i.id===inscricaoId);if(!ins){vl_renderInscricoes();return;}const atrib=(ins._atribuicoes||[]).find(a=>a.status==='contatado')||ins._atribuicoes?.[0];const nomMin=atrib?.ministerios?.nome||ins._areas.find(a=>a.ordem===1)?.ministerios?.nome||'—';if(!confirm(`Aprovar ${ins._membro?.nome||'este candidato'} como voluntário em "${nomMin}"?`))return;try{const ministerioId=atrib?.ministerio_id||ins._areas.find(a=>a.ordem===1)?.ministerio_id;await sb(`membros?id=eq.${ins.membro_id}`,{method:'PATCH',body:JSON.stringify({e_voluntario:true})});if(ministerioId){const jaAssoc=await sb(`membro_ministerios?membro_id=eq.${ins.membro_id}&ministerio_id=eq.${ministerioId}&ativo=eq.true&select=id&limit=1`).catch(()=>[]);if(!jaAssoc.length)await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:ins.membro_id,ministerio_id:ministerioId,papel:'Voluntário',ativo:true})}).catch(()=>{});}await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'aprovado'})});const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);if(idx>=0)_ins_cache[idx].status='aprovado';vl_filtrarInscricoes();}catch(e){alert('Erro: '+(e?.message||JSON.stringify(e)));}}
+
+        function vl_mostrarLinksLider(inscricaoId){
+            const ins=_ins_cache.find(i=>i.id===inscricaoId);
+            if(!ins)return;
+            const base=`${location.origin}/voluntarios-lider.html`;
+            const atribsComToken=(ins._atribuicoes||[]).filter(a=>a.link_token);
+            if(!atribsComToken.length){alert('Sem links disponíveis.');return;}
+            const ov=document.createElement('div');ov.className='vl-modal-overlay';
+            ov.innerHTML=`<div class="vl-modal" style="max-width:500px">
+  <div class="vl-modal-title">Links de Líder — ${ins._membro?.nome||'—'}</div>
+  ${atribsComToken.map(a=>{
+                const link=`${base}?t=${a.link_token}`;
+                const stLabel={aguardando:'Aguarda contacto',contatado:'Líder contactou',sem_retorno:'Sem retorno'}[a.status]||a.status;
+                return `<div style="margin-bottom:12px">
+    <div class="vl-label" style="margin-bottom:4px">${a.ministerios?.nome||'—'} <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-faint)">(${stLabel})</span></div>
+    <div class="vl-link-box">
+      <code style="font-size:10px;word-break:break-all;white-space:normal">${link}</code>
+      <button class="vl-btn vl-btn-m" style="padding:3px 9px;font-size:8px;flex-shrink:0" onclick="navigator.clipboard.writeText('${link}');this.textContent='Copiado!';setTimeout(()=>this.textContent='Copiar',1500)">Copiar</button>
+    </div>
+  </div>`;}).join('')}
+  <div class="vl-modal-footer">
+    <button class="vl-btn vl-btn-p" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button>
+  </div>
+</div>`;
+            document.body.appendChild(ov);
+        }
+        window.vl_mostrarLinksLider=vl_mostrarLinksLider;
+
+        async function vl_aprovar(inscricaoId){
+            const ins=_ins_cache.find(i=>i.id===inscricaoId);
+            if(!ins){vl_renderInscricoes();return;}
+            if((ins._atribuicoes||[]).length>1){vl_abrirAprovarModal(inscricaoId);return;}
+            // área única — lógica original
+            const atrib=(ins._atribuicoes||[]).find(a=>a.status==='contatado')||ins._atribuicoes?.[0];
+            const nomMin=atrib?.ministerios?.nome||ins._areas.find(a=>a.ordem===1)?.ministerios?.nome||'—';
+            if(!confirm(`Aprovar ${ins._membro?.nome||'este candidato'} como voluntário em "${nomMin}"?`))return;
+            try{
+                const ministerioId=atrib?.ministerio_id||ins._areas.find(a=>a.ordem===1)?.ministerio_id;
+                await sb(`membros?id=eq.${ins.membro_id}`,{method:'PATCH',body:JSON.stringify({e_voluntario:true})});
+                if(ministerioId){const jaAssoc=await sb(`membro_ministerios?membro_id=eq.${ins.membro_id}&ministerio_id=eq.${ministerioId}&ativo=eq.true&select=id&limit=1`).catch(()=>[]);if(!jaAssoc.length)await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:ins.membro_id,ministerio_id:ministerioId,papel:'Voluntário',ativo:true})}).catch(()=>{});}
+                await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'aprovado'})});
+                const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);if(idx>=0)_ins_cache[idx].status='aprovado';
+                vl_filtrarInscricoes();
+            }catch(e){alert('Erro: '+(e?.message||JSON.stringify(e)));}
+        }
+
         async function vl_distribuirTodos(campanhaId){const pendentes=await sb(`voluntarios_inscricoes?campanha_id=eq.${campanhaId}&status=eq.pendente&select=id`).catch(()=>[]);if(!pendentes.length){alert('Nenhuma inscrição pendente.');return;}if(!confirm(`Distribuir ${pendentes.length} inscrição(ões)?`))return;const prazo=new Date(Date.now()+7*24*60*60*1000).toISOString();for(const ins of pendentes){const areas=await sb(`voluntarios_areas_interesse?inscricao_id=eq.${ins.id}&select=ministerio_id,ordem&order=ordem&limit=1`).catch(()=>[]);const a1=areas?.[0];if(!a1)continue;await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:ins.id,ministerio_id:a1.ministerio_id,prazo_contato:prazo})}).catch(()=>{});await sb(`voluntarios_inscricoes?id=eq.${ins.id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});}const el=document.getElementById('vl-alert-ins');if(el){el.innerHTML='<div class="vl-alert vl-alert-s">Inscrições distribuídas.</div>';setTimeout(()=>el.innerHTML='',4000);}vl_renderInscricoes();}
+
         async function vl_abrirDistribuir(inscricaoId){const areas=await sb(`voluntarios_areas_interesse?inscricao_id=eq.${inscricaoId}&select=ordem,ministerios(id,nome)&order=ordem`).catch(()=>[]);const prazoDefault=new Date(Date.now()+7*24*60*60*1000).toISOString().slice(0,10);const opts=(areas||[]).map(a=>`<option value="${a.ministerios?.id}">${a.ordem}. ${a.ministerios?.nome}</option>`).join('');const ov=document.createElement('div');ov.className='vl-modal-overlay';ov.innerHTML=`<div class="vl-modal"><div class="vl-modal-title">Distribuir Inscrição</div><div class="vl-field"><label class="vl-label">Ministério de destino</label><select class="vl-select" id="vl-dist-min">${opts}</select></div><div class="vl-field"><label class="vl-label">Prazo do líder</label><input type="date" class="vl-input" id="vl-dist-prazo" value="${prazoDefault}" min="${new Date().toISOString().slice(0,10)}"></div><div id="vl-dist-alert"></div><div class="vl-modal-footer"><button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button><button class="vl-btn vl-btn-p" onclick="vl_confirmarDistribuir('${inscricaoId}',this)">Confirmar</button></div></div>`;document.body.appendChild(ov);}
+
         async function vl_confirmarDistribuir(id,btn){const min=document.getElementById('vl-dist-min')?.value,prazo=document.getElementById('vl-dist-prazo')?.value;const alEl=document.getElementById('vl-dist-alert');if(!min||!prazo){if(alEl)alEl.innerHTML='<div class="vl-alert vl-alert-e">Preencha todos os campos.</div>';return;}btn.disabled=true;btn.textContent='A guardar...';try{await sb('voluntarios_atribuicoes',{method:'POST',body:JSON.stringify({inscricao_id:id,ministerio_id:min,prazo_contato:new Date(prazo).toISOString()})});await sb(`voluntarios_inscricoes?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'em_atribuicao'})});btn.closest('.vl-modal-overlay').remove();vl_renderInscricoes();}catch(e){if(alEl)alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message||'Verifique se já existe atribuição.'}</div>`;btn.disabled=false;btn.textContent='Confirmar';}}
 
 
@@ -1000,8 +1076,75 @@
   <div class="vl-card-title" style="padding:12px 14px">Voluntários Escalados (${volCount})</div>
   ${volCount?`<table class="vl-table"><thead><tr><th>Nome</th><th>Área</th><th>Estado</th><th>Chegada</th></tr></thead><tbody>${volRows}</tbody></table>`:'<div class="vl-empty" style="padding:24px">Nenhum voluntário escalado para este culto.</div>'}
 </div>`;}
+
         async function vl_relGuardar(relId,volCount){const alEl=document.getElementById('rel-alert');const campos=['total_participantes','total_templo','total_overflow','bercario','keola','traducao','streaming','streaming_en','salvacoes','curas','visitantes','tempo_oferta'];const payload={data:_rel_data,culto_id:_rel_culto_id,voluntarios:volCount};campos.forEach(f=>{const el=document.getElementById(`rel-${f}`);if(!el)return;const v=el.value.trim();payload[f]=f==='tempo_oferta'?(v||null):(v!==''?Number(v):null);});try{if(relId){await sb(`cultos_relatorio_geral?id=eq.${relId}`,{method:'PATCH',body:JSON.stringify(payload)});}else{await sb('cultos_relatorio_geral',{method:'POST',body:JSON.stringify(payload)});}if(alEl){alEl.innerHTML='<div class="vl-alert vl-alert-s">Guardado com sucesso.</div>';setTimeout(()=>alEl.innerHTML='',3000);}await vl_carregarRelatorio(true);}catch(e){if(alEl)alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;}}
+
         function vl_relGerarPDF(volPresentes){const culto=_rel_cultos_list.find(cu=>cu.id===_rel_culto_id);const cLabel=culto?cultoLabelText(culto):'—';const campos=[{id:'total_participantes',label:'Total de Participantes'},{id:'total_templo',label:'Total no Templo'},{id:'total_overflow',label:'Total no Overflow'},{id:'bercario',label:'Berçário'},{id:'keola',label:'Keola'},{id:'voluntarios',label:'Voluntários',auto:true},{id:'traducao',label:'Tradução'},{id:'streaming',label:'Streaming (PT)'},{id:'streaming_en',label:'Streaming (EN)'},{id:'salvacoes',label:'Salvações'},{id:'curas',label:'Curas'},{id:'visitantes',label:'Visitantes'},{id:'tempo_oferta',label:'Tempo Oferta'}];const valores={};campos.forEach(f=>{if(f.auto){const autoEl=document.getElementById('rel-vol-auto');valores[f.id]=autoEl?autoEl.textContent.trim():'—';}else{const el=document.getElementById(`rel-${f.id}`);valores[f.id]=el?(el.value||'—'):'—';}});const barDados=[{label:'Particip.',val:parseInt(valores.total_participantes)||0,cor:'#0e7490'},{label:'Templo',val:parseInt(valores.total_templo)||0,cor:'#0891b2'},{label:'Overflow',val:parseInt(valores.total_overflow)||0,cor:'#06b6d4'},{label:'Salvações',val:parseInt(valores.salvacoes)||0,cor:'#15803d'},{label:'Visitantes',val:parseInt(valores.visitantes)||0,cor:'#b45309'},{label:'Vols.',val:parseInt(valores.voluntarios)||0,cor:'#7c3aed'}];const maxVal=Math.max(...barDados.map(d=>d.val),1),barW=60,barGap=18,svgW=barDados.length*(barW+barGap)+barGap,svgH=180;const barsSvg=barDados.map((d,i)=>{const h=Math.round((d.val/maxVal)*120),x=barGap+i*(barW+barGap),y=130-h;return `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${d.cor}" rx="4"/><text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="11" font-weight="bold" fill="#000">${d.val||'—'}</text><text x="${x+barW/2}" y="155" text-anchor="middle" font-size="10" fill="#444">${d.label}</text>`;}).join('');const volRows=(volPresentes||[]).map(v=>{const tard=v.status==='atrasado'&&v.minutos_atraso>0?` +${v.minutos_atraso}min`:'';const statusColors={presente:'#15803d',atrasado:'#b45309',faltou:'#b91c1c',pre_confirmado:'#0e7490',sem_registo:'#6b7280'};const cor=statusColors[v.status]||'#6b7280';const ini=v.nome.split(' ').slice(0,2).map(p=>p[0]||'').join('').toUpperCase();const fotoHtml=v.foto?`<img src="${v.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #ddd;display:block;margin:auto">`:`<div style="width:32px;height:32px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#374151;margin:auto">${ini}</div>`;return `<tr><td style="text-align:center">${fotoHtml}</td><td>${v.nome}</td><td>${v.area}</td><td style="color:${cor};font-weight:600">${st_label(v.status)}${tard}</td><td>${v.hora_checkin}</td></tr>`;}).join('');abrirJanelaPrint(`<h2>${cLabel}</h2><p style="font-size:10px;color:#666;margin:0 0 16px">${fmtD(_rel_data)} | Gerado em ${new Date().toLocaleString('pt-PT')}</p><table style="width:100%;border-collapse:collapse;margin-bottom:18px"><thead><tr><th>Indicador</th><th>Valor</th></tr></thead><tbody>${campos.map(f=>`<tr><td>${f.label}</td><td><strong>${valores[f.id]||'—'}</strong></td></tr>`).join('')}</tbody></table><h3 style="font-size:12px;margin:0 0 8px">Indicadores Principais</h3><svg width="${svgW}" height="${svgH}" style="display:block;margin-bottom:18px">${barsSvg}</svg><h3 style="font-size:12px;margin:0 0 6px;border-top:1px solid #ccc;padding-top:10px">Voluntários Escalados (${(volPresentes||[]).length})</h3><table><thead><tr><th>Foto</th><th>Nome</th><th>Área</th><th>Estado</th><th>Chegada</th></tr></thead><tbody>${volRows}</tbody></table>`);}
+
+        /* ── Marcar Contactado por área ── */
+        async function vl_marcarContatado(atribId,inscricaoId){
+            if(!confirm('Marcar esta área como contactada pelo líder?'))return;
+            try{
+                await sb(`voluntarios_atribuicoes?id=eq.${atribId}`,{method:'PATCH',body:JSON.stringify({status:'contatado',data_contato:new Date().toISOString().slice(0,10)})});
+                const ins=_ins_cache.find(i=>i.id===inscricaoId);
+                if(ins){const a=ins._atribuicoes.find(x=>x.id===atribId);if(a){a.status='contatado';a.data_contato=new Date().toISOString().slice(0,10);}}
+                vl_filtrarInscricoes();
+            }catch(e){alert('Erro: '+(e?.message||JSON.stringify(e)));}
+        }
+
+        /* ── Modal Aprovar — escolha de área ── */
+        function vl_abrirAprovarModal(inscricaoId){
+            const ins=_ins_cache.find(i=>i.id===inscricaoId);if(!ins)return;
+            const stColors2={aguardando:'#b45309',contatado:'#15803d',sem_retorno:'#9f1239'};
+            const stLab={aguardando:'Aguarda contacto',contatado:'Líder contactou',sem_retorno:'Sem retorno'};
+            const ov=document.createElement('div');ov.className='vl-modal-overlay';
+            ov.innerHTML=`<div class="vl-modal" style="max-width:440px">
+  <div class="vl-modal-title">Aprovar — ${ins._membro?.nome||'—'}</div>
+  <p style="font-size:11px;color:var(--text-faint);margin-bottom:12px">Este candidato tem ${ins._atribuicoes.length} áreas atribuídas. Seleciona a área principal onde ficará como voluntário:</p>
+  ${ins._atribuicoes.map(a=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+    <input type="radio" name="aprovar-area" value="${a.ministerio_id}" ${a.status==='contatado'?'checked':''} style="cursor:pointer;accent-color:var(--primary);flex-shrink:0">
+    <div><div style="font-size:12px;font-weight:600">${a.ministerios?.nome||'—'}</div><div style="font-size:9px;color:${stColors2[a.status]||'#6b7280'};font-family:var(--font-title);letter-spacing:0.5px">${stLab[a.status]||a.status}</div></div>
+  </label>`).join('')}
+  <div id="aprovar-alert" style="margin-top:8px"></div>
+  <div class="vl-modal-footer">
+    <button class="vl-btn vl-btn-m" onclick="this.closest('.vl-modal-overlay').remove()">Cancelar</button>
+    <button class="vl-btn vl-btn-p" onclick="vl_confirmarAprovarModal('${inscricaoId}',this)">Confirmar Aprovação</button>
+  </div>
+</div>`;
+            document.body.appendChild(ov);
+        }
+        async function vl_confirmarAprovarModal(inscricaoId,btn){
+            const ministerioId=document.querySelector('input[name="aprovar-area"]:checked')?.value;
+            const alEl=document.getElementById('aprovar-alert');
+            if(!ministerioId){if(alEl)alEl.innerHTML='<div class="vl-alert vl-alert-e">Seleciona uma área.</div>';return;}
+            btn.disabled=true;btn.textContent='A aprovar...';
+            const ins=_ins_cache.find(i=>i.id===inscricaoId);if(!ins)return;
+            try{
+                await sb(`membros?id=eq.${ins.membro_id}`,{method:'PATCH',body:JSON.stringify({e_voluntario:true})});
+                const jaAssoc=await sb(`membro_ministerios?membro_id=eq.${ins.membro_id}&ministerio_id=eq.${ministerioId}&ativo=eq.true&select=id&limit=1`).catch(()=>[]);
+                if(!jaAssoc.length)await sb('membro_ministerios',{method:'POST',body:JSON.stringify({membro_id:ins.membro_id,ministerio_id:ministerioId,papel:'Voluntário',ativo:true})}).catch(()=>{});
+                await sb(`voluntarios_inscricoes?id=eq.${inscricaoId}`,{method:'PATCH',body:JSON.stringify({status:'aprovado'})});
+                const idx=_ins_cache.findIndex(i=>i.id===inscricaoId);if(idx>=0)_ins_cache[idx].status='aprovado';
+                btn.closest('.vl-modal-overlay').remove();
+                vl_filtrarInscricoes();
+            }catch(e){if(alEl)alEl.innerHTML=`<div class="vl-alert vl-alert-e">Erro: ${e?.message}</div>`;btn.disabled=false;btn.textContent='Confirmar Aprovação';}
+        }
+
+        /* ── Links Líderes (multi) ── */
+        function vl_mostrarLinksLider(inscricaoId){
+            const ins=_ins_cache.find(i=>i.id===inscricaoId);if(!ins)return;
+            const base=`${location.origin}/voluntarios-lider.html`;
+            const atribsComToken=(ins._atribuicoes||[]).filter(a=>a.link_token);
+            if(!atribsComToken.length){alert('Sem links disponíveis.');return;}
+            const stLab2={aguardando:'Aguarda contacto',contatado:'Líder contactou',sem_retorno:'Sem retorno'};
+            const ov=document.createElement('div');ov.className='vl-modal-overlay';
+            ov.innerHTML=`<div class="vl-modal" style="max-width:500px">
+  <div class="vl-modal-title">Links de Líder — ${ins._membro?.nome||'—'}</div>
+  ${atribsComToken.map(a=>{const link=`${base}?t=${a.link_token}`;return `<div style="margin-bottom:12px"><div class="vl-label" style="margin-bottom:4px">${a.ministerios?.nome||'—'} <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-faint)">(${stLab2[a.status]||a.status})</span></div><div class="vl-link-box"><code style="font-size:10px;word-break:break-all;white-space:normal">${link}</code><button class="vl-btn vl-btn-m" style="padding:3px 9px;font-size:8px;flex-shrink:0" onclick="navigator.clipboard.writeText('${link}');this.textContent='Copiado!';setTimeout(()=>this.textContent='Copiar',1500)">Copiar</button></div></div>`;}).join('')}
+  <div class="vl-modal-footer"><button class="vl-btn vl-btn-p" onclick="this.closest('.vl-modal-overlay').remove()">Fechar</button></div>
+</div>`;
+            document.body.appendChild(ov);
+        }
 
         /* ══ MISC ══ */
         function vl_toggle(id){const row=document.getElementById(`vl-det-${id}`);if(!row)return;row.classList.toggle('vl-hidden');const btn=document.querySelector(`#vl-row-${id} button`);if(btn)btn.textContent=row.classList.contains('vl-hidden')?'+':'−';}
@@ -1035,6 +1178,10 @@
         window.vl_abrirDistribuirExtra=vl_abrirDistribuirExtra;
         window.vl_confirmarDistribuirExtra=vl_confirmarDistribuirExtra;
         window.vl_renderPorArea = vl_renderPorArea;
+        window.vl_marcarContatado=vl_marcarContatado;
+        window.vl_abrirAprovarModal=vl_abrirAprovarModal;
+        window.vl_confirmarAprovarModal=vl_confirmarAprovarModal;
+        window.vl_mostrarLinksLider=vl_mostrarLinksLider;
 
         vl_init();
     })();

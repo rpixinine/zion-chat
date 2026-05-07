@@ -100,6 +100,43 @@
     }
     .date-nav-btn:hover{border-color:var(--teal);color:var(--teal)}
 
+    /* CULTO TABS BAR */
+    .culto-tabs-bar{
+      display:flex;gap:6px;padding:0 0 14px;
+      overflow-x:auto;scrollbar-width:none
+    }
+    .culto-tabs-bar::-webkit-scrollbar{display:none}
+    .culto-tab{
+      flex:1;min-width:120px;
+      padding:10px 14px;border-radius:10px;
+      border:1px solid var(--border);background:var(--card);
+      cursor:pointer;transition:all .15s;text-align:left
+    }
+    .culto-tab:hover{border-color:rgba(0,144,152,.35)}
+    .culto-tab.on{
+      background:rgba(0,144,152,.12);
+      border-color:var(--teal);
+      box-shadow:0 0 0 1px rgba(0,144,152,.25)
+    }
+    .ctab-nome{
+      font-family:'Cinzel',serif;font-size:12px;font-weight:600;
+      color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      transition:color .15s
+    }
+    .culto-tab.on .ctab-nome{color:var(--text)}
+    .ctab-meta{
+      display:flex;align-items:center;gap:6px;margin-top:4px;
+      font-size:10px;color:var(--muted)
+    }
+    .ctab-prog{
+      margin-left:auto;padding:1px 7px;border-radius:20px;font-size:9px;
+      background:rgba(255,255,255,.06);border:1px solid var(--border);
+      font-family:'Cinzel',serif;white-space:nowrap
+    }
+    .ctab-prog.ctab-prog-on{
+      background:rgba(67,160,71,.12);border-color:rgba(67,160,71,.3);color:#a5d6a7
+    }
+
     /* CULTO SECTION */
     .culto-section{margin-bottom:30px}
     .culto-hd{
@@ -432,7 +469,8 @@
   const EG = {
     ministerios: [], minMap: {},
     escala: [], lanches: [],
-    datas: [], dataAtual: ''
+    datas: [], dataAtual: '',
+    cultoAtual: null   /* culto_id seleccionado; null = todos */
   };
 
   /* ── Operador ── */
@@ -551,8 +589,41 @@
     const cultosOrdenados = [...porCulto.values()]
       .sort((a,b) => (a.culto?.hora_inicio||'').localeCompare(b.culto?.hora_inicio||''));
 
+    /* Garantir cultoAtual válido para este dia */
+    const ids = cultosOrdenados.map(c => c.culto?.id);
+    if (!EG.cultoAtual || !ids.includes(EG.cultoAtual)) {
+      EG.cultoAtual = ids[0] || null;
+    }
+
     let html = buildDateNav();
-    cultosOrdenados.forEach(({ culto, entries }) => {
+
+    /* Abas por culto */
+    if (cultosOrdenados.length > 1) {
+      html += `<div class="culto-tabs-bar">` +
+        cultosOrdenados.map(({ culto }) => {
+          const hora   = (culto?.hora_inicio||'').slice(0,5);
+          const campus = culto?.campus?.nome ? ` · ${culto.campus.nome}` : '';
+          const ativo  = EG.cultoAtual === culto?.id;
+          /* contagem de lanches neste culto */
+          const membrosCulto = [...new Set(
+            (porCulto.get(culto?.id)?.entries||[]).map(e=>e.membro_id)
+          )];
+          const okCulto = membrosCulto.filter(id=>(lancheMap[id]||[]).length>=1).length;
+          const prog = membrosCulto.length
+            ? `<span class="ctab-prog ${ativo?'ctab-prog-on':''}">${okCulto}/${membrosCulto.length}</span>`
+            : '';
+          return `<div class="culto-tab ${ativo?'on':''}"
+                    onclick="selCulto('${culto?.id}')">
+                    <div class="ctab-nome">${culto?.nome||'Culto'}</div>
+                    <div class="ctab-meta">${hora}${campus} ${prog}</div>
+                  </div>`;
+        }).join('') +
+      `</div>`;
+    }
+
+    /* Mostrar só o culto activo */
+    const visíveis = cultosOrdenados.filter(c => c.culto?.id === EG.cultoAtual);
+    visíveis.forEach(({ culto, entries }) => {
       html += buildCultoSection(culto, entries, lancheMap);
     });
 
@@ -571,7 +642,7 @@
 
   function navData(n) {
     const novo = EG.datas[EG.datas.indexOf(EG.dataAtual) + n];
-    if (novo) { EG.dataAtual = novo; renderContent(); }
+    if (novo) { EG.dataAtual = novo; EG.cultoAtual = null; renderContent(); }
   }
 
   function buildCultoSection(culto, entries, lancheMap) {
@@ -754,6 +825,11 @@
       btn.disabled = false; btn.textContent = '⚡ Autorizar Extra';
       pendente = null;
     }
+  }
+
+  function selCulto(cultoId) {
+    EG.cultoAtual = cultoId;
+    renderContent();
   }
 
   async function recarregar() {

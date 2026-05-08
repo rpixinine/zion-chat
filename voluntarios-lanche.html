@@ -171,6 +171,18 @@
     .area-hd-nome{font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);flex:1}
     .area-hd-count{font-size:10px;color:var(--muted);opacity:.6}
 
+    .vol-card.no-checkin{opacity:.55;filter:grayscale(.4)}
+    .vol-checkin-tag{
+      font-size:10px;color:var(--orange);font-family:'Cinzel',serif;
+      letter-spacing:.3px;margin-top:3px
+    }
+    .btn-sem-checkin{
+      background:rgba(255,255,255,.04) !important;
+      border-color:var(--border) !important;
+      color:var(--muted) !important;
+      cursor:not-allowed !important;font-size:11px
+    }
+
     /* VOL CARD */
     .vol-card{
       display:flex;align-items:center;gap:14px;
@@ -468,9 +480,9 @@
   /* ── Estado ── */
   const EG = {
     ministerios: [], minMap: {},
-    escala: [], lanches: [],
+    escala: [], lanches: [], checkins: [],
     datas: [], dataAtual: '',
-    cultoAtual: null   /* culto_id seleccionado; null = todos */
+    cultoAtual: null
   };
 
   /* ── Operador ── */
@@ -528,6 +540,11 @@
       EG.datas  = [...new Set(EG.escala.map(e => e.data))].sort();
       EG.dataAtual = EG.datas.find(d => d >= hoje) || EG.datas[0] || hoje;
 
+      /* Check-ins de hoje (para validar quem já fez check-in) */
+      EG.checkins = await sb(
+        `ministerio_checkin?data=eq.${hoje}&select=membro_id,culto_id,ministerio_id,status`
+      ).catch(() => []) || [];
+
       await carregarLanches();
     } catch(e) {
       document.getElementById('content').innerHTML =
@@ -536,9 +553,13 @@
   }
 
   async function carregarLanches() {
-    EG.lanches = await sb(
-      'vds26_lanches?select=id,membro_id,ministerio_id,motivo,registado_em&order=registado_em'
-    ).catch(() => []) || [];
+    const hoje = hojeISO();
+    const [lanches, checkins] = await Promise.all([
+      sb('vds26_lanches?select=id,membro_id,ministerio_id,motivo,registado_em&order=registado_em').catch(()=>[]),
+      sb(`ministerio_checkin?data=eq.${hoje}&select=membro_id,culto_id,ministerio_id,status`).catch(()=>[])
+    ]);
+    EG.lanches   = lanches  || [];
+    EG.checkins  = checkins || [];
     renderContent();
   }
 
@@ -655,13 +676,13 @@
     const pillOk   = okC       ? `<span class="chs-pill chs-ok">✓ ${okC} lanches</span>` : '';
     const pillPend = totalC-okC > 0 ? `<span class="chs-pill chs-pend">${totalC-okC} por receber</span>` : '';
 
-    /* Agrupar por área */
+    /* Agrupar por área — mas deduplicar por membro ao nível do culto inteiro */
     const porArea = new Map();
     entries.forEach(e => {
       if (!porArea.has(e.ministerio_id)) porArea.set(e.ministerio_id, []);
       porArea.get(e.ministerio_id).push(e);
     });
-
+    const membroVistoCulto = new Set();
     const areasOrdenadas = [...porArea.entries()]
       .map(([id, es]) => ({ min: EG.minMap[id], entries: es }))
       .filter(x => x.min)
@@ -669,8 +690,13 @@
 
     let areasHtml = '';
     areasOrdenadas.forEach(({ min, entries: es }) => {
-      const seen = new Set();
-      const vols = es.filter(e => { if (seen.has(e.membro_id)) return false; seen.add(e.membro_id); return true; });
+      /* Dentro desta área, ignorar membros já vistos neste culto */
+      const vols = es.filter(e => {
+        if (membroVistoCulto.has(e.membro_id)) return false;
+        membroVistoCulto.add(e.membro_id);
+        return true;
+      });
+      if (!vols.length) return;
       areasHtml += `<div class="area-hd">
         <div class="area-hd-nome">${min.nome}</div>
         <div class="area-hd-count">${vols.length}</div>
@@ -701,12 +727,24 @@
     const ini      = iniciais(nome);
     const ultimaObs = lanches.length ? lanches[lanches.length-1].motivo : null;
 
+    /* Validar check-in: precisa ter presente ou atrasado neste culto */
+    const checkedIn = EG.checkins.some(c =>
+      c.membro_id === e.membro_id &&
+      c.culto_id  === e.culto_id  &&
+      (c.status === 'presente' || c.status === 'atrasado')
+    );
+
     let lcHtml, btnHtml;
     if (count === 0) {
-      lcHtml  = `<div class="lanche-count lc-none">0 lanches</div>`;
-      btnHtml = `<button class="btn-dar"
-        onclick="abrirLanche('${esc(e.membro_id)}','${esc(min.id)}','${esc(nome)}','${esc(foto||'')}','${esc(min.nome)}','${esc(culto?.nome||'')}')">
-        🥪 Dar Lanche</button>`;
+      lcHtml = `<div class="lanche-count lc-none">0 lanches</div>`;
+      if (checkedIn) {
+        btnHtml = `<button class="btn-dar"
+          onclick="abrirLanche('${esc(e.membro_id)}','${esc(min.id)}','${esc(nome)}','${esc(foto||'')}','${esc(min.nome)}','${esc(culto?.nome||'')}')">
+          🥪 Dar Lanche</button>`;
+      } else {
+        btnHtml = `<button class="btn-dar btn-sem-checkin" disabled title="Voluntário ainda não fez check-in">
+          ⏳ Sem Check-in</button>`;
+      }
     } else if (count === 1) {
       lcHtml  = `<div class="lanche-count lc-ok">✓ 1 lanche</div>`;
       btnHtml = `<button class="btn-extra"
@@ -719,7 +757,7 @@
         + Extra</button>`;
     }
 
-    const cardCls  = count === 0 ? '' : count === 1 ? 'has-lanche' : 'has-extra';
+    const cardCls  = count === 0 ? (checkedIn ? '' : 'no-checkin') : count === 1 ? 'has-lanche' : 'has-extra';
     const obsHtml  = ultimaObs ? `<div class="vol-obs">💬 ${ultimaObs}</div>` : '';
 
     return `<div class="vol-card ${cardCls}">
@@ -729,6 +767,7 @@
       </div>
       <div class="vol-info">
         <div class="vol-nome">${nome}</div>
+        ${!checkedIn && count === 0 ? `<div class="vol-checkin-tag">Aguarda check-in</div>` : ''}
         ${obsHtml}
       </div>
       <div class="vol-actions">

@@ -151,14 +151,45 @@
     .hrg-side { display:none; }
     .hrg-chart-grid { grid-template-columns:1fr; }
   }
+
+  /* ── SIDEBAR COLLAPSE ── */
+  .hrg-side { transition: width 0.25s ease; }
+  .hrg-side.collapsed { width: 36px !important; min-width: 0 !important; overflow: hidden; }
+  .hrg-side.collapsed .hrg-side-title,
+  .hrg-side.collapsed .hrg-filters,
+  .hrg-side.collapsed .btn-icon { display: none; }
+  .hrg-side.collapsed .hrg-side-hd { padding: 6px 4px; justify-content: center; }
+
+  .hrg-toggle-btn {
+    width: 28px; height: 28px; flex-shrink: 0;
+    border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--primary);
+    font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .hrg-toggle-btn:hover { background: rgba(0,144,152,0.2); }
+
+  /* ── TABELA: tags de info extra ── */
+  .hrg-info-tag {
+    display:inline-block; padding:1px 6px; border-radius:20px;
+    font-size:9px; font-family:var(--font-title); white-space:nowrap;
+  }
+
+  @media(max-width:700px) {
+    .hrg-chart-grid { grid-template-columns:1fr; }
+    /* sidebar gerida pela classe .collapsed */
+  }
+
 </style>
 
 <!-- ══ HUB REGISTROS PAGE ══ -->
 <div class="hrg-page">
 
   <!-- SIDEBAR -->
-  <div class="hrg-side">
+  <div class="hrg-side" id="hrg-side-wrap">
     <div class="hrg-side-hd">
+      <button class="hrg-toggle-btn" id="hrg-toggle-btn" onclick="hrg_toggleSide()" title="Mostrar/ocultar filtros">☰</button>
       <div class="hrg-side-title">HUB · Filtros</div>
       <button class="btn-icon" onclick="hrg_carregar()" title="Recarregar">↺</button>
     </div>
@@ -369,17 +400,25 @@
     /* Mapeamento das perguntas por tipo */
     const Q = {
       membro: [
-        { key:'pergunta1', label:'Áreas da Igreja' },
-        { key:'duvida',    label:'Como podemos ajudar' },
+        { key:'pergunta1',   label:'Áreas da Igreja' },
+        { key:'pergunta2',   label:'Pergunta 2' },
+        { key:'pergunta3',   label:'Pergunta 3' },
+        { key:'tipo_duvida', label:'Tipo de dúvida' },
+        { key:'duvida',      label:'Como podemos ajudar' },
       ],
       visitante: [
-        { key:'pergunta1', label:'Primeira vez?' },
-        { key:'pergunta2', label:'Como conheceu a Zion' },
-        { key:'pergunta3', label:'Veio acompanhado' },
-        { key:'pergunta4', label:'Frequenta alguma igreja' },
-        { key:'pergunta5', label:'Faixa etária' },
-        { key:'pergunta6', label:'Pedido de oração' },
-        { key:'duvida',    label:'Como o HUB pode ajudar' },
+        { key:'pergunta1',   label:'Primeira vez?' },
+        { key:'pergunta2',   label:'Como conheceu a Zion' },
+        { key:'pergunta3',   label:'Veio acompanhado' },
+        { key:'pergunta4',   label:'Frequenta alguma igreja' },
+        { key:'pergunta5',   label:'Faixa etária' },
+        { key:'pergunta6',   label:'Pedido de oração' },
+        { key:'pergunta7',   label:'Pergunta 7' },
+        { key:'pergunta8',   label:'Pergunta 8' },
+        { key:'pergunta9',   label:'Pergunta 9' },
+        { key:'pergunta10',  label:'Pergunta 10' },
+        { key:'tipo_duvida', label:'Tipo de dúvida' },
+        { key:'duvida',      label:'Como o HUB pode ajudar' },
       ]
     };
 
@@ -402,7 +441,25 @@
     /* ═══════════════════════════════════════
        INIT
     ═══════════════════════════════════════ */
+
+    window.hrg_toggleSide = function() {
+      const side = document.getElementById('hrg-side-wrap');
+      const btn  = document.getElementById('hrg-toggle-btn');
+      if (!side) return;
+      const collapsed = side.classList.toggle('collapsed');
+      btn.textContent = collapsed ? '▶' : '☰';
+    };
+
+    function hrg_initSidebar() {
+      if (window.innerWidth <= 700) {
+        const side = document.getElementById('hrg-side-wrap');
+        const btn  = document.getElementById('hrg-toggle-btn');
+        if (side) { side.classList.add('collapsed'); if (btn) btn.textContent = '▶'; }
+      }
+    }
+
     async function hrg_init() {
+      hrg_initSidebar();
       document.getElementById('hrg-f-de').value  = primMes();
       document.getElementById('hrg-f-ate').value = hoje();
       hrg_carregar();
@@ -551,7 +608,7 @@
     /* ═══════════════════════════════════════
        TAB: REGISTOS
     ═══════════════════════════════════════ */
-    function hrg_renderTabela() {
+    function hrg_renderTabelaOld() {
       const tbody = document.getElementById('hrg-tbody');
       if (!hrg_filtrado.length) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px;font-style:italic">Nenhum registo encontrado.</td></tr>';
@@ -617,6 +674,97 @@
                 <td class="tc">${vBadge}</td>
                 <td><button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();hrg_verDetalhe('${r.id}')">Ver</button></td>
             </tr>`;
+      }).join('');
+    }
+
+    function hrg_renderTabela() {
+      const tbody = document.getElementById('hrg-tbody');
+      if (!hrg_filtrado.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px;font-style:italic">Nenhum registo encontrado.</td></tr>';
+        return;
+      }
+
+      const grupos = hrg_agrupar(hrg_filtrado);
+      const contPessoa = {};
+      grupos.forEach(g => g.registos.forEach(r => { contPessoa[r.id] = g.registos.length; }));
+
+      tbody.innerHTML = hrg_filtrado.map(r => {
+        const data    = hrg_fmtData(r.created_at);
+        const nome    = r.nome || r.nome_membro || '—';
+        const tipo    = r.tipo_pessoa;
+        const isM     = tipo === 'membro';
+        const mem     = isM && r.membro_id ? hrg_membros[r.membro_id] : null;
+        const foto    = mem?.foto_url;
+        const tel     = r.telefone || '';
+        const visitas = contPessoa[r.id] || 1;
+
+        const badge = isM
+                ? `<span class="hbadge hb-m">Membro</span>`
+                : `<span class="hbadge hb-v">Visitante</span>`;
+
+        const avatar = foto
+                ? `<img class="hrg-av" src="${foto}" alt="" onerror="this.outerHTML='<span class=hrg-av-ph>${iniciais(nome)}</span>'">`
+                : `<span class="hrg-av-ph">${iniciais(nome)}</span>`;
+
+        const waBtn = tel
+                ? `<a class="hrg-wa" href="https://wa.me/${tel.replace(/\D/g,'')}" target="_blank" onclick="event.stopPropagation()" title="WhatsApp">
+           <svg viewBox="0 0 24 24" width="11" height="11" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+         </a>`
+                : '';
+
+        /* ── Contacto: telefone + email ── */
+        const contactoHtml = `
+      <div style="white-space:nowrap">
+        ${tel ? `<span style="font-size:11px">${esc(tel)}</span>${waBtn}` : '<span style="color:var(--text-faint)">—</span>'}
+        ${r.email ? `<div style="font-size:10px;color:var(--text-faint);margin-top:1px">${esc(r.email)}</div>` : ''}
+      </div>`;
+
+        /* ── Info principal: mais densa para visitante ── */
+        let infoHtml;
+        if (isM) {
+          infoHtml = r.pergunta1
+                  ? `<span style="font-size:10px;color:var(--text-faint)">${truncar(r.pergunta1, 40)}</span>`
+                  : '—';
+        } else {
+          const tags = [];
+          if (r.pergunta1) tags.push(`<span class="hrg-info-tag" style="background:${r.pergunta1==='Sim'?'rgba(0,144,152,.1)':'rgba(243,156,18,.1)'};color:${r.pergunta1==='Sim'?'var(--primary-dark)':'#f39c12'}">${r.pergunta1==='Sim'?'1ª vez':'Retorno'}</span>`);
+          if (r.pergunta5) tags.push(`<span class="hrg-info-tag" style="background:rgba(0,0,0,.05);color:var(--text-faint)">${esc(r.pergunta5)}</span>`);
+          if (r.pergunta2) tags.push(`<span style="font-size:10px;color:var(--text-faint)">${truncar(r.pergunta2, 28)}</span>`);
+          if (r.morada)    tags.push(`<span style="font-size:9px;color:var(--text-faint)">📍 ${truncar(r.morada, 22)}</span>`);
+          infoHtml = tags.length ? tags.join('<br>') : '—';
+        }
+
+        /* ── Dúvida: tipo + texto ── */
+        const tipoDuvidaTag = r.tipo_duvida
+                ? `<span class="hrg-info-tag" style="background:rgba(243,156,18,.1);color:#f39c12;margin-bottom:2px;display:inline-block">${esc(r.tipo_duvida)}</span><br>`
+                : '';
+        const duvidaTxt = truncar(r.duvida || '', 50);
+        const duvidaHtml = (tipoDuvidaTag || duvidaTxt)
+                ? `<div style="font-size:11px">${tipoDuvidaTag}${duvidaTxt ? esc(duvidaTxt) : ''}</div>`
+                : `<span style="color:var(--text-faint);font-style:italic">—</span>`;
+
+        const vBadge = visitas > 1
+                ? `<span class="hbadge hb-ret">${visitas}x</span>`
+                : `<span style="font-size:11px;color:var(--text-faint)">1</span>`;
+
+        return `<tr onclick="hrg_verDetalhe('${r.id}')">
+      <td style="white-space:nowrap;font-size:11px;color:var(--text-faint)">${data}</td>
+      <td>${badge}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${avatar}
+          <div>
+            <div style="font-weight:600;font-size:12px">${esc(nome)}</div>
+            ${mem ? `<div style="font-size:9px;color:var(--text-faint)">Membro registado</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td>${contactoHtml}</td>
+      <td style="max-width:160px">${infoHtml}</td>
+      <td style="max-width:200px">${duvidaHtml}</td>
+      <td class="tc">${vBadge}</td>
+      <td><button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();hrg_verDetalhe('${r.id}')">Ver</button></td>
+    </tr>`;
       }).join('');
     }
 

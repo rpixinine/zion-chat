@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Keola · Zion Lisboa</title>
+  <title>Keola Books &amp; Café · Zion Lisboa</title>
   <meta name="description" content="Livros, vestuário e artigos cristãos. Entrega em Portugal.">
   <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
   <script>
@@ -511,6 +511,20 @@
       .products-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));}
     }
     input:-webkit-autofill,input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px var(--bg-input) inset !important;-webkit-text-fill-color:var(--text-main) !important;}
+
+    /* ═══ COOKIE BANNER ═══ */
+    .cookie-banner{position:fixed;bottom:0;left:0;right:0;z-index:700;background:var(--bg-card);border-top:2px solid var(--primary-soft);padding:16px clamp(16px,4vw,40px);display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 -4px 24px rgba(0,0,0,0.12);transform:translateY(110%);transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);}
+    .cookie-banner.show{transform:translateY(0);}
+    .cookie-text{flex:1;min-width:220px;font-size:12px;color:var(--text-muted);line-height:1.6;}
+    .cookie-text strong{color:var(--text-main);}
+    .cookie-text a{color:var(--primary-dk);text-decoration:underline;cursor:pointer;}
+    .cookie-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+    .cookie-btn{padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.15s;border:none;font-family:'Cinzel',serif;letter-spacing:0.5px;}
+    .cookie-btn-accept{background:var(--primary-dk);color:#fff;}
+    .cookie-btn-accept:hover{background:var(--primary);}
+    .cookie-btn-reject{background:var(--bg-panel);color:var(--text-muted);border:1.5px solid var(--border);}
+    .cookie-btn-reject:hover{border-color:var(--primary);color:var(--primary-dk);}
+    @media(max-width:600px){.cookie-banner{flex-direction:column;align-items:flex-start;}.cookie-actions{width:100%;}}
   </style>
 </head>
 <body>
@@ -629,8 +643,12 @@
   </div>
   <div class="footer-bottom">
     <div class="footer-legal">
-      &copy; 2026 Zion Lisboa · Precos com IVA incluido ·
-      <span onclick="showLegal('privacidade')" style="cursor:pointer;text-decoration:underline">Politica de Privacidade</span>
+      &copy; 2026 Associa&ccedil;&atilde;o Zion Lisboa &middot; NIF 516294822 &middot; Rua do Centro Cultural, 11, 1700-036 Lisboa<br>
+      Pre&ccedil;os com IVA inclu&iacute;do &middot;
+      <span onclick="showLegal('privacidade')" style="cursor:pointer;text-decoration:underline">Privacidade</span> &middot;
+      <span onclick="showLegal('termos')" style="cursor:pointer;text-decoration:underline">Termos</span> &middot;
+      <span onclick="showLegal('cookies')" style="cursor:pointer;text-decoration:underline">Cookies</span> &middot;
+      <span onclick="showLegal('devolucoes')" style="cursor:pointer;text-decoration:underline">Devolu&ccedil;&otilde;es</span>
     </div>
     <div class="footer-pay-list">
       <span>Cartao</span><span>MB Way</span><span>Multibanco</span><span>Transferencia</span>
@@ -808,6 +826,17 @@
   </div>
 </div>
 
+<!-- ══ COOKIE BANNER ══ -->
+<div class="cookie-banner" id="cookie-banner">
+  <div class="cookie-text">
+    <strong>Utilizamos cookies</strong> essenciais para o funcionamento da loja (carrinho, sessao, preferencias). Ao continuar, aceita o uso de cookies nos termos da nossa <a onclick="showLegal('privacidade')">Politica de Privacidade</a> e <a onclick="showLegal('cookies')">Politica de Cookies</a>.
+  </div>
+  <div class="cookie-actions">
+    <button class="cookie-btn cookie-btn-reject" onclick="cookieChoice(false)">Apenas Essenciais</button>
+    <button class="cookie-btn cookie-btn-accept" onclick="cookieChoice(true)">Aceitar Todos</button>
+  </div>
+</div>
+
 <div class="toast-wrap"><div class="toast" id="toast"></div></div>
 
 <script>
@@ -855,7 +884,7 @@
     pickup_semana: { label: 'Levantamento Ter-Sex', desc: 'Ter a Sex, 10h-18h', preco: 0 },
     pickup_fds:    { label: 'Levantamento Sab-Dom', desc: 'Sab e Dom, 10h-20h', preco: 0 },
   };
-
+  
   const FREE_SHIP_ABOVE = 999999; // desactivado — so Levantamento e gratis
   const IVA_RATE = 0.06;
 
@@ -887,8 +916,7 @@
     });
   }
   async function discoverBanners(max = 8) {
-    // Opcao 1: manifesto opcional — cria assets/banners/banners.json para zero 404s
-    // Conteudo: ["banner1.png","banner2.png"]
+
     try {
       const r = await fetch('assets/banners/banners.json?_=' + Date.now());
       if (r.ok) {
@@ -896,8 +924,7 @@
         if (Array.isArray(list) && list.length) return list.map(f => 'assets/banners/' + f);
       }
     } catch {}
-    // Opcao 2: descoberta automatica (.png e .jpg apenas, 2 tentativas por numero)
-    // Os 404s do ultimo numero inexistente sao normais e inofensivos
+
     const found = [];
     for (let i = 1; i <= max; i++) {
       const png = 'assets/banners/banner' + i + '.png';
@@ -940,7 +967,7 @@
     bannerIdx = i;
     document.getElementById('banner-slides').style.transform = `translateX(-${bannerIdx * 100}%)`;
     document.querySelectorAll('.banner-dot').forEach((d, j) => d.classList.toggle('active', j === i));
-    bannerTimer = setInterval(() => bannerNav(1), 10000);
+    bannerTimer = setInterval(() => bannerNav(1), 10000); 
   }
 
   /* ══ PARTE 4 — Supabase Helpers ══════════════════════════════ */
@@ -1612,37 +1639,131 @@
     el.textContent = msg; el.className = `toast ${tipo} show`;
     clearTimeout(_toastTimer); _toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
   }
+  /* ══ COOKIES ══ */
+  function initCookieBanner() {
+    if (localStorage.getItem('zion_cookie_consent') !== null) return;
+    setTimeout(function(){ var b=document.getElementById('cookie-banner'); if(b) b.classList.add('show'); }, 1500);
+  }
+  function cookieChoice(accepted) {
+    localStorage.setItem('zion_cookie_consent', accepted ? 'all' : 'essential');
+    var b=document.getElementById('cookie-banner'); if(b) b.classList.remove('show');
+  }
+
   function showLegal(tipo) {
-    const LEGAL = {
-      devolucoes: { title:'Politica de Devolucoes', body:`<h3 style="margin-bottom:10px">Direito de Retratacao (14 dias)</h3><p>Ao abrigo do Decreto-Lei n.o 24/2014, tem o direito de rescindir o contrato no prazo de 14 dias, sem necessidade de indicar qualquer motivo.</p><br><p>O prazo expira 14 dias apos o dia em que adquire a posse fisica do(s) bem(ns). Para exercer o direito, notifique-nos por carta ou email.</p><br><p>Os custos directos de devolucao sao suportados pelo consumidor.</p>` },
-      privacidade: { title:'Privacidade & RGPD', body:`<h3 style="margin-bottom:10px">Proteccao de Dados Pessoais</h3><p>Os seus dados sao tratados pela Zion Lisboa nos termos do RGPD (Regulamento UE 2016/679).</p><br><p><strong>Finalidades:</strong> Processamento de encomendas, confirmacoes, gestao de conta.</p><br><p><strong>Fundamento:</strong> Execucao de contrato (Art. 6, 1, b) e consentimento (Art. 6, 1, a).</p><br><p><strong>Direitos:</strong> Acesso, rectificacao, apagamento, limitacao, portabilidade e oposicao. Contacte: privacidade@zionlisboa.pt</p>` },
-      termos: { title:'Termos e Condicoes', body:`<h3 style="margin-bottom:10px">Termos Gerais</h3><p>Ao efectuar uma compra aceita os presentes termos. Os precos incluem IVA a taxa aplicavel.</p><br><p><strong>Disponibilidade:</strong> Artigos sujeitos a stock disponivel. Reservamo-nos o direito de cancelar encomendas em caso de indisponibilidade, com reembolso total.</p><br><p><strong>Entrega:</strong> Prazo em Portugal continental. Nao nos responsabilizamos por atrasos das transportadoras.</p><br><p><strong>Lei aplicavel:</strong> Lei portuguesa. Em caso de litigio o consumidor pode recorrer as entidades de Resolucao Alternativa de Litigios.</p>` }
+    var LEGAL = {
+
+      privacidade: {
+        title: 'Pol\xedtica de Privacidade',
+        body: '<p style="margin-bottom:12px;font-size:11px;color:var(--text-faint)">Actualizada em Maio de 2026 \xb7 Conforme RGPD (UE) 2016/679</p>'
+                + '<h4 style="margin:10px 0 6px">1. Respons\xe1vel pelo Tratamento</h4>'
+                + '<p>Associa\xe7\xe3o Zion Lisboa \xb7 NIF 516294822<br>Rua do Centro Cultural, 11, 1700-036 Alvalade, Lisboa, Portugal<br>Tel: +351 963 777 777 \xb7 Email: <strong>contacto@zionlisboa.pt</strong></p>'
+                + '<h4 style="margin:10px 0 6px">2. Dados Recolhidos e Finalidades</h4>'
+                + '<p>Recolhemos dados pessoais para: processamento de encomendas, gest\xe3o de conta de cliente, cumprimento de obriga\xe7\xf5es legais e fiscais. Os dados recolhidos incluem: nome, email, telef\xf3nico, morada de entrega e NIF (facultativo).</p>'
+                + '<h4 style="margin:10px 0 6px">3. Fundamento Legal</h4>'
+                + '<p>Execu\xe7\xe3o de contrato (Art. 6.1.b RGPD) \xb7 Consentimento (Art. 6.1.a RGPD) \xb7 Obriga\xe7\xe3o legal (Art. 6.1.c RGPD)</p>'
+                + '<h4 style="margin:10px 0 6px">4. Subcontratantes de Dados</h4>'
+                + '<ul style="padding-left:16px;line-height:2;font-size:12px">'
+                + '<li><strong>Supabase Inc.</strong> (EUA) \xb7 Base de dados \xb7 Adequa\xe7\xe3o RGPD via SCCs</li>'
+                + '<li><strong>Stripe Inc.</strong> (EUA) \xb7 Pagamentos com cart\xe3o \xb7 Adequa\xe7\xe3o RGPD via SCCs</li>'
+                + '<li><strong>EuPago Lda.</strong> (Portugal) \xb7 MB Way e Multibanco</li>'
+                + '<li><strong>Vercel Inc.</strong> (EUA) \xb7 Alojamento web \xb7 Adequa\xe7\xe3o RGPD</li>'
+                + '</ul>'
+                + '<h4 style="margin:10px 0 6px">5. Conserva\xe7\xe3o de Dados</h4>'
+                + '<p>Dados de encomendas: 10 anos (obriga\xe7\xe3o fiscal). Dados de conta: at\xe9 elimin\xe7\xe3o pelo utilizador ou 3 anos ap\xf3s \xfaltimo acesso.</p>'
+                + '<h4 style="margin:10px 0 6px">6. Tomadas de Decis\xe3o Automatizadas</h4>'
+                + '<p>N\xe3o utilizamos procedimentos de tomadas de decis\xe3o automatizadas nem perfilamento.</p>'
+                + '<h4 style="margin:10px 0 6px">7. Os Seus Direitos</h4>'
+                + '<p>Tem direito de: acesso, rectifica\xe7\xe3o, apagamento, limita\xe7\xe3o, portabilidade e oposi\xe7\xe3o. Para exercer os seus direitos contacte: <strong>privacidade@zionlisboa.pt</strong></p>'
+                + '<h4 style="margin:10px 0 6px">8. Reclama\xe7\xf5es</h4>'
+                + '<p>Pode apresentar queixa \xe0 Comiss\xe3o Nacional de Prote\xe7\xe3o de Dados (CNPD) em <strong>www.cnpd.pt</strong></p>'
+      },
+
+      termos: {
+        title: 'Termos e Condi\xe7\xf5es',
+        body: '<p style="margin-bottom:12px;font-size:11px;color:var(--text-faint)">Actualizado em Maio de 2026</p>'
+                + '<h4 style="margin:10px 0 6px">1. Defini\xe7\xf5es</h4>'
+                + '<p><strong>Vendedor:</strong> Associa\xe7\xe3o Zion Lisboa \xb7 NIF 516294822<br>'
+                + 'Rua do Centro Cultural, 11, 1700-036 Alvalade, Lisboa, Portugal<br>'
+                + 'Tel: +351 963 777 777 \xb7 Email: contacto@zionlisboa.pt<br>'
+                + '<strong>Alojamento:</strong> Vercel Inc., 340 Pine St. Suite 900, San Francisco CA 94104, EUA</p>'
+                + '<h4 style="margin:10px 0 6px">2. Pre\xe7os e IVA</h4>'
+                + '<p>Todos os pre\xe7os incluem IVA \xe0 taxa legal aplic\xe1vel. Livros: taxa reduzida 6%. Outros artigos: taxa em vigor. A Zion Lisboa reserva o direito de alterar pre\xe7os sem aviso pr\xe9vio.</p>'
+                + '<h4 style="margin:10px 0 6px">3. Pagamento</h4>'
+                + '<p>Aceitamos: cart\xe3o de cr\xe9dito/d\xe9bito (Visa, Mastercard via Stripe), MB Way, Multibanco e Transfer\xeancia Banc\xe1ria. O pagamento \xe9 exigido no momento da encomenda.</p>'
+                + '<h4 style="margin:10px 0 6px">4. Disponibilidade e Encomendas</h4>'
+                + '<p>Artigos sujeitos a stock dispon\xedvel. Em caso de indisponibilidade ap\xf3s encomenda, a Zion Lisboa cancelar\xe1 a encomenda com reembolso integral no prazo de 14 dias.</p>'
+                + '<h4 style="margin:10px 0 6px">5. Entrega</h4>'
+                + '<p>Entregas em Portugal continental. Prazos estimativos \xe2\x80\x94 n\xe3o garantidos. N\xe3o nos responsabilizamos por atrasos imput\xe1veis a transportadoras, greves ou for\xe7as maiores.</p>'
+                + '<h4 style="margin:10px 0 6px">6. Direito de Retrata\xe7\xe3o</h4>'
+                + '<p>Ao abrigo do DL n.\xba 24/2014, tem 14 dias ap\xf3s recep\xe7\xe3o para devolver artigos sem necessidade de justifica\xe7\xe3o. Para devolu\xe7\xf5es contacte: <strong>devolucoes@zionlisboa.pt</strong><br>Custos de devolu\xe7\xe3o suportados pelo consumidor. Reembolso em 14 dias ap\xf3s recep\xe7\xe3o dos artigos.</p>'
+                + '<h4 style="margin:10px 0 6px">7. Responsabilidades</h4>'
+                + '<p>A Zion Lisboa n\xe3o pode ser responsabilizada por interrup\xe7\xf5es do site, erros de terceiros (gateways de pagamento, transportadoras) ou danos indirectos resultantes da utiliza\xe7\xe3o dos nossos servi\xe7os.</p>'
+                + '<h4 style="margin:10px 0 6px">8. Propriedade Intelectual</h4>'
+                + '<p>Todos os conte\xfados do site s\xe3o propriedade da Associa\xe7\xe3o Zion Lisboa. Qualquer reprodu\xe7\xe3o sem autoriza\xe7\xe3o pr\xe9via por escrito \xe9 proibida.</p>'
+                + '<h4 style="margin:10px 0 6px">9. Resolu\xe7\xe3o de Lit\xedgios</h4>'
+                + '<p>Centro de Arbitragem de Conflitos de Consumo de Lisboa<br>Tel: 218 807 030 \xb7 juridico@centroarbitragemlisboa.pt \xb7 www.centroarbitragemlisboa.pt<br>Portal do Consumidor: www.consumidor.pt (Lei n.\xba 144/2015)</p>'
+                + '<h4 style="margin:10px 0 6px">10. Lei Aplic\xe1vel</h4>'
+                + '<p>Lei portuguesa e europeia em vigor. Qualquer lit\xedgio ser\xe1 resolvido nos tribunais portugueses competentes.</p>'
+      },
+
+      devolucoes: {
+        title: 'Pol\xedtica de Devolu\xe7\xf5es',
+        body: '<h4 style="margin:10px 0 6px">Direito de Retrata\xe7\xe3o (14 dias)</h4>'
+                + '<p>Ao abrigo do Decreto-Lei n.\xba 24/2014, de 14 de Fevereiro, tem o direito de rescindir o contrato no prazo de 14 dias a contar da data de recep\xe7\xe3o dos artigos, sem necessidade de indicar qualquer motivo.</p>'
+                + '<h4 style="margin:10px 0 6px">Como Devolver</h4>'
+                + '<ol style="padding-left:16px;line-height:2;font-size:12px">'
+                + '<li>Envie email para <strong>devolucoes@zionlisboa.pt</strong> com o n\xfamero de encomenda</li>'
+                + '<li>Aguarde confirma\xe7\xe3o e instru\xe7\xf5es de devolu\xe7\xe3o (at\xe9 2 dias \xfateis)</li>'
+                + '<li>Envie os artigos em condi\xe7\xf5es originais para a nossa morada</li>'
+                + '<li>O reembolso \xe9 efectuado em 14 dias ap\xf3s recep\xe7\xe3o e verifica\xe7\xe3o</li>'
+                + '</ol>'
+                + '<h4 style="margin:10px 0 6px">Condi\xe7\xf5es</h4>'
+                + '<p>Artigos devem ser devolvidos em estado original, sem sinais de uso, com etiquetas e embalagem original. Os custos de devolu\xe7\xe3o s\xe3o suportados pelo consumidor. N\xe3o aceitamos devolu\xe7\xf5es de artigos personalizados ou com deteriora\xe7\xe3o causada pelo utilizador.</p>'
+                + '<h4 style="margin:10px 0 6px">Contacto para Devolu\xe7\xf5es</h4>'
+                + '<p>Email: <strong>devolucoes@zionlisboa.pt</strong><br>Tel: +351 963 777 777<br>Morada: Rua do Centro Cultural, 11, 1700-036 Alvalade, Lisboa</p>'
+      },
+
+      cookies: {
+        title: 'Pol\xedtica de Cookies',
+        body: '<h4 style="margin:10px 0 6px">O Que S\xe3o Cookies?</h4>'
+                + '<p>Os "Cookies" s\xe3o ficheiros de texto referentes \xe0 sua utiliza\xe7\xe3o do website que o seu dispositivo armazena por um determinado per\xedodo de tempo atrav\xe9s do seu navegador. Isto permite que o website se "lembre" das suas ac\xe7\xf5es e prefer\xeancias.</p>'
+                + '<h4 style="margin:10px 0 6px">Tipos de Cookies Utilizados</h4>'
+                + '<ul style="padding-left:16px;line-height:2;font-size:12px">'
+                + '<li><strong>Cookies Essenciais</strong> \xb7 Necess\xe1rios para o funcionamento da loja (carrinho, sess\xe3o). N\xe3o identificam o utilizador pessoalmente. S\xe3o eliminados ao fechar o browser ou no prazo configurado.<br>'
+                + '<em>zion_loja_cart</em> (carrinho) \xb7 <em>zion_loja_auth_v1</em> (sess\xe3o) \xb7 <em>zion_cookie_consent</em> (escolha de cookies)</li>'
+                + '<li><strong>Cookies de Funcionalidade</strong> \xb7 Lembram prefer\xeancias do utilizador. N\xe3o armazenam dados pessoais.<br>'
+                + '<em>zion_loja_theme</em> (tema claro/escuro)</li>'
+                + '<li><strong>Cookies de Terceiros (pagamento)</strong> \xb7 Utilizados apenas quando efectua pagamento com cart\xe3o.<br>'
+                + '<em>Stripe.js</em> \xb7 Processamento seguro de pagamentos \xb7 Pol\xedtica: stripe.com/privacy</li>'
+                + '</ul>'
+                + '<h4 style="margin:10px 0 6px">Como Controlar/Bloquear Cookies</h4>'
+                + '<p>Pode, a qualquer momento, a partir do seu navegador de internet decidir ser notificado sobre a recep\xe7\xe3o de Cookies, bloque\xe1-los ou elimin\xe1-los. Ao bloquear cookies essenciais, o site pode n\xe3o funcionar correctamente. Para mais informa\xe7\xf5es consulte <strong>AllAboutCookies.org</strong>.</p>'
+                + '<h4 style="margin:10px 0 6px">Dura\xe7\xe3o do Consentimento</h4>'
+                + '<p>A aceita\xe7\xe3o do uso de cookies tem dura\xe7\xe3o de 13 meses, ap\xf3s os quais ser\xe1 solicitado novo consentimento.</p>'
+                + '<h4 style="margin:10px 0 6px">Contacto</h4>'
+                + '<p>D\xfavidas sobre cookies: <strong>privacidade@zionlisboa.pt</strong></p>'
+      }
     };
-    const l = LEGAL[tipo]; if(!l) return;
+    var l = LEGAL[tipo]; if(!l) return;
     document.getElementById('legal-title').textContent = l.title;
     document.getElementById('legal-body').innerHTML = l.body;
     document.getElementById('overlay-legal').classList.add('open');
   }
-
   /* ══ PARTE 12 — Init ══════════════════════════════════════════ */
   async function init() {
-    // Safety: esconde loader apos 8s
-    setTimeout(() => { const l = document.getElementById('page-loader'); if(l) l.style.display='none'; }, 8000);
+    initCookieBanner();
+    setTimeout(() => { var l = document.getElementById('page-loader'); if(l) l.style.display='none'; }, 8000);
     updateThemeIcon();
     initBanner();
     updateCartBadge();
-
-    // Produtos sao dados publicos — carrega imediatamente sem depender de auth
     await loadProducts();
-
-    // Auth em background, nao bloqueia a loja
     supa.auth.onAuthStateChange(async (event, sess) => {
       session = sess;
-      if (sess) { await loadCliente(); updateAuthUI(); if(!savedAddrs.length && cliente) savedAddrs = await sbGet(`loja_enderecos?cliente_id=eq.${cliente.id}&order=predefinido.desc`).catch(()=>[]); }
+      if (sess) { await loadCliente(); updateAuthUI(); if(!savedAddrs.length && cliente) savedAddrs = await sbGet('loja_enderecos?cliente_id=eq.' + cliente.id + '&order=predefinido.desc').catch(()=>[]); }
       else { session=null; cliente=null; savedAddrs=[]; updateAuthUI(); }
     });
-    supa.auth.getSession().then(async ({ data: { session: s } }) => {
-      session = s;
+    supa.auth.getSession().then(async function(res) {
+      session = res.data.session;
       if (session) { await loadCliente(); updateAuthUI(); }
     }).catch(() => {});
   }

@@ -884,15 +884,22 @@
       img.src = src;
     });
   }
-  async function discoverBanners(max = 2) {
+  async function discoverBanners(max = 8) {
+    try {
+      const r = await fetch('assets/banners/banners.json?_=' + Date.now());
+      if (r.ok) {
+        const list = await r.json();
+        if (Array.isArray(list) && list.length) return list.map(f => 'assets/banners/' + f);
+      }
+    } catch {}
+
     const found = [];
     for (let i = 1; i <= max; i++) {
-      let ok = false;
-      for (const ext of ['png','jpg','webp','jpeg']) {
-        const src = `assets/banners/banner${i}.${ext}`;
-        if (await testImage(src)) { found.push(src); ok = true; break; }
-      }
-      if (!ok) break;
+      const png = 'assets/banners/banner' + i + '.png';
+      const jpg = 'assets/banners/banner' + i + '.jpg';
+      if      (await testImage(png)) found.push(png);
+      else if (await testImage(jpg)) found.push(jpg);
+      else break;
     }
     return found;
   }
@@ -1573,5 +1580,6 @@
   }
   init();
 </script>
+
 </body>
 </html>

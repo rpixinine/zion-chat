@@ -853,8 +853,9 @@
     standard: { label: 'CTT Standard',        desc: '3-5 dias uteis',    preco: Math.round(2.70 * 1.30 * 100)/100 },
     express:  { label: 'CTT Expresso',        desc: '1-2 dias uteis',    preco: Math.round(5.80 * 1.30 * 100)/100 },
     pickup_semana: { label: 'Levantamento Ter-Sex', desc: 'Ter a Sex, 10h-18h', preco: 0 },
-    pickup_fds:    { label: 'Levantamento Sab-Dom', desc: 'Sab e Dom, 10h-26h', preco: 0 },
+    pickup_fds:    { label: 'Levantamento Sab-Dom', desc: 'Sab e Dom, 10h-20h', preco: 0 },
   };
+  
   const FREE_SHIP_ABOVE = 999999; // desactivado — so Levantamento e gratis
   const IVA_RATE = 0.06;
 
@@ -925,7 +926,7 @@
       const dots = document.getElementById('banner-dots');
       dots.innerHTML = bannerList.map((_,i) =>
               `<button class="banner-dot${i===0?' active':''}" onclick="goToBanner(${i})"></button>`).join('');
-      bannerTimer = setInterval(() => bannerNav(1), 10000);
+      bannerTimer = setInterval(() => bannerNav(1), 7000); // <-- altere aqui o tempo em ms (7000 = 7 segundos)
     }
   }
 
@@ -939,7 +940,7 @@
     bannerIdx = i;
     document.getElementById('banner-slides').style.transform = `translateX(-${bannerIdx * 100}%)`;
     document.querySelectorAll('.banner-dot').forEach((d, j) => d.classList.toggle('active', j === i));
-    bannerTimer = setInterval(() => bannerNav(1), 10000);
+    bannerTimer = setInterval(() => bannerNav(1), 7000); // <-- mesmo valor aqui
   }
 
   /* ══ PARTE 4 — Supabase Helpers ══════════════════════════════ */
@@ -1573,29 +1574,25 @@
 
   /* ══ PARTE 12 — Init ══════════════════════════════════════════ */
   async function init() {
-    // Safety: esconde loader apos 6s
-    setTimeout(() => { const l = document.getElementById('page-loader'); if(l) l.style.display='none'; }, 6000);
-    // Aguarda config.js (SUPABASE_URL pode estar undefined no primeiro frame)
-    if (!window.SUPABASE_URL) {
-      await new Promise(res => {
-        let tries = 0;
-        const check = setInterval(() => {
-          if (window.SUPABASE_URL || ++tries > 40) { clearInterval(check); res(); }
-        }, 100); // verifica a cada 100ms, max 4 segundos
-      });
-    }
+    // Safety: esconde loader apos 8s
+    setTimeout(() => { const l = document.getElementById('page-loader'); if(l) l.style.display='none'; }, 8000);
     updateThemeIcon();
     initBanner();
+    updateCartBadge();
+
+    // Produtos sao dados publicos — carrega imediatamente sem depender de auth
+    await loadProducts();
+
+    // Auth em background, nao bloqueia a loja
     supa.auth.onAuthStateChange(async (event, sess) => {
       session = sess;
       if (sess) { await loadCliente(); updateAuthUI(); if(!savedAddrs.length && cliente) savedAddrs = await sbGet(`loja_enderecos?cliente_id=eq.${cliente.id}&order=predefinido.desc`).catch(()=>[]); }
       else { session=null; cliente=null; savedAddrs=[]; updateAuthUI(); }
     });
-    const { data: { session: s } } = await supa.auth.getSession();
-    session = s;
-    if (session) { await loadCliente(); updateAuthUI(); }
-    updateCartBadge();
-    await loadProducts();
+    supa.auth.getSession().then(async ({ data: { session: s } }) => {
+      session = s;
+      if (session) { await loadCliente(); updateAuthUI(); }
+    }).catch(() => {});
   }
   init();
 </script>

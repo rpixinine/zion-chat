@@ -853,7 +853,7 @@
     standard: { label: 'CTT Standard',        desc: '3-5 dias uteis',    preco: Math.round(2.70 * 1.30 * 100)/100 },
     express:  { label: 'CTT Expresso',        desc: '1-2 dias uteis',    preco: Math.round(5.80 * 1.30 * 100)/100 },
     pickup_semana: { label: 'Levantamento Ter-Sex', desc: 'Ter a Sex, 10h-18h', preco: 0 },
-    pickup_fds:    { label: 'Levantamento Sab-Dom', desc: 'Sab e Dom, 10h-20h', preco: 0 },
+    pickup_fds:    { label: 'Levantamento Sab-Dom', desc: 'Sab e Dom, 10h-26h', preco: 0 },
   };
   const FREE_SHIP_ABOVE = 999999; // desactivado — so Levantamento e gratis
   const IVA_RATE = 0.06;
@@ -925,7 +925,7 @@
       const dots = document.getElementById('banner-dots');
       dots.innerHTML = bannerList.map((_,i) =>
               `<button class="banner-dot${i===0?' active':''}" onclick="goToBanner(${i})"></button>`).join('');
-      bannerTimer = setInterval(() => bannerNav(1), 10000); 
+      bannerTimer = setInterval(() => bannerNav(1), 10000);
     }
   }
 
@@ -939,7 +939,7 @@
     bannerIdx = i;
     document.getElementById('banner-slides').style.transform = `translateX(-${bannerIdx * 100}%)`;
     document.querySelectorAll('.banner-dot').forEach((d, j) => d.classList.toggle('active', j === i));
-    bannerTimer = setInterval(() => bannerNav(1), 10000); 
+    bannerTimer = setInterval(() => bannerNav(1), 10000);
   }
 
   /* ══ PARTE 4 — Supabase Helpers ══════════════════════════════ */
@@ -1573,8 +1573,17 @@
 
   /* ══ PARTE 12 — Init ══════════════════════════════════════════ */
   async function init() {
-    // Safety: esconde loader apos 6s independentemente do que aconteca
+    // Safety: esconde loader apos 6s
     setTimeout(() => { const l = document.getElementById('page-loader'); if(l) l.style.display='none'; }, 6000);
+    // Aguarda config.js (SUPABASE_URL pode estar undefined no primeiro frame)
+    if (!window.SUPABASE_URL) {
+      await new Promise(res => {
+        let tries = 0;
+        const check = setInterval(() => {
+          if (window.SUPABASE_URL || ++tries > 40) { clearInterval(check); res(); }
+        }, 100); // verifica a cada 100ms, max 4 segundos
+      });
+    }
     updateThemeIcon();
     initBanner();
     supa.auth.onAuthStateChange(async (event, sess) => {

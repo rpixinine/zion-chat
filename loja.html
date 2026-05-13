@@ -164,7 +164,7 @@
 
     /* ═══ BANNER CAROUSEL ═══ */
     .hero-wrap{position:relative;overflow:hidden;background:linear-gradient(135deg,#102020 0%,#081818 100%);min-height:260px;}
-    .banner-slides{display:flex;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);height:100%;}
+    .banner-slides{display:flex;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);}
     .banner-slide{flex-shrink:0;width:100%;position:relative;}
     .banner-slide img{width:100%;height:100%;object-fit:cover;display:block;}
     .banner-overlay{
@@ -885,6 +885,8 @@
     });
   }
   async function discoverBanners(max = 8) {
+    // Opcao 1: manifesto opcional — cria assets/banners/banners.json para zero 404s
+    // Conteudo: ["banner1.png","banner2.png"]
     try {
       const r = await fetch('assets/banners/banners.json?_=' + Date.now());
       if (r.ok) {
@@ -892,7 +894,8 @@
         if (Array.isArray(list) && list.length) return list.map(f => 'assets/banners/' + f);
       }
     } catch {}
-
+    // Opcao 2: descoberta automatica (.png e .jpg apenas, 2 tentativas por numero)
+    // Os 404s do ultimo numero inexistente sao normais e inofensivos
     const found = [];
     for (let i = 1; i <= max; i++) {
       const png = 'assets/banners/banner' + i + '.png';
@@ -911,7 +914,7 @@
       return;
     }
     const wrap = document.getElementById('hero-wrap');
-    wrap.style.minHeight = '360px';
+    wrap.style.height = '360px';
     const slides = document.getElementById('banner-slides');
     slides.style.display = 'flex';
     document.getElementById('hero-static').style.display = 'none';
@@ -1565,6 +1568,7 @@
 
   /* ══ PARTE 12 — Init ══════════════════════════════════════════ */
   async function init() {
+    setTimeout(() => { const l = document.getElementById('page-loader'); if(l) l.style.display='none'; }, 6000);
     updateThemeIcon();
     initBanner();
     supa.auth.onAuthStateChange(async (event, sess) => {

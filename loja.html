@@ -163,8 +163,8 @@
     .gold-stripe{height:2px;background:linear-gradient(90deg,transparent 0%,var(--gold-lt) 30%,var(--primary) 65%,transparent 100%);opacity:0.6;}
 
     /* ═══ BANNER CAROUSEL ═══ */
-    .hero-wrap{position:relative;overflow:hidden;background:linear-gradient(135deg,#102020 0%,#081818 100%);min-height:260px;}
-    .banner-slides{display:flex;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);}
+    .hero-wrap{position:relative;overflow:hidden;background:linear-gradient(135deg,#102020 0%,#081818 100%);min-height:160px;}
+    .banner-slides{display:flex;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);width:100%;}
     .banner-slide{flex-shrink:0;width:100%;position:relative;}
     .banner-slide img{width:100%;height:100%;object-fit:cover;display:block;}
     .banner-overlay{
@@ -919,11 +919,8 @@
     document.getElementById('hero-static').style.display = 'none';
     document.getElementById('banner-prev').style.display = bannerList.length > 1 ? 'flex' : 'none';
     document.getElementById('banner-next').style.display = bannerList.length > 1 ? 'flex' : 'none';
-    // Altura responsiva: maior em desktop, menor em mobile
-    const bh = Math.max(200, Math.min(500, Math.round(window.innerWidth * 0.28)));
-    wrap.style.height = bh + 'px';
-    slides.style.height = bh + 'px';
-    slides.innerHTML = bannerList.map(src => '<div class="banner-slide" style="flex-shrink:0;width:100%;height:' + bh + 'px;overflow:hidden"><img src="' + src + '" alt="" style="width:100%;height:' + bh + 'px;object-fit:cover;display:block"></div>').join('');
+    // Imagem a 100% de largura, altura natural da imagem (sem corte)
+    slides.innerHTML = bannerList.map(src => '<div class="banner-slide" style="flex-shrink:0;width:100%;"><img src="' + src + '" alt="" style="width:100%;height:auto;display:block;" onload="this.closest('#hero-wrap')||document.getElementById('hero-wrap')"></div>').join('');
     if (bannerList.length > 1) {
       const dots = document.getElementById('banner-dots');
       dots.innerHTML = bannerList.map((_,i) =>
@@ -931,17 +928,7 @@
       bannerTimer = setInterval(() => bannerNav(1), 5000);
     }
   }
-  window.addEventListener('resize', () => {
-    if (!bannerList.length) return;
-    const bh = Math.max(200, Math.min(500, Math.round(window.innerWidth * 0.28)));
-    const wr = document.getElementById('hero-wrap');
-    const sl = document.getElementById('banner-slides');
-    if (wr) wr.style.height = bh + 'px';
-    if (sl) {
-      sl.style.height = bh + 'px';
-      sl.querySelectorAll('.banner-slide').forEach(el => { el.style.height = bh + 'px'; const img = el.querySelector('img'); if(img) img.style.height = bh + 'px'; });
-    }
-  });
+
   function bannerNav(dir) {
     bannerIdx = (bannerIdx + dir + bannerList.length) % bannerList.length;
     document.getElementById('banner-slides').style.transform = `translateX(-${bannerIdx * 100}%)`;
@@ -983,7 +970,13 @@
   /* ══ PARTE 5 — Produtos ══════════════════════════════════════ */
   async function loadProducts() {
     try {
-      const data = await sbGet('loja_produtos?or=(ativo.eq.true,ativo.is.null)&order=destaque.desc.nullslast,nome.asc&select=*');
+      let data;
+      try {
+        data = await sbGet('loja_produtos?ativo=eq.true&order=destaque.desc.nullslast,nome.asc&select=*');
+      } catch {
+        // fallback sem filtro ativo caso haja problema de permissoes
+        data = await sbGet('loja_produtos?order=destaque.desc.nullslast,nome.asc&select=*');
+      }
       allProducts = data || [];
       loadGatewayConfig().catch(() => {});
     } catch(e) { console.error(e); allProducts = []; }
@@ -1588,5 +1581,7 @@
   }
   init();
 </script>
+
+
 </body>
 </html>

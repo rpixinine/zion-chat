@@ -855,7 +855,7 @@
     pickup_semana: { label: 'Levantamento Ter-Sex', desc: 'Ter a Sex, 10h-18h', preco: 0 },
     pickup_fds:    { label: 'Levantamento Sab-Dom', desc: 'Sab e Dom, 10h-20h', preco: 0 },
   };
-  
+
   const FREE_SHIP_ABOVE = 999999; // desactivado — so Levantamento e gratis
   const IVA_RATE = 0.06;
 
@@ -926,7 +926,7 @@
       const dots = document.getElementById('banner-dots');
       dots.innerHTML = bannerList.map((_,i) =>
               `<button class="banner-dot${i===0?' active':''}" onclick="goToBanner(${i})"></button>`).join('');
-      bannerTimer = setInterval(() => bannerNav(1), 7000); // <-- altere aqui o tempo em ms (7000 = 7 segundos)
+      bannerTimer = setInterval(() => bannerNav(1), 10000); 
     }
   }
 
@@ -940,7 +940,7 @@
     bannerIdx = i;
     document.getElementById('banner-slides').style.transform = `translateX(-${bannerIdx * 100}%)`;
     document.querySelectorAll('.banner-dot').forEach((d, j) => d.classList.toggle('active', j === i));
-    bannerTimer = setInterval(() => bannerNav(1), 7000); // <-- mesmo valor aqui
+    bannerTimer = setInterval(() => bannerNav(1), 10000); 
   }
 
   /* ══ PARTE 4 — Supabase Helpers ══════════════════════════════ */
@@ -1240,8 +1240,55 @@
       if (!orders?.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:13px">Sem encomendas ainda</div>'; return; }
       const statL = { pendente:'Pendente', confirmada:'Confirmada', em_preparacao:'Em Preparacao', enviada:'Enviada', entregue:'Entregue', cancelada:'Cancelada' };
       const payL  = { cartao:'Cartao', mbway:'MB Way', multibanco:'Multibanco', transferencia:'Transferencia' };
-      el.innerHTML = orders.map(o => `<div class="order-card"><div class="order-card-header"><span class="order-card-num">#${String(o.numero).padStart(4,'0')}</span><span class="order-card-date">${new Date(o.created_at).toLocaleDateString('pt-PT')}</span><span class="order-card-status status-${o.status}">${statL[o.status]||o.status}</span></div><div style="font-size:12px;color:var(--text-muted);margin-bottom:5px">${o.entrega_cidade||''} · ${payL[o.forma_pagamento]||o.forma_pagamento||''}</div><div class="order-card-total">€ ${Number(o.total).toFixed(2)}</div>${o.tracking_code ? `<div style="font-size:11px;color:var(--primary-dk);margin-top:5px">Tracking: ${o.tracking_code}</div>` : ''}</div>`).join('');
+      el.innerHTML = orders.map(o => {
+        const canCancel = ['pendente','confirmada'].includes(o.status);
+        const num = '#' + String(o.numero).padStart(4,'0');
+        const dt = new Date(o.created_at).toLocaleDateString('pt-PT');
+        const city = (o.entrega_cidade||'') + ' \xb7 ' + (payL[o.forma_pagamento]||o.forma_pagamento||'');
+        const track = o.tracking_code ? '<div style="font-size:11px;color:var(--primary-dk);margin-bottom:5px">Tracking: ' + o.tracking_code + '</div>' : '';
+        const cancelBtn = canCancel ? '<button onclick="cancelOrder(\'' + o.id + '\')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;text-decoration:underline">Cancelar</button>' : '';
+        return '<div class="order-card">'
+                + '<div class="order-card-header">'
+                + '<span class="order-card-num">' + num + '</span>'
+                + '<span class="order-card-date">' + dt + '</span>'
+                + '<span class="order-card-status status-' + o.status + '">' + (statL[o.status]||o.status) + '</span>'
+                + '</div>'
+                + '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">' + city + '</div>'
+                + track
+                + '<div style="display:flex;justify-content:space-between;align-items:center">'
+                + '<span class="order-card-total">\u20ac ' + Number(o.total).toFixed(2) + '</span>'
+                + '<div style="display:flex;gap:10px">'
+                + '<button onclick="toggleOrderItems(\'' + o.id + '\')" style="font-size:11px;color:var(--primary-dk);background:none;border:none;cursor:pointer;text-decoration:underline">Ver itens</button>'
+                + cancelBtn
+                + '</div></div>'
+                + '<div id="oi-' + o.id + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"></div>'
+                + '</div>';
+      }).join('');
     } catch { el.innerHTML = '<div style="color:var(--red);font-size:12px">Erro ao carregar encomendas</div>'; }
+  }
+  async function toggleOrderItems(orderId) {
+    const el = document.getElementById('oi-' + orderId); if (!el) return;
+    if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = '<div class="spin" style="width:16px;height:16px;border-width:2px"></div>';
+    try {
+      const items = await sbGet('loja_encomenda_itens?encomenda_id=eq.' + orderId + '&select=*');
+      if (!items?.length) { el.innerHTML = '<div style="font-size:11px;color:var(--text-faint);padding:4px 0">Sem itens</div>'; return; }
+      el.innerHTML = '<div style="display:flex;flex-direction:column;gap:2px">'
+              + items.map(function(it){
+                return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)">'
+                        + '<span style="color:var(--text-muted)">' + it.produto_nome + ' × ' + it.quantidade + '</span>'
+                        + '<span style="font-family:Cinzel,serif;font-weight:700;color:var(--primary-dk)">€ ' + (it.preco_unitario * it.quantidade).toFixed(2) + '</span>'
+                        + '</div>';
+              }).join('') + '</div>';
+    } catch(e) { el.innerHTML = '<div style="font-size:11px;color:var(--red)">Erro ao carregar itens</div>'; }
+  }
+  async function cancelOrder(orderId) {
+    if (!confirm('Tem a certeza que quer cancelar esta encomenda?')) return;
+    try {
+      await sbPatch('loja_encomendas?id=eq.' + orderId, { status: 'cancelada' });
+      toast('Encomenda cancelada', 'ok'); loadOrders();
+    } catch { toast('Erro ao cancelar', 'err'); }
   }
   async function loadAddresses() {
     if (!cliente) return;
@@ -1487,7 +1534,12 @@
       };
       const orderRes = await sbPost('loja_encomendas', orderPayload);
       const order = orderRes?.[0]; if (!order) throw new Error('Erro ao criar encomenda.');
-      await Promise.all(cart.map(it => sbPost('loja_encomenda_itens', { encomenda_id:order.id, produto_id:it.id, produto_nome:it.nome, produto_sku:it.sku||null, produto_imagem:it.img||null, quantidade:it.qty, preco_unitario:+it.preco.toFixed(2), iva_rate:IVA_RATE*100 })));
+      try {
+        await Promise.all(cart.map(it => sbPost('loja_encomenda_itens', { encomenda_id:order.id, produto_id:it.id, produto_nome:it.nome, produto_sku:it.sku||null, produto_imagem:it.img||null, quantidade:it.qty, preco_unitario:+it.preco.toFixed(2), iva_rate:IVA_RATE*100 })));
+      } catch(itemsErr) {
+        sbPatch('loja_encomendas?id=eq.' + order.id, { status:'cancelada', notas:'Rollback auto' }).catch(()=>{});
+        throw new Error('Erro RLS: permissoes em falta na tabela loja_encomenda_itens. Corra o SQL de correccao.');
+      }
       for (const it of cart) {
         const p = allProducts.find(x => x.id === it.id);
         if (p && p.controlar_estoque !== false) { const campo = p.quantidade!==undefined?'quantidade':'stock'; sbPatch(`loja_produtos?id=eq.${p.id}`,{[campo]:Math.max(0,(p[campo]||0)-it.qty)}).catch(()=>{}); p[campo] = Math.max(0,(p[campo]||0)-it.qty); }

@@ -884,7 +884,6 @@
     pickup_semana: { label: 'Levantamento Ter-Sex', desc: 'Ter a Sex, 10h-18h', preco: 0 },
     pickup_fds:    { label: 'Levantamento Sab-Dom', desc: 'Sab e Dom, 10h-20h', preco: 0 },
   };
-  
   const FREE_SHIP_ABOVE = 999999; // desactivado — so Levantamento e gratis
   const IVA_RATE = 0.06;
 
@@ -916,7 +915,8 @@
     });
   }
   async function discoverBanners(max = 8) {
-
+    // Opcao 1: manifesto opcional — cria assets/banners/banners.json para zero 404s
+    // Conteudo: ["banner1.png","banner2.png"]
     try {
       const r = await fetch('assets/banners/banners.json?_=' + Date.now());
       if (r.ok) {
@@ -924,7 +924,8 @@
         if (Array.isArray(list) && list.length) return list.map(f => 'assets/banners/' + f);
       }
     } catch {}
-
+    // Opcao 2: descoberta automatica (.png e .jpg apenas, 2 tentativas por numero)
+    // Os 404s do ultimo numero inexistente sao normais e inofensivos
     const found = [];
     for (let i = 1; i <= max; i++) {
       const png = 'assets/banners/banner' + i + '.png';
@@ -967,7 +968,7 @@
     bannerIdx = i;
     document.getElementById('banner-slides').style.transform = `translateX(-${bannerIdx * 100}%)`;
     document.querySelectorAll('.banner-dot').forEach((d, j) => d.classList.toggle('active', j === i));
-    bannerTimer = setInterval(() => bannerNav(1), 10000); 
+    bannerTimer = setInterval(() => bannerNav(1), 10000);
   }
 
   /* ══ PARTE 4 — Supabase Helpers ══════════════════════════════ */
@@ -1215,7 +1216,7 @@
     const { data, error } = await supa.auth.signUp({ email, password: pass, options: { data: { nome } } });
     btn.disabled = false; btn.textContent = 'Criar Conta';
     if (error) { err.textContent = error.message === 'User already registered' ? 'Este email ja esta registado.' : error.message; err.classList.add('show'); return; }
-    if (data.session) { session = data.session; await createClienteRecord(nome, email, tel); await loadCliente(); toast('Conta criada!', 'ok'); closeAuth(); updateAuthUI(); }
+    if (data.session) { session = data.session; await createClienteRecord(nome, email, tel); await loadCliente(); saveConsent('termos_aceites', cliente?.id).catch(()=>{}); toast('Conta criada!', 'ok'); closeAuth(); updateAuthUI(); }
     else { succ.textContent = 'Verifique o seu email para confirmar a conta.'; succ.classList.add('show'); }
   }
   async function createClienteRecord(nome, email, tel) {
@@ -1647,6 +1648,18 @@
   function cookieChoice(accepted) {
     localStorage.setItem('zion_cookie_consent', accepted ? 'all' : 'essential');
     var b=document.getElementById('cookie-banner'); if(b) b.classList.remove('show');
+    saveConsent(accepted ? 'cookies_all' : 'cookies_essential');
+  }
+  async function saveConsent(tipo, clienteIdOverride) {
+    try {
+      await sbPost('consentimentos', {
+        cliente_id: clienteIdOverride || cliente?.id || null,
+        tipo: tipo,                             // 'cookies_all' | 'cookies_essential' | 'termos_aceites'
+        ip_hash: null,                          // IP nao disponivel client-side sem servico externo
+        user_agent: navigator.userAgent.slice(0, 200),
+        versao: '2026-05'                       // Actualizar quando mudar versao dos termos
+      });
+    } catch(e) { console.warn('Consent log failed (nao critico):', e); }
   }
 
   function showLegal(tipo) {
@@ -1769,6 +1782,5 @@
   }
   init();
 </script>
-
 </body>
 </html>

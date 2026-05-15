@@ -1244,7 +1244,7 @@
                 id: 'areas', t: 'Áreas Procuradas', tipo: 'bar',
                 fn: d => {
                     const c = {};
-                    d.filter(r => r.tipo_pessoa === 'membro' && r.pergunta1).forEach(r => {
+                    d.filter(r => r.tipo_pessoa === 'membro' || r.tipo_pessoa === 'visitante' && r.pergunta1).forEach(r => {
                         r.pergunta1.split(',').map(x => x.trim()).filter(Boolean).forEach(a => {
                             c[a] = (c[a] || 0) + 1;
                         });
@@ -1264,7 +1264,7 @@
                 }
             },
             {
-                id: 'retornos', t: 'Retornos ao Hub vs 1ª Visita ao Hub', tipo: 'pie',
+                id: 'retornos', t: 'Retornos ao Hub vs 1ª Visita ao Hub', tipo: 'auto',
                 fn: d => {
                     const g = _agrupar(d);
                     return [{l: '1ª Visita ao Hub', v: g.filter(x => x.registos.length === 1).length}, {
@@ -1669,13 +1669,18 @@
         function _svgBarH(items) {
             const tot = items.reduce((s, d) => s + d.v, 0), maxV = Math.max(...items.map(d => d.v));
             if (!maxV) return '';
-            const barH = 16, gap = 4, lW = 88, cW = 110, anW = 52, W = lW + cW + anW,
-                H = 4 + items.length * (barH + gap) - gap + 4;
+            const maxChars = Math.max(...items.map(d => d.l.length));
+            const lW  = Math.min(Math.max(maxChars * 6.5, 70), 170); // dinâmico, máx 170
+            const cW  = 110, anW = 58, W = lW + cW + anW;
+            const bH = 16, gap = 4, H = 4 + items.length * (bH + gap) - gap + 4;
             const bars = items.map((d, i) => {
-                const y = 4 + i * (barH + gap), bw = Math.round((d.v / maxV) * cW),
+                const y = 4 + i * (bH + gap), bw = Math.round((d.v / maxV) * cW),
                     pct = tot ? Math.round(d.v / tot * 100) : 0;
-                const lbl = d.l.length > 14 ? d.l.slice(0, 13) + '…' : d.l;
-                return `<text x="${lW - 4}" y="${y + barH - 3}" text-anchor="end" font-size="9" fill="var(--text-faint)" font-family="sans-serif">${lbl}</text><rect x="${lW}" y="${y}" width="${Math.max(bw, 2)}" height="${barH}" fill="${d.c || CORES[i % CORES.length]}" rx="3"/><text x="${lW + bw + 4}" y="${y + barH - 3}" font-size="9" fill="var(--text-main)" font-family="sans-serif">${d.v} (${pct}%)</text>`;
+                const limChar = Math.floor(lW / 6.5);
+                const lbl = d.l.length > limChar ? d.l.slice(0, limChar - 1) + '…' : d.l;
+                return `<text x="${lW - 4}" y="${y + bH - 3}" text-anchor="end" font-size="9" fill="var(--text-faint)" font-family="sans-serif">${lbl}</text>
+<rect x="${lW}" y="${y}" width="${Math.max(bw, 2)}" height="${bH}" fill="${d.c || CORES[i % CORES.length]}" rx="3"/>
+<text x="${lW + bw + 4}" y="${y + bH - 3}" font-size="9" fill="var(--text-main)" font-family="sans-serif">${d.v} (${pct}%)</text>`;
             }).join('');
             return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;width:100%">${bars}</svg>`;
         }
@@ -1963,11 +1968,18 @@
             function svgB(items, W) {
                 const tot = items.reduce((s, d) => s + d.v, 0), maxV = Math.max(...items.map(d => d.v));
                 if (!maxV) return '';
-                const bH = 14, lW = 85, cW = W - lW - 48, H = 4 + items.length * (bH + 3);
+                const maxChars = Math.max(...items.map(d => d.l.length));
+                const lW  = Math.min(Math.max(maxChars * 6, 70), 150);
+                const cW  = W - lW - 48;
+                const bH = 14, H = 4 + items.length * (bH + 3);
                 const bars = items.map((d, i) => {
                     const y = 4 + i * (bH + 3), bw = Math.round((d.v / maxV) * cW),
-                        p = tot ? Math.round(d.v / tot * 100) : 0, lbl = d.l.length > 14 ? d.l.slice(0, 13) + '…' : d.l;
-                    return `<text x="${lW - 3}" y="${y + bH - 3}" text-anchor="end" font-size="8" fill="#666" font-family="Arial">${lbl}</text><rect x="${lW}" y="${y}" width="${Math.max(bw, 2)}" height="${bH}" fill="${d.c}" rx="2"/><text x="${lW + bw + 3}" y="${y + bH - 3}" font-size="8" fill="#222" font-family="Arial">${d.v} (${p}%)</text>`;
+                        p = tot ? Math.round(d.v / tot * 100) : 0;
+                    const limChar = Math.floor(lW / 6);
+                    const lbl = d.l.length > limChar ? d.l.slice(0, limChar - 1) + '…' : d.l;
+                    return `<text x="${lW - 3}" y="${y + bH - 3}" text-anchor="end" font-size="8" fill="#666" font-family="Arial">${lbl}</text>
+<rect x="${lW}" y="${y}" width="${Math.max(bw, 2)}" height="${bH}" fill="${d.c}" rx="2"/>
+<text x="${lW + bw + 3}" y="${y + bH - 3}" font-size="8" fill="#222" font-family="Arial">${d.v} (${p}%)</text>`;
                 }).join('');
                 return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${bars}</svg>`;
             }

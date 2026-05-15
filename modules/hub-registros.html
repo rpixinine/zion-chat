@@ -1244,10 +1244,16 @@
                 id: 'areas', t: 'Áreas Procuradas', tipo: 'bar',
                 fn: d => {
                     const c = {};
-                    d.filter(r => r.pergunta1).forEach(r => {
+                    // membros: pergunta1 pode ter múltiplas áreas separadas por vírgula
+                    d.filter(r => r.tipo_pessoa === 'membro' && r.pergunta1).forEach(r => {
                         r.pergunta1.split(',').map(x => x.trim()).filter(Boolean).forEach(a => {
                             c[a] = (c[a] || 0) + 1;
                         });
+                    });
+                    // visitantes: área de interesse em pergunta6
+                    d.filter(r => r.tipo_pessoa === 'visitante' && r.pergunta6).forEach(r => {
+                        const a = r.pergunta6.trim();
+                        if (a) c[a] = (c[a] || 0) + 1;
                     });
                     return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([l, v]) => ({l, v}));
                 }
@@ -1264,7 +1270,7 @@
                 }
             },
             {
-                id: 'retornos', t: 'Retornos ao Hub vs 1ª Visita ao Hub', tipo: 'auto',
+                id: 'retornos', t: 'Retornos ao Hub vs 1ª Visita ao Hub', tipo: 'bar',
                 fn: d => {
                     const g = _agrupar(d);
                     return [{l: '1ª Visita ao Hub', v: g.filter(x => x.registos.length === 1).length}, {
@@ -1670,20 +1676,19 @@
             const tot = items.reduce((s, d) => s + d.v, 0), maxV = Math.max(...items.map(d => d.v));
             if (!maxV) return '';
             const maxChars = Math.max(...items.map(d => d.l.length));
-            const lW  = Math.min(Math.max(maxChars * 6.5, 70), 170); // dinâmico, máx 170
-            const cW  = 110, anW = 58, W = lW + cW + anW;
+            const lW  = Math.max(maxChars * 6.5, 70); // sem cap — SVG usa width:100% e escala
+            const cW  = 110, anW = 65, W = lW + cW + anW;
             const bH = 16, gap = 4, H = 4 + items.length * (bH + gap) - gap + 4;
             const bars = items.map((d, i) => {
                 const y = 4 + i * (bH + gap), bw = Math.round((d.v / maxV) * cW),
                     pct = tot ? Math.round(d.v / tot * 100) : 0;
-                const limChar = Math.floor(lW / 6.5);
-                const lbl = d.l.length > limChar ? d.l.slice(0, limChar - 1) + '…' : d.l;
-                return `<text x="${lW - 4}" y="${y + bH - 3}" text-anchor="end" font-size="9" fill="var(--text-faint)" font-family="sans-serif">${lbl}</text>
+                return `<text x="${lW - 4}" y="${y + bH - 3}" text-anchor="end" font-size="9" fill="var(--text-faint)" font-family="sans-serif">${d.l}</text>
 <rect x="${lW}" y="${y}" width="${Math.max(bw, 2)}" height="${bH}" fill="${d.c || CORES[i % CORES.length]}" rx="3"/>
 <text x="${lW + bw + 4}" y="${y + bH - 3}" font-size="9" fill="var(--text-main)" font-family="sans-serif">${d.v} (${pct}%)</text>`;
             }).join('');
             return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;width:100%">${bars}</svg>`;
         }
+
 
         /* ── PERGUNTAS ── */
         function _renderPerguntas() {
@@ -1969,8 +1974,8 @@
                 const tot = items.reduce((s, d) => s + d.v, 0), maxV = Math.max(...items.map(d => d.v));
                 if (!maxV) return '';
                 const maxChars = Math.max(...items.map(d => d.l.length));
-                const lW  = Math.min(Math.max(maxChars * 6, 70), 150);
-                const cW  = W - lW - 48;
+                const lW  = Math.max(maxChars * 6, 70); 
+                const cW  = Math.max(W - lW - 48, 40);
                 const bH = 14, H = 4 + items.length * (bH + 3);
                 const bars = items.map((d, i) => {
                     const y = 4 + i * (bH + 3), bw = Math.round((d.v / maxV) * cW),

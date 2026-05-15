@@ -3868,12 +3868,35 @@
     }
 
     window.sl_eliminarAg = async function (id) {
-        if (!confirm('Eliminar este agendamento? Esta acção não pode ser desfeita.')) return;
+        var a = sl_ags.find(function (x) { return x.id === id; });
+        if (!a) return;
+
+        var eliminarSerie = false;
+        if (a.recorrencia_id) {
+            var totalSerie = sl_ags.filter(function (x) {
+                return x.recorrencia_id === a.recorrencia_id;
+            }).length;
+            var resp = confirm(
+                'Este agendamento faz parte de uma série com ' + totalSerie + ' ocorrência(s).\n\n' +
+                'Clica OK para eliminar TODA a série.\n' +
+                'Clica Cancelar para eliminar só esta ocorrência.'
+            );
+            if (resp === null) return; // fechou o diálogo
+            eliminarSerie = resp; // true = série, false = só esta
+        } else {
+            if (!confirm('Eliminar este agendamento? Esta acção não pode ser desfeita.')) return;
+        }
+
         try {
-            await sb('sala_agendamentos?id=eq.' + id, {method: 'DELETE'});
-            sl_ags = sl_ags.filter(function (a) {
-                return a.id !== id;
-            });
+            if (eliminarSerie) {
+                await sb('sala_agendamentos?recorrencia_id=eq.' + a.recorrencia_id, {method: 'DELETE'});
+                sl_ags = sl_ags.filter(function (x) {
+                    return x.recorrencia_id !== a.recorrencia_id;
+                });
+            } else {
+                await sb('sala_agendamentos?id=eq.' + id, {method: 'DELETE'});
+                sl_ags = sl_ags.filter(function (x) { return x.id !== id; });
+            }
             sl_updateBadge();
             sl_renderAgenda();
         } catch (e) {

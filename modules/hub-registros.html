@@ -1218,7 +1218,7 @@
                 fn: d => _cnt(d, r => r.tipo_pessoa === 'membro' ? 'Membro' : 'Visitante')
             },
             {
-                id: 'conheceu', t: 'Como Conheceu a Zion', tipo: 'pie',
+                id: 'conheceu', t: 'Como Conheceu a Zion?', tipo: 'auto',
                 fn: d => _cnt(d.filter(r => r.tipo_pessoa === 'visitante'), r => r.pergunta2 || 'Não respondeu')
             },
             {
@@ -1233,7 +1233,7 @@
                 }
             },
             {
-                id: 'acomp', t: 'Veio Acompanhado', tipo: 'pie',
+                id: 'acomp', t: 'Veio Acompanhado?', tipo: 'auto',
                 fn: d => _cnt(d.filter(r => r.tipo_pessoa === 'visitante'), r => r.pergunta3 || 'Não respondeu')
             },
             {
@@ -1241,7 +1241,7 @@
                 fn: d => _cnt(d.filter(r => r.tipo_pessoa === 'visitante'), r => r.pergunta1 || 'Não respondeu')
             },
             {
-                id: 'areas', t: 'Áreas Pedidas (Membros)', tipo: 'bar',
+                id: 'areas', t: 'Áreas Procuradas', tipo: 'bar',
                 fn: d => {
                     const c = {};
                     d.filter(r => r.tipo_pessoa === 'membro' && r.pergunta1).forEach(r => {
@@ -1278,7 +1278,7 @@
                 fn: d => _cnt(d.filter(r => r.genero), r => r.genero)
             },
             {
-                id: 'igreja', t: 'Frequenta Igreja Atualmente?', tipo: 'pie',
+                id: 'igreja', t: 'Frequenta Igreja Atualmente?', tipo: 'auto',
                 fn: d => _cnt(d.filter(r => r.tipo_pessoa === 'visitante'), r => {
                     const v = r.pergunta4 || '';
                     if (!v) return 'Não respondeu';
@@ -1588,7 +1588,10 @@
                 const cfg = CHARTS.find(c => c.id === id);
                 if (!cfg) return '';
                 const dados = cfg.fn(hrg_filtrado).map((x, i) => ({...x, c: CORES[i % CORES.length]}));
-                const chart = cfg.tipo === 'bar' ? _barChart(dados) : _pieChart(dados);
+
+                const tipoEfetivo = cfg.tipo === 'auto' ? (dados.length > 2 ? 'bar' : 'pie') : cfg.tipo;
+                const chart = tipoEfetivo === 'bar' ? _barChart(dados) : _pieChart(dados);
+
                 return `<div class="hrg-chart-box" draggable="true" data-pos="${pos}"
         ondragstart="hrg_ds(event,${pos})" ondragover="hrg_dov(event)" ondragleave="hrg_dl(event)" ondrop="hrg_drop(event,${pos})">
         <div class="hrg-chart-hd">
@@ -1815,24 +1818,54 @@
         <div class="hrg-edit-fg"><label>Áreas da Igreja</label><input type="text" id="hrg-ep1" value="${_esc(r.pergunta1 || '')}"></div>
       </div>`;
             } else {
-                pEl.innerHTML = `<div class="hrg-edit-row">
+            const opConheceu = ['Alcance','Convite de Amigos ou Família','Eventos da Zion ou Dunamis','Redes Sociais','Outro'];
+            const opAcomp    = ['Não','Sim, Amigos','Sim, Cônjuge',
+                'Sim, Família (Casal + Filhos Geracionais)',
+                'Sim, Família (Casal + Filhos Lumen)',
+                'Sim, Filhos Geracionais','Sim, Filhos Lumen','Outro'];
+            const opAreas    = ['Nenhuma','Alcance','Altomonte','Áreas Executivas','Diamantes',
+                'Escola Zão','Flow','Intercessão','Jornada','Links','Lumen',
+                'Ministração','Raízes','Reunião das Mães','Rise','Vox'];
+
+            function mkSel(id, opts, val) {
+                const options = opts.map(o =>
+                    `<option value="${_esc(o)}" ${val === o ? 'selected' : ''}>${_esc(o)}</option>`
+                ).join('');
+                return `<select id="${id}"><option value="">—</option>${options}</select>`;
+            }
+
+            pEl.innerHTML = `
+      <div class="hrg-edit-row">
         <div class="hrg-edit-fg"><label>Primeira vez?</label>
-          <select id="hrg-ep1"><option value="">—</option><option ${r.pergunta1 === 'Sim' ? 'selected' : ''}>Sim</option><option ${r.pergunta1 === 'Não' ? 'selected' : ''}>Não</option></select>
+          <select id="hrg-ep1">
+            <option value="">—</option>
+            <option ${r.pergunta1 === 'Sim' ? 'selected' : ''}>Sim</option>
+            <option ${r.pergunta1 === 'Não' ? 'selected' : ''}>Não</option>
+          </select>
         </div>
         <div class="hrg-edit-fg"><label>Faixa etária</label>
           <select id="hrg-ep5"><option value="">—</option>
-            ${['14–18 anos', '18–25 anos', '26–35 anos', '36–45 anos', '46–55 anos', '56+ anos'].map(o => `<option ${r.pergunta5 === o ? 'selected' : ''}>${o}</option>`).join('')}
+            ${['14–18 anos','18–25 anos','26–35 anos','36–45 anos','46–55 anos','56+ anos']
+                .map(o => `<option ${r.pergunta5 === o ? 'selected' : ''}>${o}</option>`).join('')}
           </select>
         </div>
       </div>
       <div class="hrg-edit-row full">
-        <div class="hrg-edit-fg"><label>Como conheceu a Zion</label><input type="text" id="hrg-ep2" value="${_esc(r.pergunta2 || '')}"></div>
+        <div class="hrg-edit-fg"><label>Como conheceu a Zion?</label>
+          ${mkSel('hrg-ep2', opConheceu, r.pergunta2 || '')}
+        </div>
       </div>
-      <div class="hrg-edit-row">
-        <div class="hrg-edit-fg"><label>Veio acompanhado</label><input type="text" id="hrg-ep3" value="${_esc(r.pergunta3 || '')}"></div>
-        <div class="hrg-edit-fg"><label>Área de interesse</label><input type="text" id="hrg-ep6" value="${_esc(r.pergunta6 || '')}"></div>
+      <div class="hrg-edit-row full">
+        <div class="hrg-edit-fg"><label>Veio acompanhado?</label>
+          ${mkSel('hrg-ep3', opAcomp, r.pergunta3 || '')}
+        </div>
+      </div>
+      <div class="hrg-edit-row full">
+        <div class="hrg-edit-fg"><label>Área de interesse</label>
+          ${mkSel('hrg-ep6', opAreas, r.pergunta6 || '')}
+        </div>
       </div>`;
-            }
+        }
             document.getElementById('hrg-edit-modal').style.display = 'flex';
         };
 
@@ -1862,10 +1895,11 @@
             }
 
             try {
-                const sb = window.supabase || window._sb_client;
-                if (!sb) throw new Error('Supabase não disponível');
-                const {error} = await sb.from('visitantes_hub').update(patch).eq('id', id);
-                if (error) throw error;
+                await hrg_sb(`visitantes_hub?id=eq.${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(patch),
+                    headers: { Prefer: 'return=minimal' }
+                });
                 // atualiza local
                 Object.assign(r, patch);
                 status.textContent = '✓ Guardado!';
@@ -1893,10 +1927,8 @@
             if (!_excluirId) return;
             document.getElementById('hrg-confirm-modal').style.display = 'none';
             try {
-                const sb = window.supabase || window._sb_client;
-                if (!sb) throw new Error('Supabase não disponível');
-                const {error} = await sb.from('visitantes_hub').delete().eq('id', _excluirId);
-                if (error) throw error;
+                await hrg_sb(`visitantes_hub?id=eq.${_excluirId}`, { method: 'DELETE' });
+
                 hrg_todos = hrg_todos.filter(r => r.id !== _excluirId);
                 _excluirId = null;
                 hrg_aplicar();
@@ -1951,8 +1983,11 @@
                 const raw = cfg.fn(hrg_filtrado).map((x, i) => ({...x, c: CORES[i % CORES.length]}));
                 const total = raw.reduce((s, d) => s + d.v, 0);
                 let chart;
-                if (cfg.tipo === 'bar') chart = `<div>${svgB(raw.slice(0, 10), 260)}</div>`;
+
+                const tipoEfetivoPdf = cfg.tipo === 'auto' ? (raw.length > 2 ? 'bar' : 'pie') : cfg.tipo;
+                if (tipoEfetivoPdf === 'bar') chart = `<div>${svgB(raw.slice(0, 10), 260)}</div>`;
                 else chart = `<div style="display:flex;align-items:center;gap:8px">${svgP(raw.slice(0, 8), 90)}<div style="flex:1">${legP(raw.slice(0, 8), total)}</div></div>`;
+
                 return `<div style="border:1px solid #ddd;border-radius:8px;padding:10px;break-inside:avoid"><div style="font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:7px">${cfg.t}</div>${chart}</div>`;
             }).filter(Boolean);
 

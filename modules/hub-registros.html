@@ -1655,12 +1655,20 @@
         }
 
         function _svgPie(items, size) {
-            const tot = items.reduce((s, d) => s + d.v, 0);
-            if (!tot) return '';
+            const valid = items.filter(d => d.v > 0), total = valid.reduce((s, d) => s + d.v, 0);
+            if (!total) return `<span style="font-size:10px;color:#aaa">N/D</span>`;
             const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+
+            // ← FIX: arco de 360° é inválido em SVG — usa circle quando só há 1 fatia
+            if (valid.length === 1) {
+                return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0">
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="${valid[0].c}" stroke="var(--bg-card)" stroke-width="1.5"/>
+        </svg>`;
+            }
+
             let a = -Math.PI / 2;
-            const paths = items.filter(d => d.v > 0).map(d => {
-                const da = (d.v / tot) * Math.PI * 2, x1 = cx + r * Math.cos(a), y1 = cy + r * Math.sin(a);
+            const paths = valid.filter(d => d.v > 0).map(d => {
+                const da = (d.v / total) * Math.PI * 2, x1 = cx + r * Math.cos(a), y1 = cy + r * Math.sin(a);
                 a += da;
                 const x2 = cx + r * Math.cos(a), y2 = cy + r * Math.sin(a), lg = da > Math.PI ? 1 : 0;
                 return `<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${r},${r},0,${lg},1,${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${d.c}" stroke="var(--bg-card)" stroke-width="1.5"/>`;
@@ -1961,6 +1969,14 @@
                 const valid = items.filter(d => d.v > 0), total = valid.reduce((s, d) => s + d.v, 0);
                 if (!total) return `<span style="font-size:10px;color:#aaa">N/D</span>`;
                 const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+
+                // ← mesmo fix para o PDF
+                if (valid.length === 1) {
+                    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="${valid[0].c}" stroke="white" stroke-width="1.5"/>
+        </svg>`;
+                }
+
                 let a = -Math.PI / 2;
                 const paths = valid.map(d => {
                     const da = (d.v / total) * Math.PI * 2, x1 = cx + r * Math.cos(a), y1 = cy + r * Math.sin(a);

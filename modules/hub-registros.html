@@ -1244,16 +1244,17 @@
                 id: 'areas', t: 'Áreas Procuradas', tipo: 'bar',
                 fn: d => {
                     const c = {};
-                    // membros: pergunta1 pode ter múltiplas áreas separadas por vírgula
+                    // membros: pergunta1
                     d.filter(r => r.tipo_pessoa === 'membro' && r.pergunta1).forEach(r => {
                         r.pergunta1.split(',').map(x => x.trim()).filter(Boolean).forEach(a => {
                             c[a] = (c[a] || 0) + 1;
                         });
                     });
-                    // visitantes: área de interesse em pergunta6
+                    // visitantes: pergunta6 — split igual ao de membros
                     d.filter(r => r.tipo_pessoa === 'visitante' && r.pergunta6).forEach(r => {
-                        const a = r.pergunta6.trim();
-                        if (a) c[a] = (c[a] || 0) + 1;
+                        r.pergunta6.split(',').map(x => x.trim()).filter(Boolean).forEach(a => {
+                            c[a] = (c[a] || 0) + 1;
+                        });
                     });
                     return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([l, v]) => ({l, v}));
                 }

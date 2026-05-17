@@ -523,9 +523,15 @@
     ];
 
     // acção: 'ver' | 'criar' | 'editar' | 'eliminar'
-    function perm(secao, accao = 'ver') {
+    function permold(secao, accao = 'ver') {
         if (userPerms.e_admin) return true;            // admin vê tudo
         return userPerms[`${accao}_${secao}`] === true;
+    }
+
+    function perm(secao, accao = 'ver') {
+        if (userPerms.e_admin) return true;
+        const chave = `${accao}_${secao.replace(/-/g, '_')}`;  // ← normaliza hífen → underscore
+        return userPerms[chave] === true;
     }
 
     // Devolve os atributos de disabled para botões consoante a permissão
@@ -676,6 +682,8 @@
                     'cursos':                  () => { if (window.cz_renderSidebar) cz_renderSidebar(); },
                     'dashboard':               () => { if (window.db_init)        db_init(); },
                     'loja':                    () => { if (typeof lj_init === 'function') lj_init(); },
+                    'vagas-module':            () => { if (window.vg_init)        vg_init(); },
+                    'servicos-module':         () => { if (window.sv_init)        sv_init(); },
 
                     // Eventos: refresh silencioso — NÃO reseta a view atual
                     'eventos': () => {
@@ -791,11 +799,29 @@
 
         // Ir para a primeira secção visível
         const primeiraVisivel = [
-            'dashboard', 'membros', 'novos', 'pastores', 'links',
-            'cultos', 'ministerios', 'lumen','salas', 'cursos', 'keola','hub-registros',
-            'loja', 'eventos', 'fornecedores', 'financeiro-receber','financeiro-invoices',
-            'financeiro-pagar', 'financeiro-faturas', 'financeiro-relatorios',
-            'configuracoes','report-membros', 'vagas-module','servicos-module'
+            'dashboard',
+            'membros',
+            'novos',
+            'pastores',
+            'links',
+            'cultos',
+            'ministerios',
+            'lumen',
+            'salas',
+            'cursos',
+            'keola',
+            'hub-registros',
+            'loja', 'eventos',
+            'fornecedores',
+            'financeiro-receber',
+            'financeiro-invoices',
+            'financeiro-pagar',
+            'financeiro-faturas',
+            'financeiro-relatorios',
+            'configuracoes',
+            'report-membros',
+            'vagas-module',
+            'servicos-module'
         ].find(s => perm(s, 'ver')) || 'dashboard';
 
         await loadModule(primeiraVisivel);
@@ -881,11 +907,30 @@
         membros = await sb('membros?select=id,nome&ativo=eq.true&order=nome') || [];
 
         const primeiraVisivel = [
-            'dashboard', 'membros', 'novos', 'pastores', 'links',
-            'cultos', 'ministerios', 'lumen','salas', 'cursos', 'keola','hub-registros',
-            'loja', 'eventos', 'fornecedores', 'financeiro-receber',
-            'financeiro-invoices', 'financeiro-pagar', 'financeiro-faturas',
-            'financeiro-relatorios', 'configuracoes','report-membros', 'vagas-module','servicos-module'
+            'dashboard',
+            'membros',
+            'novos',
+            'pastores',
+            'links',
+            'cultos',
+            'ministerios',
+            'lumen',
+            'salas',
+            'cursos',
+            'keola',
+            'hub-registros',
+            'loja',
+            'eventos',
+            'fornecedores',
+            'financeiro-receber',
+            'financeiro-invoices',
+            'financeiro-pagar',
+            'financeiro-faturas',
+            'financeiro-relatorios',
+            'configuracoes',
+            'report-membros',
+            'vagas-module',
+            'servicos-module'
         ].find(s => perm(s, 'ver')) || 'dashboard';
 
         await loadModule(primeiraVisivel);
@@ -1308,6 +1353,8 @@
             'ministerios': 'Ministérios',
             'lumen': 'Lumen',
             'hub-registros': 'Hub',
+            'servicos-module':'Servicos',
+            'vagas-module':'Vagas',
             'voluntarios': 'Voluntários',
             'financeiro-receber': 'Contas a Receber',
             'financeiro-pagar': 'Contas a Pagar',
@@ -1457,7 +1504,6 @@
                     'servicos-module': function () {
                         if (window.sv_init) window.sv_init();
                     },
-
                 };
                 const reInit = reInitMap[nome];
                 if (reInit) reInit();

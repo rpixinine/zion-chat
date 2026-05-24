@@ -278,7 +278,7 @@
         </div>
         <button class="filter-btn" id="btn-aniv" onclick="toggleAniversariantes()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Aniversários
+            Aniversáriantes Mês
         </button>
     </div>
 
@@ -483,6 +483,12 @@
     const fDate = d => d ? new Date(d+'T12:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}) : null;
     const getMes   = () => new Date().getMonth()+1;
     const isAniv   = m => m.data_nascimento && parseInt(m.data_nascimento.split('-')[1]) === getMes();
+    const getDia      = m => parseInt((m.data_nascimento||'').split('-')[2] || 99);
+    const getAnivLabel = m => {
+        if (!m.data_nascimento) return 'Aniversário';
+        const [,mes,dia] = m.data_nascimento.split('-');
+        return `🎂 ${parseInt(dia)}/${parseInt(mes)}`;
+    };
     const getInits = n => (n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const limTel   = t => t ? t.replace(/\s+/g,'').replace(/[^0-9+]/g,'') : null;
     const wppUrl   = t => { const n=limTel(t); if(!n)return null; return `https://wa.me/${n.startsWith('+')?n.slice(1):n}`; };
@@ -499,8 +505,10 @@
         let l = [...todosMembros];
         if (filtroBirthday) l = l.filter(isAniv);
         if (q) l = l.filter(m => (m.nome||'').toLowerCase().includes(q));
+        if (filtroBirthday) l = l.sort((a, b) => getDia(a) - getDia(b));
         renderMembros(l);
     }
+
     function toggleAniversariantes() {
         filtroBirthday = !filtroBirthday;
         document.getElementById('btn-aniv').classList.toggle('active', filtroBirthday);
@@ -541,7 +549,8 @@
                 m.e_lider      ? `<span class="mbadge mb-lider">Líder</span>${areaBadges}` : '',
                 m.e_voluntario && !m.e_lider ? `<span class="mbadge mb-vol">Voluntário</span>${areaBadges}` : '',
                 (!m.e_lider&&!m.e_presbitero&&!m.e_voluntario) ? `<span class="mbadge mb-membro">Membro</span>` : '',
-                an ? `<span class="mbadge mb-aniv">🎂 Aniversário</span>` : '',
+                //an ? `<span class="mbadge mb-aniv">🎂 Aniversário</span>` : '',
+                an ? `<span class="mbadge mb-aniv">${getAnivLabel(m)}</span>` : '',
             ].filter(Boolean).join('');
             const av = m.foto_url ? `<img src="${m.foto_url}" alt="${m.nome}">` : `<div class="member-avatar-initials">${getInits(m.nome)}</div>`;
             html += `<div class="member-row" style="animation-delay:${Math.min(i,15)*0.025}s" onclick="abrirPerfil('${m.id}')">

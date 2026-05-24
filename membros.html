@@ -256,6 +256,22 @@
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
         @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+
+        /* ── Lightbox foto ── */
+        .foto-lightbox {
+            position: fixed; inset: 0; z-index: 999;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease; cursor: zoom-out;
+        }
+        .foto-lightbox img {
+            max-width: min(90vw, 480px); max-height: 85vh;
+            border-radius: 12px; box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.12);
+            animation: scaleIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes scaleIn { from { transform: scale(0.7); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+
     </style>
 </head>
 <body>
@@ -435,6 +451,17 @@
         return r.json();
     }
 
+    function abrirFoto(url, nome) {
+        const lb = document.createElement('div');
+        lb.className = 'foto-lightbox';
+        lb.innerHTML = `<img src="${url}" alt="${esc(nome)}">`;
+        lb.addEventListener('click', () => lb.remove());
+        document.addEventListener('keydown', function handler(e) {
+            if (e.key === 'Escape') { lb.remove(); document.removeEventListener('keydown', handler); }
+        });
+        document.body.appendChild(lb);
+    }
+
     async function init() {
         const session = await ZionAuth.protect();
         if (!session) return;
@@ -591,7 +618,13 @@
         setEditBtnState(false);
 
         const av=document.getElementById('p-avatar');
-        av.innerHTML = m.foto_url ? `<img src="${m.foto_url}" alt="${m.nome}">` : `<div class="perfil-avatar-initials">${getInits(m.nome)}</div>`;
+        //av.innerHTML = m.foto_url ? `<img src="${m.foto_url}" alt="${m.nome}">` : `<div class="perfil-avatar-initials">${getInits(m.nome)}</div>`;
+
+        av.innerHTML = m.foto_url
+            ? `<img src="${m.foto_url}" alt="${m.nome}"
+           style="cursor:zoom-in"
+           onclick="abrirFoto('${m.foto_url}','${esc(m.nome)}')">`
+            : `<div class="perfil-avatar-initials">${getInits(m.nome)}</div>`;
 
         const [cjRes,paiRes,maeRes,filhosRes,memMinRes,cursosRes] = await Promise.all([
             m.conjuge_id ? sb(`membros?select=id,nome,foto_url&id=eq.${m.conjuge_id}`) : Promise.resolve([]),

@@ -1651,7 +1651,9 @@
         </td>
         ${todasDatas.map(iso=>{
                 if (!datasSet.has(iso)) return`<td style="background:var(--bg-panel);opacity:0.3">—</td>`;
-                const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
+                //const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id);
+                const ps=min_escala.filter(e=>e.data===iso&&e.culto_id===c.id)
+                    .sort((a,b)=>(a.membros?.nome||'').localeCompare(b.membros?.nome||'','pt'));
                 const faltam=Math.max(0,c.vagas-ps.filter(p=>p.papel_escala==='servindo').length);
                 if (!ps.length) return`<td><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="color:var(--text-faint);font-size:10px">—</span><span class="esc-add-btn" onclick="min_abrirEA('${iso}','${c.id}')">+</span></div></td>`;
                 return`<td><div style="display:flex;flex-direction:column;gap:3px;align-items:center">
@@ -1872,7 +1874,11 @@
             min_escala.filter(e => e.data === iso && e.culto_id === cId).map(e => e.membro_id)
         );
 
-        const disponiveis = min_minMems.filter(m => !jaEsc.has(m.membro_id));
+        //const disponiveis = min_minMems.filter(m => !jaEsc.has(m.membro_id));
+
+        const disponiveis = min_minMems
+            .filter(m => !jaEsc.has(m.membro_id))
+            .sort((a,b) => (a.membros?.nome||'').localeCompare(b.membros?.nome||'','pt'));
 
         const lista = document.getElementById('min-ea-lista');
         if (!disponiveis.length) {

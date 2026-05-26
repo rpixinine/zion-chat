@@ -652,14 +652,11 @@
         <div class="relmb-filters-row" style="align-items:center">
             <div class="relmb-filter-label" style="white-space:nowrap;margin-right:2px">Funcao:</div>
             <div class="relmb-chips-row" id="relmb-chips">
-                <button class="relmb-chip" data-key="e_lider" onclick="relmb_toggleChip(this)">Lider</button>
+                <button class="relmb-chip" data-key="e_lider" onclick="relmb_toggleChip(this)">lider</button>
                 <button class="relmb-chip" data-key="e_presbitero" onclick="relmb_toggleChip(this)">Presbitero</button>
-                <button class="relmb-chip" data-key="e_lider_link" onclick="relmb_toggleChip(this)">Lider de Link
-                </button>
-                <button class="relmb-chip" data-key="e_lider_area" onclick="relmb_toggleChip(this)">Lider de Area
-                </button>
-                <button class="relmb-chip" data-key="e_lider_pilar" onclick="relmb_toggleChip(this)">Lider de Pilar
-                </button>
+                <button class="relmb-chip" data-key="e_lider_link" onclick="relmb_toggleChip(this)">Lider de Link</button>
+                <button class="relmb-chip" data-key="e_lider_area" onclick="relmb_toggleChip(this)">Lider de Area</button>
+                <button class="relmb-chip" data-key="e_lider_pilar" onclick="relmb_toggleChip(this)">Lider de Pilar</button>
                 <button class="relmb-chip" data-key="e_voluntario" onclick="relmb_toggleChip(this)">Voluntario</button>
                 <button class="relmb-chip" data-key="professor" onclick="relmb_toggleChip(this)">Professor</button>
                 <button class="relmb-chip" data-key="pastor" onclick="relmb_toggleChip(this)">Pastor</button>
@@ -670,9 +667,7 @@
                 <button class="relmb-chip" data-key="e_escala" onclick="relmb_toggleChip(this)">Acesso Escala</button>
                 <button class="relmb-chip" data-key="e_hub" onclick="relmb_toggleChip(this)">Acesso HUB</button>
                 <button class="relmb-chip" data-key="e_jornada" onclick="relmb_toggleChip(this)">Acesso Jornada</button>
-                <button class="relmb-chip" data-key="e_gerenciamento" onclick="relmb_toggleChip(this)">Acesso
-                    Gerenciamento
-                </button>
+                <button class="relmb-chip" data-key="e_gerenciamento" onclick="relmb_toggleChip(this)">Acesso Gerenciamento</button>
                 <button class="relmb-chip" data-key="acesso_pdv" onclick="relmb_toggleChip(this)">Acesso PDV</button>
             </div>
         </div>
@@ -756,6 +751,18 @@
             e_gerenciamento: {l: 'Gerenciamento', badge: 'gray'},
             acesso_pdv: {l: 'PDV', badge: 'orange'},
         };
+
+        const LIDER_ESPECIFICO = new Set(['e_lider_link', 'e_lider_area', 'e_lider_pilar']);
+
+        function _getFuncoes(m) {
+            const temLiderEspecifico = [...LIDER_ESPECIFICO].some(k => m[k] === true);
+            return Object.keys(FUNCOES_MAP).filter(k => {
+                if (!m[k]) return false;
+                if (k === 'e_lider' && temLiderEspecifico) return false; // suprime genérico
+                return true;
+            });
+        }
+
 
         // Retorna um Set com o próprio ID + todos os IDs descendentes (BFS)
         function _getDescendants(minId) {
@@ -949,8 +956,15 @@
                 const genLabel = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '—';
                 const linkNome = m.link_id ? (_links_map[m.link_id] || '') : '';
                 const zonaLink = [m.zona, linkNome ? 'Link: ' + linkNome : ''].filter(Boolean).join('<br>');
-                const funcBadges = Object.keys(FUNCOES_MAP).filter(k => m[k] === true)
+
+                //const funcBadges = Object.keys(FUNCOES_MAP).filter(k => m[k] === true)
+                //    .map(k => `<span class="relmb-badge relmb-badge-${FUNCOES_MAP[k].badge}">${FUNCOES_MAP[k].l}</span>`).join('');
+                //Ajuste de teste
+
+                const funcBadges = _getFuncoes(m)
                     .map(k => `<span class="relmb-badge relmb-badge-${FUNCOES_MAP[k].badge}">${FUNCOES_MAP[k].l}</span>`).join('');
+
+
                 const statusBadge = m.ativo === false
                     ? `<span class="relmb-badge relmb-badge-red">Inactivo</span>`
                     : `<span class="relmb-badge relmb-badge-green">Activo</span>`;
@@ -1064,7 +1078,10 @@
                 ca = JSON.parse(m.cursos_concluidos || '[]') || [];
             } catch (_) {
             }
-            const funcoes = Object.keys(FUNCOES_MAP).filter(k => m[k] === true);
+            //const funcoes = Object.keys(FUNCOES_MAP).filter(k => m[k] === true);
+
+            const funcoes = _getFuncoes(m);
+
             const dataNasc = m.data_nascimento ? new Date(m.data_nascimento + 'T12:00:00').toLocaleDateString('pt-PT') : null;
             const dataEnt = m.data_entrada ? new Date(m.data_entrada + 'T12:00:00').toLocaleDateString('pt-PT') : null;
             const fn = (label, val) => `<div class="relmb-detail-row"><div class="relmb-detail-key">${label}</div><div class="relmb-detail-val">${val || '<span style="color:var(--text-faint);font-style:italic">—</span>'}</div></div>`;
@@ -1142,7 +1159,10 @@
                 const genLabel = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '—';
                 const linkNome = m.link_id ? (_links_map[m.link_id] || '') : '';
                 const mins = (_mins_cache[m.id] || []).map(mv => mv.nome + (mv.papel ? ' · ' + mv.papel : '')).join(', ') || '—';
-                const funcoes = Object.keys(FUNCOES_MAP).filter(k => m[k] === true).map(k => FUNCOES_MAP[k].l);
+                //const funcoes = Object.keys(FUNCOES_MAP).filter(k => m[k] === true).map(k => FUNCOES_MAP[k].l);
+
+                const funcoes = _getFuncoes(m).map(k => FUNCOES_MAP[k].l);
+
                 let ca = [];
                 try {
                     ca = JSON.parse(m.cursos_concluidos || '[]') || [];
@@ -1291,7 +1311,10 @@ ${filtrosDesc ? `<div style="margin-bottom:16px">
             const rows = lista.map(m => {
                 const genLabel = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '';
                 const linkNome = m.link_id ? (_links_map[m.link_id] || '') : '';
-                const funcoes = Object.keys(FUNCOES_MAP).filter(k => m[k] === true).map(k => FUNCOES_MAP[k].l).join(', ');
+                //const funcoes = Object.keys(FUNCOES_MAP).filter(k => m[k] === true).map(k => FUNCOES_MAP[k].l).join(', ');
+                
+                const funcoes = _getFuncoes(m).map(k => FUNCOES_MAP[k].l).join(', ');
+                
                 const mins = (_mins_cache[m.id] || []).map(mv => mv.nome + (mv.papel ? ' (' + mv.papel + ')' : '')).join(', ');
                 let ca = [];
                 try {

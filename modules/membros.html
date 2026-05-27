@@ -1942,21 +1942,15 @@
                 </div>`).join('')
                     : '<div style="font-size:12px;color:var(--text-faint)">Sem ministérios associados.</div>';
 
-                const papeis = [
-                    ['Auxiliar', 'Auxiliar'],
-                    ['Co-liderArea', 'Co-líder de Área'],
-                    ['Co-liderMinisterio', 'Co-líder de Ministério'],
-                    ['Coordenação', 'Coordenação'],
-                    ['Core', 'Core'],
-                    ['LiderArea', 'Líder de Área'],
-                    ['LiderEquipa', 'Líder de Equipa'],
-                    ['LiderLink', 'Líder de Link'],
-                    ['Lider', 'Líder de Ministério'],
-                    ['LiderPilar', 'Líder de Pilar'],
-                    ['Office', 'Office'],
-                    ['Presbitério', 'Presbitério'],
-                    ['Voluntario', 'Voluntario'],
-                ];
+                const papeis = Object.entries(MB_PAPEL_MAP)
+                    .sort((a, b) => {
+                        // Ordena por trilho depois por peso
+                        const trilhoOrder = { pastoral: 0, ae: 1, ministerios: 2, links: 3 };
+                        const ta = trilhoOrder[a[1].trilho] ?? 9;
+                        const tb = trilhoOrder[b[1].trilho] ?? 9;
+                        return ta !== tb ? ta - tb : a[1].peso - b[1].peso;
+                    })
+                    .map(([valor, info]) => [valor, info.label]);
 
                 return `<div><div class="mb-data-card">
                 <div class="mb-data-card-title">Ministérios e Áreas</div>

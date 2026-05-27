@@ -1330,15 +1330,45 @@
         let mb_links_cache = [];
         let mb_ministerios_cache = [];
         let mb_cursos_cache = [];
+
         let mb_membros_min = {};
         let mb_familia_cache = {};
+
+        /* ── tags por trilho ─────────────────────────────── */
+        function mb_getTagsFromMins(memId) {
+            const vincs = mb_membros_min[memId] || [];
+            const best  = {};
+            vincs.forEach(v => {
+                const info = MB_PAPEL_MAP[v.papel];
+                if (!info) return;
+                if (!best[info.trilho] || info.peso < best[info.trilho].peso) {
+                    best[info.trilho] = info;
+                }
+            });
+            return ['pastoral', 'ae', 'ministerios', 'links']
+                .filter(t => best[t])
+                .map(t => best[t]);
+        }
+
+        function mb_tagHtml(tag, size = 'normal') {
+            const COR_CLASS = {
+                blue:   'mb-badge-blue',
+                teal:   'mb-badge-teal',
+                orange: 'mb-badge-orange',
+                green:  'mb-badge-green',
+                gray:   'mb-badge-gray',
+            };
+            const cls   = COR_CLASS[tag.cor] || 'mb-badge-gray';
+            const style = size === 'small' ? 'font-size:8px;padding:1px 6px' : '';
+            return `<span class="mb-badge ${cls}" style="${style}">${tag.label}</span>`;
+        }
 
         let mb_activoId = null;
         let mb_panelTab = 'info';
         let mb_editMode = false;
         let mb_isNovo = false;
-        let _mb_editIdiomas = [];
-        let _mb_editNacs = [];
+        let mb_editIdiomas = [];
+        let mb_editNacs = [];
         let mb_filtros = new Set();
 
 
@@ -1407,7 +1437,7 @@
 
         /* ── chips idiomas/nacs ──────────────────────────── */
         function mb_renderChips(key) {
-            const arr = key === 'idiomas' ? _mb_editIdiomas : _mb_editNacs;
+            const arr = key === 'idiomas' ? mb_editIdiomas : mb_editNacs;
             const el = document.getElementById('mb-chips-' + key);
             if (!el) return;
             if (!arr.length) {
@@ -1429,7 +1459,7 @@
         function mb_addChip(key) {
             const sel = document.getElementById('mb-sel-' + key);
             if (!sel || !sel.value) return;
-            const arr = key === 'idiomas' ? _mb_editIdiomas : _mb_editNacs;
+            const arr = key === 'idiomas' ? mb_editIdiomas : mb_editNacs;
             if (!arr.includes(sel.value)) {
                 arr.push(sel.value);
                 mb_renderChips(key);
@@ -1438,7 +1468,7 @@
         }
 
         function mb_delChip(key, idx) {
-            (key === 'idiomas' ? _mb_editIdiomas : _mb_editNacs).splice(idx, 1);
+            (key === 'idiomas' ? mb_editIdiomas : mb_editNacs).splice(idx, 1);
             mb_renderChips(key);
         }
 
@@ -2228,8 +2258,8 @@
             ).join('');
 
             if (mb_panelTab === 'info') {
-                _mb_editIdiomas = mb_parseArr(m?.idiomas || m?.['Idiomas']);
-                _mb_editNacs = mb_parseArr(m?.nacionalidade);
+                mb_editIdiomas = mb_parseArr(m?.idiomas || m?.['Idiomas']);
+                mb_editNacs = mb_parseArr(m?.nacionalidade);
 
                 const html = `<div class="mb-form">
             <div class="mb-msg" id="mb-form-msg"></div>
@@ -2520,8 +2550,8 @@
             if (fotoHidden) body.foto_url = fotoHidden.value || null;
 
             if (document.getElementById('mb-chips-idiomas')) {
-                body['Idiomas'] = _mb_editIdiomas.length ? JSON.stringify(_mb_editIdiomas) : null;
-                body['nacionalidade'] = _mb_editNacs.length ? JSON.stringify(_mb_editNacs) : null;
+                body['Idiomas'] = mb_editIdiomas.length ? JSON.stringify(mb_editIdiomas) : null;
+                body['nacionalidade'] = mb_editNacs.length ? JSON.stringify(mb_editNacs) : null;
             }
 
             const checkboxes = [

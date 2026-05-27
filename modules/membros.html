@@ -1247,6 +1247,59 @@
         {v: 'mestrado', l: 'Mestrado'},
         {v: 'doutoramento', l: 'Doutoramento'},
     ];
+
+    const MB_PAPEL_MAP = {
+        // ── Pastoral ───────────────────────────
+        'Pastor':             { trilho: 'pastoral',    peso: 0, label: 'Pastor',              cor: 'blue'   },
+        'Presbitério':        { trilho: 'pastoral',    peso: 1, label: 'Presbítero',          cor: 'blue'   },
+        'EquipeExecutiva':    { trilho: 'pastoral',    peso: 2, label: 'Equipe Executiva',    cor: 'blue'   },
+        // ── Ministérios ────────────────────────
+        'Lider':              { trilho: 'ministerios', peso: 0, label: 'Líder de Ministério', cor: 'teal'   },
+        'Co-liderMinisterio': { trilho: 'ministerios', peso: 1, label: 'Co-líder Ministério', cor: 'teal'   },
+        'Coordenação':        { trilho: 'ministerios', peso: 2, label: 'Coordenação',         cor: 'teal'   },
+        'LiderEquipa':        { trilho: 'ministerios', peso: 3, label: 'Líder de Equipa',     cor: 'teal'   },
+        // ── Áreas Executivas ───────────────────
+        'LiderAE':            { trilho: 'ae',          peso: 0, label: 'Líder de AE',         cor: 'orange' },
+        'LiderPilar':         { trilho: 'ae',          peso: 1, label: 'Líder de Pilar',      cor: 'orange' },
+        'LiderArea':          { trilho: 'ae',          peso: 2, label: 'Líder de Área',       cor: 'orange' },
+        'Co-liderArea':       { trilho: 'ae',          peso: 3, label: 'Co-líder de Área',    cor: 'orange' },
+        // ── Links ──────────────────────────────
+        'CoordenacaoLink':    { trilho: 'links',       peso: 0, label: 'Coord. de Link',      cor: 'green'  },
+        'LiderLink':          { trilho: 'links',       peso: 1, label: 'Líder de Link',       cor: 'green'  },
+        'AuxiliarLink':       { trilho: 'links',       peso: 2, label: 'Auxiliar de Link',    cor: 'green'  },
+    };
+
+    /* Dado um membro_id, devolve array de { label, cor } — o papel mais alto por trilho */
+    function mb_getTagsFromMins(memId) {
+        const vincs = mb_membros_min[memId] || [];
+        const best  = {}; // trilho → { label, cor, peso }
+        vincs.forEach(v => {
+            const info = MB_PAPEL_MAP[v.papel];
+            if (!info) return;
+            if (!best[info.trilho] || info.peso < best[info.trilho].peso) {
+                best[info.trilho] = info;
+            }
+        });
+        // Ordem fixa de apresentação: pastoral primeiro
+        return ['pastoral', 'ae', 'ministerios', 'links']
+            .filter(t => best[t])
+            .map(t => best[t]);
+    }
+
+    /* Helper: renderiza uma tag derivada */
+    function mb_tagHtml(tag, size = 'normal') {
+        const COR_CLASS = {
+            blue:   'mb-badge-blue',
+            teal:   'mb-badge-teal',
+            orange: 'mb-badge-orange',
+            green:  'mb-badge-green',
+            gray:   'mb-badge-gray',
+        };
+        const cls  = COR_CLASS[tag.cor] || 'mb-badge-gray';
+        const style = size === 'small' ? 'font-size:8px;padding:1px 6px' : '';
+        return `<span class="mb-badge ${cls}" style="${style}">${tag.label}</span>`;
+    }
+
     const ESC_LABEL_MAP = Object.fromEntries(ESCOLARIDADE_LIST.slice(1).map(e => [e.v, e.l]));
 
     const ESTADO_CIVIL_LABEL_MAP = {
@@ -1518,10 +1571,9 @@
             Object.keys(grupos).sort().forEach(zona => {
                 html += `<div class="mb-list-sep">${zona} <span style="font-weight:400;opacity:.6">(${grupos[zona].length})</span></div>`;
                 grupos[zona].forEach(m => {
-                    const badges = [];
-                    if (m.e_lider) badges.push(`<span class="mb-badge mb-badge-teal">Líder</span>`);
-                    if (m.e_presbitero) badges.push(`<span class="mb-badge mb-badge-blue">Pres.</span>`);
-                    if (m.e_voluntario) badges.push(`<span class="mb-badge mb-badge-green">Vol.</span>`);
+
+                    const tags   = mb_getTagsFromMins(m.id);
+                    const badges = tags.map(t => mb_tagHtml(t, 'small'));
 
                     const foto = m.foto_url
                         ? `<div class="mb-list-avatar"><img src="${m.foto_url}" onerror="this.parentElement.innerHTML='${(m.nome || 'M')[0]}'"></div>`
@@ -1599,16 +1651,10 @@
             const panel = document.getElementById('mb-panel');
             const mins = mb_membros_min[m.id] || [];
 
-            const badgesHtml = [
-                m.e_lider ? '<span class="mb-badge mb-badge-teal">Líder</span>' : '',
-                m.e_presbitero ? '<span class="mb-badge mb-badge-blue">Presbítero</span>' : '',
-                m.e_voluntario ? '<span class="mb-badge mb-badge-green">Voluntário</span>' : '',
-                m.professor ? '<span class="mb-badge mb-badge-orange">Professor</span>' : '',
-                m.e_lider_link ? '<span class="mb-badge mb-badge-teal">Líder Link</span>' : '',
-                m.e_lider_area ? '<span class="mb-badge mb-badge-teal">Líder Área</span>' : '',
-                m.e_admin ? '<span class="mb-badge mb-badge-red">Admin</span>' : '',
-                m.ativo === false ? '<span class="mb-badge mb-badge-gray">Inativo</span>' : '',
-            ].filter(Boolean).join('');
+            const perfilTags = mb_getTagsFromMins(m.id);
+            const badgesHtml = perfilTags.length
+                ? perfilTags.map(t => mb_tagHtml(t)).join('')
+                : '<span class="mb-badge mb-badge-gray">Membro</span>';
 
             const fotoHtml = m.foto_url
                 ? `<div class="mb-profile-foto" onclick="mb_openLightbox('${m.foto_url}')" title="Ver foto">
@@ -1813,36 +1859,46 @@
             }
 
             if (mb_panelTab === 'funcoes') {
-                const funcoes = [
-                    {k: 'e_lider', l: 'Líder'},
-                    {k: 'e_presbitero', l: 'Presbítero'},
-                    {k: 'e_lider_link', l: 'Líder de Link'},
-                    {k: 'e_lider_area', l: 'Líder de Área'},
-                    {k: 'e_lider_pilar', l: 'Líder de Pilar'},
-                    {k: 'e_voluntario', l: 'Voluntário'},
-                    {k: 'professor', l: 'Professor'},
-                    {k: 'pastor', l: 'Pastor'},
-                    {k: 'office', l: 'Office'},
-                    {k: 'e_admin', l: 'Administrador'},
-                    {k: 'e_escala', l: 'Acesso a Escala'},
-                    {k: 'e_jornada', l: 'Acesso ao Jornadas'},
-                    {k: 'e_gerenciamento', l: 'Acesso ao Gerenciamento'},
-                    {k: 'e_hub', l: 'Acesso ao HUB'},
-                    {k: 'e_dizimista', l: 'Dizimista'},
-                    {k: 'acesso_pdv', l: 'Acesso ao PDV'},
-
-
+                const lideranca = [
+                    { k: 'e_lider',        l: 'Líder'           },
+                    { k: 'e_presbitero',   l: 'Presbítero'      },
+                    { k: 'pastor',         l: 'Pastor'           },
+                    { k: 'e_lider_link',   l: 'Líder de Link'   },
+                    { k: 'e_lider_area',   l: 'Líder de Área'   },
+                    { k: 'e_lider_pilar',  l: 'Líder de Pilar'  },
+                    { k: 'e_voluntario',   l: 'Voluntário'      },
+                    { k: 'professor',      l: 'Professor'        },
+                    { k: 'office',         l: 'Office'           },
                 ];
-                return `<div><div class="mb-data-card">
-                <div class="mb-data-card-title">Funções</div>
-                ${funcoes.map(f => `<div class="mb-field-row">
-                    <div class="mb-field-label">${f.l}</div>
-                    <div class="mb-field-val">${m[f.k]
+                const acessos = [
+                    { k: 'e_escala',         l: 'Escala'         },
+                    { k: 'e_jornada',        l: 'Jornadas'       },
+                    { k: 'e_gerenciamento',  l: 'Gerenciamento'  },
+                    { k: 'e_hub',            l: 'HUB'            },
+                    { k: 'acesso_pdv',       l: 'PDV'            },
+                    { k: 'e_dizimista',      l: 'Dizimista'      },
+                    { k: 'e_admin',          l: 'Administrador'  },
+                ];
+
+                const renderRows = arr => arr.map(f => `
+        <div class="mb-field-row">
+            <div class="mb-field-label">${f.l}</div>
+            <div class="mb-field-val">${m[f.k]
                     ? `<span class="mb-badge mb-badge-green">Sim</span>`
                     : `<span class="mb-badge mb-badge-gray">Não</span>`}
-                    </div>
-                </div>`).join('')}
-            </div></div>`;
+            </div>
+        </div>`).join('');
+
+                return `<div>
+        <div class="mb-data-card" style="margin-bottom:10px">
+            <div class="mb-data-card-title">Liderança e Cargos</div>
+            ${renderRows(lideranca)}
+        </div>
+        <div class="mb-data-card">
+            <div class="mb-data-card-title">Acessos ao Sistema</div>
+            ${renderRows(acessos)}
+        </div>
+    </div>`;
             }
 
             if (mb_panelTab === 'ministerios') {
@@ -2371,44 +2427,61 @@
             </div>`;
             }
 
+            // FORM Funções — dois blocos separados
             if (mb_panelTab === 'funcoes') {
-                const funcoes = [
-                    {k: 'e_lider', l: 'Líder'},
-                    {k: 'e_presbitero', l: 'Presbítero'},
-                    {k: 'e_lider_link', l: 'Líder de Link'},
-                    {k: 'e_lider_area', l: 'Líder de Área'},
-                    {k: 'e_lider_pilar', l: 'Líder de Pilar'},
-                    {k: 'e_voluntario', l: 'Voluntário'},
-                    {k: 'professor', l: 'Professor'},
-                    {k: 'pastor', l: 'Pastor'},
-                    {k: 'e_admin', l: 'Administrador'},
-                    {k: 'office', l: 'Office'},
-                    {k: 'e_escala', l: 'Acesso a Escala'},
-                    {k: 'e_hub', l: 'Acesso ao HUB'},
-                    {k: 'e_jornada', l: 'Acesso ao Jornada'},
-                    {k: 'e_gerenciamento', l: 'Acesso ao Gerenciamento'},
-                    {k: 'e_dizimista', l: 'Dizimista'},
-                    {k: 'acesso_pdv', l: 'Acesso ao PDV'},
-                    {k: 'ativo', l: 'Ativo', defaultTrue: true},
+                const lideranca = [
+                    { k: 'e_lider',        l: 'Líder'          },
+                    { k: 'e_presbitero',   l: 'Presbítero'     },
+                    { k: 'pastor',         l: 'Pastor'          },
+                    { k: 'e_lider_link',   l: 'Líder de Link'  },
+                    { k: 'e_lider_area',   l: 'Líder de Área'  },
+                    { k: 'e_lider_pilar',  l: 'Líder de Pilar' },
+                    { k: 'e_voluntario',   l: 'Voluntário'     },
+                    { k: 'professor',      l: 'Professor'       },
+                    { k: 'office',         l: 'Office'          },
                 ];
+                const acessos = [
+                    { k: 'e_escala',        l: 'Escala'        },
+                    { k: 'e_jornada',       l: 'Jornadas'      },
+                    { k: 'e_gerenciamento', l: 'Gerenciamento' },
+                    { k: 'e_hub',           l: 'HUB'           },
+                    { k: 'acesso_pdv',      l: 'PDV'           },
+                    { k: 'e_dizimista',     l: 'Dizimista'     },
+                    { k: 'e_admin',         l: 'Administrador' },
+                    { k: 'ativo',           l: 'Ativo', defaultTrue: true },
+                ];
+
+                const renderToggles = arr => arr.map(f => `
+        <div class="mb-form-group">
+            <label class="mb-form-toggle">
+                <input type="checkbox" id="mf_${f.k}"
+                    ${f.defaultTrue
+                    ? (fv(f.k) !== false ? 'checked' : '')
+                    : chk(f.k)}>
+                <span>${f.l}</span>
+            </label>
+        </div>`).join('');
+
                 return `<div class="mb-form">
-            <div class="mb-msg" id="mb-form-msg"></div>
-            <div class="mb-form-section">Funções e Estado</div>
-            <div class="mb-form-grid">
-                ${funcoes.map(f => `<div class="mb-form-group">
-                    <label class="mb-form-toggle">
-                        <input type="checkbox" id="mf_${f.k}"
-                            ${f.defaultTrue ? (fv(f.k) !== false ? 'checked' : '') : chk(f.k)}>
-                        <span>${f.l}</span>
-                    </label>
-                </div>`).join('')}
-            </div>
-            <div class="mb-form-actions">
-                <button class="mb-btn-cancel" onclick="mb_cancelEdit()">Cancelar</button>
-                <button class="mb-btn-save" id="mb-btn-save" onclick="mb_salvar('${m?.id || ''}')">Guardar</button>
-            </div>
-            </div>`;
+        <div class="mb-msg" id="mb-form-msg"></div>
+
+        <div class="mb-form-section">Liderança e Cargos</div>
+        <div class="mb-form-grid">
+            ${renderToggles(lideranca)}
+        </div>
+
+        <div class="mb-form-section" style="margin-top:16px">Acessos ao Sistema</div>
+        <div class="mb-form-grid">
+            ${renderToggles(acessos)}
+        </div>
+
+        <div class="mb-form-actions">
+            <button class="mb-btn-cancel" onclick="mb_cancelEdit()">Cancelar</button>
+            <button class="mb-btn-save" id="mb-btn-save" onclick="mb_salvar('${m?.id || ''}')">Guardar</button>
+        </div>
+    </div>`;
             }
+
 
             if (mb_panelTab === 'historia') {
                 return `<div class="mb-form">

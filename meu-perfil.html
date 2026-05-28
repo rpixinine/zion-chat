@@ -947,6 +947,48 @@
 
         // Estado global
         let _membros=[], _ministerios=[], _links=[], _zaoCursos=[], _membroSel=null;
+
+        const MB_PAPEL_MAP = {
+            'Pastor':             { trilho: 'pastoral',    peso: 0,  label: 'Pastor',              cor: 'gold'   },
+            'Presbitério':        { trilho: 'pastoral',    peso: 1,  label: 'Presbítero',          cor: 'gold'   },
+            'EquipeExecutiva':    { trilho: 'pastoral',    peso: 2,  label: 'Equipe Executiva',    cor: 'gold'   },
+            'Lider':              { trilho: 'ministerios', peso: 0,  label: 'Líder de Ministério', cor: 'teal'   },
+            'Co-liderMinisterio': { trilho: 'ministerios', peso: 1,  label: 'Co-líder Ministério', cor: 'teal'   },
+            'Coordenação':        { trilho: 'ministerios', peso: 2,  label: 'Coordenação',         cor: 'teal'   },
+            'LiderEquipa':        { trilho: 'ministerios', peso: 3,  label: 'Líder de Equipa',     cor: 'teal'   },
+            'LiderAE':            { trilho: 'ae',          peso: 0,  label: 'Líder de AE',         cor: 'teal'   },
+            'LiderPilar':         { trilho: 'ae',          peso: 1,  label: 'Líder de Pilar',      cor: 'teal'   },
+            'LiderArea':          { trilho: 'ae',          peso: 2,  label: 'Líder de Área',       cor: 'teal'   },
+            'Co-liderArea':       { trilho: 'ae',          peso: 3,  label: 'Co-líder de Área',    cor: 'teal'   },
+            'Voluntario':         { trilho: 'ae',          peso: 99, label: 'Voluntário',          cor: 'teal'   },
+            'CoordenacaoLink':    { trilho: 'links',       peso: 0,  label: 'Coord. de Link',      cor: 'teal'   },
+            'LiderLink':          { trilho: 'links',       peso: 1,  label: 'Líder de Link',       cor: 'teal'   },
+            'AuxiliarLink':       { trilho: 'links',       peso: 2,  label: 'Auxiliar de Link',    cor: 'teal'   },
+            'Auxiliar':           { trilho: 'ministerios', peso: 98, label: 'Auxiliar',            cor: 'gray'   },
+            'Core':               { trilho: 'ministerios', peso: 97, label: 'Core',                cor: 'teal'   },
+            'Office':             { trilho: 'ministerios', peso: 96, label: 'Office',              cor: 'gray'   },
+            'Membro':             { trilho: 'ministerios', peso: 100,label: 'Membro',              cor: 'gray'   },
+        };
+
+        function _getTagsFromMins(mins) {
+            const best = {};
+            (mins || []).forEach(v => {
+                const info = MB_PAPEL_MAP[v.papel];
+                if (!info) return;
+                if (!best[info.trilho] || info.peso < best[info.trilho].peso)
+                    best[info.trilho] = info;
+            });
+            return ['pastoral', 'ae', 'ministerios', 'links'].filter(t => best[t]).map(t => best[t]);
+        }
+
+        function _papelBadgeClass(cor) {
+            return cor === 'gold' ? 'badge badge-gold'
+                : cor === 'green' ? 'badge badge-green'
+                    : cor === 'gray'  ? 'badge badge-gray'
+                        : 'badge badge-teal';
+        }
+
+
         // Edit state
         let _editMins=[], _editFilhos=[], _editCursos=[], _editIdiomas=[], _editNacs=[];
         let _editConjugePending=undefined, _editLinkPending=undefined, _editFotoBlob=null;
@@ -977,6 +1019,27 @@
                 if (is) is.innerHTML = '<option value="">-- Adicionar idioma --</option>' + IDIOMAS.map(i=>`<option value="${i}">${i}</option>`).join('');
                 const ns = document.getElementById(`nac-sel-${ctx}`);
                 if (ns) ns.innerHTML = '<option value="">-- Adicionar nacionalidade --</option>' + NACIONALIDADES.map(n=>`<option value="${n}">${n}</option>`).join('');
+            });
+
+            ['edit', 'cad'].forEach(ctx => {
+                const sel = document.getElementById(`min-papel-${ctx}`);
+                if (!sel) return;
+                const TRILHO_LABEL = { pastoral: 'Pastoral', ae: 'Áreas Executivas', ministerios: 'Ministérios', links: 'Links' };
+                const byTrilho = { pastoral: [], ae: [], ministerios: [], links: [] };
+                Object.entries(MB_PAPEL_MAP).forEach(([valor, info]) => {
+                    if (byTrilho[info.trilho]) byTrilho[info.trilho].push({ valor, info });
+                });
+                let html = '<option value="">Função</option>';
+                ['pastoral', 'ae', 'ministerios', 'links'].forEach(trilho => {
+                    const items = byTrilho[trilho].sort((a, b) => a.info.peso - b.info.peso);
+                    if (!items.length) return;
+                    html += `<optgroup label="── ${TRILHO_LABEL[trilho]}">`;
+                    items.forEach(({ valor, info }) => {
+                        html += `<option value="${valor}">${info.label}</option>`;
+                    });
+                    html += '</optgroup>';
+                });
+                sel.innerHTML = html;
             });
         }
 
@@ -1093,14 +1156,13 @@
             if (m.foto_url) fi.innerHTML=`<img src="${m.foto_url}" alt="${m.nome}" onerror="this.parentElement.textContent='${(m.nome||'?')[0]}'">`;
             else fi.textContent=(m.nome||'?')[0];
             document.getElementById('perfil-nome-txt').textContent=m.nome||'—';
-            const bs=[];
-            if(m.pastor)       bs.push('<span class="badge badge-gold">Pastor</span>');
-            if(m.e_presbitero) bs.push('<span class="badge badge-gold">Presbitero</span>');
-            if(m.e_lider)      bs.push('<span class="badge badge-teal">Lider</span>');
-            if(m.e_voluntario) bs.push('<span class="badge badge-green">Voluntario</span>');
-            if(m.professor)    bs.push('<span class="badge badge-green">Professor</span>');
-            if(m.office)       bs.push('<span class="badge badge-gray">Office</span>');
-            document.getElementById('perfil-badges').innerHTML=bs.join('');
+
+            const tags = _getTagsFromMins(_editMins);
+            const bs = tags.length
+                ? tags.map(t => `<span class="${_papelBadgeClass(t.cor)}">${t.label}</span>`)
+                : ['<span class="badge badge-gray">Membro</span>'];
+            document.getElementById('perfil-badges').innerHTML = bs.join('');
+
             const prev=document.getElementById('foto-preview-edit');
             if(m.foto_url){prev.src=m.foto_url;prev.style.display='block';document.getElementById('foto-placeholder-edit').style.display='none';}
             else{prev.style.display='none';document.getElementById('foto-placeholder-edit').style.display='';}
@@ -1344,8 +1406,20 @@
         // MINISTERIOS
         function getMins(ctx)       { return ctx==='edit'?_editMins:_cadMins; }
 
-        function renderMinChips(ctx){const el=document.getElementById(`min-chips-${ctx}`);if(!el)return;const mins=getMins(ctx);if(!mins.length){el.innerHTML='<span class="info-empty">Sem areas associadas.</span>';return;}el.innerHTML=mins.map((m,i)=>`<span class="chip">${m.nome}${m.papel?' · '+m.papel:''}<button class="chip-remove" onclick="pRemMin('${ctx}',${i})">x</button></span>`).join('');}
-
+        function renderMinChips(ctx) {
+            const el = document.getElementById(`min-chips-${ctx}`);
+            if (!el) return;
+            const mins = getMins(ctx);
+            if (!mins.length) {
+                el.innerHTML = '<span class="info-empty">Sem areas associadas.</span>';
+                return;
+            }
+            el.innerHTML = mins.map((m, i) => {
+                const papelLabel = MB_PAPEL_MAP[m.papel]?.label || m.papel || '';
+                return `<span class="chip">${m.nome}${papelLabel ? ' · ' + papelLabel : ''}<button class="chip-remove" onclick="pRemMin('${ctx}',${i})">x</button></span>`;
+            }).join('');
+        }
+        
         function renderMinSel(ctx) {
             const sel = document.getElementById(`min-sel-${ctx}`);
             if (!sel) return;

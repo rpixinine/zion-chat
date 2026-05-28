@@ -230,360 +230,365 @@
 </div>
 
 <script>
-(function () {
+    (function () {
 
-    /* ════════════════════════════════════════════════════
-       MAPA DE PAPÉIS POR TRILHO
-       Mesma lógica do módulo membros
-    ════════════════════════════════════════════════════ */
-    const MB_PAPEL_MAP = {
-        // ── Pastoral ──────────────────────────────────
-        'Pastor':             { trilho: 'pastoral',    peso: 0,  label: 'Pastor',              cor: 'blue'   },
-        'Presbitério':        { trilho: 'pastoral',    peso: 1,  label: 'Presbítero',          cor: 'blue'   },
-        'EquipeExecutiva':    { trilho: 'pastoral',    peso: 2,  label: 'Equipe Executiva',    cor: 'blue'   },
-        // ── Ministérios ────────────────────────────────
-        'Lider':              { trilho: 'ministerios', peso: 0,  label: 'Líder de Ministério', cor: 'teal'   },
-        'Co-liderMinisterio': { trilho: 'ministerios', peso: 1,  label: 'Co-líder Ministério', cor: 'teal'   },
-        'Coordenação':        { trilho: 'ministerios', peso: 2,  label: 'Coordenação',         cor: 'teal'   },
-        'LiderEquipa':        { trilho: 'ministerios', peso: 3,  label: 'Líder de Equipa',     cor: 'teal'   },
-        'Voluntario':         { trilho: 'ministerios', peso: 99, label: 'Voluntário',          cor: 'green'  },
-        // ── Áreas Executivas ───────────────────────────
-        'LiderAE':            { trilho: 'ae',          peso: 0,  label: 'Líder de AE',         cor: 'orange' },
-        'LiderPilar':         { trilho: 'ae',          peso: 1,  label: 'Líder de Pilar',      cor: 'orange' },
-        'LiderArea':          { trilho: 'ae',          peso: 2,  label: 'Líder de Área',       cor: 'orange' },
-        'Co-liderArea':       { trilho: 'ae',          peso: 3,  label: 'Co-líder de Área',    cor: 'orange' },
-        // ── Links ──────────────────────────────────────
-        'CoordenacaoLink':    { trilho: 'links',       peso: 0,  label: 'Coord. de Link',      cor: 'green'  },
-        'LiderLink':          { trilho: 'links',       peso: 1,  label: 'Líder de Link',       cor: 'green'  },
-        'AuxiliarLink':       { trilho: 'links',       peso: 2,  label: 'Auxiliar de Link',    cor: 'green'  },
-    };
-
-    /* Acessos — apenas para chips de filtro e drawer */
-    const ACESSOS_MAP = {
-        foi_batizado:    { l: 'Batizado',       badge: 'blue'   },
-        e_dizimista:     { l: 'Dizimista',      badge: 'gray'   },
-        e_escala:        { l: 'Escala',         badge: 'gray'   },
-        e_hub:           { l: 'HUB',            badge: 'gray'   },
-        e_jornada:       { l: 'Jornada',        badge: 'gray'   },
-        e_gerenciamento: { l: 'Gerenciamento',  badge: 'gray'   },
-        acesso_pdv:      { l: 'PDV',            badge: 'orange' },
-        e_admin:         { l: 'Admin',          badge: 'red'    },
-    };
-
-    /* ── Estado ─────────────────────────────────────── */
-    let _membros    = [];
-    let _mins_cache = {};   // membroId → [{id, nome, tipo, papel}]
-    let _links_map  = {};
-    let _familia    = {};
-    let _filtros    = new Set();  // chips de acessos
-    let _sortKey    = 'nome';
-    let _sortDir    = 'asc';
-    let _listaAtual = [];
-    let _mins_all   = [];
-
-    /* ── Helpers de tags ─────────────────────────────── */
-    function _getTagsFromMins(memId) {
-        const vincs = _mins_cache[memId] || [];
-        const best  = {};
-        vincs.forEach(v => {
-            const info = MB_PAPEL_MAP[v.papel];
-            if (!info) return;
-            if (!best[info.trilho] || info.peso < best[info.trilho].peso)
-                best[info.trilho] = info;
-        });
-        return ['pastoral', 'ae', 'ministerios', 'links']
-            .filter(t => best[t])
-            .map(t => best[t]);
-    }
-
-    /* badge HTML para a tabela */
-    function _tagHtml(tag) {
-        return `<span class="relmb-badge relmb-badge-${tag.cor}">${tag.label}</span>`;
-    }
-
-    /* badge HTML compacto para PDF */
-    function _tagPdfHtml(tag) {
-        const COLORS = {
-            blue:   { bg:'#e3f0ff', color:'#1a5cb0' },
-            teal:   { bg:'#e0f7fa', color:'#006b70' },
-            orange: { bg:'#fff3e0', color:'#e65100' },
-            green:  { bg:'#e8f5e9', color:'#2e7d32' },
-            gray:   { bg:'#f5f5f5', color:'#666'    },
+        /* ════════════════════════════════════════════════════
+           MAPA DE PAPÉIS POR TRILHO
+           Mesma lógica do módulo membros
+        ════════════════════════════════════════════════════ */
+        const MB_PAPEL_MAP = {
+            // ── Pastoral ───────────────────────────
+            'Pastor':             { trilho: 'pastoral',    peso: 0, label: 'Pastor(a)',           cor: 'blue'   },
+            'Presbitério':        { trilho: 'pastoral',    peso: 1, label: 'Presbítero(a)',       cor: 'blue'   },
+            'EquipeExecutiva':    { trilho: 'pastoral',    peso: 2, label: 'Equipe Executiva',    cor: 'blue'   },
+            // ── Ministérios ────────────────────────
+            'Lider':              { trilho: 'ministerios', peso: 0, label: 'Líder de Ministério', cor: 'teal'   },
+            'Co-liderMinisterio': { trilho: 'ministerios', peso: 1, label: 'Co-líder Ministério', cor: 'teal'   },
+            'Core':               { trilho: 'ministerios', peso: 2, label: 'Coordenação',         cor: 'teal'   },
+            'LiderEquipa':        { trilho: 'ministerios', peso: 3, label: 'Líder de Equipa',     cor: 'teal'   },
+            // ── Áreas Executivas ───────────────────
+            'LiderAE':            { trilho: 'ae',          peso: 0, label: 'Líder de AE',         cor: 'orange' },
+            'LiderPilar':         { trilho: 'ae',          peso: 1, label: 'Líder de Pilar',      cor: 'orange' },
+            'LiderArea':          { trilho: 'ae',          peso: 2, label: 'Líder de Área',       cor: 'orange' },
+            'Co-liderArea':       { trilho: 'ae',          peso: 3, label: 'Co-líder de Área',    cor: 'orange' },
+            'Auxiliar':           { trilho: 'ae',          peso: 4, label: 'Auxiliar',            cor: 'orange' },
+            'Voluntario':         { trilho: 'ae',          peso: 9, label: 'Voluntário',          cor: 'orange' },
+            // ── Links ──────────────────────────────
+            'liderGeral':         { trilho: 'links',       peso: 0, label: 'Lider Geral de Link', cor: 'green'  },
+            'CoordenacaoLink':    { trilho: 'links',       peso: 1, label: 'Coord. de Link',      cor: 'green'  },
+            'CoordenacaoLinkGer': { trilho: 'links',       peso: 2, label: 'Coord. de Link Ger.', cor: 'green'  },
+            'LiderLink':          { trilho: 'links',       peso: 3, label: 'Líder de Link',       cor: 'green'  },
+            'LiderLinkGer':          { trilho: 'links',    peso: 4, label: 'Líder de Link Ger',   cor: 'green'  },
+            'AuxiliarLink':       { trilho: 'links',       peso: 5, label: 'Auxiliar de Link',    cor: 'green'  },
+            'Anfitriao':          { trilho: 'links',       peso: 6, label: 'Anfitrião de Link',   cor: 'green'  },
         };
-        const c = COLORS[tag.cor] || COLORS.gray;
-        return `<span style="font-size:8px;padding:1px 6px;border-radius:8px;background:${c.bg};color:${c.color};font-weight:700;display:inline-block;margin-bottom:2px">${tag.label}</span>`;
-    }
 
-    /* ── Ministério: hierarquia ──────────────────────── */
-    function _getDescendants(minId) {
-        const result = new Set([minId]);
-        const queue  = [minId];
-        while (queue.length) {
-            const pid = queue.shift();
-            _mins_all.filter(m => m.parent_id === pid).forEach(child => {
-                result.add(child.id); queue.push(child.id);
+        /* Acessos — apenas para chips de filtro e drawer */
+        const ACESSOS_MAP = {
+            foi_batizado:    { l: 'Batizado',       badge: 'blue'   },
+            e_dizimista:     { l: 'Dizimista',      badge: 'gray'   },
+            e_escala:        { l: 'Escala',         badge: 'gray'   },
+            e_hub:           { l: 'HUB',            badge: 'gray'   },
+            e_jornada:       { l: 'Jornada',        badge: 'gray'   },
+            e_gerenciamento: { l: 'Gerenciamento',  badge: 'gray'   },
+            acesso_pdv:      { l: 'PDV',            badge: 'orange' },
+            e_admin:         { l: 'Admin',          badge: 'red'    },
+        };
+
+        /* ── Estado ─────────────────────────────────────── */
+        let _membros    = [];
+        let _mins_cache = {};   // membroId → [{id, nome, tipo, papel}]
+        let _links_map  = {};
+        let _familia    = {};
+        let _filtros    = new Set();  // chips de acessos
+        let _sortKey    = 'nome';
+        let _sortDir    = 'asc';
+        let _listaAtual = [];
+        let _mins_all   = [];
+
+        /* ── Helpers de tags ─────────────────────────────── */
+        function _getTagsFromMins(memId) {
+            const vincs = _mins_cache[memId] || [];
+            const best  = {};
+            vincs.forEach(v => {
+                const info = MB_PAPEL_MAP[v.papel];
+                if (!info) return;
+                if (!best[info.trilho] || info.peso < best[info.trilho].peso)
+                    best[info.trilho] = info;
             });
+            return ['pastoral', 'ae', 'ministerios', 'links']
+                .filter(t => best[t])
+                .map(t => best[t]);
         }
-        return result;
-    }
 
-    function _buildMinSelect() {
-        const sel = document.getElementById('relmb-min');
-        if (!sel) return;
-        const prev  = sel.value;
-        const idSet = new Set(_mins_all.map(m => m.id));
-        const roots = _mins_all.filter(m => !m.parent_id || !idSet.has(m.parent_id));
-        function renderNodes(nodes, depth) {
-            return nodes.map(node => {
-                const prefix = depth > 0 ? '— '.repeat(depth) : '';
-                const children = _mins_all.filter(m => m.parent_id === node.id);
-                return `<option value="${node.id}">${prefix}${node.nome}</option>` + renderNodes(children, depth + 1);
-            }).join('');
+        /* badge HTML para a tabela */
+        function _tagHtml(tag) {
+            return `<span class="relmb-badge relmb-badge-${tag.cor}">${tag.label}</span>`;
         }
-        sel.innerHTML = '<option value="">Todos os ministérios</option>' + renderNodes(roots, 0);
-        if (prev) sel.value = prev;
-    }
 
-    function _buildPapelSelect() {
-        const sel = document.getElementById('relmb-papel');
-        if (!sel) return;
-        const prev = sel.value;
-        const TRILHO_LABEL = { pastoral: 'Pastoral', ae: 'Áreas Executivas', ministerios: 'Ministérios', links: 'Links' };
-        const byTrilho = { pastoral: [], ae: [], ministerios: [], links: [] };
-        Object.entries(MB_PAPEL_MAP).forEach(([valor, info]) => {
-            if (byTrilho[info.trilho]) byTrilho[info.trilho].push({ valor, info });
-        });
-        let html = '<option value="">Todos os cargos</option>';
-        ['pastoral', 'ae', 'ministerios', 'links'].forEach(trilho => {
-            const items = byTrilho[trilho].sort((a, b) => a.info.peso - b.info.peso);
-            if (!items.length) return;
-            html += `<optgroup label="── ${TRILHO_LABEL[trilho]}">`;
-            items.forEach(({ valor, info }) => {
-                html += `<option value="${valor}" ${prev === valor ? 'selected' : ''}>${info.label}</option>`;
-            });
-            html += '</optgroup>';
-        });
-        sel.innerHTML = html;
-    }
+        /* badge HTML compacto para PDF */
+        function _tagPdfHtml(tag) {
+            const COLORS = {
+                blue:   { bg:'#e3f0ff', color:'#1a5cb0' },
+                teal:   { bg:'#e0f7fa', color:'#006b70' },
+                orange: { bg:'#fff3e0', color:'#e65100' },
+                green:  { bg:'#e8f5e9', color:'#2e7d32' },
+                gray:   { bg:'#f5f5f5', color:'#666'    },
+            };
+            const c = COLORS[tag.cor] || COLORS.gray;
+            return `<span style="font-size:8px;padding:1px 6px;border-radius:8px;background:${c.bg};color:${c.color};font-weight:700;display:inline-block;margin-bottom:2px">${tag.label}</span>`;
+        }
 
-    /* ════════════════════════════════════════════════════
-       INIT
-    ════════════════════════════════════════════════════ */
-    async function relmb_init() {
-        _mostrarLoading(true);
-        try {
-            const [mems, mins, links, rels, minsAll] = await Promise.all([
-                sb('membros?select=*&order=nome'),
-                sb('membro_ministerios?select=id,membro_id,papel,ministerios(id,nome,tipo,parent_id)&ativo=eq.true').catch(() => []),
-                sb('links?select=id,nome&ativo=eq.true').catch(() => []),
-                sb('membros_filhos?select=pai_id,filho_id').catch(() => []),
-                sb('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&order=nome').catch(() => []),
-            ]);
-
-            _membros   = mems || [];
-            _links_map = {};
-            (links || []).forEach(l => _links_map[l.id] = l.nome);
-
-            _mins_cache = {};
-            (mins || []).forEach(v => {
-                if (!_mins_cache[v.membro_id]) _mins_cache[v.membro_id] = [];
-                _mins_cache[v.membro_id].push({
-                    id:    v.ministerios?.id   || null,
-                    nome:  v.ministerios?.nome || '—',
-                    tipo:  v.ministerios?.tipo || '',
-                    papel: v.papel || ''
+        /* ── Ministério: hierarquia ──────────────────────── */
+        function _getDescendants(minId) {
+            const result = new Set([minId]);
+            const queue  = [minId];
+            while (queue.length) {
+                const pid = queue.shift();
+                _mins_all.filter(m => m.parent_id === pid).forEach(child => {
+                    result.add(child.id); queue.push(child.id);
                 });
+            }
+            return result;
+        }
+
+        function _buildMinSelect() {
+            const sel = document.getElementById('relmb-min');
+            if (!sel) return;
+            const prev  = sel.value;
+            const idSet = new Set(_mins_all.map(m => m.id));
+            const roots = _mins_all.filter(m => !m.parent_id || !idSet.has(m.parent_id));
+            function renderNodes(nodes, depth) {
+                return nodes.map(node => {
+                    const prefix = depth > 0 ? '— '.repeat(depth) : '';
+                    const children = _mins_all.filter(m => m.parent_id === node.id);
+                    return `<option value="${node.id}">${prefix}${node.nome}</option>` + renderNodes(children, depth + 1);
+                }).join('');
+            }
+            sel.innerHTML = '<option value="">Todos os ministérios</option>' + renderNodes(roots, 0);
+            if (prev) sel.value = prev;
+        }
+
+        function _buildPapelSelect() {
+            const sel = document.getElementById('relmb-papel');
+            if (!sel) return;
+            const prev = sel.value;
+            const TRILHO_LABEL = { pastoral: 'Pastoral', ae: 'Áreas Executivas', ministerios: 'Ministérios', links: 'Links' };
+            const byTrilho = { pastoral: [], ae: [], ministerios: [], links: [] };
+            Object.entries(MB_PAPEL_MAP).forEach(([valor, info]) => {
+                if (byTrilho[info.trilho]) byTrilho[info.trilho].push({ valor, info });
             });
+            let html = '<option value="">Todos os cargos</option>';
+            ['pastoral', 'ae', 'ministerios', 'links'].forEach(trilho => {
+                const items = byTrilho[trilho].sort((a, b) => a.info.peso - b.info.peso);
+                if (!items.length) return;
+                html += `<optgroup label="── ${TRILHO_LABEL[trilho]}">`;
+                items.forEach(({ valor, info }) => {
+                    html += `<option value="${valor}" ${prev === valor ? 'selected' : ''}>${info.label}</option>`;
+                });
+                html += '</optgroup>';
+            });
+            sel.innerHTML = html;
+        }
 
-            _mins_all = minsAll || [];
-            _buildMinSelect();
-            _buildPapelSelect();
+        /* ════════════════════════════════════════════════════
+           INIT
+        ════════════════════════════════════════════════════ */
+        async function relmb_init() {
+            _mostrarLoading(true);
+            try {
+                const [mems, mins, links, rels, minsAll] = await Promise.all([
+                    sb('membros?select=*&order=nome'),
+                    sb('membro_ministerios?select=id,membro_id,papel,ministerios(id,nome,tipo,parent_id)&ativo=eq.true').catch(() => []),
+                    sb('links?select=id,nome&ativo=eq.true').catch(() => []),
+                    sb('membros_filhos?select=pai_id,filho_id').catch(() => []),
+                    sb('ministerios?select=id,nome,tipo,parent_id&ativo=eq.true&order=nome').catch(() => []),
+                ]);
 
-            /* Links select */
-            const selLink = document.getElementById('relmb-link');
-            if (selLink) {
-                const prevLink = selLink.value;
-                const linksOrd = (links || []).slice().sort((a, b) => a.nome.localeCompare(b.nome));
-                selLink.innerHTML =
-                    '<option value="">Todos (com e sem link)</option>' +
-                    '<option value="__com__">Com link</option>' +
-                    '<option value="__sem__">Sem link</option>' +
-                    '<option value="" disabled>──────────────</option>' +
-                    linksOrd.map(l => `<option value="${l.id}" ${prevLink === l.id ? 'selected' : ''}>${l.nome}</option>`).join('');
-                if (prevLink) selLink.value = prevLink;
+                _membros   = mems || [];
+                _links_map = {};
+                (links || []).forEach(l => _links_map[l.id] = l.nome);
+
+                _mins_cache = {};
+                (mins || []).forEach(v => {
+                    if (!_mins_cache[v.membro_id]) _mins_cache[v.membro_id] = [];
+                    _mins_cache[v.membro_id].push({
+                        id:    v.ministerios?.id   || null,
+                        nome:  v.ministerios?.nome || '—',
+                        tipo:  v.ministerios?.tipo || '',
+                        papel: v.papel || ''
+                    });
+                });
+
+                _mins_all = minsAll || [];
+                _buildMinSelect();
+                _buildPapelSelect();
+
+                /* Links select */
+                const selLink = document.getElementById('relmb-link');
+                if (selLink) {
+                    const prevLink = selLink.value;
+                    const linksOrd = (links || []).slice().sort((a, b) => a.nome.localeCompare(b.nome));
+                    selLink.innerHTML =
+                        '<option value="">Todos (com e sem link)</option>' +
+                        '<option value="__com__">Com link</option>' +
+                        '<option value="__sem__">Sem link</option>' +
+                        '<option value="" disabled>──────────────</option>' +
+                        linksOrd.map(l => `<option value="${l.id}" ${prevLink === l.id ? 'selected' : ''}>${l.nome}</option>`).join('');
+                    if (prevLink) selLink.value = prevLink;
+                }
+
+                /* Cursos select */
+                const cursosSet = new Map();
+                _membros.forEach(m => {
+                    let ca = [];
+                    try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+                    ca.forEach(r => { const n = r.nome || r.curso_id || ''; if (n) cursosSet.set(n.toLowerCase().trim(), n); });
+                });
+                const selCurso = document.getElementById('relmb-curso');
+                if (selCurso) {
+                    const prevC = selCurso.value;
+                    selCurso.innerHTML = '<option value="">Todos os cursos</option>' +
+                        [...cursosSet.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+                            .map(([, n]) => `<option value="${n}" ${prevC === n ? 'selected' : ''}>${n}</option>`).join('');
+                }
+
+                /* Familia */
+                _familia = {};
+                _membros.forEach(m => {
+                    const conjuge   = m.conjuge_id ? _membros.find(x => x.id === m.conjuge_id) || null : null;
+                    const filhosIds = (rels || []).filter(r => r.pai_id === m.id).map(r => r.filho_id);
+                    const filhos    = filhosIds.map(fid => _membros.find(x => x.id === fid)).filter(Boolean);
+                    _familia[m.id] = { conjuge, filhos };
+                });
+
+                /* Zonas */
+                const zonas  = [...new Set(_membros.map(m => m.zona).filter(Boolean))].sort();
+                const selZona = document.getElementById('relmb-zona');
+                if (selZona) {
+                    const prev = selZona.value;
+                    selZona.innerHTML = '<option value="">Todas as áreas</option>' +
+                        zonas.map(z => `<option value="${z}" ${prev === z ? 'selected' : ''}>${z}</option>`).join('');
+                }
+
+                const ts = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+                const el = document.getElementById('relmb-last-update');
+                if (el) el.textContent = 'Actualizado ' + ts;
+
+                relmb_aplicar();
+            } catch (e) {
+                _mostrarLoading(false);
+                console.error('relmb_init:', e);
+            }
+        }
+
+        /* ════════════════════════════════════════════════════
+           APLICAR FILTROS
+        ════════════════════════════════════════════════════ */
+        function relmb_aplicar() {
+            const q       = (document.getElementById('relmb-q')?.value || '').toLowerCase().trim();
+            const zona    = document.getElementById('relmb-zona')?.value   || '';
+            const genero  = document.getElementById('relmb-genero')?.value || '';
+            const estado  = document.getElementById('relmb-estado')?.value || 'ativo';
+            const minSel  = document.getElementById('relmb-min')?.value    || '';
+            const papelSel= document.getElementById('relmb-papel')?.value  || '';
+            const linkSel = document.getElementById('relmb-link')?.value   || '';
+            const cursoSel= document.getElementById('relmb-curso')?.value  || '';
+
+            let lista = [..._membros];
+
+            if (estado === 'ativo')   lista = lista.filter(m => m.ativo !== false);
+            if (estado === 'inativo') lista = lista.filter(m => m.ativo === false);
+            if (q)      lista = lista.filter(m => (m.nome || '').toLowerCase().includes(q));
+            if (zona)   lista = lista.filter(m => m.zona === zona);
+            if (genero) lista = lista.filter(m => m.genero === genero);
+
+            /* filtro por chips de acessos (booleans) */
+            _filtros.forEach(k => { lista = lista.filter(m => m[k] === true); });
+
+            /* filtro por ministério (hierarquia) */
+            if (minSel) {
+                const minIds = _getDescendants(minSel);
+                lista = lista.filter(m => (_mins_cache[m.id] || []).some(mv => minIds.has(mv.id)));
             }
 
-            /* Cursos select */
-            const cursosSet = new Map();
-            _membros.forEach(m => {
-                let ca = [];
-                try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
-                ca.forEach(r => { const n = r.nome || r.curso_id || ''; if (n) cursosSet.set(n.toLowerCase().trim(), n); });
-            });
-            const selCurso = document.getElementById('relmb-curso');
-            if (selCurso) {
-                const prevC = selCurso.value;
-                selCurso.innerHTML = '<option value="">Todos os cursos</option>' +
-                    [...cursosSet.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-                        .map(([, n]) => `<option value="${n}" ${prevC === n ? 'selected' : ''}>${n}</option>`).join('');
+            /* filtro por papel específico */
+            if (papelSel) {
+                lista = lista.filter(m => (_mins_cache[m.id] || []).some(mv => mv.papel === papelSel));
             }
 
-            /* Familia */
-            _familia = {};
-            _membros.forEach(m => {
-                const conjuge   = m.conjuge_id ? _membros.find(x => x.id === m.conjuge_id) || null : null;
-                const filhosIds = (rels || []).filter(r => r.pai_id === m.id).map(r => r.filho_id);
-                const filhos    = filhosIds.map(fid => _membros.find(x => x.id === fid)).filter(Boolean);
-                _familia[m.id] = { conjuge, filhos };
-            });
+            /* filtro por link */
+            if (linkSel === '__com__')       lista = lista.filter(m => !!m.link_id);
+            else if (linkSel === '__sem__')  lista = lista.filter(m => !m.link_id);
+            else if (linkSel)                lista = lista.filter(m => String(m.link_id) === String(linkSel));
 
-            /* Zonas */
-            const zonas  = [...new Set(_membros.map(m => m.zona).filter(Boolean))].sort();
-            const selZona = document.getElementById('relmb-zona');
-            if (selZona) {
-                const prev = selZona.value;
-                selZona.innerHTML = '<option value="">Todas as áreas</option>' +
-                    zonas.map(z => `<option value="${z}" ${prev === z ? 'selected' : ''}>${z}</option>`).join('');
+            /* filtro por curso */
+            if (cursoSel) {
+                lista = lista.filter(m => {
+                    let ca = [];
+                    try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+                    return ca.some(r => (r.nome || r.curso_id || '') === cursoSel);
+                });
             }
 
-            const ts = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-            const el = document.getElementById('relmb-last-update');
-            if (el) el.textContent = 'Actualizado ' + ts;
+            lista.sort((a, b) => {
+                const va = (a[_sortKey] || '').toString().toLowerCase();
+                const vb = (b[_sortKey] || '').toString().toLowerCase();
+                return _sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+            });
 
-            relmb_aplicar();
-        } catch (e) {
+            _listaAtual = lista;
+            _renderTabela(lista);
+            document.getElementById('relmb-count').innerHTML =
+                `<strong>${lista.length}</strong> membro${lista.length !== 1 ? 's' : ''}`;
+            _renderFiltrosActivos(q, zona, genero, estado, papelSel, linkSel, cursoSel);
+        }
+
+        /* ════════════════════════════════════════════════════
+           RENDER TABELA
+        ════════════════════════════════════════════════════ */
+        function _renderTabela(lista) {
             _mostrarLoading(false);
-            console.error('relmb_init:', e);
-        }
-    }
+            const table = document.getElementById('relmb-table');
+            const empty = document.getElementById('relmb-empty');
+            const tbody = document.getElementById('relmb-tbody');
+            if (!lista.length) { table.style.display = 'none'; empty.style.display = ''; return; }
+            table.style.display = '';
+            empty.style.display = 'none';
 
-    /* ════════════════════════════════════════════════════
-       APLICAR FILTROS
-    ════════════════════════════════════════════════════ */
-    function relmb_aplicar() {
-        const q       = (document.getElementById('relmb-q')?.value || '').toLowerCase().trim();
-        const zona    = document.getElementById('relmb-zona')?.value   || '';
-        const genero  = document.getElementById('relmb-genero')?.value || '';
-        const estado  = document.getElementById('relmb-estado')?.value || 'ativo';
-        const minSel  = document.getElementById('relmb-min')?.value    || '';
-        const papelSel= document.getElementById('relmb-papel')?.value  || '';
-        const linkSel = document.getElementById('relmb-link')?.value   || '';
-        const cursoSel= document.getElementById('relmb-curso')?.value  || '';
+            tbody.innerHTML = lista.map(m => {
+                const avatarInner = m.foto_url
+                    ? `<img src="${m.foto_url}" onerror="this.parentElement.innerHTML='${(m.nome || '?')[0]}'">`
+                    : (m.nome || '?')[0];
 
-        let lista = [..._membros];
+                const genLabel = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '—';
+                const linkNome = m.link_id ? (_links_map[m.link_id] || '') : '';
+                const zonaLink = [m.zona, linkNome ? 'Link: ' + linkNome : ''].filter(Boolean).join('<br>');
 
-        if (estado === 'ativo')   lista = lista.filter(m => m.ativo !== false);
-        if (estado === 'inativo') lista = lista.filter(m => m.ativo === false);
-        if (q)      lista = lista.filter(m => (m.nome || '').toLowerCase().includes(q));
-        if (zona)   lista = lista.filter(m => m.zona === zona);
-        if (genero) lista = lista.filter(m => m.genero === genero);
+                /* ── Cargos: tags derivadas dos ministérios ── */
+                const tags = _getTagsFromMins(m.id);
+                const cargosHtml = tags.length
+                    ? `<div class="relmb-badges">${tags.map(t => _tagHtml(t)).join('')}</div>`
+                    : `<span class="relmb-badge relmb-badge-gray">Membro</span>`;
 
-        /* filtro por chips de acessos (booleans) */
-        _filtros.forEach(k => { lista = lista.filter(m => m[k] === true); });
+                const statusBadge = m.ativo === false
+                    ? `<span class="relmb-badge relmb-badge-red">Inactivo</span>`
+                    : `<span class="relmb-badge relmb-badge-green">Activo</span>`;
 
-        /* filtro por ministério (hierarquia) */
-        if (minSel) {
-            const minIds = _getDescendants(minSel);
-            lista = lista.filter(m => (_mins_cache[m.id] || []).some(mv => minIds.has(mv.id)));
-        }
+                /* ── Ministérios ── */
+                const mins = _mins_cache[m.id] || [];
+                const minsHtml = mins.length
+                    ? `<div class="relmb-list-cell">${mins.map(mv => {
+                        const info = MB_PAPEL_MAP[mv.papel];
+                        const papelBadge = info
+                            ? `<span class="relmb-badge relmb-badge-${info.cor}" style="font-size:8px;padding:1px 5px">${info.label}</span>`
+                            : mv.papel ? `<span style="font-size:10px;color:var(--text-faint)">(${mv.papel})</span>` : '';
+                        return `<div class="relmb-list-item" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${mv.nome} ${papelBadge}</div>`;
+                    }).join('')}</div>`
+                    : `<span style="font-size:11px;color:var(--text-faint)">—</span>`;
 
-        /* filtro por papel específico */
-        if (papelSel) {
-            lista = lista.filter(m => (_mins_cache[m.id] || []).some(mv => mv.papel === papelSel));
-        }
-
-        /* filtro por link */
-        if (linkSel === '__com__')       lista = lista.filter(m => !!m.link_id);
-        else if (linkSel === '__sem__')  lista = lista.filter(m => !m.link_id);
-        else if (linkSel)                lista = lista.filter(m => String(m.link_id) === String(linkSel));
-
-        /* filtro por curso */
-        if (cursoSel) {
-            lista = lista.filter(m => {
+                /* ── Cursos ── */
                 let ca = [];
                 try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
-                return ca.some(r => (r.nome || r.curso_id || '') === cursoSel);
-            });
-        }
-
-        lista.sort((a, b) => {
-            const va = (a[_sortKey] || '').toString().toLowerCase();
-            const vb = (b[_sortKey] || '').toString().toLowerCase();
-            return _sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-        });
-
-        _listaAtual = lista;
-        _renderTabela(lista);
-        document.getElementById('relmb-count').innerHTML =
-            `<strong>${lista.length}</strong> membro${lista.length !== 1 ? 's' : ''}`;
-        _renderFiltrosActivos(q, zona, genero, estado, papelSel, linkSel, cursoSel);
-    }
-
-    /* ════════════════════════════════════════════════════
-       RENDER TABELA
-    ════════════════════════════════════════════════════ */
-    function _renderTabela(lista) {
-        _mostrarLoading(false);
-        const table = document.getElementById('relmb-table');
-        const empty = document.getElementById('relmb-empty');
-        const tbody = document.getElementById('relmb-tbody');
-        if (!lista.length) { table.style.display = 'none'; empty.style.display = ''; return; }
-        table.style.display = '';
-        empty.style.display = 'none';
-
-        tbody.innerHTML = lista.map(m => {
-            const avatarInner = m.foto_url
-                ? `<img src="${m.foto_url}" onerror="this.parentElement.innerHTML='${(m.nome || '?')[0]}'">`
-                : (m.nome || '?')[0];
-
-            const genLabel = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '—';
-            const linkNome = m.link_id ? (_links_map[m.link_id] || '') : '';
-            const zonaLink = [m.zona, linkNome ? 'Link: ' + linkNome : ''].filter(Boolean).join('<br>');
-
-            /* ── Cargos: tags derivadas dos ministérios ── */
-            const tags = _getTagsFromMins(m.id);
-            const cargosHtml = tags.length
-                ? `<div class="relmb-badges">${tags.map(t => _tagHtml(t)).join('')}</div>`
-                : `<span class="relmb-badge relmb-badge-gray">Membro</span>`;
-
-            const statusBadge = m.ativo === false
-                ? `<span class="relmb-badge relmb-badge-red">Inactivo</span>`
-                : `<span class="relmb-badge relmb-badge-green">Activo</span>`;
-
-            /* ── Ministérios ── */
-            const mins = _mins_cache[m.id] || [];
-            const minsHtml = mins.length
-                ? `<div class="relmb-list-cell">${mins.map(mv => {
-                    const info = MB_PAPEL_MAP[mv.papel];
-                    const papelBadge = info
-                        ? `<span class="relmb-badge relmb-badge-${info.cor}" style="font-size:8px;padding:1px 5px">${info.label}</span>`
-                        : mv.papel ? `<span style="font-size:10px;color:var(--text-faint)">(${mv.papel})</span>` : '';
-                    return `<div class="relmb-list-item" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${mv.nome} ${papelBadge}</div>`;
-                }).join('')}</div>`
-                : `<span style="font-size:11px;color:var(--text-faint)">—</span>`;
-
-            /* ── Cursos ── */
-            let ca = [];
-            try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
-            const cursosHtml = ca.length
-                ? `<div class="relmb-list-cell">
+                const cursosHtml = ca.length
+                    ? `<div class="relmb-list-cell">
                     ${ca.filter(r => !r.status || r.status === 'concluido').map(r =>
                         `<div class="relmb-list-item"><span class="relmb-badge relmb-badge-green" style="font-size:8px">Conc.</span> ${r.nome || r.curso_id}</div>`).join('')}
                     ${ca.filter(r => r.status === 'cursando').map(r =>
                         `<div class="relmb-list-item"><span class="relmb-badge relmb-badge-orange" style="font-size:8px">Curso</span> ${r.nome || r.curso_id}</div>`).join('')}
                    </div>`
-                : `<span style="font-size:11px;color:var(--text-faint)">—</span>`;
+                    : `<span style="font-size:11px;color:var(--text-faint)">—</span>`;
 
-            /* ── Família ── */
-            const fam = _familia[m.id] || {};
-            const famItems = [];
-            if (fam.conjuge) famItems.push(`<div class="relmb-list-item">${fam.conjuge.nome} <span>(Cônjuge)</span></div>`);
-            (fam.filhos || []).forEach(f => famItems.push(`<div class="relmb-list-item">${f.nome} <span>(Filho)</span></div>`));
-            const famHtml = famItems.length
-                ? `<div class="relmb-list-cell">${famItems.join('')}</div>`
-                : `<span style="font-size:11px;color:var(--text-faint)">—</span>`;
+                /* ── Família ── */
+                const fam = _familia[m.id] || {};
+                const famItems = [];
+                if (fam.conjuge) famItems.push(`<div class="relmb-list-item">${fam.conjuge.nome} <span>(Cônjuge)</span></div>`);
+                (fam.filhos || []).forEach(f => famItems.push(`<div class="relmb-list-item">${f.nome} <span>(Filho)</span></div>`));
+                const famHtml = famItems.length
+                    ? `<div class="relmb-list-cell">${famItems.join('')}</div>`
+                    : `<span style="font-size:11px;color:var(--text-faint)">—</span>`;
 
-            return `<tr class="${m.ativo === false ? 'inativo' : ''}" style="cursor:pointer" onclick="relmb_openDrawer('${m.id}')">
+                return `<tr class="${m.ativo === false ? 'inativo' : ''}" style="cursor:pointer" onclick="relmb_openDrawer('${m.id}')">
                 <td><div class="relmb-cell-nome">
                     <div class="relmb-avatar">${avatarInner}</div>
                     <div class="relmb-nome-stack">
@@ -603,97 +608,97 @@
                 <td>${cursosHtml}</td>
                 <td>${famHtml}</td>
             </tr>`;
-        }).join('');
-    }
-
-    /* ── Filtros activos (barra) ─────────────────────── */
-    function _renderFiltrosActivos(q, zona, genero, estado, papelSel, linkSel, cursoSel) {
-        const el = document.getElementById('relmb-active-filters');
-        if (!el) return;
-        const s = `font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(0,144,152,.2);border:1px solid rgba(0,144,152,.4);color:var(--primary)`;
-        const tags = [];
-        if (q)      tags.push(`<span style="${s}">Nome: ${q}</span>`);
-        if (zona)   tags.push(`<span style="${s}">Área: ${zona}</span>`);
-        if (genero) tags.push(`<span style="${s}">${genero === 'masculino' ? 'Homem' : 'Mulher'}</span>`);
-        if (estado !== 'todos') tags.push(`<span style="${s}">${estado === 'ativo' ? 'Activos' : 'Inactivos'}</span>`);
-        if (papelSel) { const info = MB_PAPEL_MAP[papelSel]; tags.push(`<span style="${s}">Cargo: ${info?.label || papelSel}</span>`); }
-        if (linkSel === '__com__')  tags.push(`<span style="${s}">Com link</span>`);
-        if (linkSel === '__sem__')  tags.push(`<span style="${s}">Sem link</span>`);
-        if (cursoSel) tags.push(`<span style="${s}">Curso: ${cursoSel}</span>`);
-        _filtros.forEach(k => tags.push(`<span style="${s}">${ACESSOS_MAP[k]?.l || k}</span>`));
-        el.innerHTML = tags.join('');
-    }
-
-    function _mostrarLoading(show) {
-        const l = document.getElementById('relmb-loading');
-        const t = document.getElementById('relmb-table');
-        const e = document.getElementById('relmb-empty');
-        if (l) l.style.display = show ? '' : 'none';
-        if (show) { if (t) t.style.display = 'none'; if (e) e.style.display = 'none'; }
-    }
-
-    function relmb_toggleChip(el) {
-        const k = el.dataset.key;
-        if (el.classList.toggle('active')) _filtros.add(k); else _filtros.delete(k);
-        relmb_aplicar();
-    }
-
-    function relmb_limpar() {
-        document.getElementById('relmb-q').value      = '';
-        document.getElementById('relmb-zona').value   = '';
-        document.getElementById('relmb-genero').value = '';
-        document.getElementById('relmb-estado').value = 'ativo';
-        const s = (id) => { const el = document.getElementById(id); if (el) el.value = ''; };
-        s('relmb-min'); s('relmb-papel'); s('relmb-link'); s('relmb-curso');
-        _filtros.clear();
-        document.querySelectorAll('#relmb-chips .relmb-chip.active').forEach(c => c.classList.remove('active'));
-        relmb_aplicar();
-    }
-
-    function relmb_sort(key) {
-        if (_sortKey === key) _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
-        else { _sortKey = key; _sortDir = 'asc'; }
-        document.querySelectorAll('.relmb-table thead th').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
-        const th = [...document.querySelectorAll('.relmb-table thead th')]
-            .find(t => t.onclick?.toString().includes(`'${key}'`));
-        if (th) th.classList.add(_sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
-        relmb_aplicar();
-    }
-
-    /* ════════════════════════════════════════════════════
-       DRAWER
-    ════════════════════════════════════════════════════ */
-    function relmb_openDrawer(id) {
-        const m = _membros.find(x => x.id === id);
-        if (!m) return;
-
-        const fotoEl = document.getElementById('relmb-drawer-foto');
-        if (fotoEl) {
-            fotoEl.innerHTML = m.foto_url
-                ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover">`
-                : (m.nome || '?')[0];
+            }).join('');
         }
-        document.getElementById('relmb-drawer-nome').textContent = m.nome;
-        const genLabel = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '';
-        document.getElementById('relmb-drawer-sub').textContent = [genLabel, m.zona].filter(Boolean).join(' · ');
 
-        const mins    = _mins_cache[m.id] || [];
-        const fam     = _familia[m.id]   || {};
-        const linkNome = m.link_id ? (_links_map[m.link_id] || '—') : '—';
-        let ca = [];
-        try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+        /* ── Filtros activos (barra) ─────────────────────── */
+        function _renderFiltrosActivos(q, zona, genero, estado, papelSel, linkSel, cursoSel) {
+            const el = document.getElementById('relmb-active-filters');
+            if (!el) return;
+            const s = `font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(0,144,152,.2);border:1px solid rgba(0,144,152,.4);color:var(--primary)`;
+            const tags = [];
+            if (q)      tags.push(`<span style="${s}">Nome: ${q}</span>`);
+            if (zona)   tags.push(`<span style="${s}">Área: ${zona}</span>`);
+            if (genero) tags.push(`<span style="${s}">${genero === 'masculino' ? 'Homem' : 'Mulher'}</span>`);
+            if (estado !== 'todos') tags.push(`<span style="${s}">${estado === 'ativo' ? 'Activos' : 'Inactivos'}</span>`);
+            if (papelSel) { const info = MB_PAPEL_MAP[papelSel]; tags.push(`<span style="${s}">Cargo: ${info?.label || papelSel}</span>`); }
+            if (linkSel === '__com__')  tags.push(`<span style="${s}">Com link</span>`);
+            if (linkSel === '__sem__')  tags.push(`<span style="${s}">Sem link</span>`);
+            if (cursoSel) tags.push(`<span style="${s}">Curso: ${cursoSel}</span>`);
+            _filtros.forEach(k => tags.push(`<span style="${s}">${ACESSOS_MAP[k]?.l || k}</span>`));
+            el.innerHTML = tags.join('');
+        }
 
-        const tags = _getTagsFromMins(m.id);
-        const acessosAtivos = Object.keys(ACESSOS_MAP).filter(k => m[k] === true);
+        function _mostrarLoading(show) {
+            const l = document.getElementById('relmb-loading');
+            const t = document.getElementById('relmb-table');
+            const e = document.getElementById('relmb-empty');
+            if (l) l.style.display = show ? '' : 'none';
+            if (show) { if (t) t.style.display = 'none'; if (e) e.style.display = 'none'; }
+        }
 
-        const dataNasc = m.data_nascimento ? new Date(m.data_nascimento + 'T12:00:00').toLocaleDateString('pt-PT') : null;
-        const dataEnt  = m.data_entrada    ? new Date(m.data_entrada + 'T12:00:00').toLocaleDateString('pt-PT') : null;
-        const fn = (label, val) => `<div class="relmb-detail-row">
+        function relmb_toggleChip(el) {
+            const k = el.dataset.key;
+            if (el.classList.toggle('active')) _filtros.add(k); else _filtros.delete(k);
+            relmb_aplicar();
+        }
+
+        function relmb_limpar() {
+            document.getElementById('relmb-q').value      = '';
+            document.getElementById('relmb-zona').value   = '';
+            document.getElementById('relmb-genero').value = '';
+            document.getElementById('relmb-estado').value = 'ativo';
+            const s = (id) => { const el = document.getElementById(id); if (el) el.value = ''; };
+            s('relmb-min'); s('relmb-papel'); s('relmb-link'); s('relmb-curso');
+            _filtros.clear();
+            document.querySelectorAll('#relmb-chips .relmb-chip.active').forEach(c => c.classList.remove('active'));
+            relmb_aplicar();
+        }
+
+        function relmb_sort(key) {
+            if (_sortKey === key) _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
+            else { _sortKey = key; _sortDir = 'asc'; }
+            document.querySelectorAll('.relmb-table thead th').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
+            const th = [...document.querySelectorAll('.relmb-table thead th')]
+                .find(t => t.onclick?.toString().includes(`'${key}'`));
+            if (th) th.classList.add(_sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            relmb_aplicar();
+        }
+
+        /* ════════════════════════════════════════════════════
+           DRAWER
+        ════════════════════════════════════════════════════ */
+        function relmb_openDrawer(id) {
+            const m = _membros.find(x => x.id === id);
+            if (!m) return;
+
+            const fotoEl = document.getElementById('relmb-drawer-foto');
+            if (fotoEl) {
+                fotoEl.innerHTML = m.foto_url
+                    ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover">`
+                    : (m.nome || '?')[0];
+            }
+            document.getElementById('relmb-drawer-nome').textContent = m.nome;
+            const genLabel = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '';
+            document.getElementById('relmb-drawer-sub').textContent = [genLabel, m.zona].filter(Boolean).join(' · ');
+
+            const mins    = _mins_cache[m.id] || [];
+            const fam     = _familia[m.id]   || {};
+            const linkNome = m.link_id ? (_links_map[m.link_id] || '—') : '—';
+            let ca = [];
+            try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+
+            const tags = _getTagsFromMins(m.id);
+            const acessosAtivos = Object.keys(ACESSOS_MAP).filter(k => m[k] === true);
+
+            const dataNasc = m.data_nascimento ? new Date(m.data_nascimento + 'T12:00:00').toLocaleDateString('pt-PT') : null;
+            const dataEnt  = m.data_entrada    ? new Date(m.data_entrada + 'T12:00:00').toLocaleDateString('pt-PT') : null;
+            const fn = (label, val) => `<div class="relmb-detail-row">
             <div class="relmb-detail-key">${label}</div>
             <div class="relmb-detail-val">${val || '<span style="color:var(--text-faint);font-style:italic">—</span>'}</div>
         </div>`;
 
-        document.getElementById('relmb-drawer-body').innerHTML = `
+            document.getElementById('relmb-drawer-body').innerHTML = `
         <div class="relmb-detail-card">
             <div class="relmb-detail-title">Identificação</div>
             ${fn('Email', m.email ? `<a href="mailto:${m.email}" style="color:var(--primary)">${m.email}</a>` : null)}
@@ -725,8 +730,8 @@
             <div>
                 <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-title,'Cinzel',serif);letter-spacing:1px;margin-bottom:5px">Acessos</div>
                 <div class="relmb-badges">${acessosAtivos.map(k =>
-                    `<span class="relmb-badge relmb-badge-${ACESSOS_MAP[k].badge}">${ACESSOS_MAP[k].l}</span>`
-                ).join('')}</div>
+                `<span class="relmb-badge relmb-badge-${ACESSOS_MAP[k].badge}">${ACESSOS_MAP[k].l}</span>`
+            ).join('')}</div>
             </div>` : ''}
         </div>` : ''}
 
@@ -738,8 +743,8 @@
                 return `<div class="relmb-detail-row">
                     <div class="relmb-detail-key" style="flex:1">${mv.nome}</div>
                     <div class="relmb-detail-val">${info
-                        ? `<span class="relmb-badge relmb-badge-${info.cor}" style="font-size:8px">${info.label}</span>`
-                        : `<span style="font-size:10px;color:var(--text-faint)">${mv.papel || '—'}</span>`}
+                    ? `<span class="relmb-badge relmb-badge-${info.cor}" style="font-size:8px">${info.label}</span>`
+                    : `<span style="font-size:10px;color:var(--text-faint)">${mv.papel || '—'}</span>`}
                     </div>
                 </div>`;
             }).join('')}
@@ -778,90 +783,90 @@
                 ? `<div style="font-size:11px;color:var(--text-faint);padding:4px 0">Sem registos de família.</div>` : ''}
         </div>`;
 
-        document.getElementById('relmb-drawer').classList.add('open');
-        document.getElementById('relmb-overlay').classList.add('open');
-    }
+            document.getElementById('relmb-drawer').classList.add('open');
+            document.getElementById('relmb-overlay').classList.add('open');
+        }
 
-    function relmb_closeDrawer() {
-        document.getElementById('relmb-drawer').classList.remove('open');
-        document.getElementById('relmb-overlay').classList.remove('open');
-    }
+        function relmb_closeDrawer() {
+            document.getElementById('relmb-drawer').classList.remove('open');
+            document.getElementById('relmb-overlay').classList.remove('open');
+        }
 
-    /* ════════════════════════════════════════════════════
-       PDF
-    ════════════════════════════════════════════════════ */
-    function relmb_gerarPDF() {
-        const lista = _listaAtual;
-        if (!lista.length) { alert('Nenhum membro para gerar PDF. Verifica os filtros.'); return; }
+        /* ════════════════════════════════════════════════════
+           PDF
+        ════════════════════════════════════════════════════ */
+        function relmb_gerarPDF() {
+            const lista = _listaAtual;
+            if (!lista.length) { alert('Nenhum membro para gerar PDF. Verifica os filtros.'); return; }
 
-        const geradoEm = new Date().toLocaleDateString('pt-PT', {
-            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
+            const geradoEm = new Date().toLocaleDateString('pt-PT', {
+                day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
 
-        const nHomens  = lista.filter(m => m.genero === 'masculino').length;
-        const nMulheres= lista.filter(m => m.genero === 'feminino').length;
-        const nBat     = lista.filter(m => m.foi_batizado).length;
-        // contar por trilhos únicos
-        const nPastoral    = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'pastoral')).length;
-        const nAE          = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'ae')).length;
-        const nMinisterios = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'ministerios')).length;
-        const nLinks       = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'links')).length;
+            const nHomens  = lista.filter(m => m.genero === 'masculino').length;
+            const nMulheres= lista.filter(m => m.genero === 'feminino').length;
+            const nBat     = lista.filter(m => m.foi_batizado).length;
+            // contar por trilhos únicos
+            const nPastoral    = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'pastoral')).length;
+            const nAE          = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'ae')).length;
+            const nMinisterios = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'ministerios')).length;
+            const nLinks       = lista.filter(m => _getTagsFromMins(m.id).some(t => t.trilho === 'links')).length;
 
-        const papelSel = document.getElementById('relmb-papel')?.value || '';
-        const q        = (document.getElementById('relmb-q')?.value || '').trim();
-        const zona     = document.getElementById('relmb-zona')?.value || '';
-        const genero   = document.getElementById('relmb-genero')?.value || '';
-        const estado   = document.getElementById('relmb-estado')?.value || 'ativo';
-        const chips    = [..._filtros].map(k => ACESSOS_MAP[k]?.l || k);
-        const filtrosDesc = [
-            q ? `Nome: "${q}"` : '', zona ? `Área: ${zona}` : '',
-            genero ? (genero === 'masculino' ? 'Homem' : 'Mulher') : '',
-            estado !== 'todos' ? (estado === 'ativo' ? 'Activos' : 'Inactivos') : '',
-            papelSel ? `Cargo: ${MB_PAPEL_MAP[papelSel]?.label || papelSel}` : '',
-            ...chips
-        ].filter(Boolean).join(' · ');
+            const papelSel = document.getElementById('relmb-papel')?.value || '';
+            const q        = (document.getElementById('relmb-q')?.value || '').trim();
+            const zona     = document.getElementById('relmb-zona')?.value || '';
+            const genero   = document.getElementById('relmb-genero')?.value || '';
+            const estado   = document.getElementById('relmb-estado')?.value || 'ativo';
+            const chips    = [..._filtros].map(k => ACESSOS_MAP[k]?.l || k);
+            const filtrosDesc = [
+                q ? `Nome: "${q}"` : '', zona ? `Área: ${zona}` : '',
+                genero ? (genero === 'masculino' ? 'Homem' : 'Mulher') : '',
+                estado !== 'todos' ? (estado === 'ativo' ? 'Activos' : 'Inactivos') : '',
+                papelSel ? `Cargo: ${MB_PAPEL_MAP[papelSel]?.label || papelSel}` : '',
+                ...chips
+            ].filter(Boolean).join(' · ');
 
-        const _row = (m, idx) => {
-            const genLabel  = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '—';
-            const linkNome  = m.link_id ? (_links_map[m.link_id] || '') : '';
-            const mins      = (_mins_cache[m.id] || []).map(mv => mv.nome + (mv.papel ? ' · ' + (MB_PAPEL_MAP[mv.papel]?.label || mv.papel) : '')).join(', ') || '—';
-            const tags      = _getTagsFromMins(m.id);
-            let ca = [];
-            try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
-            const cursosConc = ca.filter(r => !r.status || r.status === 'concluido').map(r => r.nome || r.curso_id);
-            const cursosCurs = ca.filter(r => r.status === 'cursando').map(r => r.nome || r.curso_id);
-            const fam       = _familia[m.id] || {};
-            const famParts  = [];
-            if (fam.conjuge) famParts.push(fam.conjuge.nome + ' (Cônjuge)');
-            (fam.filhos || []).forEach(f => famParts.push(f.nome + ' (Filho)'));
-            const ini = (m.nome || '?')[0].toUpperCase();
-            const bg  = idx % 2 === 0 ? '' : 'background:#fafcfc';
+            const _row = (m, idx) => {
+                const genLabel  = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '—';
+                const linkNome  = m.link_id ? (_links_map[m.link_id] || '') : '';
+                const mins      = (_mins_cache[m.id] || []).map(mv => mv.nome + (mv.papel ? ' · ' + (MB_PAPEL_MAP[mv.papel]?.label || mv.papel) : '')).join(', ') || '—';
+                const tags      = _getTagsFromMins(m.id);
+                let ca = [];
+                try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+                const cursosConc = ca.filter(r => !r.status || r.status === 'concluido').map(r => r.nome || r.curso_id);
+                const cursosCurs = ca.filter(r => r.status === 'cursando').map(r => r.nome || r.curso_id);
+                const fam       = _familia[m.id] || {};
+                const famParts  = [];
+                if (fam.conjuge) famParts.push(fam.conjuge.nome + ' (Cônjuge)');
+                (fam.filhos || []).forEach(f => famParts.push(f.nome + ' (Filho)'));
+                const ini = (m.nome || '?')[0].toUpperCase();
+                const bg  = idx % 2 === 0 ? '' : 'background:#fafcfc';
 
-            const fotoCell = m.foto_url
-                ? `<td style="width:36px;padding:3px 5px;text-align:center"><img src="${m.foto_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'"></td>`
-                : `<td style="width:36px;padding:3px 5px;text-align:center"><div style="width:28px;height:28px;border-radius:50%;background:#e0f7fa;color:#005f65;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:auto">${ini}</div></td>`;
+                const fotoCell = m.foto_url
+                    ? `<td style="width:36px;padding:3px 5px;text-align:center"><img src="${m.foto_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'"></td>`
+                    : `<td style="width:36px;padding:3px 5px;text-align:center"><div style="width:28px;height:28px;border-radius:50%;background:#e0f7fa;color:#005f65;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:auto">${ini}</div></td>`;
 
-            const nomeCell = `<td style="font-weight:600;font-size:11px">
+                const nomeCell = `<td style="font-weight:600;font-size:11px">
                 ${m.nome}
                 ${m.zona ? `<span style="font-weight:400;color:#009098;font-size:9px;margin-left:5px">${m.zona}</span>` : ''}
                 <br><span style="font-weight:400;color:#888;font-size:10px">${m.email || ''}</span>
                 ${linkNome ? `<br><span style="color:#009098;font-size:9px">Link: ${linkNome}</span>` : ''}
             </td>`;
 
-            const cargosHtml = tags.length
-                ? `<div style="display:flex;flex-direction:column;gap:2px">${tags.map(t => _tagPdfHtml(t)).join('')}</div>`
-                : `<span style="color:#aaa;font-size:10px">Membro</span>`;
+                const cargosHtml = tags.length
+                    ? `<div style="display:flex;flex-direction:column;gap:2px">${tags.map(t => _tagPdfHtml(t)).join('')}</div>`
+                    : `<span style="color:#aaa;font-size:10px">Membro</span>`;
 
-            const cursosHtml = [
-                ...cursosConc.map(c => `<div style="font-size:9px;padding:1px 5px;border-radius:6px;background:#e8f5e9;color:#2e7d32;margin-bottom:2px">${c}</div>`),
-                ...cursosCurs.map(c => `<div style="font-size:9px;padding:1px 5px;border-radius:6px;background:#fff8e1;color:#e65100;margin-bottom:2px">${c}</div>`)
-            ].join('') || '<span style="color:#aaa;font-size:10px">—</span>';
+                const cursosHtml = [
+                    ...cursosConc.map(c => `<div style="font-size:9px;padding:1px 5px;border-radius:6px;background:#e8f5e9;color:#2e7d32;margin-bottom:2px">${c}</div>`),
+                    ...cursosCurs.map(c => `<div style="font-size:9px;padding:1px 5px;border-radius:6px;background:#fff8e1;color:#e65100;margin-bottom:2px">${c}</div>`)
+                ].join('') || '<span style="color:#aaa;font-size:10px">—</span>';
 
-            const famHtml = famParts.length
-                ? famParts.map(p => `<div style="font-size:10px;color:#555">${p}</div>`).join('')
-                : '<span style="color:#aaa;font-size:10px">—</span>';
+                const famHtml = famParts.length
+                    ? famParts.map(p => `<div style="font-size:10px;color:#555">${p}</div>`).join('')
+                    : '<span style="color:#aaa;font-size:10px">—</span>';
 
-            return `<tr style="${bg}">
+                return `<tr style="${bg}">
                 ${fotoCell}
                 ${nomeCell}
                 <td style="font-size:11px;white-space:nowrap">${genLabel}</td>
@@ -870,12 +875,12 @@
                 <td>${cursosHtml}</td>
                 <td>${famHtml}</td>
             </tr>`;
-        };
+            };
 
-        let corpoHtml = '';
-        lista.slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '')).forEach((m, i) => { corpoHtml += _row(m, i); });
+            let corpoHtml = '';
+            lista.slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '')).forEach((m, i) => { corpoHtml += _row(m, i); });
 
-        const htm = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+            const htm = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
 <title>Relatório de Membros — Zion Lisboa</title>
 <style>
 *{box-sizing:border-box}
@@ -929,12 +934,12 @@ td{padding:6px 8px;border-bottom:1px solid #f2f2f2;vertical-align:top}
 ${filtrosDesc ? `<div style="margin-bottom:16px">
     <span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;margin-right:6px">FILTROS ACTIVOS:</span>
     ${[q ? `<span class="ftag">Nome: "${q}"</span>` : '',
-       zona ? `<span class="ftag">Área: ${zona}</span>` : '',
-       genero ? `<span class="ftag">${genero === 'masculino' ? 'Homem' : 'Mulher'}</span>` : '',
-       estado !== 'todos' ? `<span class="ftag">${estado === 'ativo' ? 'Activos' : 'Inactivos'}</span>` : '',
-       papelSel ? `<span class="ftag">Cargo: ${MB_PAPEL_MAP[papelSel]?.label || papelSel}</span>` : '',
-       ...chips.map(f => `<span class="ftag">${f}</span>`)
-    ].filter(Boolean).join('')}
+                zona ? `<span class="ftag">Área: ${zona}</span>` : '',
+                genero ? `<span class="ftag">${genero === 'masculino' ? 'Homem' : 'Mulher'}</span>` : '',
+                estado !== 'todos' ? `<span class="ftag">${estado === 'ativo' ? 'Activos' : 'Inactivos'}</span>` : '',
+                papelSel ? `<span class="ftag">Cargo: ${MB_PAPEL_MAP[papelSel]?.label || papelSel}</span>` : '',
+                ...chips.map(f => `<span class="ftag">${f}</span>`)
+            ].filter(Boolean).join('')}
 </div>` : ''}
 
 <h2>Lista de Membros</h2>
@@ -955,57 +960,57 @@ ${filtrosDesc ? `<div style="margin-bottom:16px">
 <script>window.onload=()=>window.print();<\/script>
 </body></html>`;
 
-        const w = window.open('', '_blank');
-        w.document.write(htm);
-        w.document.close();
-    }
+            const w = window.open('', '_blank');
+            w.document.write(htm);
+            w.document.close();
+        }
 
-    /* ════════════════════════════════════════════════════
-       CSV
-    ════════════════════════════════════════════════════ */
-    function relmb_exportCSV() {
-        const lista = _listaAtual;
-        const esc   = v => `"${String(v || '').replace(/"/g, '""')}"`;
-        const header = ['Nome', 'Email', 'Telefone', 'Género', 'Área', 'Link', 'Estado',
-                        'Cargos (Trilho)', 'Ministérios', 'Cursos Concluídos', 'Cursos em Curso', 'Família'];
-        const rows = lista.map(m => {
-            const genLabel  = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '';
-            const linkNome  = m.link_id ? (_links_map[m.link_id] || '') : '';
-            const tags      = _getTagsFromMins(m.id).map(t => t.label).join(', ');
-            const mins      = (_mins_cache[m.id] || []).map(mv =>
-                mv.nome + (mv.papel ? ' (' + (MB_PAPEL_MAP[mv.papel]?.label || mv.papel) + ')' : '')
-            ).join(', ');
-            let ca = [];
-            try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
-            const conc  = ca.filter(r => !r.status || r.status === 'concluido').map(r => r.nome || r.curso_id).join(', ');
-            const curs  = ca.filter(r => r.status === 'cursando').map(r => r.nome || r.curso_id).join(', ');
-            const fam   = _familia[m.id] || {};
-            const famParts = [];
-            if (fam.conjuge) famParts.push(fam.conjuge.nome + ' (Cônjuge)');
-            (fam.filhos || []).forEach(f => famParts.push(f.nome + ' (Filho)'));
-            return [m.nome, m.email, m.telefone, genLabel, m.zona, linkNome,
-                m.ativo === false ? 'Inactivo' : 'Activo',
-                tags, mins, conc, curs, famParts.join(', ')].map(esc).join(',');
-        });
-        const csv  = '\uFEFF' + [header.join(','), ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href = url; a.download = `relatorio-membros-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click(); URL.revokeObjectURL(url);
-    }
+        /* ════════════════════════════════════════════════════
+           CSV
+        ════════════════════════════════════════════════════ */
+        function relmb_exportCSV() {
+            const lista = _listaAtual;
+            const esc   = v => `"${String(v || '').replace(/"/g, '""')}"`;
+            const header = ['Nome', 'Email', 'Telefone', 'Género', 'Área', 'Link', 'Estado',
+                'Cargos (Trilho)', 'Ministérios', 'Cursos Concluídos', 'Cursos em Curso', 'Família'];
+            const rows = lista.map(m => {
+                const genLabel  = m.genero === 'masculino' ? 'Homem' : m.genero === 'feminino' ? 'Mulher' : '';
+                const linkNome  = m.link_id ? (_links_map[m.link_id] || '') : '';
+                const tags      = _getTagsFromMins(m.id).map(t => t.label).join(', ');
+                const mins      = (_mins_cache[m.id] || []).map(mv =>
+                    mv.nome + (mv.papel ? ' (' + (MB_PAPEL_MAP[mv.papel]?.label || mv.papel) + ')' : '')
+                ).join(', ');
+                let ca = [];
+                try { ca = JSON.parse(m.cursos_concluidos || '[]') || []; } catch (_) {}
+                const conc  = ca.filter(r => !r.status || r.status === 'concluido').map(r => r.nome || r.curso_id).join(', ');
+                const curs  = ca.filter(r => r.status === 'cursando').map(r => r.nome || r.curso_id).join(', ');
+                const fam   = _familia[m.id] || {};
+                const famParts = [];
+                if (fam.conjuge) famParts.push(fam.conjuge.nome + ' (Cônjuge)');
+                (fam.filhos || []).forEach(f => famParts.push(f.nome + ' (Filho)'));
+                return [m.nome, m.email, m.telefone, genLabel, m.zona, linkNome,
+                    m.ativo === false ? 'Inactivo' : 'Activo',
+                    tags, mins, conc, curs, famParts.join(', ')].map(esc).join(',');
+            });
+            const csv  = '\uFEFF' + [header.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url; a.download = `relatorio-membros-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click(); URL.revokeObjectURL(url);
+        }
 
-    /* ── Expor ──────────────────────────────────────── */
-    window.relmb_init        = relmb_init;
-    window.relmb_aplicar     = relmb_aplicar;
-    window.relmb_toggleChip  = relmb_toggleChip;
-    window.relmb_limpar      = relmb_limpar;
-    window.relmb_sort        = relmb_sort;
-    window.relmb_openDrawer  = relmb_openDrawer;
-    window.relmb_closeDrawer = relmb_closeDrawer;
-    window.relmb_gerarPDF    = relmb_gerarPDF;
-    window.relmb_exportCSV   = relmb_exportCSV;
+        /* ── Expor ──────────────────────────────────────── */
+        window.relmb_init        = relmb_init;
+        window.relmb_aplicar     = relmb_aplicar;
+        window.relmb_toggleChip  = relmb_toggleChip;
+        window.relmb_limpar      = relmb_limpar;
+        window.relmb_sort        = relmb_sort;
+        window.relmb_openDrawer  = relmb_openDrawer;
+        window.relmb_closeDrawer = relmb_closeDrawer;
+        window.relmb_gerarPDF    = relmb_gerarPDF;
+        window.relmb_exportCSV   = relmb_exportCSV;
 
-    relmb_init();
-})();
+        relmb_init();
+    })();
 </script>

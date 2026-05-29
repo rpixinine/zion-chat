@@ -1830,35 +1830,49 @@
         }
 
         try {
-            // Tenta via Supabase JS client (window.supabase)
-            if (window.supabase && window.supabase.storage) {
-                var ext = sl_fotoFile.name.split('.').pop() || 'jpg';
-                var path = 'sala-' + (salaId || 'nova') + '-' + Date.now() + '.' + ext;
-                var uploadResult = await window.supabase.storage
-                    .from('salas-fotos')
-                    .upload(path, sl_fotoFile, {upsert: true, contentType: sl_fotoFile.type});
-                if (uploadResult.error) throw uploadResult.error;
-                var urlResult = window.supabase.storage.from('salas-fotos').getPublicUrl(path);
-                var url = urlResult.data && urlResult.data.publicUrl;
-                if (statusEl) {
-                    statusEl.className = 'sl-foto-status ok';
-                    statusEl.textContent = '✓ Upload concluído';
-                }
-                sl_fotoFile = null;
-                sl_fotoBase64 = null;
-                return url;
-            }
-        } catch (e) {
-            console.warn('sl_uploadFoto supabase.storage falhou:', e);
-        }
+            var ext = sl_fotoFile.name.split('.').pop() || 'jpg';
+            var path = 'salas/' + (salaId || 'nova') + '-' + Date.now() + '.' + ext;
 
-        // Fallback: avisar utilizador que precisa de criar o bucket "salas-fotos"
-        if (statusEl) {
-            statusEl.className = 'sl-foto-status err';
-            statusEl.textContent = '⚠ Bucket "salas-fotos" não encontrado. Cria-o no Supabase Storage e tenta de novo.';
+            // Converter ficheiro para ArrayBuffer
+            var arrayBuffer = await sl_fotoFile.arrayBuffer();
+
+            // Usar o mesmo endpoint REST que o sb() já usa
+            var supabaseUrl = window.SUPABASE_URL || window._supabaseUrl;
+            var supabaseKey = window.SUPABASE_KEY || window._supabaseKey || window.SUPABASE_ANON_KEY;
+
+            var resp = await fetch(supabaseUrl + '/storage/v1/object/imagens/' + path, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + supabaseKey,
+                    'Content-Type': sl_fotoFile.type || 'image/jpeg',
+                    'x-upsert': 'true',
+                },
+                body: arrayBuffer,
+            });
+
+            if (!resp.ok) {
+                var errText = await resp.text();
+                throw new Error(errText);
+            }
+
+            var url = supabaseUrl + '/storage/v1/object/public/imagens/' + path;
+
+            if (statusEl) {
+                statusEl.className = 'sl-foto-status ok';
+                statusEl.textContent = '✓ Upload concluído';
+            }
+            sl_fotoFile = null;
+            sl_fotoBase64 = null;
+            return url;
+
+        } catch (e) {
+            console.error('sl_uploadFoto erro:', e);
+            if (statusEl) {
+                statusEl.className = 'sl-foto-status err';
+                statusEl.textContent = '⚠ Erro no upload: ' + (e?.message || e);
+            }
+            return null;
         }
-        // Retorna null, a URL que o utilizador escreveu manualmente fica intacta
-        return null;
     }
 
     // ── INIT ──────────────────────────────────────────────────────────────────────

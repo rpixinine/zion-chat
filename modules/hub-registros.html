@@ -1,7 +1,4 @@
 <style>
-    /* ══════════════════════════════════════════════════════
-    HUB REGISTROS MODULE
- ══════════════════════════════════════════════════════ */
     .hrg-page {
         display: flex;
         height: 100%;
@@ -1175,6 +1172,17 @@
                     <option>Vox</option>
                 </select></div>
             </div>
+            <hr class="hrg-sep">
+            <div class="hrg-fg">
+                <span class="hrg-fg-lbl">Status</span>
+                <select id="hrg-f-status" onchange="hrg_aplicar()">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="hrg-fg" style="margin-top:8px">
+                <span class="hrg-fg-lbl">Atendente</span>
+                <input type="text" id="hrg-f-atendente" placeholder="Filtrar por atendente..." oninput="hrg_aplicar()">
+            </div>
         </div>
     </div>
 
@@ -1234,6 +1242,7 @@
                         <th>Área / Origem</th>
                         <th>Pedido de Ajuda</th>
                         <th>Status</th>
+                        <th>Atendente</th>
                         <th class="tc">Visitas</th>
                         <th></th>
                     </tr>
@@ -1372,7 +1381,9 @@
                 <option>Feminino</option>
             </select></div>
         </div>
-        <div class="hrg-edit-row full">
+        <div class="hrg-edit-row">
+            <div class="hrg-edit-fg"><label>Atendente</label><input type="text" id="hrg-edit-atendente"
+                                                                    placeholder="Nome do atendente..."></div>
             <div class="hrg-edit-fg"><label>Bairro / Cidade</label><input type="text" id="hrg-edit-morada"></div>
         </div>
         <div id="hrg-edit-perguntas" style="margin-bottom:10px"></div>
@@ -1658,8 +1669,15 @@
             b.textContent = s.classList.toggle('collapsed') ? '▶' : '☰';
         };
 
+        function _popularSelectStatus() {
+            const sel = document.getElementById('hrg-f-status');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Todos</option>' + hrg_estados.map(e => `<option value="${e.id}">${e.label}</option>`).join('');
+        }
+
         async function hrg_init() {
             _loadEstados();
+            _popularSelectStatus();
             if (window.innerWidth <= 700) {
                 const s = document.getElementById('hrg-side-wrap');
                 if (s) {
@@ -1676,7 +1694,7 @@
 
         window.hrg_carregar = async function () {
             const de = document.getElementById('hrg-f-de').value, ate = document.getElementById('hrg-f-ate').value;
-            document.getElementById('hrg-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px">A carregar...</td></tr>';
+            document.getElementById('hrg-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px">A carregar...</td></tr>';
             try {
                 let q = 'visitantes_hub?select=*&order=created_at.desc';
                 if (de) q += `&created_at=gte.${de}T00:00:00`;
@@ -1694,7 +1712,7 @@
                 _atualizarLabel();
             } catch (e) {
                 console.error(e);
-                document.getElementById('hrg-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#e74c3c;font-size:12px">Erro ao carregar dados.</td></tr>'
+                document.getElementById('hrg-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:#e74c3c;font-size:12px">Erro ao carregar dados.</td></tr>'
             }
         };
 
@@ -1742,6 +1760,8 @@
                 p3 = document.getElementById('hrg-f-p3')?.value || '',
                 p5 = document.getElementById('hrg-f-p5')?.value || '',
                 area = document.getElementById('hrg-f-area')?.value || '';
+            const fStatus = document.getElementById('hrg-f-status')?.value || '';
+            const fAtend = (document.getElementById('hrg-f-atendente')?.value || '').trim().toLowerCase();
             hrg_filtrado = hrg_todos.filter(r => {
                 if (hrg_tipof && r.tipo_pessoa !== hrg_tipof) return false;
                 if (nome) {
@@ -1753,6 +1773,8 @@
                 if (p3 && r.pergunta3 !== p3) return false;
                 if (p5 && r.pergunta5 !== p5) return false;
                 if (area && !(r.pergunta1 || '').includes(area)) return false;
+                if (fStatus && (r.status || 'em_espera') !== fStatus) return false;
+                if (fAtend && !(r.atendente || '').toLowerCase().includes(fAtend)) return false;
                 return true;
             });
             _renderStats();
@@ -1794,7 +1816,7 @@
         function _renderTabela() {
             const tbody = document.getElementById('hrg-tbody');
             if (!hrg_filtrado.length) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px;font-style:italic">Nenhum registo encontrado.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-faint);font-size:12px;font-style:italic">Nenhum registo encontrado.</td></tr>';
                 return
             }
             const grupos = _agrupar(hrg_filtrado), cp = {};
@@ -1846,6 +1868,7 @@
         <td style="max-width:170px">${info}</td>
         <td style="max-width:200px">${duvida}</td>
         <td>${statusSel}</td>
+        <td style="font-size:11px;color:var(--text-muted)">${r.atendente ? _esc(r.atendente) : '<span style="color:var(--text-faint)">—</span>'}</td>
         <td class="tc">${vbadge}</td>
         <td><div class="hrg-act-btns">
           <button class="btn-sm" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();hrg_verDetalhe('${r.id}')">Ver</button>
@@ -1996,7 +2019,7 @@
             return `<div class="hrg-kb-card" draggable="true" data-id="${r.id}" style="${finalStyle}" ondragstart="hrg_kbDragStart(event,'${r.id}')" ondragend="event.currentTarget.classList.remove('dragging')">
       <div class="hrg-kb-card-hd"><span class="hrg-av-ph" style="width:24px;height:24px;font-size:9px;flex-shrink:0">${_ini(nome)}</span><div class="hrg-kb-card-nome" title="${_esc(nome)}">${_esc(nome)}</div>${badge}${finalBadge}</div>
       ${areaTag}
-      <div class="hrg-kb-card-meta">${_fmtD(r.created_at)}${r.telefone ? ' · ' + r.telefone : ''}${r.pergunta2 ? `<br>${_trunc(r.pergunta2, 28)}` : ''}</div>
+      <div class="hrg-kb-card-meta">${_fmtD(r.created_at)}${r.telefone ? ' · ' + r.telefone : ''}${r.atendente ? `<br>👤 ${_esc(r.atendente)}` : ''}${r.pergunta2 ? `<br>${_trunc(r.pergunta2, 28)}` : ''}</div>
       ${anotSnip}
       ${isFinal ? '' : `<div class="hrg-kb-card-foot">
         <button class="btn-sm" style="font-size:9px;padding:2px 7px" onclick="hrg_verDetalhe('${r.id}')">Ver</button>
@@ -2321,7 +2344,7 @@
                 return `<div class="hrg-detail-row"><div class="hrg-detail-lbl">${q.label}</div><div class="hrg-detail-val">${_esc(v)}</div></div>`
             }).join('');
             const anotHtml = r.anotacoes ? `<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px"><div style="font-family:var(--font-title);font-size:8px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:8px">ANOTAÇÕES</div><div style="font-size:11px;line-height:1.7;white-space:pre-wrap;color:var(--text-main)">${_esc(r.anotacoes)}</div></div>` : '';
-            document.getElementById('hrg-modal-body').innerHTML = `<div style="display:flex;align-items:center;margin-bottom:18px">${av}<div><div style="font-weight:700;font-size:16px;margin-bottom:4px">${_esc(nome)}</div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="hbadge ${isM ? 'hb-m' : 'hb-v'}">${r.tipo_pessoa}</span><span style="font-size:9px;padding:2px 8px;border-radius:20px;background:rgba(0,0,0,.06);color:${stObj.cor};border:1px solid ${stObj.cor}44">${stObj.label}</span>${wa}</div></div></div><div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px"><div class="hrg-detail-row"><div class="hrg-detail-lbl">Data</div><div class="hrg-detail-val">${_fmtDH(r.created_at)}</div></div>${r.email ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Email</div><div class="hrg-detail-val">${_esc(r.email)}</div></div>` : ''}${r.morada ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Bairro / Cidade</div><div class="hrg-detail-val">${_esc(r.morada)}</div></div>` : ''}${r.genero ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Género</div><div class="hrg-detail-val">${_esc(r.genero)}</div></div>` : ''}</div><div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:14px"><div style="font-family:var(--font-title);font-size:8px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:10px">RESPOSTAS</div>${qs || '<div style="color:var(--text-faint);font-size:12px;font-style:italic">Sem respostas.</div>'}</div>${anotHtml}<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-sm" style="border-color:rgba(39,174,96,.35);background:rgba(39,174,96,.08);color:#27ae60" onclick="document.getElementById('hrg-modal').style.display='none';hrg_abrirAnot('${r.id}')">📝 Adicionar anotação</button></div>`;
+            document.getElementById('hrg-modal-body').innerHTML = `<div style="display:flex;align-items:center;margin-bottom:18px">${av}<div><div style="font-weight:700;font-size:16px;margin-bottom:4px">${_esc(nome)}</div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="hbadge ${isM ? 'hb-m' : 'hb-v'}">${r.tipo_pessoa}</span><span style="font-size:9px;padding:2px 8px;border-radius:20px;background:rgba(0,0,0,.06);color:${stObj.cor};border:1px solid ${stObj.cor}44">${stObj.label}</span>${wa}</div></div></div><div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px"><div class="hrg-detail-row"><div class="hrg-detail-lbl">Data</div><div class="hrg-detail-val">${_fmtDH(r.created_at)}</div></div>${r.atendente ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Atendente</div><div class="hrg-detail-val">${_esc(r.atendente)}</div></div>` : ''}${r.email ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Email</div><div class="hrg-detail-val">${_esc(r.email)}</div></div>` : ''}${r.morada ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Bairro / Cidade</div><div class="hrg-detail-val">${_esc(r.morada)}</div></div>` : ''}${r.genero ? `<div class="hrg-detail-row"><div class="hrg-detail-lbl">Género</div><div class="hrg-detail-val">${_esc(r.genero)}</div></div>` : ''}</div><div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:14px"><div style="font-family:var(--font-title);font-size:8px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:10px">RESPOSTAS</div>${qs || '<div style="color:var(--text-faint);font-size:12px;font-style:italic">Sem respostas.</div>'}</div>${anotHtml}<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-sm" style="border-color:rgba(39,174,96,.35);background:rgba(39,174,96,.08);color:#27ae60" onclick="document.getElementById('hrg-modal').style.display='none';hrg_abrirAnot('${r.id}')">📝 Adicionar anotação</button></div>`;
             document.getElementById('hrg-modal').style.display = 'flex';
         };
 
@@ -2370,6 +2393,7 @@
             document.getElementById('hrg-edit-tel').value = r.telefone || '';
             document.getElementById('hrg-edit-email').value = r.email || '';
             document.getElementById('hrg-edit-genero').value = r.genero || '';
+            document.getElementById('hrg-edit-atendente').value = r.atendente || '';
             document.getElementById('hrg-edit-morada').value = r.morada || '';
             document.getElementById('hrg-edit-duvida').value = r.duvida || '';
             document.getElementById('hrg-edit-status').textContent = '';
@@ -2400,6 +2424,7 @@
                 telefone: document.getElementById('hrg-edit-tel').value.trim() || null,
                 email: document.getElementById('hrg-edit-email').value.trim() || null,
                 genero: document.getElementById('hrg-edit-genero').value || null,
+                atendente: document.getElementById('hrg-edit-atendente').value.trim() || null,
                 morada: document.getElementById('hrg-edit-morada').value.trim() || null,
                 duvida: document.getElementById('hrg-edit-duvida').value.trim() || null,
                 pergunta1: document.getElementById('hrg-ep1')?.value.trim() || null

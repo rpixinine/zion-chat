@@ -17,6 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="rgpd_membros_patch.js"></script>
 
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/base.css">
@@ -497,13 +498,21 @@
     let _editNacs      = [];
     let _editBatizado  = false;
 
-    async function sb(path) {
+    async function sb(path, opts = {}) {
         const token = await ZionAuth.getToken();
         const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-            headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            ...opts,
+            headers: {
+                'apikey': SUPA_KEY,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...opts.headers
+            }
         });
-        return r.json();
+        const t = await r.text();
+        return t ? JSON.parse(t) : [];
     }
+    window.sb = sb;
 
     async function sbPatch(table, id, data) {
         const token = await ZionAuth.getToken();
@@ -863,7 +872,16 @@
             : `<div class="p-cell-value faint" data-original="">—</div>`}
             </div>
         </div>
-    </div>`;
+    </div>
+
+    ${eu ? `<div class="p-section"><div id="rgpd-bloco-edit"></div></div>` : ''}`;
+
+        if (eu) {
+            const rgpdBloco = document.getElementById('rgpd-bloco-edit');
+            if (rgpdBloco && window.rgpdConsentimentoHtml) {
+                rgpdBloco.innerHTML = window.rgpdConsentimentoHtml(m);
+            }
+        }
     }
 
     /* ═══════════════════════════════════════════════════
@@ -969,9 +987,17 @@
 
         try {
             await sbPatch('membros', perfilMembroId, payload);
+
+            // ← RGPD: lê o formulário de consentimento e grava (BD + log de auditoria)
+            if (window.rgpdLerFormulario && window.rgpdSalvarConsentimento) {
+                const consent = window.rgpdLerFormulario();
+                await window.rgpdSalvarConsentimento(perfilMembroId, consent);
+            }
+
             const idx=todosMembros.findIndex(x=>x.id===perfilMembroId);
             if(idx!==-1) Object.assign(todosMembros[idx], payload);
             showToast('✓ Perfil actualizado com sucesso');
+
             perfilEditMode=false;
             abrirPerfil(perfilMembroId);
         } catch(e) {

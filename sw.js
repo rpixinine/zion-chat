@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zion-v1.1.5';
+const CACHE_NAME = 'zion-v1.1.6';
 const URLS_TO_CACHE = [
     '/',
     '/index.html',

@@ -999,10 +999,16 @@
                 await window.rgpdSalvarConsentimento(perfilMembroId, consent);
             }
 
+            const fresh = await sb(`membros?select=*&id=eq.${perfilMembroId}`);
+            const novo  = Array.isArray(fresh) ? fresh[0] : null;
             const idx=todosMembros.findIndex(x=>x.id===perfilMembroId);
-            if(idx!==-1) Object.assign(todosMembros[idx], payload);
+            
+            if(idx!==-1) {
+                if (novo) todosMembros[idx] = novo;
+                else Object.assign(todosMembros[idx], payload);
+            }
+            
             showToast('✓ Perfil actualizado com sucesso');
-
             perfilEditMode=false;
             abrirPerfil(perfilMembroId);
         } catch(e) {

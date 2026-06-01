@@ -644,7 +644,9 @@
         html += `<div class="section-label">${filtroBirthday?`Aniversários · ${mesNome}`:'Comunidade'} · ${lista.length} ${lista.length===1?'membro':'membros'}</div>`;
         html += '<div class="member-list">';
         lista.forEach((m, i) => {
-            const an  = isAniv(m), wpp = wppUrl(m.telefone);
+            const podeVer = isMeu(m) || !!m.consentimento_exibicao;
+            const an  = podeVer && isAniv(m);
+            const wpp = podeVer ? wppUrl(m.telefone) : null;
             const ids = membroMinMap[m.id]||[], nomes = ids.map(id=>ministeriosMap[id]?.nome).filter(Boolean);
             const areaBadges = nomes.slice(0,2).map(n=>`<span class="mbadge mb-area">${n}</span>`).join('');
             const badges = [
@@ -724,9 +726,10 @@
     function renderPerfil(m, {conjuge, pai, mae, filhos, meusMin, meusCursos}) {
         const an   = isAniv(m);
         const MESES= ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-        const wpp  = wppUrl(m.telefone);
+        const wpp  = podeVer ? wppUrl(m.telefone) : null;
         const link = m.link_id ? linksMap[m.link_id] : null;
         const eu   = isMeu(m);
+        const podeVer = eu || !!m.consentimento_exibicao;
 
         _editIdiomas  = parseArr(m.idiomas || m['Idiomas']);
         _editNacs     = parseArr(m.nacionalidade);
@@ -738,7 +741,7 @@
             m.e_voluntario ? `<span class="pbadge pb-vol">Voluntário</span>`   : '',
             (!m.e_lider&&!m.e_presbitero&&!m.e_voluntario) ? `<span class="pbadge pb-membro">Membro</span>` : '',
             m.foi_batizado ? `<span class="pbadge pb-batiz">Batizado</span>`   : '',
-            an             ? `<span class="pbadge pb-aniv">🎂 Aniversariante</span>` : '',
+            (podeVer && an) ? `<span class="pbadge pb-aniv">🎂 Aniversariante</span>` : '',
             ...meusCursos.map(c=>`<span class="pbadge pb-curso">${c}</span>`),
         ].filter(Boolean).join('');
 
@@ -822,18 +825,20 @@
     <div class="perfil-subtipo">Membro · Zion Lisboa${an?` · 🎂 ${MESES[new Date(m.data_nascimento+'T12:00:00').getMonth()]}`:''}</div>
     ${badges?`<div class="perfil-badges">${badges}</div>`:''}
     ${wpp?`<div class="perfil-actions"><button class="btn-wpp-perfil" onclick="window.open('${wpp}','_blank')">${SVG_WPP} WhatsApp</button></div>`:''}
+    ${!podeVer ? `<div class="p-section"><div class="p-grid p-grid-full"><div class="p-cell p-cell-full"><div class="p-cell-value faint" style="font-style:italic">🔒 Este membro não autorizou a exibição dos seus dados de contacto na aplicação.</div></div></div></div>` : ''}
+
 
     <!-- Informação Pessoal -->
     <div class="p-section">
         <div class="p-section-title">Informação Pessoal</div>
         <div class="p-grid">
-            ${cellFull('Email', m.email)}
-            ${cell('Telefone', m.telefone, eu?'telefone':null)}
-            ${cell('Data de Nascimento', m.data_nascimento?`${fDate(m.data_nascimento)}${an?' 🎉':''}`:null, eu?'data_nascimento':null, 'date')}
+            ${podeVer ? cellFull('Email', m.email) : ''}
+            ${podeVer ? cell('Telefone', m.telefone, eu?'telefone':null) : ''}
+            ${podeVer ? cell('Data de Nascimento', m.data_nascimento?`${fDate(m.data_nascimento)}${an?' 🎉':''}`:null, eu?'data_nascimento':null, 'date') : ''}
             ${cell('Género', genLabel, eu?'genero':null, 'select-genero')}
             ${cell('Estado Civil', ecLabel, eu?'estado_civil':null, 'select-estado')}
-            ${cell('Profissão', m.profissao, eu?'profissao':null)}
-            ${cell('Escolaridade', escLabel, eu?'escolaridade':null, 'select-escolaridade')}
+            ${podeVer ? cell('Profissão', m.profissao, eu?'profissao':null) : ''}
+            ${podeVer ? cell('Escolaridade', escLabel, eu?'escolaridade':null, 'select-escolaridade') : ''}
         </div>
         <!-- Idiomas + Nacionalidade: chips para o próprio, texto para outros -->
         <div class="p-section-extra">
@@ -845,7 +850,7 @@
         </div>
     </div>
 
-    ${famCards.length?`<div class="p-section"><div class="p-section-title">Família</div><div class="familia-list">${famCards.join('')}</div></div>`:''}
+    ${podeVer && famCards.length?`<div class="p-section"><div class="p-section-title">Família</div><div class="familia-list">${famCards.join('')}</div></div>`:''}
 
     <!-- Na Igreja -->
     <div class="p-section">

@@ -8,18 +8,18 @@ const _RGPD_VERSAO = 'v1.0-2025-01';
 
 const _rgpdFinalidades = {
     gestao_membros: 'Gestão interna de membros e comunidade',
-    eventos:        'Registo de presenças em eventos e reuniões',
-    comunicacoes:   'Comunicações internas da Zion Lisboa',
-    financeiro:     'Gestão de dízimos e contribuições financeiras',
-    fotografias:    'Uso de fotografias em materiais da comunidade',
+    eventos: 'Registo de presenças em eventos e reuniões',
+    comunicacoes: 'Comunicações internas da Zion Lisboa',
+    financeiro: 'Gestão de dízimos e contribuições financeiras',
+    fotografias: 'Uso de fotografias em materiais da comunidade',
 };
 
 /* ══════════════════════════════════════════════════════════════
    BLOCO HTML — injetado no formulário
    ══════════════════════════════════════════════════════════════ */
 function rgpdConsentimentoHtml(membro) {
-    const jaTemConsent  = membro?.consentimento_dados;
-    const dataConsent   = membro?.consentimento_data
+    const jaTemConsent = membro?.consentimento_dados;
+    const dataConsent = membro?.consentimento_data
         ? new Date(membro.consentimento_data).toLocaleDateString('pt-PT', {
             day: '2-digit', month: 'long', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
@@ -27,11 +27,11 @@ function rgpdConsentimentoHtml(membro) {
         : null;
     const finalidades = membro?.finalidades || ['gestao_membros', 'eventos', 'comunicacoes'];
 
-    const finOpts = Object.entries(_rgpdFinalidades).map(function(entry) {
-        var key   = entry[0];
+    const finOpts = Object.entries(_rgpdFinalidades).map(function (entry) {
+        var key = entry[0];
         var label = entry[1];
         var checked = finalidades.includes(key) ||
-            (!membro && ['gestao_membros','eventos','comunicacoes'].includes(key));
+            (!membro && ['gestao_membros', 'eventos', 'comunicacoes'].includes(key));
         var isCore = key === 'gestao_membros';
         return '<label style="display:flex;align-items:flex-start;gap:10px;cursor:' + (isCore ? 'default' : 'pointer') + ';padding:9px 0;border-bottom:1px solid var(--navy-border)">' +
             '<input type="checkbox" name="rgpd_fin" value="' + key + '" ' + (checked ? 'checked' : '') + ' ' + (isCore ? 'disabled' : '') + ' style="margin-top:2px;width:16px;height:16px;accent-color:var(--teal);flex-shrink:0">' +
@@ -86,6 +86,14 @@ function rgpdConsentimentoHtml(membro) {
         '</span>' +
         '</label>' +
 
+        '<label id="rgpd-exib-label" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;background:var(--navy-card);border-radius:10px;padding:14px;border:1px solid ' + (membro?.consentimento_exibicao ? 'rgba(67,160,71,.4)' : 'var(--navy-border)') + ';margin-top:10px;transition:border-color .2s">' +
+        '<input type="checkbox" id="rgpd_exibicao" ' + (membro?.consentimento_exibicao ? 'checked' : '') + ' style="width:18px;height:18px;margin-top:2px;accent-color:var(--teal);flex-shrink:0" onchange="rgpdOnExibChange(this.checked)">' +
+        '<span style="font-size:13px;color:var(--text-main);line-height:1.6">' +
+        '<strong>Autorizo mostrar os meus dados na aplicação.</strong><br>' +
+        '<span style="font-size:11px;color:var(--text-muted)">Permite que outros membros vejam o meu telefone, email, data de nascimento, família, profissão e escolaridade. Sem esta autorização, apenas o meu nome e foto ficam visíveis.</span>' +
+        '</span>' +
+        '</label>' +
+
         (membro ? (
             '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">' +
             '<button type="button" onclick="rgpdAbrirPainel(\'' + membroId + '\')" class="btn-inline">📋 Os Meus Dados</button>' +
@@ -102,9 +110,12 @@ function rgpdConsentimentoHtml(membro) {
    ══════════════════════════════════════════════════════════════ */
 function rgpdLerFormulario() {
     var dados = document.getElementById('rgpd_consentimento') ? document.getElementById('rgpd_consentimento').checked : false;
-    var fins  = Array.from(document.querySelectorAll('input[name="rgpd_fin"]:checked')).map(function(el) { return el.value; });
+    var exib = document.getElementById('rgpd_exibicao') ? document.getElementById('rgpd_exibicao').checked : false;
+    var fins = Array.from(document.querySelectorAll('input[name="rgpd_fin"]:checked')).map(function (el) {
+        return el.value;
+    });
     if (!fins.includes('gestao_membros')) fins.unshift('gestao_membros');
-    return { dados: dados, versao: _RGPD_VERSAO, finalidades: fins };
+    return {dados: dados, exibicao: exib, versao: _RGPD_VERSAO, finalidades: fins};
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -117,16 +128,17 @@ async function rgpdSalvarConsentimento(membroId, consent) {
         const res = await window.sb('rpc/rgpd_guardar_consentimento', {
             method: 'POST',
             body: JSON.stringify({
-                p_membro_id:   membroId,
-                p_dados:       consent.dados,
-                p_versao:      consent.versao,
-                p_canal:       'self',
+                p_membro_id: membroId,
+                p_dados: consent.dados,
+                p_versao: consent.versao,
+                p_canal: 'self',
                 p_finalidades: consent.finalidades,
-                p_notas:       'Registado via perfil público'
+                p_notas: 'Registado via perfil público',
+                p_exibicao: consent.exibicao
             })
         });
         console.log('[RGPD] Consentimento gravado:', res);
-    } catch(e) {
+    } catch (e) {
         console.error('[RGPD] Erro ao guardar consentimento:', e);
     }
 }
@@ -137,8 +149,15 @@ async function rgpdSalvarConsentimento(membroId, consent) {
 function rgpdOnConsentChange(checked) {
     var label = document.getElementById('rgpd-consent-label');
     if (!label) return;
-    label.style.borderColor = checked ? 'rgba(67,160,71,.4)'  : 'var(--navy-border)';
-    label.style.background  = checked ? 'rgba(67,160,71,.04)' : 'var(--navy-card)';
+    label.style.borderColor = checked ? 'rgba(67,160,71,.4)' : 'var(--navy-border)';
+    label.style.background = checked ? 'rgba(67,160,71,.04)' : 'var(--navy-card)';
+}
+
+function rgpdOnExibChange(checked) {
+    var label = document.getElementById('rgpd-exib-label');
+    if (!label) return;
+    label.style.borderColor = checked ? 'rgba(67,160,71,.4)' : 'var(--navy-border)';
+    label.style.background = checked ? 'rgba(67,160,71,.04)' : 'var(--navy-card)';
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -151,7 +170,9 @@ async function rgpdAbrirPainel(membroId) {
     var ov = document.createElement('div');
     ov.id = 'rgpd-modal-ov';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 16px;backdrop-filter:blur(4px)';
-    ov.onclick = function(e) { if (e.target === ov) ov.remove(); };
+    ov.onclick = function (e) {
+        if (e.target === ov) ov.remove();
+    };
     ov.innerHTML = '<div style="background:var(--navy-card);border:1px solid var(--navy-border);border-radius:16px;width:100%;max-width:480px;margin:auto">' +
         '<div style="padding:20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--navy-border)">' +
         '<span style="font-size:20px">🔒</span>' +
@@ -167,30 +188,49 @@ async function rgpdAbrirPainel(membroId) {
 
     try {
         var results = await Promise.all([
-            window.sb('membros?id=eq.' + membroId + '&select=id,nome,email,telefone,nif,data_nascimento,foto_url,ativo,created_at,consentimento_dados,consentimento_data,consentimento_versao,consentimento_canal,finalidades,anonimizar_pedido_em').then(function(r) { return r && r[0]; }),
-            window.sb('consentimento_log?membro_id=eq.' + membroId + '&order=criado_em.desc&limit=10').catch(function() { return []; })
+            window.sb('membros?id=eq.' + membroId + '&select=id,nome,email,telefone,nif,data_nascimento,foto_url,ativo,created_at,consentimento_dados,consentimento_data,consentimento_versao,consentimento_canal,finalidades,anonimizar_pedido_em').then(function (r) {
+                return r && r[0];
+            }),
+            window.sb('consentimento_log?membro_id=eq.' + membroId + '&order=criado_em.desc&limit=10').catch(function () {
+                return [];
+            })
         ]);
-        var membro  = results[0];
+        var membro = results[0];
         var logRows = results[1] || [];
 
-        if (!membro) { ov.remove(); return; }
+        if (!membro) {
+            ov.remove();
+            return;
+        }
 
         var dtConsent = membro.consentimento_data
-            ? new Date(membro.consentimento_data).toLocaleDateString('pt-PT', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })
+            ? new Date(membro.consentimento_data).toLocaleDateString('pt-PT', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
             : 'Não registado';
 
         var acaoLabel = {
-            'concedido':                  { l: '✓ Consentimento concedido',  c: 'var(--green)' },
-            'revogado':                   { l: '✗ Consentimento revogado',    c: 'var(--red)'   },
-            'exportacao_pedida':          { l: '↓ Exportação pedida',         c: 'var(--teal)'  },
-            'anonimizacao_pedida':        { l: '⚠ Anonimização pedida',        c: 'var(--amber)' },
-            'pendente_sem_consentimento': { l: '— Sem consentimento',         c: 'var(--text-faint)' },
+            'concedido': {l: '✓ Consentimento concedido', c: 'var(--green)'},
+            'revogado': {l: '✗ Consentimento revogado', c: 'var(--red)'},
+            'exportacao_pedida': {l: '↓ Exportação pedida', c: 'var(--teal)'},
+            'anonimizacao_pedida': {l: '⚠ Anonimização pedida', c: 'var(--amber)'},
+            'pendente_sem_consentimento': {l: '— Sem consentimento', c: 'var(--text-faint)'},
         };
 
         var logHtml = logRows.length
-            ? logRows.map(function(l) {
-                var info = acaoLabel[l.acao] || { l: l.acao, c: 'var(--text-faint)' };
-                var dt   = new Date(l.criado_em).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            ? logRows.map(function (l) {
+                var info = acaoLabel[l.acao] || {l: l.acao, c: 'var(--text-faint)'};
+                var dt = new Date(l.criado_em).toLocaleDateString('pt-PT', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
                 return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--navy-border);gap:10px">' +
                     '<span style="font-size:11px;font-weight:700;color:' + info.c + '">' + info.l + '</span>' +
                     '<span style="font-size:10px;color:var(--text-faint);white-space:nowrap">' + dt + '</span>' +
@@ -200,16 +240,18 @@ async function rgpdAbrirPainel(membroId) {
 
         var fins = membro.finalidades || [];
         var dadosLinhas = [
-            ['Nome',         membro.nome || '—'],
-            ['Email',        membro.email || '—'],
-            ['Telemóvel',    membro.telefone || '—'],
-            ['NIF',          membro.nif ? '●●●●●●●' : '—'],
-            ['Nascimento',   membro.data_nascimento ? new Date(membro.data_nascimento).toLocaleDateString('pt-PT') : '—'],
-            ['Foto',         membro.foto_url ? 'Guardada em servidor seguro' : 'Não'],
-            ['Presenças',    'Histórico de eventos e reuniões'],
+            ['Nome', membro.nome || '—'],
+            ['Email', membro.email || '—'],
+            ['Telemóvel', membro.telefone || '—'],
+            ['NIF', membro.nif ? '●●●●●●●' : '—'],
+            ['Nascimento', membro.data_nascimento ? new Date(membro.data_nascimento).toLocaleDateString('pt-PT') : '—'],
+            ['Foto', membro.foto_url ? 'Guardada em servidor seguro' : 'Não'],
+            ['Presenças', 'Histórico de eventos e reuniões'],
             ['Membro desde', membro.created_at ? new Date(membro.created_at).toLocaleDateString('pt-PT') : '—'],
-            ['Finalidades',  fins.length ? fins.map(function(f) { return _rgpdFinalidades[f] || f; }).join(', ') : '—'],
-        ].map(function(row) {
+            ['Finalidades', fins.length ? fins.map(function (f) {
+                return _rgpdFinalidades[f] || f;
+            }).join(', ') : '—'],
+        ].map(function (row) {
             return '<div style="display:flex;padding:9px 14px;border-bottom:1px solid var(--navy-border)">' +
                 '<span style="font-size:11px;color:var(--text-faint);min-width:100px;flex-shrink:0">' + row[0] + '</span>' +
                 '<span style="font-size:12px;color:var(--text-main)">' + row[1] + '</span>' +
@@ -264,7 +306,7 @@ async function rgpdAbrirPainel(membroId) {
             '<div style="font-size:10px;color:var(--text-faint);margin-top:6px">Conservado por mínimo 5 anos como prova de conformidade (Art. 5.º/2 RGPD).</div>' +
             '</div>';
 
-    } catch(e) {
+    } catch (e) {
         console.error('[RGPD] Erro ao abrir painel:', e);
         ov.remove();
     }
@@ -276,28 +318,60 @@ async function rgpdAbrirPainel(membroId) {
 async function rgpdRevogarConsentimento(membroId) {
     if (!confirm('Tens a certeza que queres revogar o consentimento?\n\nOs dados continuarão a ser tratados ao abrigo do Art. 9.º/2/d RGPD para gestão interna.')) return;
     try {
-        await window.sb('rpc/atualizar_perfil', { method: 'POST', body: JSON.stringify({ p_id: membroId, p_dados: { consentimento_dados: false } }) });
-        await window.sb('rpc/rgpd_gravar_log', { method: 'POST', body: JSON.stringify({ p_membro_id: membroId, p_acao: 'revogado', p_versao: _RGPD_VERSAO, p_canal: 'self', p_notas: 'Revogado via perfil público' }) }).catch(function(){});
+        await window.sb('rpc/atualizar_perfil', {
+            method: 'POST',
+            body: JSON.stringify({p_id: membroId, p_dados: {consentimento_dados: false}})
+        });
+        await window.sb('rpc/rgpd_gravar_log', {
+            method: 'POST',
+            body: JSON.stringify({
+                p_membro_id: membroId,
+                p_acao: 'revogado',
+                p_versao: _RGPD_VERSAO,
+                p_canal: 'self',
+                p_notas: 'Revogado via perfil público'
+            })
+        }).catch(function () {
+        });
         var ov = document.getElementById('rgpd-modal-ov');
         if (ov) ov.remove();
         alert('Consentimento revogado e registado com sucesso.');
-    } catch(e) { alert('Erro: ' + (e && e.message ? e.message : e)); }
+    } catch (e) {
+        alert('Erro: ' + (e && e.message ? e.message : e));
+    }
 }
 
 async function rgpdConcederConsentimento(membroId) {
     try {
-        await window.sb('rpc/atualizar_perfil', { method: 'POST', body: JSON.stringify({ p_id: membroId, p_dados: {
-                    consentimento_dados:  true,
-                    consentimento_data:   new Date().toISOString(),
+        await window.sb('rpc/atualizar_perfil', {
+            method: 'POST', body: JSON.stringify({
+                p_id: membroId, p_dados: {
+                    consentimento_dados: true,
+                    consentimento_data: new Date().toISOString(),
                     consentimento_versao: _RGPD_VERSAO,
-                    consentimento_canal:  'self',
-                    finalidades:          ['gestao_membros','eventos','comunicacoes']
-                }})});
-        await window.sb('rpc/rgpd_gravar_log', { method: 'POST', body: JSON.stringify({ p_membro_id: membroId, p_acao: 'concedido', p_versao: _RGPD_VERSAO, p_canal: 'self', p_finalidades: ['gestao_membros','eventos','comunicacoes'], p_notas: 'Concedido via perfil público' }) }).catch(function(){});
+                    consentimento_canal: 'self',
+                    finalidades: ['gestao_membros', 'eventos', 'comunicacoes']
+                }
+            })
+        });
+        await window.sb('rpc/rgpd_gravar_log', {
+            method: 'POST',
+            body: JSON.stringify({
+                p_membro_id: membroId,
+                p_acao: 'concedido',
+                p_versao: _RGPD_VERSAO,
+                p_canal: 'self',
+                p_finalidades: ['gestao_membros', 'eventos', 'comunicacoes'],
+                p_notas: 'Concedido via perfil público'
+            })
+        }).catch(function () {
+        });
         var ov = document.getElementById('rgpd-modal-ov');
         if (ov) ov.remove();
         alert('Consentimento registado com sucesso.');
-    } catch(e) { alert('Erro: ' + (e && e.message ? e.message : e)); }
+    } catch (e) {
+        alert('Erro: ' + (e && e.message ? e.message : e));
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -306,32 +380,74 @@ async function rgpdConcederConsentimento(membroId) {
 async function rgpdSolicitarExportacao(membroId) {
     try {
         var results = await Promise.all([
-            window.sb('membros?id=eq.' + membroId + '&select=*').then(function(r){ return r && r[0]; }),
-            window.sb('evento_presencas?membro_id=eq.' + membroId + '&select=status,registado_em').catch(function(){ return []; }),
-            window.sb('membro_ministerios?membro_id=eq.' + membroId + '&select=papel,ministerios(nome,tipo)&ativo=eq.true').catch(function(){ return []; }),
-            window.sb('consentimento_log?membro_id=eq.' + membroId + '&order=criado_em.desc').catch(function(){ return []; })
+            window.sb('membros?id=eq.' + membroId + '&select=*').then(function (r) {
+                return r && r[0];
+            }),
+            window.sb('evento_presencas?membro_id=eq.' + membroId + '&select=status,registado_em').catch(function () {
+                return [];
+            }),
+            window.sb('membro_ministerios?membro_id=eq.' + membroId + '&select=papel,ministerios(nome,tipo)&ativo=eq.true').catch(function () {
+                return [];
+            }),
+            window.sb('consentimento_log?membro_id=eq.' + membroId + '&order=criado_em.desc').catch(function () {
+                return [];
+            })
         ]);
-        var membro = results[0]; var presencas = results[1] || []; var mins = results[2] || []; var logRows = results[3] || [];
+        var membro = results[0];
+        var presencas = results[1] || [];
+        var mins = results[2] || [];
+        var logRows = results[3] || [];
 
         var exportData = {
-            exportado_em:   new Date().toISOString(),
-            aviso:          'Exportação ao abrigo do Art. 20.º RGPD — Direito à portabilidade.',
-            responsavel:    'Zion Lisboa — contacto@zionlisboa.pt',
-            dados_pessoais: { nome: membro && membro.nome, email: membro && membro.email, telefone: membro && membro.telefone, data_nascimento: membro && membro.data_nascimento, membro_desde: membro && membro.created_at },
-            consentimento:  { dado: membro && membro.consentimento_dados, data: membro && membro.consentimento_data, versao: membro && membro.consentimento_versao, finalidades: membro && membro.finalidades },
-            presencas:      presencas.map(function(p){ return { status: p.status, data: p.registado_em }; }),
-            ministerios:    mins.map(function(m){ return { nome: m.ministerios && m.ministerios.nome, papel: m.papel }; }),
-            log:            logRows.map(function(l){ return { acao: l.acao, data: l.criado_em, canal: l.canal }; }),
+            exportado_em: new Date().toISOString(),
+            aviso: 'Exportação ao abrigo do Art. 20.º RGPD — Direito à portabilidade.',
+            responsavel: 'Zion Lisboa — contacto@zionlisboa.pt',
+            dados_pessoais: {
+                nome: membro && membro.nome,
+                email: membro && membro.email,
+                telefone: membro && membro.telefone,
+                data_nascimento: membro && membro.data_nascimento,
+                membro_desde: membro && membro.created_at
+            },
+            consentimento: {
+                dado: membro && membro.consentimento_dados,
+                data: membro && membro.consentimento_data,
+                versao: membro && membro.consentimento_versao,
+                finalidades: membro && membro.finalidades
+            },
+            presencas: presencas.map(function (p) {
+                return {status: p.status, data: p.registado_em};
+            }),
+            ministerios: mins.map(function (m) {
+                return {nome: m.ministerios && m.ministerios.nome, papel: m.papel};
+            }),
+            log: logRows.map(function (l) {
+                return {acao: l.acao, data: l.criado_em, canal: l.canal};
+            }),
         };
 
-        var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        var url  = URL.createObjectURL(blob);
-        var a    = document.createElement('a');
-        a.href = url; a.download = 'meus-dados-zion-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+        var blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'meus-dados-zion-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
         URL.revokeObjectURL(url);
 
-        await window.sb('rpc/rgpd_gravar_log', { method: 'POST', body: JSON.stringify({ p_membro_id: membroId, p_acao: 'exportacao_pedida', p_versao: _RGPD_VERSAO, p_canal: 'self', p_notas: 'Exportação Art. 20.º RGPD' }) }).catch(function(){});
-    } catch(e) { alert('Erro ao exportar: ' + (e && e.message ? e.message : e)); }
+        await window.sb('rpc/rgpd_gravar_log', {
+            method: 'POST',
+            body: JSON.stringify({
+                p_membro_id: membroId,
+                p_acao: 'exportacao_pedida',
+                p_versao: _RGPD_VERSAO,
+                p_canal: 'self',
+                p_notas: 'Exportação Art. 20.º RGPD'
+            })
+        }).catch(function () {
+        });
+    } catch (e) {
+        alert('Erro ao exportar: ' + (e && e.message ? e.message : e));
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -340,25 +456,41 @@ async function rgpdSolicitarExportacao(membroId) {
 async function rgpdSolicitarAnonimizacao(membroId) {
     if (!confirm('⚠️ Pedido de apagamento de dados (Art. 17.º RGPD)\n\nEste pedido será avaliado pela administração no prazo de 30 dias.\n\nAlguns dados podem ser mantidos por obrigação legal.\n\nConfirmar?')) return;
     try {
-        await window.sb('rpc/atualizar_perfil', { method: 'POST', body: JSON.stringify({ p_id: membroId, p_dados: { anonimizar_pedido_em: new Date().toISOString() } }) });
-        await window.sb('rpc/rgpd_gravar_log', { method: 'POST', body: JSON.stringify({ p_membro_id: membroId, p_acao: 'anonimizacao_pedida', p_versao: _RGPD_VERSAO, p_canal: 'self', p_notas: 'Pedido Art. 17.º RGPD. Prazo: 30 dias.' }) }).catch(function(){});
+        await window.sb('rpc/atualizar_perfil', {
+            method: 'POST',
+            body: JSON.stringify({p_id: membroId, p_dados: {anonimizar_pedido_em: new Date().toISOString()}})
+        });
+        await window.sb('rpc/rgpd_gravar_log', {
+            method: 'POST',
+            body: JSON.stringify({
+                p_membro_id: membroId,
+                p_acao: 'anonimizacao_pedida',
+                p_versao: _RGPD_VERSAO,
+                p_canal: 'self',
+                p_notas: 'Pedido Art. 17.º RGPD. Prazo: 30 dias.'
+            })
+        }).catch(function () {
+        });
         var ov = document.getElementById('rgpd-modal-ov');
         if (ov) ov.remove();
         alert('Pedido registado. Responderemos em até 30 dias para contacto@zionlisboa.pt.');
-    } catch(e) { alert('Erro: ' + (e && e.message ? e.message : e)); }
+    } catch (e) {
+        alert('Erro: ' + (e && e.message ? e.message : e));
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════
    EXPORTS
    ══════════════════════════════════════════════════════════════ */
 Object.assign(window, {
-    rgpdConsentimentoHtml:      rgpdConsentimentoHtml,
-    rgpdLerFormulario:          rgpdLerFormulario,
-    rgpdSalvarConsentimento:    rgpdSalvarConsentimento,
-    rgpdOnConsentChange:        rgpdOnConsentChange,
-    rgpdAbrirPainel:            rgpdAbrirPainel,
-    rgpdRevogarConsentimento:   rgpdRevogarConsentimento,
-    rgpdConcederConsentimento:  rgpdConcederConsentimento,
-    rgpdSolicitarExportacao:    rgpdSolicitarExportacao,
-    rgpdSolicitarAnonimizacao:  rgpdSolicitarAnonimizacao,
+    rgpdConsentimentoHtml: rgpdConsentimentoHtml,
+    rgpdLerFormulario: rgpdLerFormulario,
+    rgpdSalvarConsentimento: rgpdSalvarConsentimento,
+    rgpdOnConsentChange: rgpdOnConsentChange,
+    rgpdAbrirPainel: rgpdAbrirPainel,
+    rgpdRevogarConsentimento: rgpdRevogarConsentimento,
+    rgpdConcederConsentimento: rgpdConcederConsentimento,
+    rgpdSolicitarExportacao: rgpdSolicitarExportacao,
+    rgpdSolicitarAnonimizacao: rgpdSolicitarAnonimizacao,
+    rgpdOnExibChange: rgpdOnExibChange
 });

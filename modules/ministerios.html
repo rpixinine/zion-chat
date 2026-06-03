@@ -396,6 +396,9 @@
         </div>
 
         <!-- Lista de voluntários -->
+        <div class="crud-group" style="margin-bottom:10px">
+            <input id="min-ea-search" placeholder="Pesquisar por nome…" oninput="min_eaFiltrar()">
+        </div>
         <div id="min-ea-lista" style="flex:1;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;min-height:80px"></div>
 
         <div class="form-msg" id="min-ea-msg"></div>
@@ -432,6 +435,11 @@
 <script>
     /* ── Supabase helper ─────────────────────────────── */
     const min_sb = window.sb;
+
+    /* permissão — usa a função global do index; se não existir, liberta (fail-open só fora do painel) */
+    function min_pode(accao) {
+        return typeof window.perm === 'function' ? window.perm('ministerios', accao) : true;
+    }
 
     /* ── ESTADO GLOBAL ── */
     var min_mins = [], min_memAll = [], min_cultsAll = [], min_minAtivo = null;
@@ -1007,7 +1015,9 @@
                 <td id="pin-cell-${m.membro_id}">
                     <button class="btn-sm" style="font-size:10px;padding:3px 8px" onclick="min_editarPin('${m.membro_id}')">PIN</button>
                 </td>
-                <td><button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button></td>
+                <td>${min_pode('eliminar')
+                    ? `<button class="btn-sm danger" onclick="min_remMem('${m.id}')">Remover</button>`
+                    : `<span style="font-size:10px;color:var(--text-faint)">—</span>`}</td>
             </tr>`;
             }).join('')}</tbody></table></div>`
             : `<div style="padding:40px;text-align:center;color:var(--text-faint)"><div style="font-family:var(--font-title);font-size:10px;letter-spacing:2px">Nenhum voluntário neste ministério</div></div>`}`;
@@ -1084,12 +1094,50 @@
         }
     }
 
-    async function min_remMem(id) {
+    async function min_remMemOld(id) {
+        if (!min_pode('eliminar')) { min_t('Sem permissão para remover', 'err'); return; }
         if (!confirm('Remover voluntário do ministério?')) return;
-        await min_sb(`ministerio_membros?id=eq.${id}`,{method:'DELETE'});
-        min_minMems=min_minMems.filter(m=>m.id!==id);
-        min_memNoMin=new Set(min_minMems.map(m=>m.membro_id));
-        min_renderMems(); min_t('Removido');
+        try {
+            await min_sb(`ministerio_membros?id=eq.${id}`, { method: 'DELETE' });
+            min_minMems = min_minMems.filter(m => m.id !== id);
+            min_memNoMin = new Set(min_minMems.map(m => m.membro_id));
+            min_renderMems();
+            const tabEl = document.getElementById('mint-membros');
+            if (tabEl) tabEl.textContent = `Voluntários (${min_minMems.length})`;
+            min_t('Removido');
+        } catch (e) {
+            min_t('Erro ao remover: ' + (e.message || JSON.stringify(e)), 'err');
+            console.error('min_remMem erro:', e);
+        }
+    }
+
+    async function min_remMem(id) {
+        if (!min_pode('eliminar')) { min_t('Sem permissão para remover', 'err'); return; }
+        if (!confirm('Remover voluntário do ministério?')) return;
+
+        const mem = min_minMems.find(m => m.id === id);   // guarda membro_id antes de filtrar
+        try {
+            // 1. apaga o vínculo do ministério
+            await min_sb(`ministerio_membros?id=eq.${id}`, { method: 'DELETE' });
+
+            // 2. desativa a tag em membro_ministerios — senão o auto-add do min_sel re-insere
+            if (mem?.membro_id && min_minAtivo?.id) {
+                await min_sb(
+                    `membro_ministerios?ministerio_id=eq.${min_minAtivo.id}&membro_id=eq.${mem.membro_id}&ativo=eq.true`,
+                    { method: 'PATCH', body: JSON.stringify({ ativo: false }) }
+                ).catch(console.error);
+            }
+
+            min_minMems = min_minMems.filter(m => m.id !== id);
+            min_memNoMin = new Set(min_minMems.map(m => m.membro_id));
+            min_renderMems();
+            const tabEl = document.getElementById('mint-membros');
+            if (tabEl) tabEl.textContent = `Voluntários (${min_minMems.length})`;
+            min_t('Removido');
+        } catch (e) {
+            min_t('Erro ao remover: ' + (e.message || JSON.stringify(e)), 'err');
+            console.error('min_remMem erro:', e);
+        }
     }
 
     /* ── CULTOS ── */
@@ -1662,7 +1710,7 @@
                     title="Remover todos deste culto/dia">✕ limpar</span>
                 ${ps.map(p=>`<div class="esc-cell">
                     <span class="esc-cell-nome">${p.membros?.nome||'—'}</span>
-                    ${p.papel_escala!=='servindo'?`<span class="esc-cell-papel">${p.papel_escala.toUpperCase()}</span>`:''}
+                    ${p.papel_escala!=='servindo'?`<span class="esc-cell-papel">${(p.papel_escala==='aprendiz'?'em treinamento':p.papel_escala).toUpperCase()}</span>`:''}
                     ${p.notas?`<span class="esc-cell-notas">${p.notas}</span>`:''}
                     <span class="esc-rem-btn" onclick="min_remEsc('${p.id}')">remover</span>
                 </div>`).join('')}
@@ -1886,8 +1934,9 @@
         } else {
             lista.innerHTML = disponiveis.map(m => `
         <div class="min-ea-row" id="min-ea-row-${m.membro_id}"
-             style="border-bottom:1px solid var(--border);padding:10px 12px;cursor:pointer;transition:background 0.12s"
-             onclick="min_eaToggle('${m.membro_id}')">
+     data-nome="${(m.membros?.nome||'').toLowerCase().replace(/"/g,'&quot;')}"
+     style="border-bottom:1px solid var(--border);padding:10px 12px;cursor:pointer;transition:background 0.12s"
+     onclick="min_eaToggle('${m.membro_id}')">
             <div style="display:flex;align-items:center;gap:10px">
                 <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);
                             background:var(--bg-input);flex-shrink:0;display:flex;align-items:center;
@@ -1907,7 +1956,7 @@
                         <label>Papel na escala</label>
                         <select id="min-ea-papel-${m.membro_id}">
                             <option value="servindo">Servindo</option>
-                            <option value="aprendiz">Aprendiz</option>
+                            <option value="aprendiz">Em Treinamento</option>
                             <option value="extra">Extra</option>
                         </select>
                     </div>
@@ -1922,6 +1971,8 @@
 
         document.getElementById('min-ea-msg').className = 'form-msg';
         min_eaAtualizarBtn();
+        const sInp = document.getElementById('min-ea-search');
+        if (sInp) sInp.value = '';
         document.getElementById('min-modal-ea').style.display = 'flex';
     }
 
@@ -1946,6 +1997,13 @@
             row.style.background = 'var(--primary-faint)';
         }
         min_eaAtualizarBtn();
+    }
+
+    function min_eaFiltrar() {
+        const q = (document.getElementById('min-ea-search')?.value || '').toLowerCase().trim();
+        document.querySelectorAll('#min-ea-lista .min-ea-row').forEach(row => {
+            row.style.display = (row.dataset.nome || '').includes(q) ? '' : 'none';
+        });
     }
 
     function min_eaAtualizarBtn() {
